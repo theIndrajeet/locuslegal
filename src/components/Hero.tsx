@@ -10,7 +10,7 @@ export default function Hero() {
     <section className="relative min-h-screen flex items-center overflow-hidden">
       <BackgroundPathsAnimation />
       {/* Dark overlay for readability */}
-      <div className="absolute inset-0 bg-black/50 z-[1]" />
+      <div className="absolute inset-0 bg-background/50 z-[1]" />
       
       <div className="container mx-auto px-4 md:px-8 relative z-10 py-32">
         <div className="max-w-3xl">
@@ -23,7 +23,7 @@ export default function Hero() {
           </span>
           
           <h1
-            className={`font-heading text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold leading-[1.05] tracking-tight mb-8 text-white transition-all duration-700 delay-150 ${
+            className={`font-heading text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold leading-[1.05] tracking-tight mb-8 text-foreground transition-all duration-700 delay-150 ${
               visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
             }`}
           >
@@ -42,7 +42,7 @@ export default function Hero() {
           </h1>
           
           <p
-            className={`text-lg md:text-xl text-white/70 max-w-xl mb-12 leading-relaxed transition-all duration-700 delay-300 ${
+            className={`text-lg md:text-xl text-foreground/70 max-w-xl mb-12 leading-relaxed transition-all duration-700 delay-300 ${
               visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
             }`}
           >
@@ -58,7 +58,7 @@ export default function Hero() {
               <InteractiveHoverButton text="I'm a Student" className="border-accent bg-accent text-accent-foreground font-heading text-base px-8 py-4" />
             </a>
             <a href="#waitlist">
-              <InteractiveHoverButton text="I'm a Firm" className="border-white/30 bg-transparent text-white font-heading text-base px-8 py-4" />
+              <InteractiveHoverButton text="I'm a Firm" className="border-foreground/30 bg-transparent text-foreground font-heading text-base px-8 py-4" />
             </a>
           </div>
         </div>
