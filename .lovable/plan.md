@@ -1,64 +1,65 @@
 
 
-# Lex Root — Landing Page Plan
+# Visual Revamp + Animated Shader Background
 
-## Overview
-A bold, modern landing page for India's legal internship platform connecting law students with firms based on merit. Dark/light mode support with a gold (#E8A020) brand accent.
+## Problem
+The current landing page looks generic/AI-generated — uniform spacing, predictable card layouts, default styling patterns. We need to add visual distinction and integrate the Three.js shader background.
 
-## Design System Setup
-- Custom color tokens for light and dark modes as specified
-- Typography: Sora (headings) + Inter (body) via Google Fonts
-- Consistent gold accent (#E8A020) across both modes
-- Smooth scroll-reveal animations on sections
+## Plan
 
-## Page Sections (top to bottom)
+### 1. Install `three` dependency
+Already have `lucide-react`. Need to add `three` (v0.133+).
 
-### 1. Navbar
-- Lex Root logo/wordmark with gold accent
-- Navigation links (Students, Firms, Waitlist)
-- Dark/light mode toggle
-- Mobile hamburger menu
+### 2. Create `src/components/ui/animated-shader-background.tsx`
+Adapt the provided component — strip out the unused Lucide imports and the inner content div. Export just the shader canvas as a reusable background component that renders a full-screen aurora effect behind content.
 
-### 2. Hero Section
-- Gold badge: "Your merit. Your internship."
-- Large headline: "Get the internship you deserve — not the one your college got you."
-- Subtext explaining the platform
-- Two CTA buttons: "I'm a Student" / "I'm a Firm"
-- Subtle fade-in animations
+### 3. Integrate shader background into Hero section
+- Place the `AnimatedShaderBackground` as a full-bleed `position: absolute` layer behind the Hero content
+- Add a dark overlay gradient so text remains readable on top of the aurora
+- Remove the plain background, let the shader create visual drama
+- Content sits on top with `position: relative` and `z-10`
 
-### 3. Problem Stats Bar
-- Full-width contrasting strip (navy in light mode, slightly lighter dark card in dark mode)
-- Animated counters: 500,000+ law students, ~600 top-firm spots, 1,800 colleges vs 26 NLUs, zero placement infrastructure
-- Numbers count up on scroll into view
+### 4. Visual revamp across all sections
+Key changes to break the "AI-made" feel:
 
-### 4. For Students Section
-- Headline: "Built for the 95% that top firms ignore."
-- Three feature cards: Direct Apply, Skill-Based Matching, Guaranteed Internship
-- Icons + short descriptions
-- Student-focused CTA button
+**Hero:**
+- Shader background makes it immediately unique
+- Asymmetric text alignment (left-aligned on desktop instead of centered)
+- More dramatic typography sizing with tighter letter-spacing
+- Staggered fade-in animations on badge → headline → subtext → CTAs
 
-### 5. For Firms Section
-- Headline: "Stop drowning in unscreened applications."
-- Three feature cards: Pre-Screened Candidates, Free Listing, Quality Interns
-- Icons + short descriptions
-- Firm-focused CTA button
+**Navbar:**
+- Add a subtle glassmorphism effect with more prominent blur
+- Slightly reduce padding for a tighter, more editorial feel
 
-### 6. Waitlist Section
-- Two-column layout side by side (stacked on mobile)
-- **Students form**: email, year of study, city → "I want an internship"
-- **Firms form**: email, firm name, city → "I want pre-screened interns"
-- Data stored in localStorage for now (Supabase-ready structure)
-- Success toast on submission
+**Stats Bar:**
+- Add subtle gradient border-top/bottom lines using accent color
+- Make the numbers larger with a mono-style weight contrast
 
-### 7. Footer
-- Lex Root logo + tagline
-- Social links placeholders (Twitter, LinkedIn, Instagram)
-- Minimal, clean design
+**Feature Cards (Students & Firms):**
+- Add subtle hover lift with shadow transition (not just border color)
+- Stagger card entry animations
+- Add accent gradient line at top of each card
 
-## Technical Notes
-- Intersection Observer for scroll-reveal animations and counter triggers
-- Dark/light mode via next-themes (already installed)
-- Fully responsive — mobile-first approach
-- All waitlist data persisted to localStorage as JSON arrays
-- Single-page with smooth scroll navigation between sections
+**Waitlist Section:**
+- Add a subtle background pattern or gradient
+- Style form inputs with more personality (rounded corners, focus glow)
+
+**Footer:**
+- Add a subtle top gradient separator instead of plain border
+
+### 5. Add `@keyframes float` to index.css
+As specified in the provided code.
+
+### Files to create/modify
+- **New:** `src/components/ui/animated-shader-background.tsx`
+- **Edit:** `src/components/Hero.tsx` — shader bg + left-align + stagger animations
+- **Edit:** `src/components/Navbar.tsx` — glassmorphism refinement
+- **Edit:** `src/components/StatsBar.tsx` — typography punch
+- **Edit:** `src/components/ForStudents.tsx` — card hover effects, stagger
+- **Edit:** `src/components/ForFirms.tsx` — card hover effects, stagger
+- **Edit:** `src/components/WaitlistSection.tsx` — background treatment
+- **Edit:** `src/components/Footer.tsx` — gradient separator
+- **Edit:** `src/index.css` — float keyframe, utility classes
+- **Edit:** `package.json` — add `three`
 
