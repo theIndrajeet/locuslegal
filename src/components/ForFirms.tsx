@@ -1,5 +1,6 @@
 import { UserCheck, BadgeCheck, Award } from "lucide-react";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
+import { InteractiveHoverButton } from "@/components/ui/interactive-hover-button";
 
 const features = [
   { icon: UserCheck, title: "Pre-Screened Candidates", desc: "Every applicant is vetted for skills, not just pedigree. Save hours on filtering." },
@@ -36,8 +37,8 @@ export default function ForFirms() {
           ))}
         </div>
         <div className="text-center mt-14">
-          <a href="#waitlist" className="inline-flex items-center justify-center px-8 py-4 rounded-xl border-2 border-accent text-accent font-heading font-bold hover:bg-accent hover:text-accent-foreground hover:shadow-lg hover:shadow-accent/20 hover:-translate-y-0.5 transition-all duration-300">
-            List Your Firm
+          <a href="#waitlist">
+            <InteractiveHoverButton text="List Your Firm" className="border-accent bg-transparent text-accent font-heading font-bold px-8 py-4" />
           </a>
         </div>
       </div>
