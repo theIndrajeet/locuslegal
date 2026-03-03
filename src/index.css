@@ -35,6 +35,17 @@
     --sidebar-accent-foreground: 0 0% 0%;
     --sidebar-border: 0 0% 88%;
     --sidebar-ring: 45 100% 51%;
+
+    /* Neobrutalist vars */
+    --main: hsl(45, 100%, 51%);
+    --overlay: rgba(0, 0, 0, 0.8);
+    --bg: #ffffff;
+    --bw: #ffffff;
+    --blank: #000;
+    --nborder: #000;
+    --ntext: #000;
+    --mtext: #000;
+    --shadow: 4px 4px 0px 0px #000;
   }
 
   .dark {
@@ -68,6 +79,17 @@
     --sidebar-accent-foreground: 0 0% 95%;
     --sidebar-border: 0 0% 15%;
     --sidebar-ring: 45 100% 51%;
+
+    /* Neobrutalist vars */
+    --main: hsl(45, 100%, 51%);
+    --overlay: rgba(0, 0, 0, 0.8);
+    --bg: #080808;
+    --bw: #212121;
+    --blank: #fff;
+    --nborder: #fafafa;
+    --ntext: #fafafa;
+    --mtext: #000;
+    --shadow: 4px 4px 0px 0px #fafafa;
   }
 }
 
