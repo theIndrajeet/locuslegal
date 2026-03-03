@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import BackgroundPathsAnimation from "@/components/ui/background-paths";
+import { InteractiveHoverButton } from "@/components/ui/interactive-hover-button";
 
 export default function Hero() {
   const [visible, setVisible] = useState(false);
@@ -43,17 +44,11 @@ export default function Hero() {
               visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
             }`}
           >
-            <a
-              href="#waitlist"
-              className="inline-flex items-center justify-center px-8 py-4 rounded-lg bg-accent text-accent-foreground font-heading font-bold text-base hover:brightness-110 transition-all shadow-lg shadow-accent/20"
-            >
-              I'm a Student
+            <a href="#waitlist">
+              <InteractiveHoverButton text="I'm a Student" className="border-accent bg-accent text-accent-foreground font-heading text-base px-8 py-4" />
             </a>
-            <a
-              href="#waitlist"
-              className="inline-flex items-center justify-center px-8 py-4 rounded-lg border-2 border-white/30 text-white font-heading font-semibold text-base hover:bg-white/10 transition-all backdrop-blur-sm"
-            >
-              I'm a Firm
+            <a href="#waitlist">
+              <InteractiveHoverButton text="I'm a Firm" className="border-white/30 bg-transparent text-white font-heading text-base px-8 py-4" />
             </a>
           </div>
         </div>

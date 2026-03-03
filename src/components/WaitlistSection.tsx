@@ -1,6 +1,7 @@
 import { useState, FormEvent } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
+import { InteractiveHoverButton } from "@/components/ui/interactive-hover-button";
 
 export default function WaitlistSection() {
   const { toast } = useToast();
@@ -71,12 +72,7 @@ export default function WaitlistSection() {
               value={studentForm.city}
               onChange={(e) => setStudentForm({ ...studentForm, city: e.target.value })}
             />
-            <button
-              type="submit"
-              className="w-full py-4 rounded-xl bg-primary text-primary-foreground font-heading font-bold hover:shadow-lg hover:shadow-primary/20 hover:-translate-y-0.5 transition-all duration-300"
-            >
-              I want an internship
-            </button>
+            <InteractiveHoverButton type="submit" text="I want an internship" className="w-full py-4 border-primary bg-primary text-primary-foreground font-heading font-bold" />
           </form>
 
           {/* Firms */}
@@ -100,12 +96,7 @@ export default function WaitlistSection() {
               value={firmForm.city}
               onChange={(e) => setFirmForm({ ...firmForm, city: e.target.value })}
             />
-            <button
-              type="submit"
-              className="w-full py-4 rounded-xl border-2 border-accent text-accent font-heading font-bold hover:bg-accent hover:text-accent-foreground hover:shadow-lg hover:shadow-accent/20 hover:-translate-y-0.5 transition-all duration-300"
-            >
-              I want pre-screened interns
-            </button>
+            <InteractiveHoverButton type="submit" text="I want pre-screened interns" className="w-full py-4 border-accent bg-transparent text-accent font-heading font-bold" />
           </form>
         </div>
       </div>
