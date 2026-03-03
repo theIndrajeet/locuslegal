@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import AnimatedShaderBackground from "@/components/ui/animated-shader-background";
+import BackgroundPathsAnimation from "@/components/ui/background-paths";
 
 export default function Hero() {
   const [visible, setVisible] = useState(false);
@@ -7,7 +7,7 @@ export default function Hero() {
 
   return (
     <section className="relative min-h-screen flex items-center overflow-hidden">
-      <AnimatedShaderBackground />
+      <BackgroundPathsAnimation />
       {/* Dark overlay for readability */}
       <div className="absolute inset-0 bg-black/50 z-[1]" />
       
