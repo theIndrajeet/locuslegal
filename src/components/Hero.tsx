@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import BackgroundPathsAnimation from "@/components/ui/background-paths";
 import { InteractiveHoverButton } from "@/components/ui/interactive-hover-button";
-
+import { GooeyText } from "@/components/ui/gooey-text-morphing";
 export default function Hero() {
   const [visible, setVisible] = useState(false);
   useEffect(() => { setVisible(true); }, []);
@@ -28,7 +28,17 @@ export default function Hero() {
             }`}
           >
             Get the internship you deserve —{" "}
-            <span className="text-accent">not the one your college got you.</span>
+            <GooeyText
+              texts={[
+                "not the one your college got you.",
+                "based on your skills, not your campus.",
+                "earned through merit, not connections.",
+              ]}
+              morphTime={1.5}
+              cooldownTime={0.5}
+              className="mt-2"
+              textClassName="text-accent font-heading font-extrabold text-4xl sm:text-5xl md:text-6xl lg:text-7xl"
+            />
           </h1>
           
           <p
