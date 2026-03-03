@@ -27,21 +27,25 @@ export default function WaitlistSection() {
     toast({ title: "You're on the list! 🎉", description: "We'll connect you with top candidates soon." });
   };
 
-  const inputClass = "w-full px-4 py-3 rounded-lg bg-background border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent/50 transition-shadow text-sm";
+  const inputClass =
+    "w-full px-4 py-3.5 rounded-xl bg-background border border-border text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent/40 transition-all text-sm";
 
   return (
-    <section id="waitlist" className="py-24 px-4">
-      <div ref={ref} className="container mx-auto max-w-5xl opacity-0">
-        <h2 className="font-heading text-3xl md:text-4xl font-bold text-center mb-4">
+    <section id="waitlist" className="relative py-28 px-4 overflow-hidden">
+      {/* Subtle radial gradient bg */}
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-accent/[0.03] to-transparent pointer-events-none" />
+      
+      <div ref={ref} className="container mx-auto max-w-5xl opacity-0 relative z-10">
+        <h2 className="font-heading text-3xl md:text-4xl lg:text-5xl font-bold text-center mb-4 tracking-tight">
           Join the <span className="text-accent">Waitlist</span>
         </h2>
-        <p className="text-muted-foreground text-center mb-14 max-w-xl mx-auto">
+        <p className="text-muted-foreground text-center mb-16 max-w-xl mx-auto text-lg">
           Be among the first to access Lex Root when we launch.
         </p>
         <div className="grid md:grid-cols-2 gap-8">
           {/* Students */}
-          <form onSubmit={handleStudent} className="bg-card rounded-xl p-8 border border-border space-y-4">
-            <h3 className="font-heading font-semibold text-lg mb-2">For Students</h3>
+          <form onSubmit={handleStudent} className="bg-card rounded-2xl p-8 border border-border space-y-5 hover:shadow-lg hover:shadow-black/5 transition-shadow duration-300">
+            <h3 className="font-heading font-bold text-xl mb-1">For Students</h3>
             <input
               required type="email" placeholder="Email address"
               className={inputClass}
@@ -69,15 +73,15 @@ export default function WaitlistSection() {
             />
             <button
               type="submit"
-              className="w-full py-3.5 rounded-lg bg-primary text-primary-foreground font-heading font-semibold hover:opacity-90 transition-opacity"
+              className="w-full py-4 rounded-xl bg-primary text-primary-foreground font-heading font-bold hover:shadow-lg hover:shadow-primary/20 hover:-translate-y-0.5 transition-all duration-300"
             >
               I want an internship
             </button>
           </form>
 
           {/* Firms */}
-          <form onSubmit={handleFirm} className="bg-card rounded-xl p-8 border border-border space-y-4">
-            <h3 className="font-heading font-semibold text-lg mb-2">For Firms</h3>
+          <form onSubmit={handleFirm} className="bg-card rounded-2xl p-8 border border-border space-y-5 hover:shadow-lg hover:shadow-black/5 transition-shadow duration-300">
+            <h3 className="font-heading font-bold text-xl mb-1">For Firms</h3>
             <input
               required type="email" placeholder="Email address"
               className={inputClass}
@@ -98,7 +102,7 @@ export default function WaitlistSection() {
             />
             <button
               type="submit"
-              className="w-full py-3.5 rounded-lg border-2 border-accent text-accent font-heading font-semibold hover:bg-accent hover:text-accent-foreground transition-colors"
+              className="w-full py-4 rounded-xl border-2 border-accent text-accent font-heading font-bold hover:bg-accent hover:text-accent-foreground hover:shadow-lg hover:shadow-accent/20 hover:-translate-y-0.5 transition-all duration-300"
             >
               I want pre-screened interns
             </button>

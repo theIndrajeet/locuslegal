@@ -11,25 +11,33 @@ export default function ForStudents() {
   const ref = useScrollReveal();
 
   return (
-    <section id="students" className="py-24 px-4">
+    <section id="students" className="py-28 px-4">
       <div ref={ref} className="container mx-auto max-w-5xl opacity-0">
-        <h2 className="font-heading text-3xl md:text-4xl font-bold text-center mb-4">
+        <h2 className="font-heading text-3xl md:text-4xl lg:text-5xl font-bold text-center mb-4 tracking-tight">
           Built for the <span className="text-accent">95%</span> that top firms ignore.
         </h2>
-        <p className="text-muted-foreground text-center mb-14 max-w-2xl mx-auto">
+        <p className="text-muted-foreground text-center mb-16 max-w-2xl mx-auto text-lg">
           You don't need an NLU tag. You need a platform that sees your work.
         </p>
         <div className="grid md:grid-cols-3 gap-6">
-          {features.map((f) => (
-            <div key={f.title} className="bg-card rounded-xl p-8 border border-border hover:border-accent/40 transition-colors group">
-              <f.icon className="text-accent mb-4" size={28} />
-              <h3 className="font-heading font-semibold text-lg mb-2">{f.title}</h3>
+          {features.map((f, i) => (
+            <div
+              key={f.title}
+              className="relative bg-card rounded-2xl p-8 border border-border overflow-hidden group hover:-translate-y-1 hover:shadow-xl hover:shadow-accent/5 transition-all duration-300"
+              style={{ animationDelay: `${i * 100}ms` }}
+            >
+              {/* Top accent gradient line */}
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-accent/80 via-accent to-accent/80 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center mb-5">
+                <f.icon className="text-accent" size={24} />
+              </div>
+              <h3 className="font-heading font-bold text-lg mb-3">{f.title}</h3>
               <p className="text-muted-foreground text-sm leading-relaxed">{f.desc}</p>
             </div>
           ))}
         </div>
-        <div className="text-center mt-12">
-          <a href="#waitlist" className="inline-flex items-center justify-center px-8 py-3.5 rounded-lg bg-primary text-primary-foreground font-heading font-semibold hover:opacity-90 transition-opacity">
+        <div className="text-center mt-14">
+          <a href="#waitlist" className="inline-flex items-center justify-center px-8 py-4 rounded-xl bg-primary text-primary-foreground font-heading font-bold hover:shadow-lg hover:shadow-primary/20 hover:-translate-y-0.5 transition-all duration-300">
             Join as a Student
           </a>
         </div>
