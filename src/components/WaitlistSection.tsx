@@ -45,7 +45,7 @@ export default function WaitlistSection() {
         </p>
         <div className="grid md:grid-cols-2 gap-8">
           {/* Students */}
-          <form onSubmit={handleStudent} className="bg-card rounded-2xl p-8 border border-border space-y-5 hover:shadow-lg hover:shadow-black/5 transition-shadow duration-300">
+          <form onSubmit={handleStudent} className="bg-card rounded-2xl p-8 border border-border space-y-5 hover:shadow-lg hover:shadow-foreground/5 transition-shadow duration-300">
             <h3 className="font-heading font-bold text-xl mb-1">For Students</h3>
             <input
               required type="email" placeholder="Email address"
@@ -76,7 +76,7 @@ export default function WaitlistSection() {
           </form>
 
           {/* Firms */}
-          <form onSubmit={handleFirm} className="bg-card rounded-2xl p-8 border border-border space-y-5 hover:shadow-lg hover:shadow-black/5 transition-shadow duration-300">
+          <form onSubmit={handleFirm} className="bg-card rounded-2xl p-8 border border-border space-y-5 hover:shadow-lg hover:shadow-foreground/5 transition-shadow duration-300">
             <h3 className="font-heading font-bold text-xl mb-1">For Firms</h3>
             <input
               required type="email" placeholder="Email address"
