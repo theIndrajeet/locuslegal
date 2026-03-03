@@ -1,33 +1,33 @@
 
 
-# Replace Shader Background with BackgroundPaths Component
+# Replace All Buttons with InteractiveHoverButton
 
 ## What Changes
 
-Replace the Three.js aurora shader with the `BackgroundPaths` framer-motion component as the Hero background. The BackgroundPaths component renders animated SVG curves — lighter weight than WebGL and visually distinctive.
+Create the `InteractiveHoverButton` component and replace all CTA buttons/links across the landing page with it. The component has a hover effect that slides in a dark overlay with an arrow icon.
 
-## Steps
+## Buttons to Replace (6 total)
 
-### 1. Install `framer-motion`
-Already have `@radix-ui/react-slot` and `class-variance-authority`. Only need `framer-motion`.
+| Location | Current Text | Type |
+|---|---|---|
+| Hero | "I'm a Student" | `<a>` link |
+| Hero | "I'm a Firm" | `<a>` link |
+| ForStudents | "Join as a Student" | `<a>` link |
+| ForFirms | "List Your Firm" | `<a>` link |
+| WaitlistSection | "I want an internship" | `<button>` submit |
+| WaitlistSection | "I want pre-screened interns" | `<button>` submit |
 
-### 2. Create `src/components/ui/background-paths.tsx`
-The provided component adapted for this project:
-- Strip `"use client"` directive (not Next.js)
-- Use it as a background-only component — remove the built-in title/button content since Hero already has its own content
-- Adapt path colors to use the dark theme palette (`rgba(15,23,42,...)` works with the `#0F172A` dark bg)
+## Files
 
-### 3. Update `src/components/Hero.tsx`
-- Replace `AnimatedShaderBackground` import with `BackgroundPaths` (used as background layer only — the `FloatingPaths` portion)
-- Keep the existing Hero content (badge, headline, CTAs) on top with `z-10`
-- Keep the dark overlay for text readability
+- **New:** `src/components/ui/interactive-hover-button.tsx` — the component as provided, adapted (already has all deps: `lucide-react`, `cn`)
+- **Edit:** `src/components/Hero.tsx` — replace both `<a>` CTAs with `InteractiveHoverButton` wrapped in `<a>` tags
+- **Edit:** `src/components/ForStudents.tsx` — replace CTA link
+- **Edit:** `src/components/ForFirms.tsx` — replace CTA link
+- **Edit:** `src/components/WaitlistSection.tsx` — replace both submit buttons (keeping `type="submit"`)
 
-### 4. Remove or keep `animated-shader-background.tsx`
-Remove it since it's no longer used — eliminates the `three` dependency overhead.
-
-### Files
-- **New:** `src/components/ui/background-paths.tsx`
-- **Edit:** `src/components/Hero.tsx` — swap background
-- **Delete:** `src/components/ui/animated-shader-background.tsx` (optional cleanup)
-- **Edit:** `package.json` — add `framer-motion`
+## Notes
+- No new dependencies needed (`lucide-react` and `cn` already installed)
+- For `<a>` links, wrap the button or use `onClick` with scroll behavior
+- For form submits, pass `type="submit"` as a prop
+- Will adapt sizing/colors per context (accent bg for primary CTAs, outline style for secondary)
 
