@@ -1,6 +1,9 @@
 export default function Footer() {
   return (
-    <footer className="py-12 px-4 border-t border-border">
+    <footer className="relative pt-12 pb-10 px-4">
+      {/* Gradient separator */}
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent/40 to-transparent" />
+      
       <div className="container mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
         <div className="text-center md:text-left">
           <span className="font-heading text-xl font-bold">
@@ -9,9 +12,9 @@ export default function Footer() {
           <p className="text-sm text-muted-foreground mt-1">Your merit. Your internship.</p>
         </div>
         <div className="flex gap-6 text-muted-foreground text-sm">
-          <a href="#" className="hover:text-foreground transition-colors">Twitter</a>
-          <a href="#" className="hover:text-foreground transition-colors">LinkedIn</a>
-          <a href="#" className="hover:text-foreground transition-colors">Instagram</a>
+          <a href="#" className="hover:text-accent transition-colors duration-300">Twitter</a>
+          <a href="#" className="hover:text-accent transition-colors duration-300">LinkedIn</a>
+          <a href="#" className="hover:text-accent transition-colors duration-300">Instagram</a>
         </div>
         <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} Lex Root. All rights reserved.</p>
       </div>

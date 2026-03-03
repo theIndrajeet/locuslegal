@@ -45,17 +45,29 @@ export default function StatsBar() {
   }, []);
 
   return (
-    <section ref={ref} className="bg-stats text-stats-foreground py-14 px-4">
-      <div className="container mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-        {stats.map((s) => (
-          <div key={s.label}>
-            <div className="font-heading text-3xl md:text-4xl font-extrabold mb-1">
-              <AnimatedCounter target={s.value} prefix={s.prefix} suffix={s.suffix} started={started} />
+    <section className="relative">
+      {/* Top accent line */}
+      <div className="h-px w-full bg-gradient-to-r from-transparent via-accent/60 to-transparent" />
+      
+      <div ref={ref} className="bg-stats text-stats-foreground py-16 px-4">
+        <div className="container mx-auto grid grid-cols-2 md:grid-cols-4 gap-10 text-center">
+          {stats.map((s, i) => (
+            <div key={s.label} className="relative">
+              <div className="font-heading text-4xl md:text-5xl font-black mb-2 tabular-nums tracking-tight">
+                <AnimatedCounter target={s.value} prefix={s.prefix} suffix={s.suffix} started={started} />
+              </div>
+              <p className="text-sm opacity-70 font-medium">{s.label}</p>
+              {/* Vertical divider between items (not after last) */}
+              {i < stats.length - 1 && (
+                <div className="hidden md:block absolute right-0 top-1/2 -translate-y-1/2 w-px h-12 bg-stats-foreground/15" />
+              )}
             </div>
-            <p className="text-sm opacity-80">{s.label}</p>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
+      
+      {/* Bottom accent line */}
+      <div className="h-px w-full bg-gradient-to-r from-transparent via-accent/60 to-transparent" />
     </section>
   );
 }
