@@ -34,8 +34,8 @@ export default function Hero() {
                 "based on your skills, not your campus.",
                 "earned through merit, not connections.",
               ]}
-              morphTime={1.5}
-              cooldownTime={0.5}
+              morphTime={2}
+              cooldownTime={1.5}
               className="mt-2"
               textClassName="text-accent font-heading font-extrabold text-4xl sm:text-5xl md:text-6xl lg:text-7xl"
             />
