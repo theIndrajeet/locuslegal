@@ -44,7 +44,10 @@ export default function WaitlistSection() {
   };
 
   const inputClass =
-    "w-full px-4 py-3.5 rounded-xl bg-background border-2 border-border text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent/40 hover:border-foreground/20 transition-all text-sm";
+    "w-full h-12 px-4 rounded-xl bg-background border-2 border-border text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent/40 hover:border-foreground/20 transition-all text-sm";
+
+  const selectClass =
+    "w-full h-12 px-4 rounded-xl bg-background border-2 border-border text-foreground focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent/40 hover:border-foreground/20 transition-all text-sm appearance-none cursor-pointer";
 
   return (
     <section id="waitlist" className="relative py-28 px-4 overflow-hidden">
@@ -78,7 +81,7 @@ export default function WaitlistSection() {
             </motion.div>
             <motion.div variants={itemVariants}>
               <select
-                required className={inputClass}
+                required className={selectClass}
                 value={studentForm.year}
                 onChange={(e) => setStudentForm({ ...studentForm, year: e.target.value })}
               >
