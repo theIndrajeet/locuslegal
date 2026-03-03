@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import BackgroundPathsAnimation from "@/components/ui/background-paths";
-import { InteractiveHoverButton } from "@/components/ui/interactive-hover-button";
+import { Button } from "@/components/ui/button";
 import { GooeyText } from "@/components/ui/gooey-text-morphing";
 export default function Hero() {
   const [visible, setVisible] = useState(false);
@@ -55,10 +55,10 @@ export default function Hero() {
             }`}
           >
             <a href="#waitlist">
-              <InteractiveHoverButton text="I'm a Student" className="border-accent bg-accent text-accent-foreground font-heading text-base px-8 py-4" />
+              <Button size="lg" className="font-heading text-base px-8 py-4">I'm a Student</Button>
             </a>
             <a href="#waitlist">
-              <InteractiveHoverButton text="I'm a Firm" className="border-foreground/30 bg-transparent text-foreground font-heading text-base px-8 py-4" />
+              <Button variant="neutral" size="lg" className="font-heading text-base px-8 py-4">I'm a Firm</Button>
             </a>
           </div>
         </div>

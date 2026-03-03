@@ -18,6 +18,14 @@ export default {
         body: ['Inter', 'sans-serif'],
       },
       colors: {
+        main: 'var(--main)',
+        overlay: 'var(--overlay)',
+        bg: 'var(--bg)',
+        bw: 'var(--bw)',
+        blank: 'var(--blank)',
+        ntext: 'var(--ntext)',
+        mtext: 'var(--mtext)',
+        nborder: 'var(--nborder)',
         stats: {
           DEFAULT: "hsl(var(--stats-bg))",
           foreground: "hsl(var(--stats-foreground))",
@@ -67,9 +75,23 @@ export default {
         },
       },
       borderRadius: {
+        base: '5px',
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+      },
+      boxShadow: {
+        shadow: 'var(--shadow)',
+      },
+      translate: {
+        boxShadowX: '4px',
+        boxShadowY: '4px',
+        reverseBoxShadowX: '-4px',
+        reverseBoxShadowY: '-4px',
+      },
+      fontWeight: {
+        base: '500',
+        heading: '700',
       },
       keyframes: {
         "accordion-down": {

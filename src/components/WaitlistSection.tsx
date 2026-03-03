@@ -1,7 +1,7 @@
 import { useState, FormEvent } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
-import { InteractiveHoverButton } from "@/components/ui/interactive-hover-button";
+import { Button } from "@/components/ui/button";
 
 export default function WaitlistSection() {
   const { toast } = useToast();
@@ -72,7 +72,7 @@ export default function WaitlistSection() {
               value={studentForm.city}
               onChange={(e) => setStudentForm({ ...studentForm, city: e.target.value })}
             />
-            <InteractiveHoverButton type="submit" text="I want an internship" className="w-full py-4 border-primary bg-primary text-primary-foreground font-heading font-bold" />
+            <Button type="submit" className="w-full py-4 font-heading font-bold">I want an internship</Button>
           </form>
 
           {/* Firms */}
@@ -96,7 +96,7 @@ export default function WaitlistSection() {
               value={firmForm.city}
               onChange={(e) => setFirmForm({ ...firmForm, city: e.target.value })}
             />
-            <InteractiveHoverButton type="submit" text="I want pre-screened interns" className="w-full py-4 border-accent bg-transparent text-accent font-heading font-bold" />
+            <Button type="submit" variant="reverse" className="w-full py-4 font-heading font-bold">I want pre-screened interns</Button>
           </form>
         </div>
       </div>

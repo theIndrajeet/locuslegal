@@ -1,6 +1,6 @@
 import { Send, Target, ShieldCheck } from "lucide-react";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
-import { InteractiveHoverButton } from "@/components/ui/interactive-hover-button";
+import { Button } from "@/components/ui/button";
 
 const features = [
   { icon: Send, title: "Direct Apply", desc: "Apply directly to top firms. No middleman, no referral needed." },
@@ -39,7 +39,7 @@ export default function ForStudents() {
         </div>
         <div className="text-center mt-14">
           <a href="#waitlist">
-            <InteractiveHoverButton text="Join as a Student" className="border-primary bg-primary text-primary-foreground font-heading font-bold px-8 py-4" />
+            <Button size="lg" className="font-heading font-bold px-8 py-4">Join as a Student</Button>
           </a>
         </div>
       </div>
