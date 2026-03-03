@@ -13,7 +13,15 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        heading: ['Sora', 'sans-serif'],
+        body: ['Inter', 'sans-serif'],
+      },
       colors: {
+        stats: {
+          DEFAULT: "hsl(var(--stats-bg))",
+          foreground: "hsl(var(--stats-foreground))",
+        },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
