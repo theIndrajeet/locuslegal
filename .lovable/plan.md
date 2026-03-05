@@ -1,16 +1,18 @@
 
 
-## Add "School" Field to Student Waitlist Form
+## Update Third Feature Card in ForStudents
 
-Add a new "School / University" text input to the student form between the "Year of study" and "City" fields. To keep the form the same overall size, the Year and School fields will share a row using a 2-column grid.
+Change the third card's icon, title, and description in `src/components/ForStudents.tsx` (line 8):
 
-### Changes in `src/components/WaitlistSection.tsx`
+**Current:**
+- Icon: `ShieldCheck`
+- Title: "Guaranteed Internship"
+- Description: "Complete your profile, prove your merit, and we guarantee you a placement."
 
-1. **Update state**: Add `school` to `studentForm` state (`{ email: "", year: "", city: "", school: "" }`) and reset logic.
+**New:**
+- Icon: `FileText` (from lucide-react, represents CV/resume)
+- Title: "Market-Ready Profile"
+- Description: "We help you build a CV and LinkedIn profile that stands out — so firms come to you."
 
-2. **Add school input**: Insert a new text input for "School / University" after the year select.
-
-3. **Share a row**: Wrap the Year and School fields in a single `motion.div` with `grid grid-cols-2 gap-3` so they sit side by side, keeping the form the same height and width.
-
-No other files affected. Form dimensions stay unchanged since we're replacing one full-width row with two half-width fields on the same row.
+Update the import on line 1 to replace `ShieldCheck` with `FileText`.
 
