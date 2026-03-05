@@ -1,21 +1,29 @@
 
 
-## Remove Testimonials, Money/Payment References, and Urgency Banner
+## Add "For Universities & Law Schools" Section
 
-### Changes to `src/components/ForFirms.tsx`:
+### Files to Change
 
-1. **Remove testimonials data** (lines 37-48) and the `testimonialRef` (line 70), and **Block 5** (lines 149-170) entirely.
+**1. New file: `src/components/ForUniversities.tsx`**
 
-2. **Remove urgency banner** — delete `urgencyRef` (line 71) and **Block 6** (lines 172-182) entirely.
+A sibling component to `ForFirms.tsx`, using identical patterns: `useScrollReveal` for each block, same card classes (`bg-card rounded-2xl p-8 border border-border`), same typography (`font-heading`, `text-3xl md:text-4xl lg:text-5xl`), same spacing (`py-28 px-4`, `container mx-auto max-w-5xl`), same `Accordion` component for FAQ. 8 blocks total:
 
-3. **Remove "Free forever for firms" value prop** (line 32) — the one with `BadgeDollarSign` icon that says "No subscription. No per-hire fee. No catch. We charge students, not firms."
+- **Block 1 — Hero**: Small caps label, two-line headline with accent on key phrase, subtext paragraph
+- **Block 2 — Two-Track Callout**: 2-column grid (`md:grid-cols-2`), cards with tag labels ("No Placement Cell?" / "Already Have One?"), slightly different bg tint (`bg-accent/5` vs `bg-muted/50`)
+- **Block 3 — Pain Cards**: 3-column grid, icons from lucide-react (`TrendingDown`, `UserX`, `Building2`), same card hover style as ForFirms
+- **Block 4 — Pivot Callout**: Dark panel (`bg-foreground text-background`), bold centered headline + smaller subtext
+- **Block 5 — Features**: Heading "Everything your placement cell needs." 6 rows in 2-column grid (`md:grid-cols-2`), each with icon + title + description, using icons like `Handshake`, `LayoutDashboard`, `BadgeCheck`, `Megaphone`, `Briefcase`, `BarChart3`
+- **Block 6 — Contrast Callout**: Bordered quote card (`border-2 border-border bg-muted/30`), left-aligned text with last line bold and larger
+- **Block 7 — FAQ Accordion**: 4 questions using existing `Accordion` component, heading "Common questions from institutions"
+- **Block 8 — Final CTA**: Dark panel, headline, subheadline, button "Register My Institution →" linking to `#waitlist`, microcopy below
 
-4. **Clean up money/payment language elsewhere**:
-   - Hero subtext (line 89): remove "For free." at the end → "LexRoot fixes that."
-   - Value props heading (line 131): change "Zero cost. Zero noise." → "Zero noise." (remove cost claim)
-   - CTA subheadline (line 212): change "It costs nothing. It takes 5 minutes." → "It takes 5 minutes."
-   - CTA button (line 216): change "List My Firm — It's Free →" → "List My Firm →"
-   - CTA microcopy (line 220): change "No payment. No commitment. Cancel anytime." → "No commitment. Cancel anytime."
+**2. `src/pages/Index.tsx`** — Import and add `<ForUniversities />` between `<ForFirms />` and `<WaitlistSection />`
 
-5. **Remove unused imports**: `BadgeDollarSign`, `Quote` (no longer used after testimonials removal).
+**3. `src/components/Navbar.tsx`** — Add `{ label: "Universities", href: "#universities" }` to `navLinks` array between "Firms" and "Waitlist"
+
+### Notes
+- The section gets `id="universities"` for nav anchor linking
+- CTA button links to `#waitlist` — the waitlist form doesn't currently have a "university" role option, so no pre-selection logic is added (the form would need a third column/tab for that, which is out of scope per instructions)
+- All blocks use separate `useScrollReveal()` refs for staggered fade-up animation
+- No new color variables, fonts, or design patterns introduced
 
