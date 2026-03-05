@@ -1,20 +1,15 @@
 
 
-## Change Rainbow Button to Yellow/Gold Theme
+## Change RainbowButton Fill to Gold/Yellow
 
-Update the CSS color variables used by the RainbowButton in `src/index.css` to use yellow/gold tones matching the site's accent color instead of the multi-color rainbow.
+Update `src/components/ui/rainbow-button.tsx` to replace the white/dark background gradients with gold/yellow tones.
 
-### Changes
+### Change
 
-**`src/index.css`** — Replace the 5 rainbow color variables in both `:root` and `.dark` blocks with yellow/gold shades:
+**`src/components/ui/rainbow-button.tsx`** — Replace the background gradient lines:
 
-```css
---color-1: 45 100% 51%;   /* gold */
---color-2: 40 100% 45%;   /* darker gold */
---color-3: 50 100% 55%;   /* lighter gold */
---color-4: 35 95% 50%;    /* amber */
---color-5: 55 100% 60%;   /* yellow */
-```
+- Light mode: Change `#121213` (dark/black fill) to a gold color like `hsl(45,100%,51%)` / `#FFCC00`
+- Dark mode: Change `#fff` (white fill) to the same gold
 
-This keeps the animated gradient effect but constrains it to the yellow/gold palette, matching the site's accent theme.
+This changes the solid inner fill of the button from white/black to gold while keeping the animated rainbow-gold border effect.
 
