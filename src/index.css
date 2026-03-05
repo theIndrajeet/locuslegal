@@ -46,6 +46,11 @@
     --ntext: #000;
     --mtext: #000;
     --shadow: 4px 4px 0px 0px #000;
+    --color-1: 0 100% 63%;
+    --color-2: 270 100% 63%;
+    --color-3: 210 100% 63%;
+    --color-4: 195 100% 63%;
+    --color-5: 90 100% 63%;
   }
 
   .dark {
@@ -90,6 +95,11 @@
     --ntext: #fafafa;
     --mtext: #000;
     --shadow: 4px 4px 0px 0px #fafafa;
+    --color-1: 0 100% 63%;
+    --color-2: 270 100% 63%;
+    --color-3: 210 100% 63%;
+    --color-4: 195 100% 63%;
+    --color-5: 90 100% 63%;
   }
 }
 
