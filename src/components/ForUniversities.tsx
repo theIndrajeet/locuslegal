@@ -69,7 +69,7 @@ export default function ForUniversities() {
     <section id="universities">
       {/* BLOCK 1 — Hero */}
       <div className="py-28 px-4">
-        <div ref={heroRef} className="container mx-auto max-w-5xl opacity-0 text-center">
+        <div ref={heroRef} className="container mx-auto max-w-5xl opacity-0 translate-y-6 text-center">
           <p className="uppercase tracking-[0.2em] text-xs font-heading text-muted-foreground mb-6">
             For Universities &amp; Law Schools
           </p>
@@ -86,7 +86,7 @@ export default function ForUniversities() {
 
       {/* BLOCK 2 — Two-Track Callout */}
       <div className="px-4 pb-28">
-        <div ref={trackRef} className="container mx-auto max-w-5xl opacity-0">
+        <div ref={trackRef} className="container mx-auto max-w-5xl opacity-0 translate-y-6">
           <div className="grid md:grid-cols-2 gap-6">
             {twoTrack.map((card) => (
               <div
@@ -105,7 +105,7 @@ export default function ForUniversities() {
 
       {/* BLOCK 3 — Pain Cards */}
       <div className="px-4 pb-28">
-        <div ref={painRef} className="container mx-auto max-w-5xl opacity-0">
+        <div ref={painRef} className="container mx-auto max-w-5xl opacity-0 translate-y-6">
           <div className="grid md:grid-cols-3 gap-6">
             {painCards.map((card, i) => (
               <div
@@ -126,7 +126,7 @@ export default function ForUniversities() {
       </div>
 
       {/* BLOCK 4 — Pivot Callout */}
-      <div ref={pivotRef} className="bg-foreground text-background py-20 px-4 opacity-0">
+      <div ref={pivotRef} className="bg-foreground text-background py-20 px-4 opacity-0 translate-y-6">
         <div className="container mx-auto max-w-3xl text-center">
           <p className="font-heading text-2xl md:text-3xl lg:text-4xl font-bold leading-snug">
             What if your placement record wasn't limited
@@ -141,7 +141,7 @@ export default function ForUniversities() {
 
       {/* BLOCK 5 — Features */}
       <div className="py-28 px-4">
-        <div ref={featRef} className="container mx-auto max-w-5xl opacity-0">
+        <div ref={featRef} className="container mx-auto max-w-5xl opacity-0 translate-y-6">
           <h2 className="font-heading text-3xl md:text-4xl lg:text-5xl font-bold text-center mb-16 tracking-tight">
             Everything your placement cell <span className="text-accent">needs.</span>
           </h2>
@@ -163,7 +163,7 @@ export default function ForUniversities() {
 
       {/* BLOCK 6 — Contrast Callout */}
       <div className="px-4 pb-28">
-        <div ref={contrastRef} className="container mx-auto max-w-3xl opacity-0">
+        <div ref={contrastRef} className="container mx-auto max-w-3xl opacity-0 translate-y-6">
           <div className="border-2 border-border bg-muted/30 rounded-2xl p-8 md:p-12 text-left">
             <p className="text-muted-foreground leading-relaxed mb-4">
               NLSIU Bangalore has a dedicated placement committee, firm relationships built over 35 years, and a network of 3,000+ alumni in top firms.
@@ -180,7 +180,7 @@ export default function ForUniversities() {
 
       {/* BLOCK 7 — FAQ */}
       <div className="py-28 px-4">
-        <div ref={faqRef} className="container mx-auto max-w-3xl opacity-0">
+        <div ref={faqRef} className="container mx-auto max-w-3xl opacity-0 translate-y-6">
           <h2 className="font-heading text-2xl md:text-3xl font-bold text-center mb-12 tracking-tight">
             Common questions from institutions
           </h2>
@@ -200,7 +200,7 @@ export default function ForUniversities() {
       </div>
 
       {/* BLOCK 8 — Final CTA */}
-      <div ref={ctaRef} className="bg-foreground text-background py-24 px-4 opacity-0">
+      <div ref={ctaRef} className="bg-foreground text-background py-24 px-4 opacity-0 translate-y-6">
         <div className="container mx-auto max-w-3xl text-center">
           <h2 className="font-heading text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight mb-4">
             Partner with LexRoot.

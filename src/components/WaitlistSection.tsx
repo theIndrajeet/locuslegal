@@ -63,7 +63,7 @@ export default function WaitlistSection() {
     <section id="waitlist" className="relative py-28 px-4 overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-accent/[0.03] to-transparent pointer-events-none" />
 
-      <div ref={ref} className="container mx-auto max-w-5xl opacity-0 relative z-10">
+      <div ref={ref} className="container mx-auto max-w-5xl opacity-0 translate-y-6 relative z-10">
         <h2 className="font-heading text-3xl md:text-4xl lg:text-5xl font-bold text-center mb-4 tracking-tight">
           Join the <span className="text-accent">Waitlist</span> — Limited Early Access
         </h2>
