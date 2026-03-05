@@ -11,7 +11,7 @@ export default function Footer() {
           </span>
           <p className="text-sm text-muted-foreground mt-1">Your merit. Your internship.</p>
         </div>
-        <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} Lex Root. All rights reserved.</p>
+        <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} LexRoot. All rights reserved.</p>
       </div>
     </footer>
   );

@@ -50,7 +50,7 @@ export default function Hero() {
                 visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
               }`}
             >
-              India's first merit-based legal internship platform. We connect ambitious law students with top firms — no matter which college they come from.
+              India's first merit-based legal internship platform. We connect ambitious law students with top firms — no matter which college they come from. Sign up now — spots are limited.
             </p>
             
             <div
@@ -62,7 +62,7 @@ export default function Hero() {
                 <Button size="lg" className="font-heading text-base px-8 py-4">I'm a Student</Button>
               </a>
               <a href="#waitlist">
-                <Button variant="neutral" size="lg" className="font-heading text-base px-8 py-4">I'm a Firm</Button>
+                <Button variant="neutral" size="lg" className="font-heading text-base px-8 py-4">I'm a Firm / Chamber</Button>
               </a>
               <a href="#waitlist">
                 <Button variant="neutral" size="lg" className="font-heading text-base px-8 py-4">I'm a School</Button>

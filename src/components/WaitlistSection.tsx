@@ -65,10 +65,10 @@ export default function WaitlistSection() {
 
       <div ref={ref} className="container mx-auto max-w-5xl opacity-0 relative z-10">
         <h2 className="font-heading text-3xl md:text-4xl lg:text-5xl font-bold text-center mb-4 tracking-tight">
-          Join the <span className="text-accent">Waitlist</span>
+          Join the <span className="text-accent">Waitlist</span> — Limited Early Access
         </h2>
         <p className="text-muted-foreground text-center mb-16 max-w-xl mx-auto text-lg">
-          Be among the first to access Lex Root when we launch.
+          Early access members get priority placement. Don't miss your spot.
         </p>
         <div className="grid md:grid-cols-3 gap-8">
           {/* Students */}
@@ -132,7 +132,7 @@ export default function WaitlistSection() {
             viewport={{ once: true, amount: 0.3 }}
             className="bg-card rounded-2xl p-8 border-2 border-border space-y-5 shadow-shadow hover:shadow-lg transition-shadow duration-300"
           >
-            <motion.h3 variants={itemVariants} className="font-heading font-bold text-xl mb-1">For Firms</motion.h3>
+            <motion.h3 variants={itemVariants} className="font-heading font-bold text-xl mb-1">For Firms / Chambers</motion.h3>
             <motion.div variants={itemVariants}>
               <input
                 required type="email" placeholder="Email address"
@@ -143,7 +143,7 @@ export default function WaitlistSection() {
             </motion.div>
             <motion.div variants={itemVariants}>
               <input
-                required type="text" placeholder="Firm name"
+                required type="text" placeholder="Firm / Chamber name"
                 className={inputClass}
                 value={firmForm.firmName}
                 onChange={(e) => setFirmForm({ ...firmForm, firmName: e.target.value })}

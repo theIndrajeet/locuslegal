@@ -158,11 +158,11 @@ export default function ForFirms() {
             List your firm. Find your intern.
           </h2>
           <p className="text-background/70 text-lg mb-10 max-w-xl mx-auto">
-            It takes 5 minutes. And the next great hire might already be on the platform.
+            It takes 5 minutes. Your next great intern might already be waiting.
           </p>
           <a href="#waitlist">
             <Button variant="reverse" size="lg" className="font-heading font-bold px-10 py-5 text-base w-full sm:w-auto">
-              List My Firm →
+              List My Firm / Chamber →
             </Button>
           </a>
           <p className="text-background/50 text-xs mt-4">
