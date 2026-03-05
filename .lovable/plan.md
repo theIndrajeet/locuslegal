@@ -1,45 +1,26 @@
 
 
-## Rename "Firm" → "Firm / Chamber", Proofread, and Optimize for Sign-Ups
+## Expand ForStudents Section — Full 6-Block Rewrite
 
-### 1. Rename "Firm" → "Firm / Chamber" across the site
+Replace the current minimal `ForStudents.tsx` with a full persuasive section matching the structure and styling of `ForFirms.tsx`.
 
-**`Hero.tsx`** line 65: "I'm a Firm" → "I'm a Firm / Chamber"
+### Structure (6 blocks)
 
-**`Navbar.tsx`** line 7: "Firms" → "Firms & Chambers"
+**Block 1 — Hero**: Section label "For Law Students", headline "Your college didn't get you here. Your skills will.", subtext about 500,000+ students and only ~600 landing top-firm internships.
 
-**`ForFirms.tsx`**:
-- Section label (line 65) already says "For Law Firms & Chambers" — good
-- Line 165 CTA: "List My Firm →" → "List My Firm / Chamber →"
+**Block 2 — Pain Cards**: 3-column grid with same card styling as ForFirms. Icons: `Mail` (cold emails), `School` (college can't help), `FileText` (CV looks generic). Each with title + body from the provided copy.
 
-**`WaitlistSection.tsx`**:
-- Line 135: "For Firms" → "For Firms / Chambers"
-- Line 148 placeholder: "Firm name" → "Firm / Chamber name"
+**Block 3 — Pivot Line**: Dark panel (`bg-foreground text-background`), centered text: "Merit got you into law school. LexRoot gets you into the room."
 
-### 2. Proofreading fixes
+**Block 4 — What You Get**: Heading "Built for the 95% that the system ignores." 4 feature rows in 2-column grid (icon + title + body), same layout as ForFirms value props. Icons: `Target`, `BadgeCheck`, `Building2`, `Send`.
 
-- **WaitlistSection.tsx** line 71: "Lex Root" → "LexRoot" (two-word inconsistency with rest of site)
-- **Footer.tsx** line 14: "Lex Root" → "LexRoot"
-- All other copy is clean — spelling, grammar, and punctuation checked across all 8 files.
+**Block 5 — FAQ Accordion**: Heading "Questions students ask us", 3 accordion items (non-NLU concern, 2nd year timing, Internshala/Lawctopus comparison).
 
-### 3. Sign-up optimization tweaks
+**Block 6 — Final CTA**: Dark panel, headline "Your next internship shouldn't depend on who your professor knows.", button "Build My Profile — It's Free →" linking to `#waitlist`, microcopy "No college filter. No referral needed. Just your merit."
 
-Make CTAs more urgent and conversion-focused:
+### Files Changed
 
-**Hero.tsx**:
-- Line 53 subtext: append "Sign up now — spots are limited." to the end
-- Wrap "I'm a Student" button in the `default` (yellow) variant to make the primary CTA pop (already is)
+- **`src/components/ForStudents.tsx`** — Full rewrite with 6 blocks, 6 `useScrollReveal` refs, same patterns as `ForFirms.tsx` (imports Accordion, same card classes, same spacing)
 
-**ForStudents.tsx**:
-- Line 42 CTA: "Join as a Student" → "Join the Waitlist — It's Free →"
-
-**ForFirms.tsx**:
-- Line 161 subtext: "It takes 5 minutes. And the next great hire might already be on the platform." → "It takes 5 minutes. Your next great intern might already be waiting."
-
-**ForUniversities.tsx**:
-- Line 219 microcopy: Add "Join 50+ institutions already signed up." (social proof nudge)
-
-**WaitlistSection.tsx**:
-- Line 68 heading: "Join the Waitlist" → "Join the Waitlist — Limited Early Access"
-- Line 70 subtext: "Be among the first to access LexRoot when we launch." → "Early access members get priority placement. Don't miss your spot."
+No other files change.
 
