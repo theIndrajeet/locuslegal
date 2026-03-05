@@ -1,23 +1,34 @@
 
 
-## Integrate DisplayCards Component
+## Replace "Your merit. Your internship." Badge with Rainbow Button
 
-The component code you pasted had its JSX tags stripped. I will reconstruct the full component based on the visible class names, props, and structure, then integrate it into the project.
+The gold pill badge at line 20-26 in `Hero.tsx` will be replaced with the `RainbowButton` component, giving it an animated rainbow border effect.
 
-### What will be done
+### Changes
 
-1. **Create `src/components/ui/display-cards.tsx`** - The DisplayCards component with proper JSX restored. Each card renders a styled div with icon, title, description, and date. Cards stack using CSS grid with `[grid-area:stack]` and fan out with translate transforms. Hover effects remove grayscale and overlay.
+1. **Create `src/components/ui/rainbow-button.tsx`** — Copy the provided RainbowButton component (remove `"use client"` since this is Vite).
 
-2. **Use in the Hero section or ForStudents section** - Place the DisplayCards alongside existing content to add visual flair. Based on the screenshot showing "YOUR MERIT. YOUR INTERNSHIP.", this likely goes near the Hero area.
+2. **Add CSS variables to `src/index.css`** — Add the rainbow color variables to both `:root` and `.dark` blocks:
+   ```css
+   --color-1: 0 100% 63%;
+   --color-2: 270 100% 63%;
+   --color-3: 210 100% 63%;
+   --color-4: 195 100% 63%;
+   --color-5: 90 100% 63%;
+   ```
 
-### Technical details
+3. **Extend `tailwind.config.ts`** — Add the rainbow colors, animation, and keyframes to the existing config:
+   - Colors: `color-1` through `color-5`
+   - Animation: `rainbow: "rainbow var(--speed, 2s) infinite linear"`
+   - Keyframe: `rainbow` (0% → 200% background-position)
 
-- No new dependencies needed (`lucide-react` already installed, `cn` utility exists)
-- Remove `"use client"` directive (not needed in Vite/React)
-- The component uses Tailwind pseudo-element classes (`before:`) for overlay effects and `grayscale` filters
-- Cards use CSS Grid stacking (`[grid-area:stack]`) with incremental `translate-x`/`translate-y` offsets
+4. **Update `src/components/Hero.tsx`** — Replace the `<span>` badge (lines 20-26) with:
+   ```tsx
+   <RainbowButton className="mb-8 font-heading text-sm font-semibold tracking-widest uppercase">
+     Your merit. Your internship.
+   </RainbowButton>
+   ```
+   The button won't navigate anywhere — it's purely decorative like the current badge.
 
-### Question
-
-Where exactly would you like the DisplayCards placed? Options include: beside the Hero text, in the ForStudents section, or as a standalone section. I'll default to placing it in the Hero section on the right side if no preference is given.
+No new dependencies needed. All required packages are already installed.
 
