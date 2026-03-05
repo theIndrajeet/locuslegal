@@ -1,4 +1,4 @@
-import { Inbox, Building2, Clock, CheckCircle, SlidersHorizontal, BadgeDollarSign, Globe, UserCheck, Quote } from "lucide-react";
+import { Inbox, Building2, Clock, CheckCircle, SlidersHorizontal, Globe, UserCheck } from "lucide-react";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,22 +29,8 @@ const painCards = [
 const valueProps = [
   { icon: CheckCircle, title: "Pre-screened profiles", body: "Every student on LexRoot has been assessed on core legal skills — not just their college name. You see what they can actually do." },
   { icon: SlidersHorizontal, title: "You set the filter", body: "Practice area, city, duration, remote or in-office — we surface candidates that match your needs, not a generic list." },
-  { icon: BadgeDollarSign, title: "Free forever for firms", body: "No subscription. No per-hire fee. No catch. We charge students, not firms. List as many openings as you want." },
   { icon: Globe, title: "Reach the unreached", body: "Access 500,000+ law students across 1,800 colleges that have zero placement infrastructure. This talent pool doesn't exist anywhere else." },
   { icon: UserCheck, title: "Save your associate's time", body: "No more sifting. Shortlists are curated. Your team only sees candidates worth a second look." },
-];
-
-const testimonials = [
-  {
-    quote: "We've been hiring from the same 4 NLUs for 10 years. We didn't know what we were missing.",
-    author: "Senior Partner, Delhi-based IP Firm",
-    tag: "Beta Tester",
-  },
-  {
-    quote: "Posted our first opening on a Tuesday. Had 3 strong profiles by Thursday. No spam.",
-    author: "Founding Partner, Mumbai Litigation Chamber",
-    tag: "Beta Tester",
-  },
 ];
 
 const faqs = [
@@ -67,8 +53,6 @@ export default function ForFirms() {
   const painRef = useScrollReveal();
   const pivotRef = useScrollReveal();
   const valueRef = useScrollReveal();
-  const testimonialRef = useScrollReveal();
-  const urgencyRef = useScrollReveal();
   const faqRef = useScrollReveal();
   const ctaRef = useScrollReveal();
 
@@ -86,7 +70,7 @@ export default function ForFirms() {
             You're short on <span className="text-accent">the right ones.</span>
           </h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto leading-relaxed">
-            Every year, thousands of driven law students — sharp, hungry, and skilled — never reach your inbox. Not because they lack merit. Because they lack the network. LexRoot fixes that. For free.
+            Every year, thousands of driven law students — sharp, hungry, and skilled — never reach your inbox. Not because they lack merit. Because they lack the network. LexRoot fixes that.
           </p>
         </div>
       </div>
@@ -128,7 +112,7 @@ export default function ForFirms() {
       <div className="py-28 px-4">
         <div ref={valueRef} className="container mx-auto max-w-5xl opacity-0">
           <h2 className="font-heading text-3xl md:text-4xl lg:text-5xl font-bold text-center mb-16 tracking-tight">
-            Zero cost. Zero noise. <span className="text-accent">Just the right candidates.</span>
+            Zero noise. <span className="text-accent">Just the right candidates.</span>
           </h2>
           <div className="space-y-8 max-w-3xl mx-auto">
             {valueProps.map((v) => (
@@ -146,42 +130,7 @@ export default function ForFirms() {
         </div>
       </div>
 
-      {/* BLOCK 5 — Testimonials */}
-      <div className="px-4 pb-28">
-        <div ref={testimonialRef} className="container mx-auto max-w-5xl opacity-0">
-          <div className="grid md:grid-cols-2 gap-6">
-            {testimonials.map((t, i) => (
-              <div
-                key={i}
-                className="bg-card rounded-2xl p-8 border border-border relative"
-              >
-                <Quote className="text-accent/20 absolute top-6 left-6" size={36} />
-                <p className="font-heading italic text-base leading-relaxed mb-6 pt-8">
-                  "{t.quote}"
-                </p>
-                <div>
-                  <p className="font-heading font-bold text-sm">{t.author}</p>
-                  <p className="text-muted-foreground text-xs">{t.tag}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* BLOCK 6 — Urgency Banner */}
-      <div ref={urgencyRef} className="bg-accent text-accent-foreground py-16 px-4 opacity-0">
-        <div className="container mx-auto max-w-3xl text-center">
-          <h3 className="font-heading text-2xl md:text-3xl font-bold mb-4">
-            LexRoot is in early access.
-          </h3>
-          <p className="text-sm md:text-base leading-relaxed opacity-90">
-            The first 100 firms to list get <strong>Founding Partner status</strong> — priority placement, early feature access, and a permanent badge on your profile that signals to students you're a top destination. After that, it's first-come, first-served.
-          </p>
-        </div>
-      </div>
-
-      {/* BLOCK 7 — Objection Busters */}
+      {/* BLOCK 5 — Objection Busters */}
       <div className="py-28 px-4">
         <div ref={faqRef} className="container mx-auto max-w-3xl opacity-0">
           <h2 className="font-heading text-2xl md:text-3xl font-bold text-center mb-12 tracking-tight">
@@ -202,22 +151,22 @@ export default function ForFirms() {
         </div>
       </div>
 
-      {/* BLOCK 8 — Final CTA */}
+      {/* BLOCK 6 — Final CTA */}
       <div ref={ctaRef} className="bg-foreground text-background py-24 px-4 opacity-0">
         <div className="container mx-auto max-w-3xl text-center">
           <h2 className="font-heading text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight mb-4">
             List your firm. Find your intern.
           </h2>
           <p className="text-background/70 text-lg mb-10 max-w-xl mx-auto">
-            It costs nothing. It takes 5 minutes. And the next great hire might already be on the platform.
+            It takes 5 minutes. And the next great hire might already be on the platform.
           </p>
           <a href="#waitlist">
             <Button variant="reverse" size="lg" className="font-heading font-bold px-10 py-5 text-base w-full sm:w-auto">
-              List My Firm — It's Free →
+              List My Firm →
             </Button>
           </a>
           <p className="text-background/50 text-xs mt-4">
-            No payment. No commitment. Cancel anytime.
+            No commitment. Cancel anytime.
           </p>
         </div>
       </div>
