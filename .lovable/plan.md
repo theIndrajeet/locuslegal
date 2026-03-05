@@ -1,22 +1,16 @@
 
 
-# Enhance Waitlist Forms with Motion Animations
+## Add "School" Field to Student Waitlist Form
 
-## What Changes
+Add a new "School / University" text input to the student form between the "Year of study" and "City" fields. To keep the form the same overall size, the Year and School fields will share a row using a 2-column grid.
 
-Upgrade the WaitlistSection forms with framer-motion staggered animations (inspired by the BookingForm pattern) while keeping the existing neobrutalist button style and black/white/yellow theme. The forms already match the screenshot structurally — the main improvement is adding entrance animations and refining input/card styling for polish.
+### Changes in `src/components/WaitlistSection.tsx`
 
-## Steps
+1. **Update state**: Add `school` to `studentForm` state (`{ email: "", year: "", city: "", school: "" }`) and reset logic.
 
-### 1. Edit `src/components/WaitlistSection.tsx`
-- Import `motion` from `framer-motion`
-- Wrap each form card in `motion.form` with `hidden → visible` variants (fade up + stagger children)
-- Wrap each input/select/button in `motion.div` with item variants for staggered reveal
-- Refine input styling: increase border radius, add subtle hover border transition
-- Add `size="lg"` to submit buttons for better visual weight matching the screenshot
+2. **Add school input**: Insert a new text input for "School / University" after the year select.
 
-### Files
-- **Edit:** `src/components/WaitlistSection.tsx` — add framer-motion stagger animations to form fields
+3. **Share a row**: Wrap the Year and School fields in a single `motion.div` with `grid grid-cols-2 gap-3` so they sit side by side, keeping the form the same height and width.
 
-No new files or dependencies needed (framer-motion already installed).
+No other files affected. Form dimensions stay unchanged since we're replacing one full-width row with two half-width fields on the same row.
 
