@@ -1,26 +1,20 @@
 
 
-## Expand ForStudents Section — Full 6-Block Rewrite
+## Fix: Scroll Reveal Animation Causing Layout Jump
 
-Replace the current minimal `ForStudents.tsx` with a full persuasive section matching the structure and styling of `ForFirms.tsx`.
+### Problem
+The `useScrollReveal` hook applies `opacity: 0` and `translateY(24px)` via JavaScript *after* the component mounts. This means elements first render visibly, then suddenly jump down 24px and disappear, then animate back in. This causes the entire page to visually shift on load.
 
-### Structure (6 blocks)
+### Solution
+Set the initial hidden state via CSS className (`opacity-0 translate-y-6`) so elements are hidden from the very first paint — no flash or jump. The hook then only needs to add the reveal transition.
 
-**Block 1 — Hero**: Section label "For Law Students", headline "Your college didn't get you here. Your skills will.", subtext about 500,000+ students and only ~600 landing top-firm internships.
+### Changes
 
-**Block 2 — Pain Cards**: 3-column grid with same card styling as ForFirms. Icons: `Mail` (cold emails), `School` (college can't help), `FileText` (CV looks generic). Each with title + body from the provided copy.
+**`src/hooks/useScrollReveal.ts`** — Remove the JS lines that set initial `opacity`/`transform`. Instead, only animate *in* when intersecting. The initial hidden state is already on the elements via `className="opacity-0"`.
 
-**Block 3 — Pivot Line**: Dark panel (`bg-foreground text-background`), centered text: "Merit got you into law school. LexRoot gets you into the room."
+**`src/components/ForStudents.tsx`** — Add `translate-y-6` alongside existing `opacity-0` on each ref'd container, so the transform is set from first render (no JS flash).
 
-**Block 4 — What You Get**: Heading "Built for the 95% that the system ignores." 4 feature rows in 2-column grid (icon + title + body), same layout as ForFirms value props. Icons: `Target`, `BadgeCheck`, `Building2`, `Send`.
+**All other components using `useScrollReveal`** (`ForFirms.tsx`, `ForUniversities.tsx`, `WaitlistSection.tsx`, etc.) — Same fix: ensure each ref'd element has `opacity-0 translate-y-6` in its className.
 
-**Block 5 — FAQ Accordion**: Heading "Questions students ask us", 3 accordion items (non-NLU concern, 2nd year timing, Internshala/Lawctopus comparison).
-
-**Block 6 — Final CTA**: Dark panel, headline "Your next internship shouldn't depend on who your professor knows.", button "Build My Profile — It's Free →" linking to `#waitlist`, microcopy "No college filter. No referral needed. Just your merit."
-
-### Files Changed
-
-- **`src/components/ForStudents.tsx`** — Full rewrite with 6 blocks, 6 `useScrollReveal` refs, same patterns as `ForFirms.tsx` (imports Accordion, same card classes, same spacing)
-
-No other files change.
+This eliminates the visible jump because the browser never renders the element in its "visible" state first.
 
