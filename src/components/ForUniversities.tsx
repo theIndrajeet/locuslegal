@@ -215,8 +215,8 @@ export default function ForUniversities() {
               Register My Institution →
             </Button>
           </a>
-          <p className="text-background/50 text-xs mt-4">
-            No minimum enrollment. Takes 10 minutes to set up.
+           <p className="text-background/50 text-xs mt-4">
+            No minimum enrollment. Takes 10 minutes to set up. Join 50+ institutions already signed up.
           </p>
         </div>
       </div>

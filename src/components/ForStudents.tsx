@@ -39,7 +39,7 @@ export default function ForStudents() {
         </div>
         <div className="text-center mt-14">
           <a href="#waitlist">
-            <Button size="lg" className="font-heading font-bold px-8 py-4">Join as a Student</Button>
+            <Button size="lg" className="font-heading font-bold px-8 py-4">Join the Waitlist — It's Free →</Button>
           </a>
         </div>
       </div>
