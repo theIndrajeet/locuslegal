@@ -22,7 +22,7 @@ export default function WaitlistSection() {
   const { toast } = useToast();
   const ref = useScrollReveal();
 
-  const [studentForm, setStudentForm] = useState({ email: "", year: "", city: "" });
+  const [studentForm, setStudentForm] = useState({ email: "", year: "", city: "", school: "" });
   const [firmForm, setFirmForm] = useState({ email: "", firmName: "", city: "" });
 
   const handleStudent = (e: FormEvent) => {
@@ -30,7 +30,7 @@ export default function WaitlistSection() {
     const existing = JSON.parse(localStorage.getItem("lexroot_students") || "[]");
     existing.push({ ...studentForm, submittedAt: new Date().toISOString() });
     localStorage.setItem("lexroot_students", JSON.stringify(existing));
-    setStudentForm({ email: "", year: "", city: "" });
+    setStudentForm({ email: "", year: "", city: "", school: "" });
     toast({ title: "You're on the list! 🎉", description: "We'll reach out when we launch." });
   };
 
@@ -79,7 +79,7 @@ export default function WaitlistSection() {
                 onChange={(e) => setStudentForm({ ...studentForm, email: e.target.value })}
               />
             </motion.div>
-            <motion.div variants={itemVariants}>
+            <motion.div variants={itemVariants} className="grid grid-cols-2 gap-3">
               <select
                 required className={selectClass}
                 value={studentForm.year}
@@ -93,6 +93,12 @@ export default function WaitlistSection() {
                 <option>5th Year</option>
                 <option>LLM</option>
               </select>
+              <input
+                required type="text" placeholder="School / University"
+                className={inputClass}
+                value={studentForm.school}
+                onChange={(e) => setStudentForm({ ...studentForm, school: e.target.value })}
+              />
             </motion.div>
             <motion.div variants={itemVariants}>
               <input
