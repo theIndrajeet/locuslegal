@@ -23,7 +23,7 @@ export default function WaitlistSection() {
   const ref = useScrollReveal();
 
   const [studentForm, setStudentForm] = useState({ email: "", year: "", city: "", school: "" });
-  const [firmForm, setFirmForm] = useState({ email: "", firmName: "", city: "" });
+  const [firmForm, setFirmForm] = useState({ email: "", firmName: "", city: "", practiceArea: "" });
   const [uniForm, setUniForm] = useState({ email: "", institutionName: "", city: "", type: "" });
 
   const handleStudent = (e: FormEvent) => {
@@ -40,7 +40,7 @@ export default function WaitlistSection() {
     const existing = JSON.parse(localStorage.getItem("lexroot_firms") || "[]");
     existing.push({ ...firmForm, submittedAt: new Date().toISOString() });
     localStorage.setItem("lexroot_firms", JSON.stringify(existing));
-    setFirmForm({ email: "", firmName: "", city: "" });
+    setFirmForm({ email: "", firmName: "", city: "", practiceArea: "" });
     toast({ title: "You're on the list! 🎉", description: "We'll connect you with top candidates soon." });
   };
 
@@ -89,7 +89,7 @@ export default function WaitlistSection() {
                 onChange={(e) => setStudentForm({ ...studentForm, email: e.target.value })}
               />
             </motion.div>
-            <motion.div variants={itemVariants} className="grid grid-cols-2 gap-3">
+            <motion.div variants={itemVariants}>
               <select
                 required className={selectClass}
                 value={studentForm.year}
@@ -103,6 +103,8 @@ export default function WaitlistSection() {
                 <option>5th Year</option>
                 <option>LLM</option>
               </select>
+            </motion.div>
+            <motion.div variants={itemVariants}>
               <input
                 required type="text" placeholder="School / University"
                 className={inputClass}
@@ -158,11 +160,25 @@ export default function WaitlistSection() {
               />
             </motion.div>
             <motion.div variants={itemVariants}>
+              <select
+                required className={selectClass}
+                value={firmForm.practiceArea}
+                onChange={(e) => setFirmForm({ ...firmForm, practiceArea: e.target.value })}
+              >
+                <option value="" disabled>Practice area</option>
+                <option>Corporate</option>
+                <option>Litigation</option>
+                <option>IP / Tech</option>
+                <option>Criminal</option>
+                <option>Other</option>
+              </select>
+            </motion.div>
+            <motion.div variants={itemVariants}>
               <Button type="submit" variant="reverse" size="lg" className="w-full py-4 font-heading font-bold">I want pre-screened interns</Button>
             </motion.div>
           </motion.form>
 
-          {/* Universities */}
+          {/* Institutions */}
           <motion.form
             onSubmit={handleUni}
             variants={containerVariants}
@@ -171,7 +187,7 @@ export default function WaitlistSection() {
             viewport={{ once: true, amount: 0.3 }}
             className="bg-card rounded-2xl p-8 border-2 border-border space-y-5 shadow-shadow hover:shadow-lg transition-shadow duration-300"
           >
-            <motion.h3 variants={itemVariants} className="font-heading font-bold text-xl mb-1">For Universities</motion.h3>
+            <motion.h3 variants={itemVariants} className="font-heading font-bold text-xl mb-1">For Institutions</motion.h3>
             <motion.div variants={itemVariants}>
               <input
                 required type="email" placeholder="Email address"
