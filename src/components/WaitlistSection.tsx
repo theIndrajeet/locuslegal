@@ -24,6 +24,7 @@ export default function WaitlistSection() {
 
   const [studentForm, setStudentForm] = useState({ email: "", year: "", city: "", school: "" });
   const [firmForm, setFirmForm] = useState({ email: "", firmName: "", city: "" });
+  const [uniForm, setUniForm] = useState({ email: "", institutionName: "", city: "", type: "" });
 
   const handleStudent = (e: FormEvent) => {
     e.preventDefault();
@@ -43,6 +44,15 @@ export default function WaitlistSection() {
     toast({ title: "You're on the list! 🎉", description: "We'll connect you with top candidates soon." });
   };
 
+  const handleUni = (e: FormEvent) => {
+    e.preventDefault();
+    const existing = JSON.parse(localStorage.getItem("lexroot_universities") || "[]");
+    existing.push({ ...uniForm, submittedAt: new Date().toISOString() });
+    localStorage.setItem("lexroot_universities", JSON.stringify(existing));
+    setUniForm({ email: "", institutionName: "", city: "", type: "" });
+    toast({ title: "You're on the list! 🎉", description: "We'll reach out about partnership options." });
+  };
+
   const inputClass =
     "w-full h-12 px-4 rounded-xl bg-background border-2 border-border text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent/40 hover:border-foreground/20 transition-all text-sm";
 
@@ -60,7 +70,7 @@ export default function WaitlistSection() {
         <p className="text-muted-foreground text-center mb-16 max-w-xl mx-auto text-lg">
           Be among the first to access Lex Root when we launch.
         </p>
-        <div className="grid md:grid-cols-2 gap-8">
+        <div className="grid md:grid-cols-3 gap-8">
           {/* Students */}
           <motion.form
             onSubmit={handleStudent}
@@ -149,6 +159,57 @@ export default function WaitlistSection() {
             </motion.div>
             <motion.div variants={itemVariants}>
               <Button type="submit" variant="reverse" size="lg" className="w-full py-4 font-heading font-bold">I want pre-screened interns</Button>
+            </motion.div>
+          </motion.form>
+
+          {/* Universities */}
+          <motion.form
+            onSubmit={handleUni}
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.3 }}
+            className="bg-card rounded-2xl p-8 border-2 border-border space-y-5 shadow-shadow hover:shadow-lg transition-shadow duration-300"
+          >
+            <motion.h3 variants={itemVariants} className="font-heading font-bold text-xl mb-1">For Universities</motion.h3>
+            <motion.div variants={itemVariants}>
+              <input
+                required type="email" placeholder="Email address"
+                className={inputClass}
+                value={uniForm.email}
+                onChange={(e) => setUniForm({ ...uniForm, email: e.target.value })}
+              />
+            </motion.div>
+            <motion.div variants={itemVariants}>
+              <input
+                required type="text" placeholder="Institution name"
+                className={inputClass}
+                value={uniForm.institutionName}
+                onChange={(e) => setUniForm({ ...uniForm, institutionName: e.target.value })}
+              />
+            </motion.div>
+            <motion.div variants={itemVariants}>
+              <input
+                required type="text" placeholder="City"
+                className={inputClass}
+                value={uniForm.city}
+                onChange={(e) => setUniForm({ ...uniForm, city: e.target.value })}
+              />
+            </motion.div>
+            <motion.div variants={itemVariants}>
+              <select
+                required className={selectClass}
+                value={uniForm.type}
+                onChange={(e) => setUniForm({ ...uniForm, type: e.target.value })}
+              >
+                <option value="" disabled>Institution type</option>
+                <option>Law College</option>
+                <option>University</option>
+                <option>Deemed University</option>
+              </select>
+            </motion.div>
+            <motion.div variants={itemVariants}>
+              <Button type="submit" variant="reverse" size="lg" className="w-full py-4 font-heading font-bold">Register My Institution</Button>
             </motion.div>
           </motion.form>
         </div>
