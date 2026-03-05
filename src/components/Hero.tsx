@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import BackgroundPathsAnimation from "@/components/ui/background-paths";
 import { Button } from "@/components/ui/button";
 import { GooeyText } from "@/components/ui/gooey-text-morphing";
+import { RainbowButton } from "@/components/ui/rainbow-button";
 import DisplayCards from "@/components/ui/display-cards";
 import { Send, Target, FileText } from "lucide-react";
 export default function Hero() {
@@ -17,13 +18,13 @@ export default function Hero() {
       <div className="container mx-auto px-4 md:px-8 relative z-10 py-32">
         <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
           <div className="max-w-3xl lg:max-w-xl flex-1">
-            <span
-              className={`inline-block mb-8 px-5 py-2 rounded-full border border-accent/30 bg-accent/10 text-accent font-heading text-sm font-semibold tracking-widest uppercase transition-all duration-700 ${
+            <RainbowButton
+              className={`mb-8 font-heading text-sm font-semibold tracking-widest uppercase transition-all duration-700 ${
                 visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
               }`}
             >
               Your merit. Your internship.
-            </span>
+            </RainbowButton>
             
             <h1
               className={`font-heading text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold leading-[1.05] tracking-tight mb-8 text-foreground transition-all duration-700 delay-150 ${
