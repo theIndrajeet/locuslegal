@@ -40,7 +40,7 @@ export default function Hero() {
                 ]}
                 morphTime={2}
                 cooldownTime={1.5}
-                className="mt-2"
+                className="block mt-2 min-h-[120px] sm:min-h-[140px] md:min-h-[160px] lg:min-h-[200px]"
                 textClassName="text-accent font-heading font-extrabold text-4xl sm:text-5xl md:text-6xl lg:text-7xl"
               />
             </h1>
