@@ -17,8 +17,6 @@ export function useScrollReveal() {
       },
       { threshold: 0.15 }
     );
-    el.style.opacity = "0";
-    el.style.transform = "translateY(24px)";
     obs.observe(el);
     return () => obs.disconnect();
   }, []);

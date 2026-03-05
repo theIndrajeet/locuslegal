@@ -60,7 +60,7 @@ export default function ForFirms() {
     <section id="firms">
       {/* BLOCK 1 — Hero Headline */}
       <div className="py-28 px-4">
-        <div ref={heroRef} className="container mx-auto max-w-5xl opacity-0 text-center">
+        <div ref={heroRef} className="container mx-auto max-w-5xl opacity-0 translate-y-6 text-center">
           <p className="uppercase tracking-[0.2em] text-xs font-heading text-muted-foreground mb-6">
             For Law Firms &amp; Chambers
           </p>
@@ -77,7 +77,7 @@ export default function ForFirms() {
 
       {/* BLOCK 2 — Pain Cards */}
       <div className="px-4 pb-28">
-        <div ref={painRef} className="container mx-auto max-w-5xl opacity-0">
+        <div ref={painRef} className="container mx-auto max-w-5xl opacity-0 translate-y-6">
           <div className="grid md:grid-cols-3 gap-6">
             {painCards.map((card, i) => (
               <div
@@ -98,7 +98,7 @@ export default function ForFirms() {
       </div>
 
       {/* BLOCK 3 — Pivot Line */}
-      <div ref={pivotRef} className="bg-foreground text-background py-20 px-4 opacity-0">
+      <div ref={pivotRef} className="bg-foreground text-background py-20 px-4 opacity-0 translate-y-6">
         <div className="container mx-auto max-w-3xl text-center">
           <p className="font-heading text-2xl md:text-3xl lg:text-4xl italic leading-snug font-medium">
             "What if your next best intern was already waiting —{" "}
@@ -110,7 +110,7 @@ export default function ForFirms() {
 
       {/* BLOCK 4 — Value Props */}
       <div className="py-28 px-4">
-        <div ref={valueRef} className="container mx-auto max-w-5xl opacity-0">
+        <div ref={valueRef} className="container mx-auto max-w-5xl opacity-0 translate-y-6">
           <h2 className="font-heading text-3xl md:text-4xl lg:text-5xl font-bold text-center mb-16 tracking-tight">
             Zero noise. <span className="text-accent">Just the right candidates.</span>
           </h2>
@@ -132,7 +132,7 @@ export default function ForFirms() {
 
       {/* BLOCK 5 — Objection Busters */}
       <div className="py-28 px-4">
-        <div ref={faqRef} className="container mx-auto max-w-3xl opacity-0">
+        <div ref={faqRef} className="container mx-auto max-w-3xl opacity-0 translate-y-6">
           <h2 className="font-heading text-2xl md:text-3xl font-bold text-center mb-12 tracking-tight">
             Still have questions?
           </h2>
@@ -152,7 +152,7 @@ export default function ForFirms() {
       </div>
 
       {/* BLOCK 6 — Final CTA */}
-      <div ref={ctaRef} className="bg-foreground text-background py-24 px-4 opacity-0">
+      <div ref={ctaRef} className="bg-foreground text-background py-24 px-4 opacity-0 translate-y-6">
         <div className="container mx-auto max-w-3xl text-center">
           <h2 className="font-heading text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight mb-4">
             List your firm. Find your intern.
