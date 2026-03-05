@@ -1,11 +1,11 @@
-import { Send, Target, ShieldCheck } from "lucide-react";
+import { Send, Target, FileText } from "lucide-react";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 import { Button } from "@/components/ui/button";
 
 const features = [
   { icon: Send, title: "Direct Apply", desc: "Apply directly to top firms. No middleman, no referral needed." },
   { icon: Target, title: "Skill-Based Matching", desc: "Get matched with firms looking for exactly what you bring to the table." },
-  { icon: ShieldCheck, title: "Guaranteed Internship", desc: "Complete your profile, prove your merit, and we guarantee you a placement." },
+  { icon: FileText, title: "Market-Ready Profile", desc: "We help you build a CV and LinkedIn profile that stands out — so firms come to you." },
 ];
 
 export default function ForStudents() {
