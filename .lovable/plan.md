@@ -1,20 +1,16 @@
 
 
-## Fix: Scroll Reveal Animation Causing Layout Jump
+## Fix: GooeyText Animation Causing Page Layout Shift
 
 ### Problem
-The `useScrollReveal` hook applies `opacity: 0` and `translateY(24px)` via JavaScript *after* the component mounts. This means elements first render visibly, then suddenly jump down 24px and disappear, then animate back in. This causes the entire page to visually shift on load.
+The `GooeyText` component morphs between phrases of different lengths ("not the one your college got you.", "based on your skills, not your campus.", "earned through merit, not connections."). Each phrase has a different character count, causing the `h1` container to resize dynamically, which pushes all content below it up and down.
 
 ### Solution
-Set the initial hidden state via CSS className (`opacity-0 translate-y-6`) so elements are hidden from the very first paint — no flash or jump. The hook then only needs to add the reveal transition.
+Give the `GooeyText` wrapper a fixed minimum height so the tallest phrase is always accommodated. This prevents the `h1` from reflowing on each morph.
 
 ### Changes
 
-**`src/hooks/useScrollReveal.ts`** — Remove the JS lines that set initial `opacity`/`transform`. Instead, only animate *in* when intersecting. The initial hidden state is already on the elements via `className="opacity-0"`.
+**`src/components/Hero.tsx`** — Add a `min-h` class to the GooeyText `className` prop to reserve space for the tallest phrase. Use responsive min-heights matching the text sizes (e.g., `min-h-[120px] sm:min-h-[140px] md:min-h-[160px] lg:min-h-[200px]`). Also add `block` display so the min-height applies correctly.
 
-**`src/components/ForStudents.tsx`** — Add `translate-y-6` alongside existing `opacity-0` on each ref'd container, so the transform is set from first render (no JS flash).
-
-**All other components using `useScrollReveal`** (`ForFirms.tsx`, `ForUniversities.tsx`, `WaitlistSection.tsx`, etc.) — Same fix: ensure each ref'd element has `opacity-0 translate-y-6` in its className.
-
-This eliminates the visible jump because the browser never renders the element in its "visible" state first.
+This is a single-line className change — no other files affected.
 
