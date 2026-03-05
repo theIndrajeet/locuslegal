@@ -64,6 +64,9 @@ export default function Hero() {
               <a href="#waitlist">
                 <Button variant="neutral" size="lg" className="font-heading text-base px-8 py-4">I'm a Firm</Button>
               </a>
+              <a href="#waitlist">
+                <Button variant="neutral" size="lg" className="font-heading text-base px-8 py-4">I'm a School</Button>
+              </a>
             </div>
           </div>
 
