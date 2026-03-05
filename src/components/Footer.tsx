@@ -11,11 +11,6 @@ export default function Footer() {
           </span>
           <p className="text-sm text-muted-foreground mt-1">Your merit. Your internship.</p>
         </div>
-        <div className="flex gap-6 text-muted-foreground text-sm">
-          <a href="#" className="hover:text-accent transition-colors duration-300">Twitter</a>
-          <a href="#" className="hover:text-accent transition-colors duration-300">LinkedIn</a>
-          <a href="#" className="hover:text-accent transition-colors duration-300">Instagram</a>
-        </div>
         <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} Lex Root. All rights reserved.</p>
       </div>
     </footer>
