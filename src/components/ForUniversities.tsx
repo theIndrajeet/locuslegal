@@ -71,7 +71,7 @@ export default function ForUniversities() {
       <div className="py-28 px-4">
         <div ref={heroRef} className="container mx-auto max-w-5xl opacity-0 translate-y-6 text-center">
           <p className="uppercase tracking-[0.2em] text-xs font-heading text-muted-foreground mb-6">
-            For Universities &amp; Law Schools
+            For Institutions &amp; Law Schools
           </p>
           <h2 className="font-heading text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight mb-6 leading-tight">
             1,800 law colleges have no placement infrastructure.

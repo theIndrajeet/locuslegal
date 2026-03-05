@@ -5,7 +5,7 @@ import { useTheme } from "next-themes";
 const navLinks = [
   { label: "Students", href: "#students" },
   { label: "Firms & Chambers", href: "#firms" },
-  { label: "Universities", href: "#universities" },
+  { label: "Institutions", href: "#universities" },
   { label: "Waitlist", href: "#waitlist" },
 ];
 
