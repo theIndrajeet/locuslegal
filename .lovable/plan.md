@@ -1,39 +1,21 @@
 
 
-## Add Dedicated "For Firms" Section
+## Remove Testimonials, Money/Payment References, and Urgency Banner
 
-Replace the current `ForFirms.tsx` placeholder with a comprehensive, multi-block section that follows the site's existing design patterns (scroll reveal, card styles, font classes, color variables). Insert it between `ForStudents` and `WaitlistSection` in `Index.tsx` (same position, just expanded content).
+### Changes to `src/components/ForFirms.tsx`:
 
-### Files to Change
+1. **Remove testimonials data** (lines 37-48) and the `testimonialRef` (line 70), and **Block 5** (lines 149-170) entirely.
 
-**1. `src/components/ForFirms.tsx`** — Complete rewrite with 8 blocks:
+2. **Remove urgency banner** — delete `urgencyRef` (line 71) and **Block 6** (lines 172-182) entirely.
 
-- **Block 1 — Hero Headline**: Section label "For Law Firms & Chambers" in small caps muted text. Large bold headline "You're not short on applicants. You're short on the right ones." with accent styling on key phrase. Subtext paragraph about the network problem.
+3. **Remove "Free forever for firms" value prop** (line 32) — the one with `BadgeDollarSign` icon that says "No subscription. No per-hire fee. No catch. We charge students, not firms."
 
-- **Block 2 — Pain Cards**: Three cards in a `grid md:grid-cols-3` layout (same card style as ForStudents). Icons: `Inbox`, `Building2`, `Clock` from lucide-react. Each with bold title and descriptive body text about flooded applications, NLU pipeline, and bad intern costs.
+4. **Clean up money/payment language elsewhere**:
+   - Hero subtext (line 89): remove "For free." at the end → "LexRoot fixes that."
+   - Value props heading (line 131): change "Zero cost. Zero noise." → "Zero noise." (remove cost claim)
+   - CTA subheadline (line 212): change "It costs nothing. It takes 5 minutes." → "It takes 5 minutes."
+   - CTA button (line 216): change "List My Firm — It's Free →" → "List My Firm →"
+   - CTA microcopy (line 220): change "No payment. No commitment. Cancel anytime." → "No commitment. Cancel anytime."
 
-- **Block 3 — Pivot Line**: Full-width dark background panel (`bg-foreground text-background`) with centered italic quote: "What if your next best intern was already waiting — you just had no way to find them?"
-
-- **Block 4 — Value Props**: Heading "Zero cost. Zero noise. Just the right candidates." Five rows in a two-column layout (`grid md:grid-cols-[auto_1fr]`) with icon+title on left and description on right. Covers pre-screened profiles, custom filters, free forever, reach the unreached, save associate time.
-
-- **Block 5 — Testimonials**: Two quote cards side by side (`grid md:grid-cols-2`), subtle card background, large quote mark, italic text. Senior Partner (Delhi IP firm) and Founding Partner (Mumbai litigation chamber) beta tester quotes.
-
-- **Block 6 — Urgency Banner**: Highlighted banner with `bg-accent text-accent-foreground` (gold/amber). Bold "LexRoot is in early access." with subtext about founding partner status for first 100 firms.
-
-- **Block 7 — Objection Busters**: Three collapsible FAQ rows using the existing `Accordion` component from `@/components/ui/accordion`. Questions about quality, time commitment, and existing platforms.
-
-- **Block 8 — Final CTA**: Dark panel (`bg-foreground text-background`). Headline "List your firm. Find your intern." Subheadline. Full-width button on mobile linking to `#waitlist`. Muted microcopy below.
-
-All blocks use `useScrollReveal()` for fade-up animation on scroll, matching the existing site pattern. Each major block gets its own ref for staggered reveal.
-
-**2. `src/pages/Index.tsx`** — No changes needed. `ForFirms` is already imported and positioned correctly between `ForStudents` and `WaitlistSection`.
-
-### Design Patterns Used
-- Same card classes as `ForStudents` (rounded-2xl, border, hover effects, accent gradient line)
-- Same typography classes (`font-heading`, `text-3xl md:text-4xl lg:text-5xl`, `tracking-tight`)
-- Same spacing (`py-28 px-4`, `container mx-auto max-w-5xl`)
-- `useScrollReveal` hook for all animated blocks
-- Existing `Accordion` component for FAQ section
-- Existing `Button` component with `variant="reverse"` for CTAs
-- All links point to `#waitlist` anchor
+5. **Remove unused imports**: `BadgeDollarSign`, `Quote` (no longer used after testimonials removal).
 
