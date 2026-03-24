@@ -346,6 +346,28 @@ function GuideDetail({ guide }: { guide: Guide }) {
           ))}
         </div>
       </div>
+
+      {/* Attachments */}
+      {guide.attachments && guide.attachments.length > 0 && (
+        <div className="mt-8">
+          <h2 className="text-xs uppercase tracking-wider text-muted-foreground mb-4">
+            Attachments
+          </h2>
+          <div className="space-y-2">
+            {guide.attachments.map((att, i) => (
+              <a
+                key={i}
+                href={att.href}
+                download
+                className="flex items-center gap-3 p-3 rounded-lg border border-border/50 bg-card/50 hover:border-accent/40 hover:bg-accent/5 transition-all group"
+              >
+                <Download size={16} className="text-accent shrink-0" />
+                <span className="text-sm font-medium text-foreground group-hover:text-accent transition-colors">{att.label}</span>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
