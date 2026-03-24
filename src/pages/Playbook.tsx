@@ -203,21 +203,30 @@ export default function Playbook() {
               </div>
             ) : (
               <div className="flex items-center justify-center h-full relative overflow-hidden">
-                {/* Subtle gold radial gradient */}
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_hsl(45_100%_51%/0.06)_0%,_transparent_70%)]" />
+                {/* Gold radial gradient */}
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_hsl(45_100%_51%/0.1)_0%,_transparent_60%)]" />
 
-                <div className="relative z-10 flex flex-col items-center text-center px-8 max-w-xl">
-                  {/* Hero */}
-                  <h2 className="text-4xl font-bold text-foreground animate-fade-in" style={{ animationFillMode: 'both' }}>
-                    The Locus Playbook
+                <div className="relative z-10 flex flex-col items-start px-12 max-w-2xl">
+                  {/* Case file label */}
+                  <span className="font-mono text-xs tracking-[0.3em] uppercase text-[#D4A017]/60 animate-fade-in" style={{ animationFillMode: 'both' }}>
+                    CASE FILE SYSTEM // LX-000
+                  </span>
+
+                  {/* Massive heading */}
+                  <h2 className="text-5xl md:text-6xl font-bold mt-4 animate-fade-in" style={{ animationDelay: '150ms', animationFillMode: 'both' }}>
+                    The Locus <span className="text-[#D4A017]">Playbook</span>
                   </h2>
-                  <div className="h-1 w-20 bg-[#D4A017] rounded-full mt-4 mb-3 animate-fade-in" style={{ animationDelay: '150ms', animationFillMode: 'both' }} />
-                  <p className="text-muted-foreground text-base mb-10 animate-fade-in" style={{ animationDelay: '300ms', animationFillMode: 'both' }}>
+
+                  {/* Animated gold bar */}
+                  <div className="h-1.5 w-32 bg-[#D4A017] rounded-full mt-6 mb-6 animate-fade-in origin-left" style={{ animationDelay: '300ms', animationFillMode: 'both' }} />
+
+                  {/* Tagline */}
+                  <p className="text-lg text-muted-foreground/90 mb-12 animate-fade-in" style={{ animationDelay: '400ms', animationFillMode: 'both' }}>
                     Your case file system for navigating legal internships in India.
                   </p>
 
-                  {/* Feature cards */}
-                  <div className="grid grid-cols-3 gap-5 w-full mb-12">
+                  {/* Feature cards — left-aligned with gold border */}
+                  <div className="flex flex-col gap-4 w-full mb-14">
                     {[
                       { icon: BookOpen, label: "14 Guides", desc: "Covering every stage from application to PPO conversion" },
                       { icon: Users, label: "3 Audiences", desc: "Tailored for students, firms, and institutions" },
@@ -225,20 +234,25 @@ export default function Playbook() {
                     ].map((item, i) => (
                       <div
                         key={item.label}
-                        className="flex flex-col items-center gap-2 rounded-lg border border-border bg-card/50 p-5 animate-fade-in"
-                        style={{ animationDelay: `${450 + i * 150}ms`, animationFillMode: 'both' }}
+                        className="flex items-start gap-4 rounded-lg border border-border bg-card/50 p-6 border-l-2 border-l-[#D4A017] animate-fade-in"
+                        style={{ animationDelay: `${500 + i * 150}ms`, animationFillMode: 'both' }}
                       >
-                        <item.icon className="w-6 h-6 text-[#D4A017] mb-1" />
-                        <span className="text-sm font-semibold text-foreground">{item.label}</span>
-                        <span className="text-xs text-muted-foreground leading-relaxed">{item.desc}</span>
+                        <item.icon className="w-8 h-8 text-[#D4A017] shrink-0 mt-0.5" />
+                        <div>
+                          <span className="text-base font-semibold text-foreground block">{item.label}</span>
+                          <span className="text-sm text-muted-foreground leading-relaxed">{item.desc}</span>
+                        </div>
                       </div>
                     ))}
                   </div>
 
-                  {/* Prompt */}
-                  <p className="text-lg font-semibold text-[#D4A017] animate-fade-in animate-pulse" style={{ animationDelay: '900ms', animationFillMode: 'both' }}>
-                    ← Select a guide from the left panel to get started
-                  </p>
+                  {/* Prompt with pulsing dot */}
+                  <div className="flex items-center gap-3 animate-fade-in" style={{ animationDelay: '950ms', animationFillMode: 'both' }}>
+                    <span className="w-2 h-2 rounded-full bg-[#D4A017] animate-pulse" />
+                    <p className="text-base font-semibold text-[#D4A017]">
+                      Select a guide from the left panel to get started
+                    </p>
+                  </div>
                 </div>
               </div>
             )}
