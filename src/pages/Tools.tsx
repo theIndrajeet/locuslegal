@@ -11,17 +11,28 @@ const TABS: { id: ToolType; num: string; label: string }[] = [
   { id: "internship", num: "04", label: "Internship Agreement" },
 ];
 
-const TOOL_CATALOG: { id: ToolType; num: string; label: string; description: string; tags: string[]; comingSoon?: boolean }[] = [
-  { id: "nda", num: "01", label: "NDA Generator", description: "Generate enforceable non-disclosure agreements across multiple jurisdictions", tags: ["APAC", "GDPR", "Multi-party"] },
-  { id: "checklist", num: "02", label: "Data Protection Checklist", description: "Interactive compliance audit with risk-rated action items", tags: ["Interactive", "Risk-rated", "Multi-jurisdiction"] },
-  { id: "dpa", num: "03", label: "DPA Template", description: "Draft data processing agreements with cross-border transfer clauses", tags: ["GDPR", "DPDPA", "Cross-border"] },
-  { id: "internship", num: "04", label: "Internship Agreement", description: "Formalize legal internship terms with BCI-compliant templates", tags: ["Indian Law", "BCI Rules", "Structured"] },
-  { id: "nda", num: "05", label: "Founder Agreement", description: "Co-founder equity splits, vesting schedules, and IP assignment clauses", tags: ["Startups", "Equity", "Vesting"], comingSoon: true },
-  { id: "nda", num: "06", label: "Freelancer Contract", description: "Service agreements with payment terms, IP ownership, and liability caps", tags: ["SMBs", "IP", "Payments"], comingSoon: true },
-  { id: "nda", num: "07", label: "Music Licensing Agreement", description: "Sync licensing, royalty splits, and territory-based distribution rights", tags: ["Artists", "Royalties", "Sync"], comingSoon: true },
-  { id: "nda", num: "08", label: "Artist Commission Contract", description: "Commission scope, revision limits, usage rights, and payment milestones", tags: ["Creators", "IP", "Milestones"], comingSoon: true },
-  { id: "nda", num: "09", label: "Terms of Service Generator", description: "Website/app ToS with liability limitations and dispute resolution", tags: ["Startups", "SaaS", "E-commerce"], comingSoon: true },
-  { id: "nda", num: "10", label: "Equity & ESOP Template", description: "Employee stock option plans with cliff periods and exercise terms", tags: ["Startups", "ESOPs", "Vesting"], comingSoon: true },
+type CategoryType = "All" | "Firms" | "Startups" | "Creators" | "Students" | "SMBs";
+
+const CATEGORIES: { id: CategoryType; label: string; count: number }[] = [
+  { id: "All", label: "All Tools", count: 10 },
+  { id: "Firms", label: "Firms & Chambers", count: 4 },
+  { id: "Startups", label: "Startups & Founders", count: 3 },
+  { id: "Creators", label: "Artists & Musicians", count: 2 },
+  { id: "Students", label: "Students & Schools", count: 2 },
+  { id: "SMBs", label: "Small Companies", count: 3 },
+];
+
+const TOOL_CATALOG: { id: ToolType; num: string; label: string; description: string; tags: string[]; comingSoon?: boolean; categories: CategoryType[] }[] = [
+  { id: "nda", num: "01", label: "NDA Generator", description: "Generate enforceable non-disclosure agreements across multiple jurisdictions", tags: ["APAC", "GDPR", "Multi-party"], categories: ["Firms", "Startups", "SMBs"] },
+  { id: "checklist", num: "02", label: "Data Protection Checklist", description: "Interactive compliance audit with risk-rated action items", tags: ["Interactive", "Risk-rated", "Multi-jurisdiction"], categories: ["Firms", "SMBs"] },
+  { id: "dpa", num: "03", label: "DPA Template", description: "Draft data processing agreements with cross-border transfer clauses", tags: ["GDPR", "DPDPA", "Cross-border"], categories: ["Firms", "SMBs"] },
+  { id: "internship", num: "04", label: "Internship Agreement", description: "Formalize legal internship terms with BCI-compliant templates", tags: ["Indian Law", "BCI Rules", "Structured"], categories: ["Firms", "Students"] },
+  { id: "nda", num: "05", label: "Founder Agreement", description: "Co-founder equity splits, vesting schedules, and IP assignment clauses", tags: ["Startups", "Equity", "Vesting"], comingSoon: true, categories: ["Startups"] },
+  { id: "nda", num: "06", label: "Freelancer Contract", description: "Service agreements with payment terms, IP ownership, and liability caps", tags: ["SMBs", "IP", "Payments"], comingSoon: true, categories: ["SMBs", "Startups"] },
+  { id: "nda", num: "07", label: "Music Licensing Agreement", description: "Sync licensing, royalty splits, and territory-based distribution rights", tags: ["Artists", "Royalties", "Sync"], comingSoon: true, categories: ["Creators"] },
+  { id: "nda", num: "08", label: "Artist Commission Contract", description: "Commission scope, revision limits, usage rights, and payment milestones", tags: ["Creators", "IP", "Milestones"], comingSoon: true, categories: ["Creators"] },
+  { id: "nda", num: "09", label: "Terms of Service Generator", description: "Website/app ToS with liability limitations and dispute resolution", tags: ["Startups", "SaaS", "E-commerce"], comingSoon: true, categories: ["Startups", "SMBs"] },
+  { id: "nda", num: "10", label: "Equity & ESOP Template", description: "Employee stock option plans with cliff periods and exercise terms", tags: ["Startups", "ESOPs", "Vesting"], comingSoon: true, categories: ["Startups", "Students"] },
 ];
 
 const JURISDICTIONS = [
@@ -126,6 +137,7 @@ function parseChecklist(text: string): ChecklistSection[] {
 export default function Tools() {
   const [selectedTool, setSelectedTool] = useState<ToolType | null>(null);
   const [activeTool, setActiveTool] = useState<ToolType>("nda");
+  const [activeCategory, setActiveCategory] = useState<CategoryType>("All");
   const [loading, setLoading] = useState<Record<ToolType, boolean>>({ nda: false, checklist: false, dpa: false, internship: false });
   const [outputs, setOutputs] = useState<Record<ToolType, string>>({ nda: "", checklist: "", dpa: "", internship: "" });
   const [rawText, setRawText] = useState<Record<ToolType, string>>({ nda: "", checklist: "", dpa: "", internship: "" });
@@ -463,16 +475,12 @@ Include sections: Parties, Recitals, Term of Internship, Scope of Work, Supervis
         .lt-jur-check { display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.78rem; font-weight: 500; padding: 7px 14px; border: 2px solid hsl(0,0%,18%); background: hsl(0,0%,5%); }
         .lt-jur-check:hover { border-color: hsl(45,100%,51%); }
         .lt-jur-check input { accent-color: hsl(45,100%,51%); }
-        /* Audience Section */
-        .lt-audience { padding: 48px 40px 0; max-width: 1100px; margin: 0 auto; }
-        .lt-audience-label { font-family: 'Sora', sans-serif; font-size: 0.62rem; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: hsl(0,0%,45%); margin-bottom: 16px; }
-        .lt-audience-grid { display: flex; flex-wrap: wrap; gap: 12px; }
-        .lt-audience-chip { display: flex; align-items: center; gap: 10px; padding: 14px 24px; border: 2px solid hsl(0,0%,18%); background: linear-gradient(135deg, hsl(0,0%,8%) 0%, hsl(0,0%,5%) 100%); font-family: 'Sora', sans-serif; font-size: 0.78rem; font-weight: 700; color: hsl(0,0%,75%); letter-spacing: 0.02em; transition: all 0.2s; cursor: default; position: relative; overflow: hidden; }
-        .lt-audience-chip::before { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, hsla(45,100%,51%,0.06) 0%, transparent 60%); opacity: 0; transition: opacity 0.3s; }
-        .lt-audience-chip:hover::before { opacity: 1; }
-        .lt-audience-chip:hover { border-color: hsl(45,100%,51%); color: hsl(0,0%,95%); transform: translate(-2px, -2px); box-shadow: 4px 4px 0px 0px hsl(45,100%,51%); }
-        .lt-audience-icon { font-size: 1.3rem; }
-        .lt-audience-count { font-size: 0.6rem; font-weight: 600; color: hsl(45,100%,51%); background: hsla(45,100%,51%,0.12); padding: 2px 8px; letter-spacing: 0.1em; }
+        /* Category Filter */
+        .lt-cat-filter { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 28px; }
+        .lt-cat-chip { font-family: 'Sora', sans-serif; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 8px 18px; border: 2px solid hsl(0,0%,20%); color: hsl(0,0%,55%); background: hsl(0,0%,6%); cursor: pointer; transition: all 0.2s; }
+        .lt-cat-chip:hover { border-color: hsl(0,0%,40%); color: hsl(0,0%,80%); }
+        .lt-cat-chip.active { border-color: hsl(45,100%,51%); color: hsl(0,0%,0%); background: hsl(45,100%,51%); font-weight: 800; box-shadow: 3px 3px 0px 0px hsl(0,0%,0%); }
+        .lt-cat-chip .lt-chip-count { margin-left: 6px; font-size: 0.55rem; opacity: 0.7; }
 
         @media (max-width: 900px) {
           .lt-layout { grid-template-columns: 1fr; }
@@ -483,7 +491,7 @@ Include sections: Parties, Recitals, Term of Internship, Scope of Work, Supervis
           .lt-catalogue { padding: 40px 20px 60px; }
           .lt-catalogue-grid { grid-template-columns: 1fr; }
           .lt-back { margin: 16px 20px 0; }
-          .lt-audience { padding: 36px 20px 0; }
+          }
         }
       `}</style>
       <div className="lt-page">
@@ -501,34 +509,18 @@ Include sections: Parties, Recitals, Term of Internship, Scope of Work, Supervis
           )}
         </div>
 
-        {/* Audience Section */}
-        {!selectedTool && (
-          <div className="lt-audience">
-            <div className="lt-audience-label">Built for</div>
-            <div className="lt-audience-grid">
-              {[
-                { icon: "⚖️", label: "Law Firms & Chambers", count: "4 tools" },
-                { icon: "🚀", label: "Startups & Founders", count: "3 tools" },
-                { icon: "🎵", label: "Artists & Musicians", count: "2 tools" },
-                { icon: "🎓", label: "Law Students", count: "2 tools" },
-                { icon: "🏢", label: "Small Companies & SMBs", count: "3 tools" },
-                { icon: "🏫", label: "Law Schools & Institutions", count: "2 tools" },
-              ].map((a) => (
-                <div key={a.label} className="lt-audience-chip">
-                  <span className="lt-audience-icon">{a.icon}</span>
-                  {a.label}
-                  <span className="lt-audience-count">{a.count}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Catalogue View */}
         {!selectedTool && (
           <div className="lt-catalogue">
+            <div className="lt-cat-filter">
+              {CATEGORIES.map((cat) => (
+                <button key={cat.id} className={`lt-cat-chip${activeCategory === cat.id ? " active" : ""}`} onClick={() => setActiveCategory(cat.id)}>
+                  {cat.label}<span className="lt-chip-count">({cat.count})</span>
+                </button>
+              ))}
+            </div>
             <div className="lt-catalogue-grid">
-              {TOOL_CATALOG.map((tool) => (
+              {TOOL_CATALOG.filter((t) => activeCategory === "All" || t.categories.includes(activeCategory)).map((tool) => (
                 <div key={tool.num} className={`lt-cat-card${tool.comingSoon ? " coming-soon" : ""}`} onClick={() => !tool.comingSoon && openTool(tool.id)}>
                   {tool.comingSoon && <span className="lt-coming-badge">Coming Soon</span>}
                   <div className="lt-cat-top">
