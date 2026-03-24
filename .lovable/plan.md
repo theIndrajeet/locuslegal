@@ -1,33 +1,32 @@
 
 
-## Replace Empty State with Animated Playbook Introduction
+## Make Playbook Intro Bold & Visually Exciting
 
-### What
-Replace the "Select a guide to preview" empty state in the right panel with an engaging, animated introduction that explains what the Locus Playbook is. This turns dead space into a compelling onboarding moment.
+### Problem
+The empty state intro is too small, too generic, and uses plain fonts — feels like a placeholder, not a landing moment.
 
-### Design
-
-The empty state becomes a rich intro panel with staggered fade-in animations:
-
-1. **Hero heading**: "The Locus Playbook" in large bold text with a gold accent underline, fading in first
-2. **Tagline**: "Your case file system for navigating legal internships in India." — fades in with slight delay
-3. **Three feature cards** staggered in, each with an icon + short description:
-   - **14 Guides** — "Covering every stage from application to PPO conversion"
-   - **3 Audiences** — "Tailored for students, firms, and institutions"
-   - **Actionable** — "Step-by-step sections you can use right away"
-4. **Prompt**: A subtle pulsing arrow or text at the bottom — "Select a guide from the left panel to get started"
-5. **Background accent**: A subtle gold-tinted radial gradient behind the content for depth
-
-All animations use CSS keyframes (fade-in + translateY) with staggered `animation-delay` values — consistent with the site's existing animation system.
+### Design Direction
+Transform it into a dramatic, high-impact hero with:
+- **Massive heading** using Sora font at 5xl/6xl with the gold accent on key words
+- **Typewriter-style monospace case number** (e.g. "CASE FILE // LX-000") above the heading for thematic flavor
+- **Bigger, bolder feature cards** with gold borders and larger icons
+- **Animated gold line** that expands on load
+- **Stronger tagline** with larger text and more contrast
+- **Pulsing gold dot** next to the prompt instead of plain text
 
 ### Changes
 
-| Action | File |
-|--------|------|
-| Edit | `src/pages/Playbook.tsx` — replace the empty state div (lines 204-207) with a new `PlaybookIntro` component |
+| File | What |
+|------|------|
+| `src/pages/Playbook.tsx` | Redesign the empty state block (lines 205-243) |
 
-The `PlaybookIntro` component will be defined in the same file (internal component like `GuideDetail`). It uses:
-- Tailwind `animate-fade-in` class with inline `animationDelay` for staggering
-- `BookOpen`, `Users`, `Layers` icons from lucide-react (already imported)
-- Gold accent color consistent with the rest of the page
+### Specifics
+
+**Layout redesign (lines 205-243):**
+- Top: `font-mono text-xs tracking-[0.3em] uppercase text-[#D4A017]/60` — "CASE FILE SYSTEM // LX-000"
+- Heading: `text-5xl md:text-6xl font-bold` with "Locus" in white and "Playbook" in `text-[#D4A017]`, using Sora (already the heading font)
+- Gold bar: `h-1.5 w-32` instead of `h-1 w-20`
+- Tagline: `text-lg` instead of `text-base`, slightly brighter color
+- Feature cards: larger padding (`p-6`), bigger icons (`w-8 h-8`), `text-base` labels, gold left border accent (`border-l-2 border-[#D4A017]`), left-aligned text instead of centered
+- Prompt: add a pulsing gold dot (`w-2 h-2 rounded-full bg-[#D4A017] animate-pulse`) next to bolder text
 
