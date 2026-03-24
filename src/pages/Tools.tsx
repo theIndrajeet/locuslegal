@@ -463,6 +463,17 @@ Include sections: Parties, Recitals, Term of Internship, Scope of Work, Supervis
         .lt-jur-check { display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.78rem; font-weight: 500; padding: 7px 14px; border: 2px solid hsl(0,0%,18%); background: hsl(0,0%,5%); }
         .lt-jur-check:hover { border-color: hsl(45,100%,51%); }
         .lt-jur-check input { accent-color: hsl(45,100%,51%); }
+        /* Audience Section */
+        .lt-audience { padding: 48px 40px 0; max-width: 1100px; margin: 0 auto; }
+        .lt-audience-label { font-family: 'Sora', sans-serif; font-size: 0.62rem; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: hsl(0,0%,45%); margin-bottom: 16px; }
+        .lt-audience-grid { display: flex; flex-wrap: wrap; gap: 12px; }
+        .lt-audience-chip { display: flex; align-items: center; gap: 10px; padding: 14px 24px; border: 2px solid hsl(0,0%,18%); background: linear-gradient(135deg, hsl(0,0%,8%) 0%, hsl(0,0%,5%) 100%); font-family: 'Sora', sans-serif; font-size: 0.78rem; font-weight: 700; color: hsl(0,0%,75%); letter-spacing: 0.02em; transition: all 0.2s; cursor: default; position: relative; overflow: hidden; }
+        .lt-audience-chip::before { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, hsla(45,100%,51%,0.06) 0%, transparent 60%); opacity: 0; transition: opacity 0.3s; }
+        .lt-audience-chip:hover::before { opacity: 1; }
+        .lt-audience-chip:hover { border-color: hsl(45,100%,51%); color: hsl(0,0%,95%); transform: translate(-2px, -2px); box-shadow: 4px 4px 0px 0px hsl(45,100%,51%); }
+        .lt-audience-icon { font-size: 1.3rem; }
+        .lt-audience-count { font-size: 0.6rem; font-weight: 600; color: hsl(45,100%,51%); background: hsla(45,100%,51%,0.12); padding: 2px 8px; letter-spacing: 0.1em; }
+
         @media (max-width: 900px) {
           .lt-layout { grid-template-columns: 1fr; }
           .lt-output { min-height: 60vh; }
@@ -472,6 +483,7 @@ Include sections: Parties, Recitals, Term of Internship, Scope of Work, Supervis
           .lt-catalogue { padding: 40px 20px 60px; }
           .lt-catalogue-grid { grid-template-columns: 1fr; }
           .lt-back { margin: 16px 20px 0; }
+          .lt-audience { padding: 36px 20px 0; }
         }
       `}</style>
       <div className="lt-page">
@@ -488,6 +500,29 @@ Include sections: Parties, Recitals, Term of Internship, Scope of Work, Supervis
             </div>
           )}
         </div>
+
+        {/* Audience Section */}
+        {!selectedTool && (
+          <div className="lt-audience">
+            <div className="lt-audience-label">Built for</div>
+            <div className="lt-audience-grid">
+              {[
+                { icon: "⚖️", label: "Law Firms & Chambers", count: "4 tools" },
+                { icon: "🚀", label: "Startups & Founders", count: "3 tools" },
+                { icon: "🎵", label: "Artists & Musicians", count: "2 tools" },
+                { icon: "🎓", label: "Law Students", count: "2 tools" },
+                { icon: "🏢", label: "Small Companies & SMBs", count: "3 tools" },
+                { icon: "🏫", label: "Law Schools & Institutions", count: "2 tools" },
+              ].map((a) => (
+                <div key={a.label} className="lt-audience-chip">
+                  <span className="lt-audience-icon">{a.icon}</span>
+                  {a.label}
+                  <span className="lt-audience-count">{a.count}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Catalogue View */}
         {!selectedTool && (
