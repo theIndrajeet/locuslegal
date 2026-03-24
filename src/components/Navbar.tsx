@@ -8,6 +8,7 @@ const navLinks = [
   { label: "Directory", href: "/directory" },
   { label: "Playbook", href: "/playbook" },
   { label: "Resources", href: "/resources" },
+  { label: "Tools", href: "/tools" },
 ];
 
 export default function Navbar() {
