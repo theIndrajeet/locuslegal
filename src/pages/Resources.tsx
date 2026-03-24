@@ -33,6 +33,79 @@ const resources = [
     previewPrefix: "/documents/cl-page-",
   },
   {
+    title: "Follow-up Email Template",
+    description:
+      "A professional follow-up email template to send after your internship application — stay on their radar without being pushy.",
+    icon: FileText,
+    comingSoon: false,
+    hasPreview: true,
+    previewKey: "followup" as const,
+    downloadHref: "/documents/FollowupEmailTemplate.docx",
+    previewPages: [1, 2],
+    previewPrefix: "/documents/FollowupEmailTemplate-page-",
+  },
+  {
+    title: "Thank You Email Template",
+    description:
+      "Send a polished thank-you email after interviews or internship completions — leaves a lasting impression.",
+    icon: FileText,
+    comingSoon: false,
+    hasPreview: true,
+    previewKey: "thankyou" as const,
+    downloadHref: "/documents/ThankYouEmailTemplate.docx",
+    previewPages: [1, 2],
+    previewPrefix: "/documents/ThankYouEmailTemplate-page-",
+  },
+  {
+    title: "NOC Request Letter Template",
+    description:
+      "A formal No Objection Certificate request letter for your college — ready to customise and submit.",
+    icon: FileText,
+    comingSoon: false,
+    hasPreview: true,
+    previewKey: "noc" as const,
+    downloadHref: "/documents/NOCRequestLetterTemplate.docx",
+    previewPages: [1, 2, 3],
+    previewPrefix: "/documents/NOCRequestLetterTemplate-page-",
+  },
+  {
+    title: "Internship Application Tracker",
+    description:
+      "An Excel tracker to organise all your internship applications — firms, dates, statuses, and follow-ups in one place.",
+    icon: FileText,
+    comingSoon: false,
+    hasPreview: true,
+    previewKey: "tracker" as const,
+    downloadHref: "/documents/InternshipApplicationTracker.xlsx",
+    previewPages: [1, 2, 3],
+    previewPrefix: "/documents/InternshipApplicationTracker-page-",
+    previewPadded: true,
+  },
+  {
+    title: "Monthly Internship Log",
+    description:
+      "Track your daily tasks, learnings, and supervisor feedback throughout your internship month by month.",
+    icon: FileText,
+    comingSoon: false,
+    hasPreview: true,
+    previewKey: "log" as const,
+    downloadHref: "/documents/MonthlyInternshipLog.docx",
+    previewPages: [1, 2, 3, 4],
+    previewPrefix: "/documents/MonthlyInternshipLog-page-",
+  },
+  {
+    title: "LinkedIn Profile Checklist",
+    description:
+      "A step-by-step checklist to optimise your LinkedIn profile for legal recruiters and firm partners.",
+    icon: FileText,
+    comingSoon: false,
+    hasPreview: true,
+    previewKey: "linkedin" as const,
+    downloadHref: "/documents/LinkedInProfileChecklist.docx",
+    previewPages: [1, 2, 3],
+    previewPrefix: "/documents/LinkedInProfileChecklist-page-",
+  },
+  {
     title: "CV Analyser",
     description:
       "Get AI-powered feedback on your legal CV — structure, keywords, formatting, and content suggestions.",
@@ -136,14 +209,18 @@ export default function Resources() {
             </DialogTitle>
           </DialogHeader>
           <div className="flex-1 px-6 pb-6 h-[calc(85vh-4rem)] overflow-y-auto space-y-4">
-            {activeResource?.previewPages?.map((page) => (
-              <img
-                key={page}
-                src={`${activeResource.previewPrefix}${page}.jpg`}
-                alt={`${activeResource.title} page ${page}`}
-                className="w-full rounded-lg border border-border"
-              />
-            ))}
+            {activeResource?.previewPages?.map((page) => {
+              const padded = (activeResource as any).previewPadded;
+              const pageStr = padded ? String(page).padStart(2, "0") : String(page);
+              return (
+                <img
+                  key={page}
+                  src={`${activeResource.previewPrefix}${pageStr}.jpg`}
+                  alt={`${activeResource.title} page ${page}`}
+                  className="w-full rounded-lg border border-border"
+                />
+              );
+            })}
           </div>
         </DialogContent>
       </Dialog>

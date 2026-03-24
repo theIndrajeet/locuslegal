@@ -6,6 +6,11 @@ import { useIsMobile } from "@/hooks/use-mobile";
 type Audience = "Students" | "Firms" | "Institutions";
 type Filter = "All" | Audience;
 
+interface GuideAttachment {
+  label: string;
+  href: string;
+}
+
 interface Guide {
   id: string;
   caseNumber: string;
@@ -15,6 +20,7 @@ interface Guide {
   readTime: string;
   slug: string;
   sections: string[];
+  attachments?: GuideAttachment[];
 }
 
 const guides: Guide[] = [
@@ -62,11 +68,19 @@ const guides: Guide[] = [
     id: "9", caseNumber: "LX-009", title: "How to Evaluate a Law Intern",
     audience: "Firms", stage: "Firm Resources", readTime: "4 min", slug: "evaluate-law-intern",
     sections: ["Setting clear expectations", "The evaluation rubric", "Mid-internship check-in", "Final assessment criteria", "Giving useful feedback"],
+    attachments: [
+      { label: "Intern Evaluation Rubric", href: "/documents/InternEvaluationRubric.docx" },
+      { label: "Intern Daily Task Sheet", href: "/documents/InternDailyTaskSheet.docx" },
+    ],
   },
   {
     id: "10", caseNumber: "LX-010", title: "Building Your Firm's Internship Program from Scratch",
     audience: "Firms", stage: "Firm Resources", readTime: "6 min", slug: "build-internship-program",
     sections: ["Why a structured program matters", "Setting intake criteria", "Onboarding checklist", "Assigning work effectively", "Retention and conversion"],
+    attachments: [
+      { label: "Internship Offer Letter Template", href: "/documents/InternshipOfferLetterTemplate.docx" },
+      { label: "Intern NDA Template", href: "/documents/InternNDATemplate.docx" },
+    ],
   },
   {
     id: "11", caseNumber: "LX-011", title: "What to Look for in a Law Intern's CV",
@@ -332,6 +346,28 @@ function GuideDetail({ guide }: { guide: Guide }) {
           ))}
         </div>
       </div>
+
+      {/* Attachments */}
+      {guide.attachments && guide.attachments.length > 0 && (
+        <div className="mt-8">
+          <h2 className="text-xs uppercase tracking-wider text-muted-foreground mb-4">
+            Attachments
+          </h2>
+          <div className="space-y-2">
+            {guide.attachments.map((att, i) => (
+              <a
+                key={i}
+                href={att.href}
+                download
+                className="flex items-center gap-3 p-3 rounded-lg border border-border/50 bg-card/50 hover:border-accent/40 hover:bg-accent/5 transition-all group"
+              >
+                <Download size={16} className="text-accent shrink-0" />
+                <span className="text-sm font-medium text-foreground group-hover:text-accent transition-colors">{att.label}</span>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
