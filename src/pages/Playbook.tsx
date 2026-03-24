@@ -327,7 +327,7 @@ export default function Playbook() {
 
 function GuideDetail({ guide }: { guide: Guide }) {
   const [previewOpen, setPreviewOpen] = useState(false);
-  const hasPreview = !!guide.previewPages && !!guide.previewPrefix;
+  const hasPreview = !!guide.pdfHref;
 
   return (
     <div>
@@ -474,15 +474,12 @@ function GuideDetail({ guide }: { guide: Guide }) {
               {guide.caseNumber} — {guide.title}
             </DialogTitle>
           </DialogHeader>
-          <div className="flex-1 px-6 pb-6 h-[calc(85vh-4rem)] overflow-y-auto space-y-4">
-            {guide.previewPages?.map((page) => (
-              <img
-                key={page}
-                src={`${guide.previewPrefix}${page}.jpg`}
-                alt={`${guide.title} page ${page}`}
-                className="w-full rounded-lg border border-border"
-              />
-            ))}
+          <div className="flex-1 px-6 pb-6 h-[calc(85vh-4rem)]">
+            <iframe
+              src={guide.pdfHref}
+              title={guide.title}
+              className="w-full h-full rounded-lg border border-border"
+            />
           </div>
         </DialogContent>
       </Dialog>
