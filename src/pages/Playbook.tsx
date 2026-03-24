@@ -9,6 +9,7 @@ type Filter = "All" | Audience;
 interface GuideAttachment {
   label: string;
   href: string;
+  comingSoon?: boolean;
 }
 
 interface Guide {
@@ -88,6 +89,9 @@ const guides: Guide[] = [
     id: "11", caseNumber: "LX-011", title: "What to Look for in a Law Intern's CV",
     audience: "Firms", stage: "Firm Resources", readTime: "4 min", slug: "law-intern-cv",
     sections: ["Red flags vs green flags", "Academic record weight", "Extracurriculars that matter", "Writing samples", "What to ignore"],
+    attachments: [
+      { label: "CV Screening Checklist", href: "#", comingSoon: true },
+    ],
   },
   {
     id: "12", caseNumber: "LX-012", title: "How to Post Your Firm on Locus",
@@ -98,6 +102,10 @@ const guides: Guide[] = [
     id: "13", caseNumber: "LX-013", title: "How to Set Up a Placement Cell",
     audience: "Institutions", stage: "Institution Resources", readTime: "7 min", slug: "setup-placement-cell",
     sections: ["What a placement cell actually does", "Core team structure", "Building a firm database", "Student preparation pipeline", "Tracking placements"],
+    attachments: [
+      { label: "Placement Cell Structure Template", href: "#", comingSoon: true },
+      { label: "Firm Database Format", href: "#", comingSoon: true },
+    ],
   },
   {
     id: "14", caseNumber: "LX-014", title: "How to Register Your Institution on Locus",
