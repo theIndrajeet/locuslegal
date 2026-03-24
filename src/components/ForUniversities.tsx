@@ -11,12 +11,12 @@ import {
 const twoTrack = [
   {
     tag: "No Placement Cell?",
-    body: "LexRoot becomes your placement cell overnight. Your students get access to pre-screened internship opportunities, firm connections, and career tools the moment they register. No hiring, no budget, no setup.",
+    body: "Locus becomes your placement cell overnight. Your students get access to pre-screened internship opportunities, firm connections, and career tools the moment they register. No hiring, no budget, no setup.",
     bg: "bg-accent/5",
   },
   {
     tag: "Already Have One?",
-    body: "Your reach is limited by who you know. LexRoot expands that network to hundreds of firms, MNCs, legal departments, and chambers that have never recruited from your campus. Your placement officer gets more to offer. Your students get more opportunities.",
+    body: "Your reach is limited by who you know. Locus expands that network to hundreds of firms, MNCs, legal departments, and chambers that have never recruited from your campus. Your placement officer gets more to offer. Your students get more opportunities.",
     bg: "bg-muted/50",
   },
 ];
@@ -35,23 +35,23 @@ const painCards = [
   {
     icon: Building2,
     title: "Top firms don't come to you",
-    body: "Campus drives happen at 26 NLUs. For the other 1,800 colleges, firms simply don't show up. LexRoot reverses this — firms come to the platform looking for talent, regardless of where it studies.",
+    body: "Campus drives happen at 26 NLUs. For the other 1,800 colleges, firms simply don't show up. Locus reverses this — firms come to the platform looking for talent, regardless of where it studies.",
   },
 ];
 
 const features = [
   { icon: Handshake, title: "Institutional partnership", body: "No minimum student quota. No complex onboarding. We're invested in your students' success because that's how our platform grows." },
   { icon: LayoutDashboard, title: "A placement dashboard for your institution", body: "Track how many of your students are registered, how many have applied, and how many have converted to internships — real data for NAAC submissions and accreditation files." },
-  { icon: BadgeCheck, title: 'Verified "LexRoot Partner" badge', body: "Displayed on your college profile across the platform. Signals to students, parents, and recruiters that your institution is serious about outcomes." },
+  { icon: BadgeCheck, title: 'Verified "Locus Partner" badge', body: "Displayed on your college profile across the platform. Signals to students, parents, and recruiters that your institution is serious about outcomes." },
   { icon: Megaphone, title: "Dedicated outreach to your students", body: "We run online orientation sessions, send resources to your faculty coordinator, and help onboard your students directly. You don't manage it — we do." },
-  { icon: Briefcase, title: "Access to firms that don't visit campuses", body: "Corporate legal departments, boutique IP firms, compliance teams, LegalTech startups — none of these run campus drives. All of them are on LexRoot." },
-  { icon: BarChart3, title: "Better numbers. Better rankings.", body: "Every student placed is a datapoint that strengthens your institution's standing. LexRoot makes this measurable, not anecdotal." },
+  { icon: Briefcase, title: "Access to firms that don't visit campuses", body: "Corporate legal departments, boutique IP firms, compliance teams, LegalTech startups — none of these run campus drives. All of them are on Locus." },
+  { icon: BarChart3, title: "Better numbers. Better rankings.", body: "Every student placed is a datapoint that strengthens your institution's standing. Locus makes this measurable, not anecdotal." },
 ];
 
 const faqs = [
-  { q: "Our students aren't ready for top firms.", a: "That's exactly what LexRoot helps with. We build market-ready profiles, run skill assessments, and match students to firms appropriate for their level — not just Tier-1. Every student starts somewhere." },
+  { q: "Our students aren't ready for top firms.", a: "That's exactly what Locus helps with. We build market-ready profiles, run skill assessments, and match students to firms appropriate for their level — not just Tier-1. Every student starts somewhere." },
   { q: "We don't have the bandwidth to manage this.", a: "You don't have to. One faculty coordinator registers the institution. We handle everything from there — student onboarding, firm matching, communication. Your involvement is optional after setup." },
-  { q: "Our students already use Internshala or Lawctopus.", a: "Those are general platforms. LexRoot is legal-specific, merit-based, and firm-vetted. The quality of opportunities — and the quality of matching — is incomparable." },
+  { q: "Our students already use Internshala or Lawctopus.", a: "Those are general platforms. Locus is legal-specific, merit-based, and firm-vetted. The quality of opportunities — and the quality of matching — is incomparable." },
   { q: "What if only a few students sign up?", a: "Even one placement is one more than before. There's no minimum and no downside to partnering." },
 ];
 
@@ -76,10 +76,10 @@ export default function ForUniversities() {
           <h2 className="font-heading text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight mb-6 leading-tight">
             1,800 law colleges have no placement infrastructure.
             <br className="hidden md:block" />
-            LexRoot is built to fix that — <span className="text-accent">starting with yours.</span>
+            Locus is built to fix that — <span className="text-accent">starting with yours.</span>
           </h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto leading-relaxed">
-            Every year, your students graduate into a market that was never built for them. Top firms recruit from 26 NLUs. Everyone else is on their own. LexRoot gives your institution the placement infrastructure most law schools spend years building.
+            Every year, your students graduate into a market that was never built for them. Top firms recruit from 26 NLUs. Everyone else is on their own. Locus gives your institution the placement infrastructure most law schools spend years building.
           </p>
         </div>
       </div>
@@ -203,7 +203,7 @@ export default function ForUniversities() {
       <div ref={ctaRef} className="bg-foreground text-background py-24 px-4 opacity-0 translate-y-6">
         <div className="container mx-auto max-w-3xl text-center">
           <h2 className="font-heading text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight mb-4">
-            Partner with LexRoot.
+            Partner with Locus.
             <br className="hidden md:block" />
             Give your students the placement cell they deserve.
           </h2>
