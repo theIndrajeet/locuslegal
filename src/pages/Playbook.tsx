@@ -1,7 +1,13 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, BookOpen, Download, Clock, Users, Layers, ChevronLeft } from "lucide-react";
+import { ArrowLeft, BookOpen, Download, Clock, Users, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 type Audience = "Students" | "Firms" | "Institutions";
 type Filter = "All" | Audience;
@@ -10,11 +16,6 @@ interface GuideAttachment {
   label: string;
   href: string;
   comingSoon?: boolean;
-}
-
-interface GuideSection {
-  heading: string;
-  body: string;
 }
 
 interface Guide {
@@ -26,8 +27,9 @@ interface Guide {
   readTime: string;
   slug: string;
   sections: string[];
-  content?: GuideSection[];
   pdfHref?: string;
+  previewPages?: number[];
+  previewPrefix?: string;
   attachments?: GuideAttachment[];
 }
 
