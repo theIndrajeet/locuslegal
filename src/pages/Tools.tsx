@@ -110,7 +110,15 @@ function parseChecklist(text: string): ChecklistSection[] {
   return sections;
 }
 
+const TOOL_CATALOG = [
+  { id: "nda" as ToolType, num: "01", label: "NDA Generator", description: "Generate enforceable non-disclosure agreements across multiple jurisdictions", tags: ["APAC", "GDPR", "Multi-party"], icon: "📋" },
+  { id: "checklist" as ToolType, num: "02", label: "Data Protection Checklist", description: "Interactive compliance audit with risk-rated action items", tags: ["Interactive", "Risk-rated", "Multi-jurisdiction"], icon: "✅" },
+  { id: "dpa" as ToolType, num: "03", label: "DPA Template", description: "Draft data processing agreements with cross-border transfer clauses", tags: ["GDPR", "DPDPA", "Cross-border"], icon: "🔏" },
+  { id: "internship" as ToolType, num: "04", label: "Internship Agreement", description: "Formalize legal internship terms with BCI-compliant templates", tags: ["Indian Law", "BCI Rules", "Structured"], icon: "📝" },
+];
+
 export default function Tools() {
+  const [selectedTool, setSelectedTool] = useState<ToolType | null>(null);
   const [activeTool, setActiveTool] = useState<ToolType>("nda");
   const [loading, setLoading] = useState<Record<ToolType, boolean>>({ nda: false, checklist: false, dpa: false, internship: false });
   const [outputs, setOutputs] = useState<Record<ToolType, string>>({ nda: "", checklist: "", dpa: "", internship: "" });
