@@ -554,7 +554,7 @@ Include sections: Parties, Recitals, Term of Internship, Scope of Work, Supervis
                 ) : outputs.nda ? (
                   <div dangerouslySetInnerHTML={{ __html: outputs.nda }} />
                 ) : (
-                  <div className="lt-placeholder"><div className="lt-big">📋</div><p>Fill in the party details and parameters, then click Generate NDA.</p></div>
+                  <div className="lt-placeholder"><p>Fill in the party details and parameters, then click Generate NDA.</p></div>
                 )}
               </div>
             </div>
@@ -621,7 +621,7 @@ Include sections: Parties, Recitals, Term of Internship, Scope of Work, Supervis
                     ))}
                   </div>
                 ) : (
-                  <div className="lt-placeholder"><div className="lt-big">✅</div><p>Select your jurisdictions and organisation profile, then generate your checklist.</p></div>
+                  <div className="lt-placeholder"><p>Select your jurisdictions and organisation profile, then generate your checklist.</p></div>
                 )}
               </div>
             </div>
@@ -676,7 +676,7 @@ Include sections: Parties, Recitals, Term of Internship, Scope of Work, Supervis
                 ) : outputs.dpa ? (
                   <div dangerouslySetInnerHTML={{ __html: outputs.dpa }} />
                 ) : (
-                  <div className="lt-placeholder"><div className="lt-big">🔏</div><p>Enter controller and processor details to generate a compliant DPA template.</p></div>
+                  <div className="lt-placeholder"><p>Enter controller and processor details to generate a compliant DPA template.</p></div>
                 )}
               </div>
             </div>
@@ -731,7 +731,7 @@ Include sections: Parties, Recitals, Term of Internship, Scope of Work, Supervis
                 ) : outputs.internship ? (
                   <div dangerouslySetInnerHTML={{ __html: outputs.internship }} />
                 ) : (
-                  <div className="lt-placeholder"><div className="lt-big">📝</div><p>Enter the firm and intern details to generate a complete internship agreement.</p></div>
+                  <div className="lt-placeholder"><p>Enter the firm and intern details to generate a complete internship agreement.</p></div>
                 )}
               </div>
             </div>
