@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 
 // ── SVG SYMBOLS (black strokes, recolored for Locus theme) ──────────────────
 
-const BACK = `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" width="68" height="68">
+const BACK_SVG = `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" width="68" height="68">
   <g transform="translate(25,25)">
     <line x1="0" y1="-11" x2="0" y2="11" stroke="#000" stroke-width="2.6" stroke-linecap="round"/>
     <line x1="-11" y1="0" x2="11" y2="0" stroke="#000" stroke-width="2.6" stroke-linecap="round"/>
