@@ -111,6 +111,9 @@ const guides: Guide[] = [
     id: "14", caseNumber: "LX-014", title: "How to Register Your Institution on Locus",
     audience: "Institutions", stage: "Institution Resources", readTime: "5 min", slug: "register-institution-locus",
     sections: ["Eligibility", "Documents needed", "Verification process", "What you get access to", "Managing your student roster"],
+    attachments: [
+      { label: "Institution Registration Guide", href: "#", comingSoon: true },
+    ],
   },
 ];
 
@@ -364,17 +367,30 @@ function GuideDetail({ guide }: { guide: Guide }) {
             Attachments
           </h2>
           <div className="space-y-2">
-            {guide.attachments.map((att, i) => (
-              <a
-                key={i}
-                href={att.href}
-                download
-                className="flex items-center gap-3 p-3 rounded-lg border border-border/50 bg-card/50 hover:border-accent/40 hover:bg-accent/5 transition-all group"
-              >
-                <Download size={16} className="text-accent shrink-0" />
-                <span className="text-sm font-medium text-foreground group-hover:text-accent transition-colors">{att.label}</span>
-              </a>
-            ))}
+            {guide.attachments.map((att, i) =>
+              att.comingSoon ? (
+                <div
+                  key={i}
+                  className="flex items-center gap-3 p-3 rounded-lg border border-border/30 bg-card/30 opacity-60"
+                >
+                  <Download size={16} className="text-muted-foreground shrink-0" />
+                  <span className="text-sm font-medium text-muted-foreground">{att.label}</span>
+                  <span className="ml-auto text-[10px] font-bold uppercase tracking-wider bg-accent/10 text-accent px-2 py-0.5 rounded-full">
+                    Coming Soon
+                  </span>
+                </div>
+              ) : (
+                <a
+                  key={i}
+                  href={att.href}
+                  download
+                  className="flex items-center gap-3 p-3 rounded-lg border border-border/50 bg-card/50 hover:border-accent/40 hover:bg-accent/5 transition-all group"
+                >
+                  <Download size={16} className="text-accent shrink-0" />
+                  <span className="text-sm font-medium text-foreground group-hover:text-accent transition-colors">{att.label}</span>
+                </a>
+              )
+            )}
           </div>
         </div>
       )}
