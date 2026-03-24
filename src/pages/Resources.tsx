@@ -21,9 +21,9 @@ const resources = [
     previewPrefix: "/documents/cv-page-",
   },
   {
-    title: "Cover Letter Template",
+    title: "Cold Email Template",
     description:
-      "A well-structured cover letter template designed for applications to law firms, chambers, and corporate legal teams.",
+      "A ready-to-use cold email template for reaching out to law firms for internship opportunities — just fill in the placeholders.",
     icon: Download,
     comingSoon: false,
     hasPreview: true,
