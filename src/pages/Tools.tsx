@@ -11,11 +11,17 @@ const TABS: { id: ToolType; num: string; label: string }[] = [
   { id: "internship", num: "04", label: "Internship Agreement" },
 ];
 
-const TOOL_CATALOG = [
-  { id: "nda" as ToolType, num: "01", label: "NDA Generator", description: "Generate enforceable non-disclosure agreements across multiple jurisdictions", tags: ["APAC", "GDPR", "Multi-party"] },
-  { id: "checklist" as ToolType, num: "02", label: "Data Protection Checklist", description: "Interactive compliance audit with risk-rated action items", tags: ["Interactive", "Risk-rated", "Multi-jurisdiction"] },
-  { id: "dpa" as ToolType, num: "03", label: "DPA Template", description: "Draft data processing agreements with cross-border transfer clauses", tags: ["GDPR", "DPDPA", "Cross-border"] },
-  { id: "internship" as ToolType, num: "04", label: "Internship Agreement", description: "Formalize legal internship terms with BCI-compliant templates", tags: ["Indian Law", "BCI Rules", "Structured"] },
+const TOOL_CATALOG: { id: ToolType; num: string; label: string; description: string; tags: string[]; comingSoon?: boolean }[] = [
+  { id: "nda", num: "01", label: "NDA Generator", description: "Generate enforceable non-disclosure agreements across multiple jurisdictions", tags: ["APAC", "GDPR", "Multi-party"] },
+  { id: "checklist", num: "02", label: "Data Protection Checklist", description: "Interactive compliance audit with risk-rated action items", tags: ["Interactive", "Risk-rated", "Multi-jurisdiction"] },
+  { id: "dpa", num: "03", label: "DPA Template", description: "Draft data processing agreements with cross-border transfer clauses", tags: ["GDPR", "DPDPA", "Cross-border"] },
+  { id: "internship", num: "04", label: "Internship Agreement", description: "Formalize legal internship terms with BCI-compliant templates", tags: ["Indian Law", "BCI Rules", "Structured"] },
+  { id: "nda", num: "05", label: "Founder Agreement", description: "Co-founder equity splits, vesting schedules, and IP assignment clauses", tags: ["Startups", "Equity", "Vesting"], comingSoon: true },
+  { id: "nda", num: "06", label: "Freelancer Contract", description: "Service agreements with payment terms, IP ownership, and liability caps", tags: ["SMBs", "IP", "Payments"], comingSoon: true },
+  { id: "nda", num: "07", label: "Music Licensing Agreement", description: "Sync licensing, royalty splits, and territory-based distribution rights", tags: ["Artists", "Royalties", "Sync"], comingSoon: true },
+  { id: "nda", num: "08", label: "Artist Commission Contract", description: "Commission scope, revision limits, usage rights, and payment milestones", tags: ["Creators", "IP", "Milestones"], comingSoon: true },
+  { id: "nda", num: "09", label: "Terms of Service Generator", description: "Website/app ToS with liability limitations and dispute resolution", tags: ["Startups", "SaaS", "E-commerce"], comingSoon: true },
+  { id: "nda", num: "10", label: "Equity & ESOP Template", description: "Employee stock option plans with cliff periods and exercise terms", tags: ["Startups", "ESOPs", "Vesting"], comingSoon: true },
 ];
 
 const JURISDICTIONS = [
@@ -350,7 +356,7 @@ Include sections: Parties, Recitals, Term of Internship, Scope of Work, Supervis
         /* Catalogue */
         .lt-catalogue { padding: 60px 40px 80px; max-width: 1100px; margin: 0 auto; position: relative; }
         .lt-catalogue::before { content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 80%; height: 1px; background: linear-gradient(90deg, transparent, hsla(45,100%,51%,0.3), transparent); }
-        .lt-catalogue-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .lt-catalogue-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
         .lt-cat-card { background: linear-gradient(160deg, hsl(0,0%,10%) 0%, hsl(40,6%,8%) 50%, hsl(0,0%,6%) 100%); border: 2px solid hsl(0,0%,20%); padding: 32px 28px; cursor: pointer; transition: all 0.2s; position: relative; display: flex; flex-direction: column; gap: 16px; overflow: hidden; }
         .lt-cat-card::before { content: ''; position: absolute; top: -40px; right: -40px; width: 120px; height: 120px; background: radial-gradient(circle, hsla(0,0%,100%,0.04) 0%, transparent 70%); pointer-events: none; transition: all 0.3s; }
         .lt-cat-card:hover::before { width: 200px; height: 200px; background: radial-gradient(circle, hsla(45,100%,51%,0.12) 0%, transparent 70%); }
@@ -365,6 +371,15 @@ Include sections: Parties, Recitals, Term of Internship, Scope of Work, Supervis
         .lt-cat-card:hover .lt-cat-tag { border-color: hsl(0,0%,45%); color: hsl(0,0%,85%); }
         .lt-cat-arrow { display: flex; align-items: center; gap: 6px; font-family: 'Sora', sans-serif; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: hsl(45,100%,51%); margin-top: 8px; }
         .lt-cat-card:hover .lt-cat-arrow { text-decoration: underline; }
+
+        /* Coming Soon */
+        .lt-cat-card.coming-soon { opacity: 0.55; cursor: default; }
+        .lt-cat-card.coming-soon:hover { border-color: hsl(0,0%,20%); transform: none; box-shadow: none; }
+        .lt-cat-card.coming-soon:hover::before { width: 120px; height: 120px; background: radial-gradient(circle, hsla(0,0%,100%,0.04) 0%, transparent 70%); }
+        .lt-cat-card.coming-soon:active { transform: none; box-shadow: none; }
+        .lt-cat-card.coming-soon:hover .lt-cat-tag { border-color: hsl(0,0%,30%); color: hsl(0,0%,70%); }
+        .lt-cat-card.coming-soon:hover .lt-cat-arrow { text-decoration: none; }
+        .lt-coming-badge { position: absolute; top: 16px; right: 16px; font-family: 'Sora', sans-serif; font-size: 0.55rem; font-weight: 800; letter-spacing: 0.15em; text-transform: uppercase; padding: 4px 12px; background: hsl(45,100%,51%); color: hsl(0,0%,0%); }
 
         /* Back button */
         .lt-back { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; margin: 20px 40px 0; font-family: 'Sora', sans-serif; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: hsl(0,0%,60%); background: none; border: 2px solid hsl(0,0%,18%); cursor: pointer; transition: all 0.15s; }
@@ -479,7 +494,8 @@ Include sections: Parties, Recitals, Term of Internship, Scope of Work, Supervis
           <div className="lt-catalogue">
             <div className="lt-catalogue-grid">
               {TOOL_CATALOG.map((tool) => (
-                <div key={tool.id} className="lt-cat-card" onClick={() => openTool(tool.id)}>
+                <div key={tool.num} className={`lt-cat-card${tool.comingSoon ? " coming-soon" : ""}`} onClick={() => !tool.comingSoon && openTool(tool.id)}>
+                  {tool.comingSoon && <span className="lt-coming-badge">Coming Soon</span>}
                   <div className="lt-cat-top">
                     <span className="lt-cat-num">{tool.num}</span>
                   </div>
@@ -490,7 +506,7 @@ Include sections: Parties, Recitals, Term of Internship, Scope of Work, Supervis
                       <span key={tag} className="lt-cat-tag">{tag}</span>
                     ))}
                   </div>
-                  <div className="lt-cat-arrow">Open Tool →</div>
+                  <div className="lt-cat-arrow">{tool.comingSoon ? "Coming Soon" : "Open Tool →"}</div>
                 </div>
               ))}
             </div>
