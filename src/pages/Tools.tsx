@@ -11,6 +11,13 @@ const TABS: { id: ToolType; num: string; label: string }[] = [
   { id: "internship", num: "04", label: "Internship Agreement" },
 ];
 
+const TOOL_CATALOG = [
+  { id: "nda" as ToolType, num: "01", label: "NDA Generator", description: "Generate enforceable non-disclosure agreements across multiple jurisdictions", tags: ["APAC", "GDPR", "Multi-party"], icon: "📋" },
+  { id: "checklist" as ToolType, num: "02", label: "Data Protection Checklist", description: "Interactive compliance audit with risk-rated action items", tags: ["Interactive", "Risk-rated", "Multi-jurisdiction"], icon: "✅" },
+  { id: "dpa" as ToolType, num: "03", label: "DPA Template", description: "Draft data processing agreements with cross-border transfer clauses", tags: ["GDPR", "DPDPA", "Cross-border"], icon: "🔏" },
+  { id: "internship" as ToolType, num: "04", label: "Internship Agreement", description: "Formalize legal internship terms with BCI-compliant templates", tags: ["Indian Law", "BCI Rules", "Structured"], icon: "📝" },
+];
+
 const JURISDICTIONS = [
   { label: "India — DPDPA 2023", active: true },
   { label: "EU — GDPR", active: true },
@@ -111,6 +118,7 @@ function parseChecklist(text: string): ChecklistSection[] {
 }
 
 export default function Tools() {
+  const [selectedTool, setSelectedTool] = useState<ToolType | null>(null);
   const [activeTool, setActiveTool] = useState<ToolType>("nda");
   const [loading, setLoading] = useState<Record<ToolType, boolean>>({ nda: false, checklist: false, dpa: false, internship: false });
   const [outputs, setOutputs] = useState<Record<ToolType, string>>({ nda: "", checklist: "", dpa: "", internship: "" });
@@ -319,6 +327,11 @@ Include sections: Parties, Recitals, Term of Internship, Scope of Work, Supervis
 
   const hasOutput = (tool: ToolType) => tool === "checklist" ? checklistSections.length > 0 : !!outputs[tool];
 
+  const openTool = (tool: ToolType) => {
+    setSelectedTool(tool);
+    setActiveTool(tool);
+  };
+
   return (
     <>
       <style>{`
@@ -332,6 +345,27 @@ Include sections: Parties, Recitals, Term of Internship, Scope of Work, Supervis
         .lt-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px; }
         .lt-pill { font-family: 'Sora', sans-serif; font-size: 0.6rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; padding: 5px 14px; border: 2px solid hsl(0,0%,18%); color: hsl(0,0%,60%); background: hsl(0,0%,8%); }
         .lt-pill.active { border-color: hsl(45,100%,51%); color: hsl(0,0%,0%); background: hsl(45,100%,51%); font-weight: 700; }
+
+        /* Catalogue */
+        .lt-catalogue { padding: 60px 40px 80px; max-width: 1100px; margin: 0 auto; }
+        .lt-catalogue-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .lt-cat-card { background: hsl(0,0%,6%); border: 3px solid hsl(0,0%,15%); padding: 32px 28px; cursor: pointer; transition: all 0.2s; position: relative; display: flex; flex-direction: column; gap: 16px; }
+        .lt-cat-card:hover { border-color: hsl(45,100%,51%); transform: translate(-3px, -3px); box-shadow: 6px 6px 0px 0px hsl(45,100%,51%); }
+        .lt-cat-card:active { transform: translate(1px, 1px); box-shadow: 2px 2px 0px 0px hsl(45,100%,51%); }
+        .lt-cat-top { display: flex; align-items: center; justify-content: space-between; }
+        .lt-cat-num { font-family: 'Sora', sans-serif; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.15em; color: hsl(45,100%,51%); padding: 4px 12px; border: 2px solid hsl(45,100%,51%); }
+        .lt-cat-icon { font-size: 2rem; }
+        .lt-cat-title { font-family: 'Sora', sans-serif; font-size: 1.15rem; font-weight: 800; color: hsl(0,0%,98%); letter-spacing: -0.01em; }
+        .lt-cat-desc { font-size: 0.85rem; color: hsl(0,0%,55%); line-height: 1.6; }
+        .lt-cat-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; }
+        .lt-cat-tag { font-family: 'Sora', sans-serif; font-size: 0.55rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 10px; border: 2px solid hsl(0,0%,20%); color: hsl(0,0%,50%); }
+        .lt-cat-arrow { display: flex; align-items: center; gap: 6px; font-family: 'Sora', sans-serif; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: hsl(45,100%,51%); margin-top: 8px; }
+        .lt-cat-card:hover .lt-cat-arrow { text-decoration: underline; }
+
+        /* Back button */
+        .lt-back { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; margin: 20px 40px 0; font-family: 'Sora', sans-serif; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: hsl(0,0%,60%); background: none; border: 2px solid hsl(0,0%,18%); cursor: pointer; transition: all 0.15s; }
+        .lt-back:hover { border-color: hsl(45,100%,51%); color: hsl(45,100%,51%); box-shadow: 2px 2px 0px 0px hsl(45,100%,51%); }
+
         .lt-tabs { display: flex; border-bottom: 3px solid hsl(0,0%,0%); overflow-x: auto; scrollbar-width: none; background: hsl(0,0%,8%); }
         .lt-tab { flex-shrink: 0; padding: 16px 28px; font-family: 'Sora', sans-serif; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: hsl(0,0%,50%); background: none; border: none; border-bottom: 3px solid transparent; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 8px; margin-bottom: -3px; }
         .lt-tab:hover { color: hsl(0,0%,98%); background: hsl(0,0%,12%); }
@@ -416,29 +450,63 @@ Include sections: Parties, Recitals, Term of Internship, Scope of Work, Supervis
           .lt-hero { padding: 100px 20px 40px; }
           .lt-form { padding: 28px 20px; }
           .lt-body { padding: 28px 20px; }
+          .lt-catalogue { padding: 40px 20px 60px; }
+          .lt-catalogue-grid { grid-template-columns: 1fr; }
+          .lt-back { margin: 16px 20px 0; }
         }
       `}</style>
       <div className="lt-page">
         {/* Hero */}
         <div className="lt-hero">
-          <div className="lt-eyebrow">⚖ Locus for Firms &amp; Institutions</div>
+          <div className="lt-eyebrow">⚖ Locus Tools</div>
           <h1>AI-powered <em>legal document</em><br />tools for the modern practice.</h1>
           <p>Generate jurisdiction-aware NDAs, data protection checklists, DPA templates, and internship agreements — instantly, without the billing clock running.</p>
-          <div className="lt-pills">
-            {JURISDICTIONS.map((j) => (
-              <div key={j.label} className={`lt-pill${j.active ? " active" : ""}`}>{j.label}</div>
-            ))}
-          </div>
+          {!selectedTool && (
+            <div className="lt-pills">
+              {JURISDICTIONS.map((j) => (
+                <div key={j.label} className={`lt-pill${j.active ? " active" : ""}`}>{j.label}</div>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Tabs */}
-        <div className="lt-tabs">
-          {TABS.map((tab) => (
-            <button key={tab.id} className={`lt-tab${activeTool === tab.id ? " active" : ""}`} onClick={() => setActiveTool(tab.id)}>
-              <span className="lt-tab-num">{tab.num}</span> {tab.label}
-            </button>
-          ))}
-        </div>
+        {/* Catalogue View */}
+        {!selectedTool && (
+          <div className="lt-catalogue">
+            <div className="lt-catalogue-grid">
+              {TOOL_CATALOG.map((tool) => (
+                <div key={tool.id} className="lt-cat-card" onClick={() => openTool(tool.id)}>
+                  <div className="lt-cat-top">
+                    <span className="lt-cat-num">{tool.num}</span>
+                    <span className="lt-cat-icon">{tool.icon}</span>
+                  </div>
+                  <div className="lt-cat-title">{tool.label}</div>
+                  <div className="lt-cat-desc">{tool.description}</div>
+                  <div className="lt-cat-tags">
+                    {tool.tags.map((tag) => (
+                      <span key={tag} className="lt-cat-tag">{tag}</span>
+                    ))}
+                  </div>
+                  <div className="lt-cat-arrow">Open Tool →</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Detail View */}
+        {selectedTool && (
+          <>
+            <button className="lt-back" onClick={() => setSelectedTool(null)}>← All Tools</button>
+
+            {/* Tabs */}
+            <div className="lt-tabs">
+              {TABS.map((tab) => (
+                <button key={tab.id} className={`lt-tab${activeTool === tab.id ? " active" : ""}`} onClick={() => setActiveTool(tab.id)}>
+                  <span className="lt-tab-num">{tab.num}</span> {tab.label}
+                </button>
+              ))}
+            </div>
 
         {/* NDA */}
         {activeTool === "nda" && (
@@ -669,6 +737,9 @@ Include sections: Parties, Recitals, Term of Internship, Scope of Work, Supervis
               </div>
             </div>
           </div>
+        )}
+
+          </>
         )}
       </div>
     </>
