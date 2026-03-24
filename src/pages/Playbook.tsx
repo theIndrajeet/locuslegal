@@ -28,8 +28,6 @@ interface Guide {
   slug: string;
   sections: string[];
   pdfHref?: string;
-  previewPages?: number[];
-  previewPrefix?: string;
   attachments?: GuideAttachment[];
 }
 
