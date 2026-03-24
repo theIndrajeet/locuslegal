@@ -12,10 +12,10 @@ const TABS: { id: ToolType; num: string; label: string }[] = [
 ];
 
 const TOOL_CATALOG = [
-  { id: "nda" as ToolType, num: "01", label: "NDA Generator", description: "Generate enforceable non-disclosure agreements across multiple jurisdictions", tags: ["APAC", "GDPR", "Multi-party"], icon: "📋" },
-  { id: "checklist" as ToolType, num: "02", label: "Data Protection Checklist", description: "Interactive compliance audit with risk-rated action items", tags: ["Interactive", "Risk-rated", "Multi-jurisdiction"], icon: "✅" },
-  { id: "dpa" as ToolType, num: "03", label: "DPA Template", description: "Draft data processing agreements with cross-border transfer clauses", tags: ["GDPR", "DPDPA", "Cross-border"], icon: "🔏" },
-  { id: "internship" as ToolType, num: "04", label: "Internship Agreement", description: "Formalize legal internship terms with BCI-compliant templates", tags: ["Indian Law", "BCI Rules", "Structured"], icon: "📝" },
+  { id: "nda" as ToolType, num: "01", label: "NDA Generator", description: "Generate enforceable non-disclosure agreements across multiple jurisdictions", tags: ["APAC", "GDPR", "Multi-party"] },
+  { id: "checklist" as ToolType, num: "02", label: "Data Protection Checklist", description: "Interactive compliance audit with risk-rated action items", tags: ["Interactive", "Risk-rated", "Multi-jurisdiction"] },
+  { id: "dpa" as ToolType, num: "03", label: "DPA Template", description: "Draft data processing agreements with cross-border transfer clauses", tags: ["GDPR", "DPDPA", "Cross-border"] },
+  { id: "internship" as ToolType, num: "04", label: "Internship Agreement", description: "Formalize legal internship terms with BCI-compliant templates", tags: ["Indian Law", "BCI Rules", "Structured"] },
 ];
 
 const JURISDICTIONS = [
@@ -458,7 +458,7 @@ Include sections: Parties, Recitals, Term of Internship, Scope of Work, Supervis
       <div className="lt-page">
         {/* Hero */}
         <div className="lt-hero">
-          <div className="lt-eyebrow">⚖ Locus Tools</div>
+          <div className="lt-eyebrow">Locus Tools</div>
           <h1>AI-powered <em>legal document</em><br />tools for the modern practice.</h1>
           <p>Generate jurisdiction-aware NDAs, data protection checklists, DPA templates, and internship agreements — instantly, without the billing clock running.</p>
           {!selectedTool && (
@@ -478,7 +478,6 @@ Include sections: Parties, Recitals, Term of Internship, Scope of Work, Supervis
                 <div key={tool.id} className="lt-cat-card" onClick={() => openTool(tool.id)}>
                   <div className="lt-cat-top">
                     <span className="lt-cat-num">{tool.num}</span>
-                    <span className="lt-cat-icon">{tool.icon}</span>
                   </div>
                   <div className="lt-cat-title">{tool.label}</div>
                   <div className="lt-cat-desc">{tool.description}</div>
@@ -555,7 +554,7 @@ Include sections: Parties, Recitals, Term of Internship, Scope of Work, Supervis
                 ) : outputs.nda ? (
                   <div dangerouslySetInnerHTML={{ __html: outputs.nda }} />
                 ) : (
-                  <div className="lt-placeholder"><div className="lt-big">📋</div><p>Fill in the party details and parameters, then click Generate NDA.</p></div>
+                  <div className="lt-placeholder"><p>Fill in the party details and parameters, then click Generate NDA.</p></div>
                 )}
               </div>
             </div>
@@ -622,7 +621,7 @@ Include sections: Parties, Recitals, Term of Internship, Scope of Work, Supervis
                     ))}
                   </div>
                 ) : (
-                  <div className="lt-placeholder"><div className="lt-big">✅</div><p>Select your jurisdictions and organisation profile, then generate your checklist.</p></div>
+                  <div className="lt-placeholder"><p>Select your jurisdictions and organisation profile, then generate your checklist.</p></div>
                 )}
               </div>
             </div>
@@ -677,7 +676,7 @@ Include sections: Parties, Recitals, Term of Internship, Scope of Work, Supervis
                 ) : outputs.dpa ? (
                   <div dangerouslySetInnerHTML={{ __html: outputs.dpa }} />
                 ) : (
-                  <div className="lt-placeholder"><div className="lt-big">🔏</div><p>Enter controller and processor details to generate a compliant DPA template.</p></div>
+                  <div className="lt-placeholder"><p>Enter controller and processor details to generate a compliant DPA template.</p></div>
                 )}
               </div>
             </div>
@@ -732,7 +731,7 @@ Include sections: Parties, Recitals, Term of Internship, Scope of Work, Supervis
                 ) : outputs.internship ? (
                   <div dangerouslySetInnerHTML={{ __html: outputs.internship }} />
                 ) : (
-                  <div className="lt-placeholder"><div className="lt-big">📝</div><p>Enter the firm and intern details to generate a complete internship agreement.</p></div>
+                  <div className="lt-placeholder"><p>Enter the firm and intern details to generate a complete internship agreement.</p></div>
                 )}
               </div>
             </div>
