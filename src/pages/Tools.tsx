@@ -478,7 +478,6 @@ Include sections: Parties, Recitals, Term of Internship, Scope of Work, Supervis
                 <div key={tool.id} className="lt-cat-card" onClick={() => openTool(tool.id)}>
                   <div className="lt-cat-top">
                     <span className="lt-cat-num">{tool.num}</span>
-                    <span className="lt-cat-icon">{tool.icon}</span>
                   </div>
                   <div className="lt-cat-title">{tool.label}</div>
                   <div className="lt-cat-desc">{tool.description}</div>
