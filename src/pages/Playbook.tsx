@@ -512,11 +512,17 @@ function GuideDetail({ guide }: { guide: Guide }) {
               <Button
                 variant="outline"
                 size="sm"
-                asChild
+                onClick={() => {
+                  const link = document.createElement("a");
+                  link.href = guide.pdfHref!;
+                  link.download = guide.pdfHref!.split("/").pop() || "guide.pdf";
+                  link.target = "_blank";
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                }}
               >
-                <a href={guide.pdfHref} download>
-                  <Download size={14} /> Download PDF
-                </a>
+                <Download size={14} /> Download PDF
               </Button>
             </>
           ) : (
