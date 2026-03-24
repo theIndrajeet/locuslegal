@@ -71,6 +71,7 @@ const guides: Guide[] = [
     attachments: [
       { label: "Intern Evaluation Rubric", href: "/documents/InternEvaluationRubric.docx" },
       { label: "Intern Daily Task Sheet", href: "/documents/InternDailyTaskSheet.docx" },
+      { label: "Intern Feedback Form", href: "/documents/InternFeedbackForm.docx" },
     ],
   },
   {
@@ -80,6 +81,7 @@ const guides: Guide[] = [
     attachments: [
       { label: "Internship Offer Letter Template", href: "/documents/InternshipOfferLetterTemplate.docx" },
       { label: "Intern NDA Template", href: "/documents/InternNDATemplate.docx" },
+      { label: "Internship Certificate Template", href: "/documents/InternshipCertificateTemplate.docx" },
     ],
   },
   {
