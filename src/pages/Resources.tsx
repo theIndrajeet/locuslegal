@@ -15,15 +15,22 @@ const resources = [
     icon: FileText,
     comingSoon: false,
     hasPreview: true,
+    previewKey: "cv" as const,
+    downloadHref: "/documents/IdealCVTemplate.docx",
+    previewPages: [1, 2],
+    previewPrefix: "/documents/cv-page-",
   },
   {
     title: "Cover Letter Template",
     description:
       "A well-structured cover letter template designed for applications to law firms, chambers, and corporate legal teams.",
     icon: Download,
-    action: "Download",
     comingSoon: false,
-    hasPreview: false,
+    hasPreview: true,
+    previewKey: "cl" as const,
+    downloadHref: "/documents/CoverLetterTemplate.docx",
+    previewPages: [1, 2],
+    previewPrefix: "/documents/cl-page-",
   },
   {
     title: "CV Analyser",
@@ -46,7 +53,8 @@ const resources = [
 ];
 
 export default function Resources() {
-  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewResource, setPreviewResource] = useState<string | null>(null);
+  const activeResource = resources.find((r) => r.hasPreview && r.previewKey === previewResource);
 
   return (
     <main className="pt-24 pb-16">
@@ -90,7 +98,7 @@ export default function Resources() {
                 {r.hasPreview ? (
                   <div className="flex gap-3">
                     <a
-                      href="/documents/IdealCVTemplate.docx"
+                      href={r.downloadHref}
                       download
                       className="inline-flex items-center gap-2 text-sm font-semibold px-5 py-2.5 rounded-lg bg-accent text-accent-foreground hover:brightness-110 transition-all"
                     >
@@ -98,7 +106,7 @@ export default function Resources() {
                       Download
                     </a>
                     <button
-                      onClick={() => setPreviewOpen(true)}
+                      onClick={() => setPreviewResource(r.previewKey!)}
                       className="inline-flex items-center gap-2 text-sm font-semibold px-5 py-2.5 rounded-lg border border-accent text-accent hover:bg-accent/10 transition-all"
                     >
                       <Eye size={16} />
@@ -119,20 +127,20 @@ export default function Resources() {
         </div>
       </section>
 
-      {/* PDF Preview Dialog */}
-      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+      {/* Preview Dialog */}
+      <Dialog open={!!previewResource} onOpenChange={(open) => !open && setPreviewResource(null)}>
         <DialogContent className="max-w-4xl w-[95vw] h-[85vh] p-0 overflow-hidden">
           <DialogHeader className="px-6 pt-5 pb-3">
             <DialogTitle className="font-heading">
-              Demo CV — Preview
+              {activeResource?.title} — Preview
             </DialogTitle>
           </DialogHeader>
           <div className="flex-1 px-6 pb-6 h-[calc(85vh-4rem)] overflow-y-auto space-y-4">
-            {[1, 2].map((page) => (
+            {activeResource?.previewPages?.map((page) => (
               <img
                 key={page}
-                src={`/documents/cv-page-${page}.jpg`}
-                alt={`CV Template page ${page}`}
+                src={`${activeResource.previewPrefix}${page}.jpg`}
+                alt={`${activeResource.title} page ${page}`}
                 className="w-full rounded-lg border border-border"
               />
             ))}
