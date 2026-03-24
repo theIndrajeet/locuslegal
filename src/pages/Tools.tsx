@@ -351,18 +351,18 @@ Include sections: Parties, Recitals, Term of Internship, Scope of Work, Supervis
         .lt-catalogue { padding: 60px 40px 80px; max-width: 1100px; margin: 0 auto; position: relative; }
         .lt-catalogue::before { content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 80%; height: 1px; background: linear-gradient(90deg, transparent, hsla(45,100%,51%,0.3), transparent); }
         .lt-catalogue-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .lt-cat-card { background: linear-gradient(160deg, hsl(0,0%,8%) 0%, hsl(40,6%,6%) 50%, hsl(0,0%,5%) 100%); border: 3px solid hsl(0,0%,15%); padding: 32px 28px; cursor: pointer; transition: all 0.2s; position: relative; display: flex; flex-direction: column; gap: 16px; overflow: hidden; }
-        .lt-cat-card::before { content: ''; position: absolute; top: -40px; right: -40px; width: 120px; height: 120px; background: radial-gradient(circle, hsla(45,100%,51%,0.06) 0%, transparent 70%); pointer-events: none; transition: all 0.3s; }
+        .lt-cat-card { background: linear-gradient(160deg, hsl(0,0%,10%) 0%, hsl(40,6%,8%) 50%, hsl(0,0%,6%) 100%); border: 2px solid hsl(0,0%,20%); padding: 32px 28px; cursor: pointer; transition: all 0.2s; position: relative; display: flex; flex-direction: column; gap: 16px; overflow: hidden; }
+        .lt-cat-card::before { content: ''; position: absolute; top: -40px; right: -40px; width: 120px; height: 120px; background: radial-gradient(circle, hsla(0,0%,100%,0.04) 0%, transparent 70%); pointer-events: none; transition: all 0.3s; }
         .lt-cat-card:hover::before { width: 200px; height: 200px; background: radial-gradient(circle, hsla(45,100%,51%,0.12) 0%, transparent 70%); }
         .lt-cat-card:hover { border-color: hsl(45,100%,51%); transform: translate(-3px, -3px); box-shadow: 6px 6px 0px 0px hsl(45,100%,51%); }
         .lt-cat-card:active { transform: translate(1px, 1px); box-shadow: 2px 2px 0px 0px hsl(45,100%,51%); }
         .lt-cat-top { display: flex; align-items: center; justify-content: space-between; }
-        .lt-cat-num { font-family: 'Sora', sans-serif; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.15em; color: hsl(45,100%,51%); padding: 4px 12px; border: 2px solid hsl(45,100%,51%); }
-        .lt-cat-icon { font-size: 2rem; }
-        .lt-cat-title { font-family: 'Sora', sans-serif; font-size: 1.15rem; font-weight: 800; color: hsl(0,0%,98%); letter-spacing: -0.01em; }
-        .lt-cat-desc { font-size: 0.85rem; color: hsl(0,0%,55%); line-height: 1.6; }
+        .lt-cat-num { font-family: 'Sora', sans-serif; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.15em; color: hsl(0,0%,0%); padding: 5px 14px; border: none; background: hsl(0,0%,98%); }
+        .lt-cat-title { font-family: 'Sora', sans-serif; font-size: 1.25rem; font-weight: 800; color: hsl(0,0%,100%); letter-spacing: -0.01em; }
+        .lt-cat-desc { font-size: 0.85rem; color: hsl(0,0%,65%); line-height: 1.6; }
         .lt-cat-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; }
-        .lt-cat-tag { font-family: 'Sora', sans-serif; font-size: 0.55rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 10px; border: 2px solid hsl(0,0%,20%); color: hsl(0,0%,50%); }
+        .lt-cat-tag { font-family: 'Sora', sans-serif; font-size: 0.55rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; padding: 4px 12px; border: 1px solid hsl(0,0%,30%); color: hsl(0,0%,70%); background: hsla(0,0%,100%,0.04); }
+        .lt-cat-card:hover .lt-cat-tag { border-color: hsl(0,0%,45%); color: hsl(0,0%,85%); }
         .lt-cat-arrow { display: flex; align-items: center; gap: 6px; font-family: 'Sora', sans-serif; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: hsl(45,100%,51%); margin-top: 8px; }
         .lt-cat-card:hover .lt-cat-arrow { text-decoration: underline; }
 
