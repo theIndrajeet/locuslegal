@@ -28,8 +28,6 @@ interface Guide {
   slug: string;
   sections: string[];
   pdfHref?: string;
-  previewPages?: number[];
-  previewPrefix?: string;
   attachments?: GuideAttachment[];
 }
 
@@ -42,8 +40,6 @@ const guides: Guide[] = [
     audience: "Students", stage: "Before You Apply", readTime: "6 min", slug: "cold-email-law-firm",
     sections: ["Why most cold emails fail", "Finding the right contact", "Writing the subject line", "The email structure", "Following up"],
     pdfHref: "/documents/LX-001-ColdEmail.pdf",
-    previewPages: [1, 2, 3],
-    previewPrefix: "/documents/LX-001-ColdEmail-page-",
     attachments: [
       { label: "Cold Email Template", href: "/documents/CoverLetterTemplate.docx" },
       { label: "Follow-up Email Template", href: "/documents/FollowupEmailTemplate.docx" },
@@ -54,8 +50,6 @@ const guides: Guide[] = [
     audience: "Students", stage: "Before You Apply", readTime: "8 min", slug: "non-nlu-student-guide",
     sections: ["Reframing the disadvantage", "What firms actually look for", "Building your portfolio", "Direct application strategy", "Making it stick"],
     pdfHref: "/documents/LX-002-NonNLU.pdf",
-    previewPages: [1, 2, 3],
-    previewPrefix: "/documents/LX-002-NonNLU-page-",
     attachments: [
       { label: "Internship Application Tracker", href: "/documents/InternshipApplicationTracker.xlsx" },
       { label: "LinkedIn Profile Checklist", href: "/documents/LinkedInProfileChecklist.docx" },
@@ -66,8 +60,6 @@ const guides: Guide[] = [
     audience: "Students", stage: "Once You're In", readTime: "5 min", slug: "first-legal-internship",
     sections: ["Day one — what actually happens", "Types of work you'll be given", "How to ask questions properly", "Tracking your work", "End-of-internship checklist"],
     pdfHref: "/documents/LX-003-FirstInternship.pdf",
-    previewPages: [1, 2, 3, 4],
-    previewPrefix: "/documents/LX-003-FirstInternship-page-",
     attachments: [
       { label: "Monthly Internship Log", href: "/documents/MonthlyInternshipLog.docx" },
       { label: "First Day Checklist", href: "/documents/FirstDayChecklist.docx" },
@@ -78,8 +70,6 @@ const guides: Guide[] = [
     audience: "Students", stage: "Once You're In", readTime: "7 min", slug: "legal-research-memo",
     sections: ["What a memo is and isn't", "Structure: IRAC explained", "Research methodology", "Writing style and tone", "Common mistakes"],
     pdfHref: "/documents/LX-004-ResearchMemo.pdf",
-    previewPages: [1, 2, 3, 4],
-    previewPrefix: "/documents/LX-004-ResearchMemo-page-",
     attachments: [
       { label: "Legal Research Memo Template", href: "/documents/LegalResearchMemoTemplate.docx" },
       { label: "Sample IRAC Memo", href: "/documents/SampleIRACMemo.docx" },
@@ -90,8 +80,6 @@ const guides: Guide[] = [
     audience: "Students", stage: "After It Ends", readTime: "5 min", slug: "convert-internship-ppo",
     sections: ["What firms look for in interns", "The visibility strategy", "Asking for feedback", "The follow-up timeline", "Writing the PPO request"],
     pdfHref: "/documents/LX-005-ConvertPPO.pdf",
-    previewPages: [1, 2, 3, 4],
-    previewPrefix: "/documents/LX-005-ConvertPPO-page-",
     attachments: [
       { label: "Thank You Email Template", href: "/documents/ThankYouEmailTemplate.docx" },
       { label: "NOC Request Letter Template", href: "/documents/NOCRequestLetterTemplate.docx" },
@@ -339,7 +327,7 @@ export default function Playbook() {
 
 function GuideDetail({ guide }: { guide: Guide }) {
   const [previewOpen, setPreviewOpen] = useState(false);
-  const hasPreview = !!guide.previewPages && !!guide.previewPrefix;
+  const hasPreview = !!guide.pdfHref;
 
   return (
     <div>
@@ -486,15 +474,12 @@ function GuideDetail({ guide }: { guide: Guide }) {
               {guide.caseNumber} — {guide.title}
             </DialogTitle>
           </DialogHeader>
-          <div className="flex-1 px-6 pb-6 h-[calc(85vh-4rem)] overflow-y-auto space-y-4">
-            {guide.previewPages?.map((page) => (
-              <img
-                key={page}
-                src={`${guide.previewPrefix}${page}.jpg`}
-                alt={`${guide.title} page ${page}`}
-                className="w-full rounded-lg border border-border"
-              />
-            ))}
+          <div className="flex-1 px-6 pb-6 h-[calc(85vh-4rem)]">
+            <iframe
+              src={guide.pdfHref}
+              title={guide.title}
+              className="w-full h-full rounded-lg border border-border"
+            />
           </div>
         </DialogContent>
       </Dialog>
