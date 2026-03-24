@@ -491,7 +491,7 @@ Include sections: Parties, Recitals, Term of Internship, Scope of Work, Supervis
           .lt-catalogue { padding: 40px 20px 60px; }
           .lt-catalogue-grid { grid-template-columns: 1fr; }
           .lt-back { margin: 16px 20px 0; }
-          .lt-audience { padding: 36px 20px 0; }
+          }
         }
       `}</style>
       <div className="lt-page">
