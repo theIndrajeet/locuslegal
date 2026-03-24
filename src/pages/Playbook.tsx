@@ -338,50 +338,8 @@ export default function Playbook() {
 }
 
 function GuideDetail({ guide }: { guide: Guide }) {
-  const [readerMode, setReaderMode] = useState(false);
-  const hasContent = !!guide.content && guide.content.length > 0;
-
-  if (readerMode && hasContent) {
-    return (
-      <div>
-        <button
-          onClick={() => setReaderMode(false)}
-          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-accent transition-colors mb-6"
-        >
-          <ChevronLeft size={16} /> Back to overview
-        </button>
-
-        <p className="font-mono text-xs text-muted-foreground mb-1">
-          {guide.caseNumber} · {guide.stage}
-        </p>
-        <h1 className="text-2xl font-bold text-foreground leading-tight mb-8">
-          {guide.title}
-        </h1>
-
-        <div className="space-y-10">
-          {guide.content!.map((section, i) => (
-            <div key={i}>
-              <div className="flex items-center gap-3 mb-4">
-                <span className="font-mono text-sm text-accent font-bold shrink-0">
-                  {String(i + 1).padStart(2, "0")}
-                </span>
-                <h2 className="text-lg font-semibold text-foreground">
-                  {section.heading}
-                </h2>
-              </div>
-              <div className="pl-9 space-y-4">
-                {section.body.split("\n\n").map((para, j) => (
-                  <p key={j} className="text-sm text-muted-foreground leading-relaxed">
-                    {para}
-                  </p>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const hasPreview = !!guide.previewPages && !!guide.previewPrefix;
 
   return (
     <div>
@@ -396,13 +354,13 @@ function GuideDetail({ guide }: { guide: Guide }) {
           </h1>
         </div>
         <div className="flex gap-2 shrink-0">
-          {hasContent ? (
+          {hasPreview ? (
             <>
               <Button
                 variant="default"
                 size="sm"
                 className="bg-accent text-accent-foreground hover:bg-accent/90"
-                onClick={() => setReaderMode(true)}
+                onClick={() => setPreviewOpen(true)}
               >
                 <BookOpen size={14} /> Read Guide
               </Button>
@@ -519,6 +477,27 @@ function GuideDetail({ guide }: { guide: Guide }) {
           </div>
         </div>
       )}
+
+      {/* PDF Preview Dialog */}
+      <Dialog open={previewOpen} onOpenChange={(open) => !open && setPreviewOpen(false)}>
+        <DialogContent className="max-w-4xl w-[95vw] h-[85vh] p-0 overflow-hidden">
+          <DialogHeader className="px-6 pt-5 pb-3">
+            <DialogTitle className="font-heading">
+              {guide.caseNumber} — {guide.title}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 px-6 pb-6 h-[calc(85vh-4rem)] overflow-y-auto space-y-4">
+            {guide.previewPages?.map((page) => (
+              <img
+                key={page}
+                src={`${guide.previewPrefix}${page}.jpg`}
+                alt={`${guide.title} page ${page}`}
+                className="w-full rounded-lg border border-border"
+              />
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
