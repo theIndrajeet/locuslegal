@@ -1,0 +1,673 @@
+import { useState, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+
+type ToolType = "nda" | "checklist" | "dpa" | "internship";
+
+const TABS: { id: ToolType; num: string; label: string }[] = [
+  { id: "nda", num: "01", label: "NDA Generator" },
+  { id: "checklist", num: "02", label: "Data Protection Checklist" },
+  { id: "dpa", num: "03", label: "DPA Template" },
+  { id: "internship", num: "04", label: "Internship Agreement" },
+];
+
+const JURISDICTIONS = [
+  { label: "India — DPDPA 2023", active: true },
+  { label: "EU — GDPR", active: true },
+  { label: "Singapore — PDPA", active: true },
+  { label: "Malaysia — PDPA 2010", active: true },
+  { label: "Australia — Privacy Act", active: true },
+  { label: "HK — PDPO", active: true },
+  { label: "China — PIPL", active: false },
+];
+
+const ENTITY_TYPES = ["Private Limited", "Public Limited", "LLP", "Partnership", "Individual", "Foreign Company"];
+const JURISDICTIONS_LIST = ["India", "Singapore", "Malaysia", "EU", "United Kingdom", "Australia", "Hong Kong", "UAE"];
+const NDA_TYPES = ["Mutual", "One-Way (Disclosing → Receiving)"];
+const DURATIONS = ["1 Year", "2 Years", "3 Years", "5 Years", "Indefinite"];
+const GOV_LAWS = ["India (Indian Contract Act, 1872)", "Singapore (Contract Law)", "Malaysia (Contracts Act, 1950)", "England & Wales", "New York", "UAE (DIFC Law)"];
+const DISPUTES = ["Arbitration (SIAC)", "Arbitration (ICC)", "Arbitration (LCIA)", "Courts of Governing Jurisdiction", "DIAC (Dubai)"];
+
+const CL_TYPES = ["Law Firm", "Corporate Legal Department", "Legal Tech Startup", "Financial Institution", "Healthcare Provider", "E-commerce / Tech Company", "Educational Institution", "NGO / Non-Profit"];
+const CL_JURS = [
+  { value: "India (DPDPA 2023)", label: "India / DPDPA" },
+  { value: "EU (GDPR)", label: "EU / GDPR" },
+  { value: "Singapore (PDPA)", label: "SG / PDPA" },
+  { value: "Malaysia (PDPA 2010)", label: "MY / PDPA" },
+  { value: "Australia (Privacy Act 1988)", label: "AU / Privacy Act" },
+  { value: "Hong Kong (PDPO)", label: "HK / PDPO" },
+  { value: "China (PIPL)", label: "CN / PIPL" },
+];
+const CL_ACTIVITIES = ["Client data management (CRM, case files)", "Employee data processing (HR, payroll)", "Cross-border data transfers", "Third-party vendor data sharing", "Website analytics and cookies", "Cloud storage and SaaS tools", "All of the above"];
+const CL_SENSITIVE = ["Yes — health, financial, biometric, or legal data", "Yes — employee or HR data", "No — general business data only", "Unsure"];
+const CL_MATURITY = ["Starting from scratch — no policies in place", "Basic — privacy policy exists but no DPO / procedures", "Intermediate — some policies, partial implementation", "Advanced — looking for gaps and fine-tuning"];
+
+const DPA_JURS = ["India", "EU / EEA", "Singapore", "Malaysia", "Australia", "United Kingdom", "Hong Kong"];
+const DPA_XBORDER = ["No", "Yes — within APAC", "Yes — to EU/EEA", "Yes — to USA", "Yes — multiple regions"];
+const DPA_SUBPROC = ["Yes — with prior written consent", "Yes — with notice only", "No — prohibited"];
+const DPA_GOVLAW = ["India (DPDPA 2023 + IT Act)", "EU (GDPR)", "Singapore (PDPA)", "Malaysia (PDPA 2010)", "England & Wales", "Australia (Privacy Act)"];
+const DPA_BREACH = ["72 hours (GDPR standard)", "Without undue delay", "24 hours", "48 hours", "As required by applicable law"];
+
+const IA_CITIES = ["New Delhi", "Mumbai", "Bengaluru", "Chennai", "Kolkata", "Hyderabad", "Pune", "Ahmedabad"];
+const IA_FIRM_TYPES = ["Law Firm (Partnership)", "Chamber of Advocates", "Corporate Legal Department", "LLP", "Solo Practitioner"];
+const IA_YEARS = ["1st Year", "2nd Year", "3rd Year", "4th Year", "5th Year", "LLM Student", "Recent Graduate"];
+const IA_AREAS = ["General Litigation", "Corporate & M&A", "Intellectual Property", "Criminal Law", "Arbitration & Dispute Resolution", "Employment & Labour", "Real Estate & Property", "Tax Law", "Technology & Data Privacy", "Banking & Finance", "General / Mixed"];
+const IA_STIPENDS = ["Unpaid (Academic Credit)", "₹5,000/month", "₹7,500/month", "₹10,000/month", "₹15,000/month", "₹20,000/month", "As mutually agreed"];
+const IA_DAYS = ["Monday–Friday", "Monday–Saturday", "Flexible / Remote", "Hybrid (3 days/week)"];
+const IA_CERTS = ["Yes — Internship Certificate issued", "Yes — Certificate + Letter of Recommendation", "No certificate"];
+
+function textToHTML(text: string) {
+  const lines = text.split("\n");
+  let html = '<div class="lt-doc-output">';
+  for (const line of lines) {
+    const t = line.trim();
+    if (!t) { html += "<br/>"; continue; }
+    if (t === t.toUpperCase() && t.length > 4 && !t.includes(".") && !t.startsWith("(")) {
+      html += `<h2>${t}</h2>`;
+    } else if (t.match(/^\d+\.\s+[A-Z]/) && !t.match(/^\d+\.\d+/)) {
+      html += `<h3>${t}</h3>`;
+    } else if (t.startsWith("DISCLAIMER")) {
+      html += `<p class="lt-disclaimer">${t}</p>`;
+    } else {
+      html += `<p>${t}</p>`;
+    }
+  }
+  html += "</div>";
+  return html;
+}
+
+interface ChecklistItem {
+  text: string;
+  risk: "high" | "med" | "low";
+  checked: boolean;
+}
+interface ChecklistSection {
+  title: string;
+  description: string;
+  items: ChecklistItem[];
+}
+
+function parseChecklist(text: string): ChecklistSection[] {
+  const lines = text.split("\n").filter((l) => l.trim());
+  const sections: ChecklistSection[] = [];
+  let current: ChecklistSection | null = null;
+
+  for (const line of lines) {
+    const t = line.trim();
+    if (!t) continue;
+    const riskMatch = t.match(/^\[RISK:(HIGH|MED|LOW)\]\s*(.+)/);
+    if (riskMatch) {
+      if (current) {
+        current.items.push({ text: riskMatch[2], risk: riskMatch[1].toLowerCase() as "high" | "med" | "low", checked: false });
+      }
+    } else if (t === t.toUpperCase() && t.length > 5 && !t.startsWith("[")) {
+      current = { title: t, description: "", items: [] };
+      sections.push(current);
+    } else if (current && current.items.length === 0 && !t.startsWith("[")) {
+      current.description = t;
+    }
+  }
+  return sections;
+}
+
+export default function Tools() {
+  const [activeTool, setActiveTool] = useState<ToolType>("nda");
+  const [loading, setLoading] = useState<Record<ToolType, boolean>>({ nda: false, checklist: false, dpa: false, internship: false });
+  const [outputs, setOutputs] = useState<Record<ToolType, string>>({ nda: "", checklist: "", dpa: "", internship: "" });
+  const [rawText, setRawText] = useState<Record<ToolType, string>>({ nda: "", checklist: "", dpa: "", internship: "" });
+  const [checklistSections, setChecklistSections] = useState<ChecklistSection[]>([]);
+
+  // NDA state
+  const [ndaP1Name, setNdaP1Name] = useState("");
+  const [ndaP1Type, setNdaP1Type] = useState(ENTITY_TYPES[0]);
+  const [ndaP1Jur, setNdaP1Jur] = useState(JURISDICTIONS_LIST[0]);
+  const [ndaP2Name, setNdaP2Name] = useState("");
+  const [ndaP2Type, setNdaP2Type] = useState(ENTITY_TYPES[0]);
+  const [ndaP2Jur, setNdaP2Jur] = useState(JURISDICTIONS_LIST[0]);
+  const [ndaPurpose, setNdaPurpose] = useState("");
+  const [ndaType, setNdaType] = useState(NDA_TYPES[0]);
+  const [ndaDuration, setNdaDuration] = useState(DURATIONS[0]);
+  const [ndaGovLaw, setNdaGovLaw] = useState(GOV_LAWS[0]);
+  const [ndaDispute, setNdaDispute] = useState(DISPUTES[0]);
+  const [ndaNotes, setNdaNotes] = useState("");
+
+  // Checklist state
+  const [clOrg, setClOrg] = useState("");
+  const [clType, setClType] = useState(CL_TYPES[0]);
+  const [clJurs, setClJurs] = useState<string[]>(["India (DPDPA 2023)", "EU (GDPR)"]);
+  const [clActivity, setClActivity] = useState(CL_ACTIVITIES[0]);
+  const [clSensitive, setClSensitive] = useState(CL_SENSITIVE[0]);
+  const [clMaturity, setClMaturity] = useState(CL_MATURITY[0]);
+
+  // DPA state
+  const [dpaCtrlName, setDpaCtrlName] = useState("");
+  const [dpaCtrlJur, setDpaCtrlJur] = useState(DPA_JURS[0]);
+  const [dpaCtrlEmail, setDpaCtrlEmail] = useState("");
+  const [dpaProcName, setDpaProcName] = useState("");
+  const [dpaProcJur, setDpaProcJur] = useState(DPA_JURS[0]);
+  const [dpaProcEmail, setDpaProcEmail] = useState("");
+  const [dpaPurpose, setDpaPurpose] = useState("");
+  const [dpaDataCats, setDpaDataCats] = useState("");
+  const [dpaSubjects, setDpaSubjects] = useState("");
+  const [dpaXborder, setDpaXborder] = useState(DPA_XBORDER[0]);
+  const [dpaSubproc, setDpaSubproc] = useState(DPA_SUBPROC[0]);
+  const [dpaGovLaw, setDpaGovLaw] = useState(DPA_GOVLAW[0]);
+  const [dpaBreach, setDpaBreach] = useState(DPA_BREACH[0]);
+
+  // Internship state
+  const [iaFirm, setIaFirm] = useState("");
+  const [iaCity, setIaCity] = useState(IA_CITIES[0]);
+  const [iaFirmType, setIaFirmType] = useState(IA_FIRM_TYPES[0]);
+  const [iaSupervisor, setIaSupervisor] = useState("");
+  const [iaIntern, setIaIntern] = useState("");
+  const [iaYear, setIaYear] = useState(IA_YEARS[0]);
+  const [iaCollege, setIaCollege] = useState("");
+  const [iaStart, setIaStart] = useState("");
+  const [iaEnd, setIaEnd] = useState("");
+  const [iaArea, setIaArea] = useState(IA_AREAS[0]);
+  const [iaStipend, setIaStipend] = useState(IA_STIPENDS[0]);
+  const [iaDays, setIaDays] = useState(IA_DAYS[0]);
+  const [iaCert, setIaCert] = useState(IA_CERTS[0]);
+
+  const callAI = useCallback(async (prompt: string): Promise<string> => {
+    const { data, error } = await supabase.functions.invoke("chat-legal", {
+      body: { prompt },
+    });
+    if (error) throw error;
+    if (data?.error) throw new Error(data.error);
+    return data?.text || "Error generating document.";
+  }, []);
+
+  const generate = useCallback(async (tool: ToolType, prompt: string) => {
+    setLoading((p) => ({ ...p, [tool]: true }));
+    try {
+      const text = await callAI(prompt);
+      setRawText((p) => ({ ...p, [tool]: text }));
+      if (tool === "checklist") {
+        setChecklistSections(parseChecklist(text));
+      } else {
+        setOutputs((p) => ({ ...p, [tool]: textToHTML(text) }));
+      }
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to generate document");
+    } finally {
+      setLoading((p) => ({ ...p, [tool]: false }));
+    }
+  }, [callAI]);
+
+  const generateNDA = () => {
+    const prompt = `Draft a complete and professional ${ndaType} Non-Disclosure Agreement with the following details:
+
+DISCLOSING PARTY: ${ndaP1Name || "Party A"} (${ndaP1Type}, incorporated/registered in ${ndaP1Jur})
+RECEIVING PARTY: ${ndaP2Name || "Party B"} (${ndaP2Type}, incorporated/registered in ${ndaP2Jur})
+PURPOSE: ${ndaPurpose || "evaluation of a potential business partnership"}
+NDA TYPE: ${ndaType}
+DURATION OF CONFIDENTIALITY OBLIGATIONS: ${ndaDuration}
+GOVERNING LAW: ${ndaGovLaw}
+DISPUTE RESOLUTION: ${ndaDispute}
+${ndaNotes ? `SPECIAL INSTRUCTIONS: ${ndaNotes}` : ""}
+
+Include the following sections: Parties, Recitals, Definitions (Confidential Information, Permitted Purpose, Representatives), Confidentiality Obligations, Exclusions from Confidential Information, Permitted Disclosures, Return/Destruction of Information, Term and Termination, Remedies, General Provisions (governing law, entire agreement, severability, waiver, notices), and Signature Block.
+
+Make it jurisdiction-appropriate for the governing law specified. Include specific legal references where applicable.`;
+    generate("nda", prompt);
+  };
+
+  const generateChecklist = () => {
+    if (!clJurs.length) { toast.error("Please select at least one jurisdiction."); return; }
+    const prompt = `Generate a comprehensive data protection compliance checklist for:
+
+ORGANISATION: ${clOrg || "Your Organisation"}
+TYPE: ${clType}
+JURISDICTIONS: ${clJurs.join(", ")}
+DATA PROCESSING ACTIVITIES: ${clActivity}
+SENSITIVE DATA: ${clSensitive}
+CURRENT MATURITY: ${clMaturity}
+
+Format each section as:
+SECTION NAME
+[Brief description of why this section matters]
+
+Then list checklist items in this exact format for each item:
+[RISK:HIGH/MED/LOW] Checklist item description here.
+
+Include sections for:
+1. Legal Basis for Processing
+2. Privacy Notices & Consent
+3. Data Subject Rights
+4. Data Retention & Deletion
+5. Technical Security Measures
+6. Organisational Measures & Policies
+7. Third-Party & Vendor Management
+8. Data Breach Response
+9. Cross-Border Transfer Mechanisms
+10. Regulatory Registration & DPO Requirements
+
+Risk-rate each item: HIGH = regulatory penalty risk, MED = operational risk, LOW = good practice. Aim for 5-8 items per section.`;
+    generate("checklist", prompt);
+  };
+
+  const generateDPA = () => {
+    const prompt = `Draft a complete and professional Data Processing Addendum (DPA) with the following details:
+
+DATA CONTROLLER: ${dpaCtrlName || "Data Controller"} (${dpaCtrlJur}) — Contact: ${dpaCtrlEmail || "to be specified"}
+DATA PROCESSOR: ${dpaProcName || "Data Processor"} (${dpaProcJur}) — Contact: ${dpaProcEmail || "to be specified"}
+NATURE AND PURPOSE OF PROCESSING: ${dpaPurpose || "cloud storage and data processing services"}
+CATEGORIES OF PERSONAL DATA: ${dpaDataCats || "personal data as described in the agreement"}
+CATEGORIES OF DATA SUBJECTS: ${dpaSubjects || "individuals as described by the controller"}
+CROSS-BORDER TRANSFERS: ${dpaXborder}
+SUB-PROCESSORS: ${dpaSubproc}
+APPLICABLE LAW: ${dpaGovLaw}
+BREACH NOTIFICATION TIMELINE: ${dpaBreach}
+
+Include all standard DPA sections: Background/Recitals, Definitions, Subject Matter and Duration, Nature/Purpose/Categories of Processing, Controller's Obligations, Processor's Obligations, Sub-processing, Data Subject Rights Assistance, Security Measures, Data Breach Notification, Audit Rights, Return/Deletion of Data, Cross-Border Transfer Mechanisms, Liability, and Signature Block.
+
+Make it jurisdiction-appropriate. Reference specific legal provisions where applicable.`;
+    generate("dpa", prompt);
+  };
+
+  const generateInternship = () => {
+    const dateStr = iaStart && iaEnd
+      ? `from ${new Date(iaStart).toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" })} to ${new Date(iaEnd).toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" })}`
+      : "for the agreed period";
+
+    const prompt = `Draft a complete legal internship agreement under Indian law with the following details:
+
+FIRM/ORGANISATION: ${iaFirm || "Law Firm"} (${iaFirmType}), ${iaCity}, India
+SUPERVISING ADVOCATE/POC: ${iaSupervisor || "Supervising Advocate"}
+INTERN: ${iaIntern || "Intern"}, ${iaYear}, ${iaCollege || "Law University"}
+DURATION: ${dateStr}
+PRACTICE AREA: ${iaArea}
+STIPEND/REMUNERATION: ${iaStipend}
+WORKING SCHEDULE: ${iaDays}
+CERTIFICATE ON COMPLETION: ${iaCert}
+
+Under Indian law (Indian Contract Act 1872, Advocates Act 1961, applicable Bar Council rules).
+
+Include sections: Parties, Recitals, Term of Internship, Scope of Work, Supervision, Working Hours, Remuneration, Confidentiality, Intellectual Property, Code of Conduct, Compliance with Bar Council Rules, Social Media, Termination, Certificate of Completion, Indemnity, Governing Law and Jurisdiction (${iaCity}), General Provisions, and Signature Block.`;
+    generate("internship", prompt);
+  };
+
+  const copyOutput = (tool: ToolType) => {
+    const text = rawText[tool];
+    if (!text) return;
+    navigator.clipboard.writeText(text).then(() => toast.success("Copied to clipboard!"));
+  };
+
+  const downloadOutput = (tool: ToolType) => {
+    const text = rawText[tool];
+    if (!text) return;
+    const fname = { nda: "NDA_Agreement", checklist: "Data_Protection_Checklist", dpa: "Data_Processing_Addendum", internship: "Internship_Agreement" }[tool];
+    const blob = new Blob([text], { type: "text/plain" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `${fname}_Locus_${new Date().toISOString().slice(0, 10)}.txt`;
+    a.click();
+  };
+
+  const toggleChecklistItem = (sIdx: number, iIdx: number) => {
+    setChecklistSections((prev) =>
+      prev.map((s, si) =>
+        si === sIdx ? { ...s, items: s.items.map((it, ii) => (ii === iIdx ? { ...it, checked: !it.checked } : it)) } : s
+      )
+    );
+  };
+
+  const totalItems = checklistSections.reduce((a, s) => a + s.items.length, 0);
+  const checkedItems = checklistSections.reduce((a, s) => a + s.items.filter((i) => i.checked).length, 0);
+  const progressPct = totalItems ? Math.round((checkedItems / totalItems) * 100) : 0;
+
+  const hasOutput = (tool: ToolType) => tool === "checklist" ? checklistSections.length > 0 : !!outputs[tool];
+
+  return (
+    <>
+      <style>{`
+        .lt-page { background: #08080e; min-height: 100vh; font-family: 'DM Sans', sans-serif; font-weight: 300; font-size: 14px; line-height: 1.65; color: #d4d0c8; }
+        .lt-hero { padding: 100px 40px 48px; border-bottom: 1px solid #1e1e2e; position: relative; overflow: hidden; }
+        .lt-hero::before { content: ''; position: absolute; top: -60px; right: -60px; width: 400px; height: 400px; background: radial-gradient(circle, rgba(201,168,76,0.06) 0%, transparent 65%); pointer-events: none; }
+        .lt-eyebrow { font-family: 'DM Mono', monospace; font-size: 0.65rem; letter-spacing: 0.18em; color: #c9a84c; text-transform: uppercase; margin-bottom: 16px; }
+        .lt-hero h1 { font-family: 'Cormorant Garamond', serif; font-size: clamp(2rem, 4vw, 3rem); font-weight: 600; color: #f0ede8; line-height: 1.15; margin-bottom: 14px; }
+        .lt-hero h1 em { font-style: italic; color: #c9a84c; }
+        .lt-hero p { color: #6b6880; max-width: 560px; font-size: 0.88rem; line-height: 1.7; }
+        .lt-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; }
+        .lt-pill { font-family: 'DM Mono', monospace; font-size: 0.63rem; letter-spacing: 0.1em; text-transform: uppercase; padding: 4px 12px; border-radius: 2px; border: 1px solid #2e2e42; color: #6b6880; }
+        .lt-pill.active { border-color: #8a6f30; color: #c9a84c; background: rgba(201,168,76,0.07); }
+        .lt-tabs { display: flex; border-bottom: 1px solid #1e1e2e; overflow-x: auto; scrollbar-width: none; background: #0f0f18; }
+        .lt-tab { flex-shrink: 0; padding: 16px 28px; font-family: 'DM Mono', monospace; font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; color: #6b6880; background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 8px; }
+        .lt-tab:hover { color: #d4d0c8; }
+        .lt-tab.active { color: #c9a84c; border-bottom-color: #c9a84c; background: rgba(201,168,76,0.07); }
+        .lt-tab-num { width: 18px; height: 18px; border-radius: 50%; border: 1px solid currentColor; display: flex; align-items: center; justify-content: center; font-size: 0.6rem; }
+        .lt-layout { display: grid; grid-template-columns: 380px 1fr; min-height: calc(100vh - 210px); }
+        .lt-form { padding: 36px 32px; border-right: 1px solid #1e1e2e; background: #0f0f18; overflow-y: auto; }
+        .lt-panel-title { font-family: 'Cormorant Garamond', serif; font-size: 1.3rem; font-weight: 600; color: #f0ede8; margin-bottom: 6px; }
+        .lt-panel-desc { font-size: 0.78rem; color: #6b6880; margin-bottom: 28px; line-height: 1.6; }
+        .lt-field { margin-bottom: 20px; }
+        .lt-label { display: block; font-family: 'DM Mono', monospace; font-size: 0.62rem; letter-spacing: 0.12em; text-transform: uppercase; color: #6b6880; margin-bottom: 7px; }
+        .lt-input, .lt-select, .lt-textarea { width: 100%; background: #16161f; border: 1px solid #2e2e42; border-radius: 6px; color: #d4d0c8; font-family: 'DM Sans', sans-serif; font-size: 0.82rem; font-weight: 300; padding: 9px 14px; outline: none; transition: border-color 0.2s; -webkit-appearance: none; }
+        .lt-input:focus, .lt-select:focus, .lt-textarea:focus { border-color: #8a6f30; }
+        .lt-select option { background: #16161f; }
+        .lt-textarea { resize: vertical; min-height: 80px; line-height: 1.6; }
+        .lt-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .lt-divider { font-family: 'DM Mono', monospace; font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase; color: #c9a84c; margin: 24px 0 16px; display: flex; align-items: center; gap: 12px; }
+        .lt-divider::after { content: ''; flex: 1; height: 1px; background: #1e1e2e; }
+        .lt-gen-btn { width: 100%; padding: 13px; background: #c9a84c; color: #0a0805; font-family: 'DM Mono', monospace; font-size: 0.72rem; letter-spacing: 0.15em; text-transform: uppercase; font-weight: 500; border: none; border-radius: 6px; cursor: pointer; margin-top: 8px; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .lt-gen-btn:hover { background: #d4b45a; transform: translateY(-1px); }
+        .lt-gen-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .lt-output { display: flex; flex-direction: column; background: #08080e; }
+        .lt-toolbar { display: flex; align-items: center; justify-content: space-between; padding: 14px 28px; border-bottom: 1px solid #1e1e2e; background: #0f0f18; flex-shrink: 0; }
+        .lt-out-label { font-family: 'DM Mono', monospace; font-size: 0.62rem; letter-spacing: 0.15em; text-transform: uppercase; color: #6b6880; display: flex; align-items: center; gap: 8px; }
+        .lt-dot { width: 6px; height: 6px; border-radius: 50%; background: #2e2e42; }
+        .lt-dot.ready { background: #5cba82; box-shadow: 0 0 6px #5cba82; }
+        .lt-dot.loading { background: #c9a84c; box-shadow: 0 0 6px #c9a84c; animation: lt-pulse 1s ease infinite; }
+        @keyframes lt-pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+        .lt-actions { display: flex; gap: 8px; }
+        .lt-act-btn { padding: 6px 14px; font-family: 'DM Mono', monospace; font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; border-radius: 6px; cursor: pointer; transition: all 0.2s; border: 1px solid #2e2e42; background: none; color: #6b6880; }
+        .lt-act-btn:hover { border-color: #8a6f30; color: #c9a84c; }
+        .lt-act-btn.primary { background: rgba(201,168,76,0.07); border-color: #8a6f30; color: #c9a84c; }
+        .lt-act-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+        .lt-body { flex: 1; overflow-y: auto; padding: 40px 48px; }
+        .lt-placeholder { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; color: #6b6880; text-align: center; }
+        .lt-placeholder .lt-big { font-size: 3rem; opacity: 0.3; }
+        .lt-placeholder p { font-size: 0.8rem; max-width: 280px; line-height: 1.6; }
+        .lt-spinner { width: 14px; height: 14px; border: 2px solid rgba(10,8,5,0.3); border-top-color: #0a0805; border-radius: 50%; animation: lt-spin 0.7s linear infinite; }
+        @keyframes lt-spin { to { transform: rotate(360deg); } }
+        .lt-streaming { display: inline-flex; align-items: center; gap: 6px; font-family: 'DM Mono', monospace; font-size: 0.65rem; color: #c9a84c; }
+        .lt-streaming-dots span { animation: lt-blink 1.2s infinite; font-size: 1.2em; }
+        .lt-streaming-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .lt-streaming-dots span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes lt-blink { 0%,80%,100%{opacity:0.2} 40%{opacity:1} }
+        .lt-doc-output { font-family: 'DM Sans', sans-serif; font-size: 0.85rem; line-height: 1.85; color: #d4d0c8; max-width: 740px; margin: 0 auto; }
+        .lt-doc-output h2 { font-family: 'Cormorant Garamond', serif; font-size: 1.05rem; font-weight: 600; color: #f0ede8; margin: 28px 0 10px; text-transform: uppercase; letter-spacing: 0.05em; }
+        .lt-doc-output h3 { font-size: 0.82rem; font-weight: 500; color: #c9a84c; margin: 18px 0 6px; font-family: 'DM Mono', monospace; letter-spacing: 0.05em; }
+        .lt-doc-output p { margin-bottom: 12px; }
+        .lt-doc-output ul { padding-left: 20px; margin-bottom: 14px; }
+        .lt-doc-output li { margin-bottom: 6px; }
+        .lt-doc-output strong { color: #f0ede8; font-weight: 500; }
+        .lt-disclaimer { margin-top: 32px; padding: 14px; border: 1px solid #1e1e2e; border-radius: 4px; font-size: 0.72rem; color: #6b6880; font-style: italic; }
+        .lt-cl-header { margin-bottom: 28px; padding: 18px 20px; background: #16161f; border: 1px solid #1e1e2e; border-radius: 6px; }
+        .lt-cl-header h2 { font-family: 'Cormorant Garamond', serif; font-size: 1.4rem; font-weight: 700; color: #f0ede8; margin-bottom: 4px; }
+        .lt-cl-meta { font-family: 'DM Mono', monospace; font-size: 0.62rem; color: #c9a84c; letter-spacing: 0.1em; text-transform: uppercase; }
+        .lt-progress-wrap { background: #16161f; border: 1px solid #1e1e2e; border-radius: 20px; height: 6px; overflow: hidden; margin-bottom: 4px; }
+        .lt-progress-fill { height: 100%; background: linear-gradient(90deg, #c9a84c, #5cba82); border-radius: 20px; transition: width 0.4s ease; }
+        .lt-progress-label { font-family: 'DM Mono', monospace; font-size: 0.6rem; color: #6b6880; letter-spacing: 0.1em; margin-bottom: 24px; }
+        .lt-cl-section { margin-bottom: 32px; }
+        .lt-cl-title { font-family: 'Cormorant Garamond', serif; font-size: 1.1rem; font-weight: 600; color: #f0ede8; margin-bottom: 4px; display: flex; align-items: center; gap: 10px; }
+        .lt-cl-title::after { content: ''; flex: 1; height: 1px; background: #1e1e2e; }
+        .lt-cl-sub { font-size: 0.72rem; color: #6b6880; margin-bottom: 14px; font-style: italic; }
+        .lt-cl-item { display: flex; align-items: flex-start; gap: 12px; padding: 10px 14px; border: 1px solid #1e1e2e; border-radius: 6px; margin-bottom: 8px; transition: all 0.15s; cursor: pointer; }
+        .lt-cl-item:hover { border-color: #2e2e42; }
+        .lt-cl-item.checked { background: rgba(92,186,130,0.05); border-color: rgba(92,186,130,0.25); }
+        .lt-cl-item.checked .lt-ci-text { color: #6b6880; text-decoration: line-through; }
+        .lt-ci-box { width: 16px; height: 16px; min-width: 16px; border: 1px solid #2e2e42; border-radius: 3px; margin-top: 2px; display: flex; align-items: center; justify-content: center; font-size: 0.6rem; color: #5cba82; transition: all 0.15s; }
+        .lt-cl-item.checked .lt-ci-box { background: rgba(92,186,130,0.15); border-color: rgba(92,186,130,0.4); }
+        .lt-ci-text { font-size: 0.8rem; line-height: 1.6; }
+        .lt-ci-risk { margin-left: auto; font-family: 'DM Mono', monospace; font-size: 0.58rem; letter-spacing: 0.1em; text-transform: uppercase; padding: 2px 8px; border-radius: 2px; white-space: nowrap; align-self: flex-start; margin-top: 2px; }
+        .lt-ci-risk.high { color: #e05c5c; border: 1px solid rgba(224,92,92,0.3); background: rgba(224,92,92,0.07); }
+        .lt-ci-risk.med { color: #c9a84c; border: 1px solid rgba(201,168,76,0.3); background: rgba(201,168,76,0.07); }
+        .lt-ci-risk.low { color: #5cba82; border: 1px solid rgba(92,186,130,0.3); background: rgba(92,186,130,0.07); }
+        .lt-jur-check { display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.78rem; padding: 6px 12px; border: 1px solid #2e2e42; border-radius: 4px; }
+        .lt-jur-check input { accent-color: #c9a84c; }
+        @media (max-width: 900px) {
+          .lt-layout { grid-template-columns: 1fr; }
+          .lt-output { min-height: 60vh; }
+          .lt-hero { padding: 80px 20px 40px; }
+          .lt-form { padding: 28px 20px; }
+          .lt-body { padding: 28px 20px; }
+        }
+      `}</style>
+      <div className="lt-page">
+        {/* Hero */}
+        <div className="lt-hero">
+          <div className="lt-eyebrow">⚖ Locus for Firms &amp; Institutions</div>
+          <h1>AI-powered <em>legal document</em><br />tools for the modern practice.</h1>
+          <p>Generate jurisdiction-aware NDAs, data protection checklists, DPA templates, and internship agreements — instantly, without the billing clock running.</p>
+          <div className="lt-pills">
+            {JURISDICTIONS.map((j) => (
+              <div key={j.label} className={`lt-pill${j.active ? " active" : ""}`}>{j.label}</div>
+            ))}
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="lt-tabs">
+          {TABS.map((tab) => (
+            <button key={tab.id} className={`lt-tab${activeTool === tab.id ? " active" : ""}`} onClick={() => setActiveTool(tab.id)}>
+              <span className="lt-tab-num">{tab.num}</span> {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* NDA */}
+        {activeTool === "nda" && (
+          <div className="lt-layout">
+            <div className="lt-form">
+              <div className="lt-panel-title">NDA Generator</div>
+              <div className="lt-panel-desc">Generate a jurisdiction-specific Non-Disclosure Agreement with governing law, dispute resolution, and relevant exceptions.</div>
+              <div className="lt-divider">Disclosing Party</div>
+              <div className="lt-field"><label className="lt-label">Full Legal Name</label><input className="lt-input" value={ndaP1Name} onChange={(e) => setNdaP1Name(e.target.value)} placeholder="e.g. Apex Technologies Pvt. Ltd." /></div>
+              <div className="lt-row">
+                <div className="lt-field"><label className="lt-label">Entity Type</label><select className="lt-select" value={ndaP1Type} onChange={(e) => setNdaP1Type(e.target.value)}>{ENTITY_TYPES.map((o) => <option key={o}>{o}</option>)}</select></div>
+                <div className="lt-field"><label className="lt-label">Jurisdiction</label><select className="lt-select" value={ndaP1Jur} onChange={(e) => setNdaP1Jur(e.target.value)}>{JURISDICTIONS_LIST.map((o) => <option key={o}>{o}</option>)}</select></div>
+              </div>
+              <div className="lt-divider">Receiving Party</div>
+              <div className="lt-field"><label className="lt-label">Full Legal Name</label><input className="lt-input" value={ndaP2Name} onChange={(e) => setNdaP2Name(e.target.value)} placeholder="e.g. Meridian Consulting Ltd." /></div>
+              <div className="lt-row">
+                <div className="lt-field"><label className="lt-label">Entity Type</label><select className="lt-select" value={ndaP2Type} onChange={(e) => setNdaP2Type(e.target.value)}>{ENTITY_TYPES.map((o) => <option key={o}>{o}</option>)}</select></div>
+                <div className="lt-field"><label className="lt-label">Jurisdiction</label><select className="lt-select" value={ndaP2Jur} onChange={(e) => setNdaP2Jur(e.target.value)}>{JURISDICTIONS_LIST.map((o) => <option key={o}>{o}</option>)}</select></div>
+              </div>
+              <div className="lt-divider">NDA Parameters</div>
+              <div className="lt-field"><label className="lt-label">Purpose / Context</label><input className="lt-input" value={ndaPurpose} onChange={(e) => setNdaPurpose(e.target.value)} placeholder="e.g. Evaluation of a potential business partnership" /></div>
+              <div className="lt-row">
+                <div className="lt-field"><label className="lt-label">NDA Type</label><select className="lt-select" value={ndaType} onChange={(e) => setNdaType(e.target.value)}>{NDA_TYPES.map((o) => <option key={o}>{o}</option>)}</select></div>
+                <div className="lt-field"><label className="lt-label">Duration</label><select className="lt-select" value={ndaDuration} onChange={(e) => setNdaDuration(e.target.value)}>{DURATIONS.map((o) => <option key={o}>{o}</option>)}</select></div>
+              </div>
+              <div className="lt-row">
+                <div className="lt-field"><label className="lt-label">Governing Law</label><select className="lt-select" value={ndaGovLaw} onChange={(e) => setNdaGovLaw(e.target.value)}>{GOV_LAWS.map((o) => <option key={o}>{o}</option>)}</select></div>
+                <div className="lt-field"><label className="lt-label">Dispute Resolution</label><select className="lt-select" value={ndaDispute} onChange={(e) => setNdaDispute(e.target.value)}>{DISPUTES.map((o) => <option key={o}>{o}</option>)}</select></div>
+              </div>
+              <div className="lt-field"><label className="lt-label">Special Carve-outs or Notes (optional)</label><textarea className="lt-textarea" value={ndaNotes} onChange={(e) => setNdaNotes(e.target.value)} placeholder="e.g. Exclude financial data from confidentiality obligations..." /></div>
+              <button className="lt-gen-btn" disabled={loading.nda} onClick={generateNDA}>
+                {loading.nda ? <><div className="lt-spinner" /><span>Generating…</span></> : <span>Generate NDA</span>}
+              </button>
+            </div>
+            <div className="lt-output">
+              <div className="lt-toolbar">
+                <div className="lt-out-label"><div className={`lt-dot${loading.nda ? " loading" : hasOutput("nda") ? " ready" : ""}`} /><span>{loading.nda ? "Generating document…" : hasOutput("nda") ? "Document ready" : "Awaiting input"}</span></div>
+                <div className="lt-actions">
+                  <button className="lt-act-btn" disabled={!hasOutput("nda")} onClick={() => copyOutput("nda")}>Copy</button>
+                  <button className="lt-act-btn primary" disabled={!hasOutput("nda")} onClick={() => downloadOutput("nda")}>Download .txt</button>
+                </div>
+              </div>
+              <div className="lt-body">
+                {loading.nda ? (
+                  <div className="lt-placeholder"><div className="lt-streaming">Drafting NDA <div className="lt-streaming-dots"><span>.</span><span>.</span><span>.</span></div></div></div>
+                ) : outputs.nda ? (
+                  <div dangerouslySetInnerHTML={{ __html: outputs.nda }} />
+                ) : (
+                  <div className="lt-placeholder"><div className="lt-big">📋</div><p>Fill in the party details and parameters, then click Generate NDA.</p></div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Checklist */}
+        {activeTool === "checklist" && (
+          <div className="lt-layout">
+            <div className="lt-form">
+              <div className="lt-panel-title">Data Protection Checklist</div>
+              <div className="lt-panel-desc">Get a tailored compliance checklist for your jurisdiction(s) with risk-rated action items.</div>
+              <div className="lt-divider">Organisation Profile</div>
+              <div className="lt-field"><label className="lt-label">Organisation Name</label><input className="lt-input" value={clOrg} onChange={(e) => setClOrg(e.target.value)} placeholder="e.g. Meridian Law Associates" /></div>
+              <div className="lt-field"><label className="lt-label">Organisation Type</label><select className="lt-select" value={clType} onChange={(e) => setClType(e.target.value)}>{CL_TYPES.map((o) => <option key={o}>{o}</option>)}</select></div>
+              <div className="lt-field">
+                <label className="lt-label">Jurisdictions to Cover</label>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 4 }}>
+                  {CL_JURS.map((j) => (
+                    <label key={j.value} className="lt-jur-check">
+                      <input type="checkbox" checked={clJurs.includes(j.value)} onChange={(e) => setClJurs((p) => e.target.checked ? [...p, j.value] : p.filter((v) => v !== j.value))} /> {j.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div className="lt-field"><label className="lt-label">Data Processing Activities</label><select className="lt-select" value={clActivity} onChange={(e) => setClActivity(e.target.value)}>{CL_ACTIVITIES.map((o) => <option key={o}>{o}</option>)}</select></div>
+              <div className="lt-field"><label className="lt-label">Process sensitive personal data?</label><select className="lt-select" value={clSensitive} onChange={(e) => setClSensitive(e.target.value)}>{CL_SENSITIVE.map((o) => <option key={o}>{o}</option>)}</select></div>
+              <div className="lt-field"><label className="lt-label">Current Compliance Maturity</label><select className="lt-select" value={clMaturity} onChange={(e) => setClMaturity(e.target.value)}>{CL_MATURITY.map((o) => <option key={o}>{o}</option>)}</select></div>
+              <button className="lt-gen-btn" disabled={loading.checklist} onClick={generateChecklist}>
+                {loading.checklist ? <><div className="lt-spinner" /><span>Generating…</span></> : <span>Generate Checklist</span>}
+              </button>
+            </div>
+            <div className="lt-output">
+              <div className="lt-toolbar">
+                <div className="lt-out-label"><div className={`lt-dot${loading.checklist ? " loading" : hasOutput("checklist") ? " ready" : ""}`} /><span>{loading.checklist ? "Building checklist…" : hasOutput("checklist") ? "Checklist ready" : "Awaiting input"}</span></div>
+                <div className="lt-actions">
+                  <button className="lt-act-btn" disabled={!hasOutput("checklist")} onClick={() => copyOutput("checklist")}>Copy</button>
+                  <button className="lt-act-btn primary" disabled={!hasOutput("checklist")} onClick={() => downloadOutput("checklist")}>Download .txt</button>
+                </div>
+              </div>
+              <div className="lt-body">
+                {loading.checklist ? (
+                  <div className="lt-placeholder"><div className="lt-streaming">Building compliance checklist <div className="lt-streaming-dots"><span>.</span><span>.</span><span>.</span></div></div></div>
+                ) : checklistSections.length > 0 ? (
+                  <div style={{ maxWidth: 740, margin: "0 auto" }}>
+                    <div className="lt-cl-header">
+                      <h2>Data Protection Compliance Checklist</h2>
+                      <div className="lt-cl-meta">{clOrg || "Your Organisation"} · {clJurs.join(" · ")} · Generated {new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</div>
+                    </div>
+                    <div className="lt-progress-wrap"><div className="lt-progress-fill" style={{ width: `${progressPct}%` }} /></div>
+                    <div className="lt-progress-label">{checkedItems} / {totalItems} items completed — {progressPct}% compliant</div>
+                    {checklistSections.map((section, sIdx) => (
+                      <div key={sIdx} className="lt-cl-section">
+                        <div className="lt-cl-title">{section.title}</div>
+                        {section.description && <div className="lt-cl-sub">{section.description}</div>}
+                        {section.items.map((item, iIdx) => (
+                          <div key={iIdx} className={`lt-cl-item${item.checked ? " checked" : ""}`} onClick={() => toggleChecklistItem(sIdx, iIdx)}>
+                            <div className="lt-ci-box">{item.checked ? "✓" : ""}</div>
+                            <div className="lt-ci-text">{item.text}</div>
+                            <div className={`lt-ci-risk ${item.risk}`}>{item.risk.toUpperCase()}</div>
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="lt-placeholder"><div className="lt-big">✅</div><p>Select your jurisdictions and organisation profile, then generate your checklist.</p></div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* DPA */}
+        {activeTool === "dpa" && (
+          <div className="lt-layout">
+            <div className="lt-form">
+              <div className="lt-panel-title">Data Processing Addendum</div>
+              <div className="lt-panel-desc">Generate a GDPR/DPDPA-compliant Data Processing Addendum between a controller and processor.</div>
+              <div className="lt-divider">Data Controller</div>
+              <div className="lt-field"><label className="lt-label">Controller Name</label><input className="lt-input" value={dpaCtrlName} onChange={(e) => setDpaCtrlName(e.target.value)} placeholder="e.g. Apex Law LLP" /></div>
+              <div className="lt-row">
+                <div className="lt-field"><label className="lt-label">Jurisdiction</label><select className="lt-select" value={dpaCtrlJur} onChange={(e) => setDpaCtrlJur(e.target.value)}>{DPA_JURS.map((o) => <option key={o}>{o}</option>)}</select></div>
+                <div className="lt-field"><label className="lt-label">Contact Email</label><input className="lt-input" value={dpaCtrlEmail} onChange={(e) => setDpaCtrlEmail(e.target.value)} placeholder="legal@example.com" /></div>
+              </div>
+              <div className="lt-divider">Data Processor</div>
+              <div className="lt-field"><label className="lt-label">Processor Name</label><input className="lt-input" value={dpaProcName} onChange={(e) => setDpaProcName(e.target.value)} placeholder="e.g. CloudStore Technologies Pvt. Ltd." /></div>
+              <div className="lt-row">
+                <div className="lt-field"><label className="lt-label">Jurisdiction</label><select className="lt-select" value={dpaProcJur} onChange={(e) => setDpaProcJur(e.target.value)}>{DPA_JURS.map((o) => <option key={o}>{o}</option>)}</select></div>
+                <div className="lt-field"><label className="lt-label">Contact Email</label><input className="lt-input" value={dpaProcEmail} onChange={(e) => setDpaProcEmail(e.target.value)} placeholder="dpo@vendor.com" /></div>
+              </div>
+              <div className="lt-divider">Processing Details</div>
+              <div className="lt-field"><label className="lt-label">Nature / Purpose of Processing</label><textarea className="lt-textarea" value={dpaPurpose} onChange={(e) => setDpaPurpose(e.target.value)} placeholder="e.g. Cloud storage and backup of client legal documents..." /></div>
+              <div className="lt-field"><label className="lt-label">Categories of Personal Data</label><input className="lt-input" value={dpaDataCats} onChange={(e) => setDpaDataCats(e.target.value)} placeholder="e.g. Names, email addresses, financial records" /></div>
+              <div className="lt-field"><label className="lt-label">Data Subjects</label><input className="lt-input" value={dpaSubjects} onChange={(e) => setDpaSubjects(e.target.value)} placeholder="e.g. Clients, employees, opposing party contacts" /></div>
+              <div className="lt-row">
+                <div className="lt-field"><label className="lt-label">Cross-border Transfers?</label><select className="lt-select" value={dpaXborder} onChange={(e) => setDpaXborder(e.target.value)}>{DPA_XBORDER.map((o) => <option key={o}>{o}</option>)}</select></div>
+                <div className="lt-field"><label className="lt-label">Sub-processors Allowed?</label><select className="lt-select" value={dpaSubproc} onChange={(e) => setDpaSubproc(e.target.value)}>{DPA_SUBPROC.map((o) => <option key={o}>{o}</option>)}</select></div>
+              </div>
+              <div className="lt-row">
+                <div className="lt-field"><label className="lt-label">Applicable Law</label><select className="lt-select" value={dpaGovLaw} onChange={(e) => setDpaGovLaw(e.target.value)}>{DPA_GOVLAW.map((o) => <option key={o}>{o}</option>)}</select></div>
+                <div className="lt-field"><label className="lt-label">Breach Notification</label><select className="lt-select" value={dpaBreach} onChange={(e) => setDpaBreach(e.target.value)}>{DPA_BREACH.map((o) => <option key={o}>{o}</option>)}</select></div>
+              </div>
+              <button className="lt-gen-btn" disabled={loading.dpa} onClick={generateDPA}>
+                {loading.dpa ? <><div className="lt-spinner" /><span>Generating…</span></> : <span>Generate DPA Template</span>}
+              </button>
+            </div>
+            <div className="lt-output">
+              <div className="lt-toolbar">
+                <div className="lt-out-label"><div className={`lt-dot${loading.dpa ? " loading" : hasOutput("dpa") ? " ready" : ""}`} /><span>{loading.dpa ? "Generating document…" : hasOutput("dpa") ? "Document ready" : "Awaiting input"}</span></div>
+                <div className="lt-actions">
+                  <button className="lt-act-btn" disabled={!hasOutput("dpa")} onClick={() => copyOutput("dpa")}>Copy</button>
+                  <button className="lt-act-btn primary" disabled={!hasOutput("dpa")} onClick={() => downloadOutput("dpa")}>Download .txt</button>
+                </div>
+              </div>
+              <div className="lt-body">
+                {loading.dpa ? (
+                  <div className="lt-placeholder"><div className="lt-streaming">Drafting DPA <div className="lt-streaming-dots"><span>.</span><span>.</span><span>.</span></div></div></div>
+                ) : outputs.dpa ? (
+                  <div dangerouslySetInnerHTML={{ __html: outputs.dpa }} />
+                ) : (
+                  <div className="lt-placeholder"><div className="lt-big">🔏</div><p>Enter controller and processor details to generate a compliant DPA template.</p></div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Internship */}
+        {activeTool === "internship" && (
+          <div className="lt-layout">
+            <div className="lt-form">
+              <div className="lt-panel-title">Internship Agreement</div>
+              <div className="lt-panel-desc">Generate a structured internship agreement for Indian law firms, chambers, and legal departments.</div>
+              <div className="lt-divider">Firm / Organisation</div>
+              <div className="lt-field"><label className="lt-label">Firm / Organisation Name</label><input className="lt-input" value={iaFirm} onChange={(e) => setIaFirm(e.target.value)} placeholder="e.g. Veritas & Associates, Advocates" /></div>
+              <div className="lt-row">
+                <div className="lt-field"><label className="lt-label">City</label><select className="lt-select" value={iaCity} onChange={(e) => setIaCity(e.target.value)}>{IA_CITIES.map((o) => <option key={o}>{o}</option>)}</select></div>
+                <div className="lt-field"><label className="lt-label">Firm Type</label><select className="lt-select" value={iaFirmType} onChange={(e) => setIaFirmType(e.target.value)}>{IA_FIRM_TYPES.map((o) => <option key={o}>{o}</option>)}</select></div>
+              </div>
+              <div className="lt-field"><label className="lt-label">Supervising Advocate / POC</label><input className="lt-input" value={iaSupervisor} onChange={(e) => setIaSupervisor(e.target.value)} placeholder="e.g. Adv. Priya Mehta" /></div>
+              <div className="lt-divider">Intern Details</div>
+              <div className="lt-row">
+                <div className="lt-field"><label className="lt-label">Intern Full Name</label><input className="lt-input" value={iaIntern} onChange={(e) => setIaIntern(e.target.value)} placeholder="e.g. Rahul Nair" /></div>
+                <div className="lt-field"><label className="lt-label">Year of Study</label><select className="lt-select" value={iaYear} onChange={(e) => setIaYear(e.target.value)}>{IA_YEARS.map((o) => <option key={o}>{o}</option>)}</select></div>
+              </div>
+              <div className="lt-field"><label className="lt-label">Law College / University</label><input className="lt-input" value={iaCollege} onChange={(e) => setIaCollege(e.target.value)} placeholder="e.g. Amity Law School, Delhi" /></div>
+              <div className="lt-divider">Internship Parameters</div>
+              <div className="lt-row">
+                <div className="lt-field"><label className="lt-label">Start Date</label><input className="lt-input" type="date" value={iaStart} onChange={(e) => setIaStart(e.target.value)} /></div>
+                <div className="lt-field"><label className="lt-label">End Date</label><input className="lt-input" type="date" value={iaEnd} onChange={(e) => setIaEnd(e.target.value)} /></div>
+              </div>
+              <div className="lt-field"><label className="lt-label">Practice Area</label><select className="lt-select" value={iaArea} onChange={(e) => setIaArea(e.target.value)}>{IA_AREAS.map((o) => <option key={o}>{o}</option>)}</select></div>
+              <div className="lt-row">
+                <div className="lt-field"><label className="lt-label">Stipend</label><select className="lt-select" value={iaStipend} onChange={(e) => setIaStipend(e.target.value)}>{IA_STIPENDS.map((o) => <option key={o}>{o}</option>)}</select></div>
+                <div className="lt-field"><label className="lt-label">Working Days</label><select className="lt-select" value={iaDays} onChange={(e) => setIaDays(e.target.value)}>{IA_DAYS.map((o) => <option key={o}>{o}</option>)}</select></div>
+              </div>
+              <div className="lt-field"><label className="lt-label">Certificate on Completion?</label><select className="lt-select" value={iaCert} onChange={(e) => setIaCert(e.target.value)}>{IA_CERTS.map((o) => <option key={o}>{o}</option>)}</select></div>
+              <button className="lt-gen-btn" disabled={loading.internship} onClick={generateInternship}>
+                {loading.internship ? <><div className="lt-spinner" /><span>Generating…</span></> : <span>Generate Agreement</span>}
+              </button>
+            </div>
+            <div className="lt-output">
+              <div className="lt-toolbar">
+                <div className="lt-out-label"><div className={`lt-dot${loading.internship ? " loading" : hasOutput("internship") ? " ready" : ""}`} /><span>{loading.internship ? "Generating document…" : hasOutput("internship") ? "Document ready" : "Awaiting input"}</span></div>
+                <div className="lt-actions">
+                  <button className="lt-act-btn" disabled={!hasOutput("internship")} onClick={() => copyOutput("internship")}>Copy</button>
+                  <button className="lt-act-btn primary" disabled={!hasOutput("internship")} onClick={() => downloadOutput("internship")}>Download .txt</button>
+                </div>
+              </div>
+              <div className="lt-body">
+                {loading.internship ? (
+                  <div className="lt-placeholder"><div className="lt-streaming">Drafting Internship Agreement <div className="lt-streaming-dots"><span>.</span><span>.</span><span>.</span></div></div></div>
+                ) : outputs.internship ? (
+                  <div dangerouslySetInnerHTML={{ __html: outputs.internship }} />
+                ) : (
+                  <div className="lt-placeholder"><div className="lt-big">📝</div><p>Enter the firm and intern details to generate a complete internship agreement.</p></div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
