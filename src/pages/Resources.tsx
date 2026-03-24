@@ -127,12 +127,15 @@ export default function Resources() {
               Demo CV — Preview
             </DialogTitle>
           </DialogHeader>
-          <div className="flex-1 px-6 pb-6 h-[calc(85vh-4rem)]">
-            <embed
-              src="/documents/IdealCVTemplate.pdf"
-              type="application/pdf"
-              className="w-full h-full rounded-lg border border-border"
-            />
+          <div className="flex-1 px-6 pb-6 h-[calc(85vh-4rem)] overflow-y-auto space-y-4">
+            {[1, 2].map((page) => (
+              <img
+                key={page}
+                src={`/documents/cv-page-${page}.jpg`}
+                alt={`CV Template page ${page}`}
+                className="w-full rounded-lg border border-border"
+              />
+            ))}
           </div>
         </DialogContent>
       </Dialog>
