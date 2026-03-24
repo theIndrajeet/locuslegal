@@ -4,16 +4,16 @@ import { useState, useCallback, useEffect, useRef } from "react";
 
 const BACK = `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" width="68" height="68">
   <g transform="translate(25,25)">
-    <line x1="0" y1="-11" x2="0" y2="11" stroke="#000" stroke-width="2.6" stroke-linecap="round"/>
-    <line x1="-11" y1="0" x2="11" y2="0" stroke="#000" stroke-width="2.6" stroke-linecap="round"/>
-    <line x1="-8" y1="-8" x2="8" y2="8" stroke="#000" stroke-width="2.6" stroke-linecap="round"/>
-    <line x1="8" y1="-8" x2="-8" y2="8" stroke="#000" stroke-width="2.6" stroke-linecap="round"/>
-    <circle cx="-11" cy="0" r="2.4" fill="#000"/>
-    <circle cx="11" cy="0" r="2.4" fill="#000"/>
-    <circle cx="0" cy="-11" r="2.4" fill="#000"/>
-    <circle cx="0" cy="11" r="2.4" fill="#000"/>
+    <line x1="0" y1="-11" x2="0" y2="11" stroke="#aaa" stroke-width="2.6" stroke-linecap="round"/>
+    <line x1="-11" y1="0" x2="11" y2="0" stroke="#aaa" stroke-width="2.6" stroke-linecap="round"/>
+    <line x1="-8" y1="-8" x2="8" y2="8" stroke="#aaa" stroke-width="2.6" stroke-linecap="round"/>
+    <line x1="8" y1="-8" x2="-8" y2="8" stroke="#aaa" stroke-width="2.6" stroke-linecap="round"/>
+    <circle cx="-11" cy="0" r="2.4" fill="#aaa"/>
+    <circle cx="11" cy="0" r="2.4" fill="#aaa"/>
+    <circle cx="0" cy="-11" r="2.4" fill="#aaa"/>
+    <circle cx="0" cy="11" r="2.4" fill="#aaa"/>
   </g>
-  <polygon points="75,13 89,37 61,37" fill="#000"/>
+  <polygon points="75,13 89,37 61,37" fill="#aaa"/>
   <g transform="translate(25,75)">
     <ellipse cx="0" cy="-9" rx="6" ry="9" fill="hsl(45,100%,51%)"/>
     <ellipse cx="0" cy="9" rx="6" ry="9" fill="hsl(45,100%,51%)"/>
@@ -22,13 +22,13 @@ const BACK = `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" widt
     <circle cx="0" cy="0" r="4.5" fill="hsl(45,100%,51%)"/>
   </g>
   <g transform="translate(75,76)">
-    <line x1="0" y1="-13" x2="0" y2="13" stroke="#000" stroke-width="2.6" stroke-linecap="round"/>
-    <line x1="-8" y1="-13" x2="-8" y2="2" stroke="#000" stroke-width="2.6" stroke-linecap="round"/>
-    <line x1="8" y1="-13" x2="8" y2="2" stroke="#000" stroke-width="2.6" stroke-linecap="round"/>
-    <path d="M-8 2 Q-8 11 0 11 Q8 11 8 2" fill="none" stroke="#000" stroke-width="2.6" stroke-linecap="round"/>
-    <circle cx="-8" cy="-14" r="2.4" fill="#000"/>
-    <circle cx="8" cy="-14" r="2.4" fill="#000"/>
-    <circle cx="0" cy="-14" r="2.4" fill="#000"/>
+    <line x1="0" y1="-13" x2="0" y2="13" stroke="#aaa" stroke-width="2.6" stroke-linecap="round"/>
+    <line x1="-8" y1="-13" x2="-8" y2="2" stroke="#aaa" stroke-width="2.6" stroke-linecap="round"/>
+    <line x1="8" y1="-13" x2="8" y2="2" stroke="#aaa" stroke-width="2.6" stroke-linecap="round"/>
+    <path d="M-8 2 Q-8 11 0 11 Q8 11 8 2" fill="none" stroke="#aaa" stroke-width="2.6" stroke-linecap="round"/>
+    <circle cx="-8" cy="-14" r="2.4" fill="#aaa"/>
+    <circle cx="8" cy="-14" r="2.4" fill="#aaa"/>
+    <circle cx="0" cy="-14" r="2.4" fill="#aaa"/>
   </g>
 </svg>`;
 
@@ -134,11 +134,11 @@ const arcadeStyles = `
   justify-content: center;
   overflow: hidden;
 }
-.fa-card-back { background: hsl(0, 0%, 96%); }
+.fa-card-back { background: hsl(0, 0%, 15%); }
 .fa-card-front { background: hsl(45, 100%, 51%); transform: rotateY(180deg); }
 .fa-card.matched .fa-card-front { opacity: 0.68; }
 .fa-card:not(.flipped):not(.matched):hover .fa-card-back {
-  background: hsl(0, 0%, 88%);
+  background: hsl(0, 0%, 20%);
   transition: background 0.18s;
 }
 @keyframes fa-shake {
