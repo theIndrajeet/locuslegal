@@ -458,7 +458,7 @@ Include sections: Parties, Recitals, Term of Internship, Scope of Work, Supervis
       <div className="lt-page">
         {/* Hero */}
         <div className="lt-hero">
-          <div className="lt-eyebrow">⚖ Locus Tools</div>
+          <div className="lt-eyebrow">Locus Tools</div>
           <h1>AI-powered <em>legal document</em><br />tools for the modern practice.</h1>
           <p>Generate jurisdiction-aware NDAs, data protection checklists, DPA templates, and internship agreements — instantly, without the billing clock running.</p>
           {!selectedTool && (
