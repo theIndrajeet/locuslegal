@@ -39,19 +39,35 @@ export default function Navbar() {
         </Link>
 
         <div className="hidden md:flex items-center gap-8">
-          {navLinks.map((l) => (
-            <Link
-              key={l.href}
-              to={l.href}
-              className={`text-sm font-medium transition-colors duration-300 ${
-                isActive(l.href)
-                  ? "text-accent"
-                  : "text-muted-foreground hover:text-accent"
-              }`}
-            >
-              {l.label}
-            </Link>
-          ))}
+          {navLinks.map((l) =>
+            l.label === "Tools" ? (
+              <Link
+                key={l.href}
+                to={l.href}
+                className={`relative text-sm font-bold transition-all duration-300 group ${
+                  isActive(l.href) ? "text-accent" : "text-muted-foreground hover:text-accent"
+                }`}
+              >
+                <span className="relative z-10 inline-flex items-center gap-1">
+                  <span className="inline-block animate-[pulse_2s_cubic-bezier(0.4,0,0.6,1)_infinite] w-1.5 h-1.5 rounded-full bg-accent" />
+                  {l.label}
+                </span>
+                <span className="absolute -bottom-1 left-0 w-full h-[2px] bg-accent scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
+              </Link>
+            ) : (
+              <Link
+                key={l.href}
+                to={l.href}
+                className={`text-sm font-medium transition-colors duration-300 ${
+                  isActive(l.href)
+                    ? "text-accent"
+                    : "text-muted-foreground hover:text-accent"
+                }`}
+              >
+                {l.label}
+              </Link>
+            )
+          )}
           <button
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
             className="p-2 rounded-full hover:bg-muted/50 transition-colors"
