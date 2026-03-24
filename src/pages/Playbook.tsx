@@ -6,6 +6,11 @@ import { useIsMobile } from "@/hooks/use-mobile";
 type Audience = "Students" | "Firms" | "Institutions";
 type Filter = "All" | Audience;
 
+interface GuideAttachment {
+  label: string;
+  href: string;
+}
+
 interface Guide {
   id: string;
   caseNumber: string;
@@ -15,6 +20,7 @@ interface Guide {
   readTime: string;
   slug: string;
   sections: string[];
+  attachments?: GuideAttachment[];
 }
 
 const guides: Guide[] = [
@@ -62,11 +68,19 @@ const guides: Guide[] = [
     id: "9", caseNumber: "LX-009", title: "How to Evaluate a Law Intern",
     audience: "Firms", stage: "Firm Resources", readTime: "4 min", slug: "evaluate-law-intern",
     sections: ["Setting clear expectations", "The evaluation rubric", "Mid-internship check-in", "Final assessment criteria", "Giving useful feedback"],
+    attachments: [
+      { label: "Intern Evaluation Rubric", href: "/documents/InternEvaluationRubric.docx" },
+      { label: "Intern Daily Task Sheet", href: "/documents/InternDailyTaskSheet.docx" },
+    ],
   },
   {
     id: "10", caseNumber: "LX-010", title: "Building Your Firm's Internship Program from Scratch",
     audience: "Firms", stage: "Firm Resources", readTime: "6 min", slug: "build-internship-program",
     sections: ["Why a structured program matters", "Setting intake criteria", "Onboarding checklist", "Assigning work effectively", "Retention and conversion"],
+    attachments: [
+      { label: "Internship Offer Letter Template", href: "/documents/InternshipOfferLetterTemplate.docx" },
+      { label: "Intern NDA Template", href: "/documents/InternNDATemplate.docx" },
+    ],
   },
   {
     id: "11", caseNumber: "LX-011", title: "What to Look for in a Law Intern's CV",
