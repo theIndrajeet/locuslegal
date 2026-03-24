@@ -335,9 +335,10 @@ Include sections: Parties, Recitals, Term of Internship, Scope of Work, Supervis
   return (
     <>
       <style>{`
-        .lt-page { background: hsl(0,0%,3%); min-height: 100vh; font-family: 'Inter', sans-serif; font-weight: 400; font-size: 14px; line-height: 1.65; color: hsl(0,0%,98%); }
-        .lt-hero { padding: 120px 40px 56px; border-bottom: 3px solid hsl(0,0%,0%); position: relative; overflow: hidden; }
-        .lt-hero::before { content: ''; position: absolute; top: -100px; right: -100px; width: 500px; height: 500px; background: radial-gradient(circle, hsla(45,100%,51%,0.08) 0%, transparent 60%); pointer-events: none; }
+        .lt-page { background: linear-gradient(180deg, hsl(0,0%,3%) 0%, hsl(40,8%,8%) 50%, hsl(0,0%,3%) 100%); min-height: 100vh; font-family: 'Inter', sans-serif; font-weight: 400; font-size: 14px; line-height: 1.65; color: hsl(0,0%,98%); }
+        .lt-hero { padding: 120px 40px 56px; border-bottom: 3px solid hsl(0,0%,0%); position: relative; overflow: hidden; background: linear-gradient(135deg, hsl(0,0%,3%) 0%, hsl(40,10%,7%) 40%, hsl(0,0%,5%) 100%); }
+        .lt-hero::before { content: ''; position: absolute; top: -100px; right: -100px; width: 600px; height: 600px; background: radial-gradient(circle, hsla(45,100%,51%,0.12) 0%, hsla(45,80%,40%,0.04) 40%, transparent 70%); pointer-events: none; }
+        .lt-hero::after { content: ''; position: absolute; bottom: -80px; left: -80px; width: 400px; height: 400px; background: radial-gradient(circle, hsla(45,100%,51%,0.06) 0%, transparent 60%); pointer-events: none; }
         .lt-eyebrow { font-family: 'Sora', sans-serif; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.18em; color: hsl(45,100%,51%); text-transform: uppercase; margin-bottom: 20px; padding: 6px 16px; border: 2px solid hsl(45,100%,51%); display: inline-block; box-shadow: 3px 3px 0px 0px hsl(45,100%,51%); }
         .lt-hero h1 { font-family: 'Sora', sans-serif; font-size: clamp(2.2rem, 5vw, 3.5rem); font-weight: 800; color: hsl(0,0%,98%); line-height: 1.1; margin-bottom: 18px; letter-spacing: -0.02em; }
         .lt-hero h1 em { font-style: normal; color: hsl(45,100%,51%); }
@@ -347,9 +348,12 @@ Include sections: Parties, Recitals, Term of Internship, Scope of Work, Supervis
         .lt-pill.active { border-color: hsl(45,100%,51%); color: hsl(0,0%,0%); background: hsl(45,100%,51%); font-weight: 700; }
 
         /* Catalogue */
-        .lt-catalogue { padding: 60px 40px 80px; max-width: 1100px; margin: 0 auto; }
+        .lt-catalogue { padding: 60px 40px 80px; max-width: 1100px; margin: 0 auto; position: relative; }
+        .lt-catalogue::before { content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 80%; height: 1px; background: linear-gradient(90deg, transparent, hsla(45,100%,51%,0.3), transparent); }
         .lt-catalogue-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .lt-cat-card { background: hsl(0,0%,6%); border: 3px solid hsl(0,0%,15%); padding: 32px 28px; cursor: pointer; transition: all 0.2s; position: relative; display: flex; flex-direction: column; gap: 16px; }
+        .lt-cat-card { background: linear-gradient(160deg, hsl(0,0%,8%) 0%, hsl(40,6%,6%) 50%, hsl(0,0%,5%) 100%); border: 3px solid hsl(0,0%,15%); padding: 32px 28px; cursor: pointer; transition: all 0.2s; position: relative; display: flex; flex-direction: column; gap: 16px; overflow: hidden; }
+        .lt-cat-card::before { content: ''; position: absolute; top: -40px; right: -40px; width: 120px; height: 120px; background: radial-gradient(circle, hsla(45,100%,51%,0.06) 0%, transparent 70%); pointer-events: none; transition: all 0.3s; }
+        .lt-cat-card:hover::before { width: 200px; height: 200px; background: radial-gradient(circle, hsla(45,100%,51%,0.12) 0%, transparent 70%); }
         .lt-cat-card:hover { border-color: hsl(45,100%,51%); transform: translate(-3px, -3px); box-shadow: 6px 6px 0px 0px hsl(45,100%,51%); }
         .lt-cat-card:active { transform: translate(1px, 1px); box-shadow: 2px 2px 0px 0px hsl(45,100%,51%); }
         .lt-cat-top { display: flex; align-items: center; justify-content: space-between; }
