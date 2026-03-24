@@ -1,33 +1,35 @@
 
 
-# Simplify "Read Guide" to PDF Viewer
+# Rebrand to "Locus" Everywhere, Keep "Locus by LexRoot" Only in Footer
 
-## Problem
+## What Changes
 
-Currently, "Read Guide" renders all the guide content as typed-out text in the page. You want it to simply open a PDF preview dialog (like the Resources page does) showing the uploaded PDF pages as images.
+Remove "by LexRoot" from all locations except the footer. The footer keeps the full branding with copyright.
 
-## Plan
+## Changes
 
-### 1. Generate preview images from the 5 LX PDFs
+### 1. Navbar (`src/components/Navbar.tsx`)
+- Remove the `<span>by LexRoot</span>` line beneath the logo. Just show "Locus" with accent-colored "us".
 
-Convert each PDF (`LX-001-ColdEmail.pdf` through `LX-005-ConvertPPO.pdf`) to page images using `pdftoppm`. These will be saved as `LX-001-ColdEmail-page-1.jpg`, `LX-001-ColdEmail-page-2.jpg`, etc.
+### 2. Footer (`src/components/Footer.tsx`)
+- Keep "Locus by LexRoot" in the logo area
+- Keep copyright line: `© 2026 Locus by LexRoot. All rights reserved.`
+- Remove the tagline "Your merit. Your internship." from the logo block (it's redundant here) — or keep it if you prefer. Your call.
 
-### 2. Replace reader mode with PDF preview dialog
+### 3. Playbook page title (`src/pages/Playbook.tsx`)
+- Change `document.title` from `"The Locus Playbook — Guides & Resources | Locus by LexRoot"` to `"The Locus Playbook — Guides & Resources | Locus"`
 
-Remove the inline reader mode (the typed-out content view) from `GuideDetail`. Instead, add a `Dialog` component (same pattern as Resources page) that opens when "Read Guide" is clicked. The dialog shows the PDF page images in a scrollable container.
-
-### 3. Add preview metadata to guide data
-
-Add `previewPages` and `previewPrefix` fields to each guide (LX-001 through LX-005) so the dialog knows how many pages to render and where to find the images.
-
-### 4. Remove typed content
-
-Remove the large `guideContent` object with all the typed-out section text — no longer needed since the PDFs themselves serve as the content.
+### 4. HTML meta tags (`index.html`)
+- `<title>`: "Locus — Merit-Based Legal Internships in India"
+- `og:title` / `twitter:title`: same
+- `meta author`: "Locus"
 
 ### Files Changed
 
-| Action | File |
-|--------|------|
-| Create | `public/documents/LX-001-ColdEmail-page-*.jpg` through `LX-005-ConvertPPO-page-*.jpg` (preview images) |
-| Edit | `src/pages/Playbook.tsx` — replace reader mode with PDF preview dialog, remove `guideContent`, add preview metadata |
+| File | Change |
+|------|--------|
+| `src/components/Navbar.tsx` | Remove "by LexRoot" subtitle |
+| `src/components/Footer.tsx` | Keep as-is (only place with full branding) |
+| `src/pages/Playbook.tsx` | Update page title |
+| `index.html` | Update title and meta tags |
 
