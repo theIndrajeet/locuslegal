@@ -134,11 +134,11 @@ const arcadeStyles = `
   justify-content: center;
   overflow: hidden;
 }
-.fa-card-back { background: hsl(0, 0%, 96%); }
+.fa-card-back { background: hsl(0, 0%, 15%); }
 .fa-card-front { background: hsl(45, 100%, 51%); transform: rotateY(180deg); }
 .fa-card.matched .fa-card-front { opacity: 0.68; }
 .fa-card:not(.flipped):not(.matched):hover .fa-card-back {
-  background: hsl(0, 0%, 88%);
+  background: hsl(0, 0%, 20%);
   transition: background 0.18s;
 }
 @keyframes fa-shake {
