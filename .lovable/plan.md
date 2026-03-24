@@ -1,28 +1,33 @@
 
 
-## Replace Cover Letter Template Card with Download + Preview
+## Replace Empty State with Animated Playbook Introduction
 
 ### What
-Add the same dual-action (Download + Preview) treatment to the Cover Letter Template card, using the uploaded `01_Cold_Email_Template.docx` file. Convert it to images for the preview modal.
+Replace the "Select a guide to preview" empty state in the right panel with an engaging, animated introduction that explains what the Locus Playbook is. This turns dead space into a compelling onboarding moment.
 
-### Steps
+### Design
 
-**1. File processing (exec)**
-- Copy `user-uploads://01_Cold_Email_Template.docx` to `public/documents/CoverLetterTemplate.docx`
-- Convert DOCX → PDF via LibreOffice, then PDF → JPEG pages via `pdftoppm`
-- Store images as `public/documents/cl-page-*.jpg`
+The empty state becomes a rich intro panel with staggered fade-in animations:
 
-**2. Update `src/pages/Resources.tsx`**
-- Change the Cover Letter card to `hasPreview: true` and add a `previewKey` field to distinguish it from the CV
-- Add a second `previewOpen` state (or refactor to track which resource is being previewed, e.g. `previewResource: string | null`)
-- When previewing Cover Letter, show the `cl-page-*.jpg` images in the same Dialog pattern
-- Download link points to `/documents/CoverLetterTemplate.docx`
+1. **Hero heading**: "The Locus Playbook" in large bold text with a gold accent underline, fading in first
+2. **Tagline**: "Your case file system for navigating legal internships in India." — fades in with slight delay
+3. **Three feature cards** staggered in, each with an icon + short description:
+   - **14 Guides** — "Covering every stage from application to PPO conversion"
+   - **3 Audiences** — "Tailored for students, firms, and institutions"
+   - **Actionable** — "Step-by-step sections you can use right away"
+4. **Prompt**: A subtle pulsing arrow or text at the bottom — "Select a guide from the left panel to get started"
+5. **Background accent**: A subtle gold-tinted radial gradient behind the content for depth
 
-### Files
+All animations use CSS keyframes (fade-in + translateY) with staggered `animation-delay` values — consistent with the site's existing animation system.
+
+### Changes
 
 | Action | File |
 |--------|------|
-| Create | `public/documents/CoverLetterTemplate.docx` |
-| Generate | `public/documents/CoverLetterTemplate.pdf` + `cl-page-*.jpg` |
-| Edit | `src/pages/Resources.tsx` — refactor preview state, add Cover Letter preview |
+| Edit | `src/pages/Playbook.tsx` — replace the empty state div (lines 204-207) with a new `PlaybookIntro` component |
+
+The `PlaybookIntro` component will be defined in the same file (internal component like `GuideDetail`). It uses:
+- Tailwind `animate-fade-in` class with inline `animationDelay` for staggering
+- `BookOpen`, `Users`, `Layers` icons from lucide-react (already imported)
+- Gold accent color consistent with the rest of the page
 
