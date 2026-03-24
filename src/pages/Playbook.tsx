@@ -601,15 +601,22 @@ function GuideDetail({ guide }: { guide: Guide }) {
                   </span>
                 </div>
               ) : (
-                <a
+                <button
                   key={i}
-                  href={att.href}
-                  download
-                  className="flex items-center gap-3 p-3 rounded-lg border border-border/50 bg-card/50 hover:border-accent/40 hover:bg-accent/5 transition-all group"
+                  onClick={() => {
+                    const link = document.createElement("a");
+                    link.href = att.href;
+                    link.download = att.href.split("/").pop() || att.label;
+                    link.target = "_blank";
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                  }}
+                  className="flex items-center gap-3 p-3 rounded-lg border border-border/50 bg-card/50 hover:border-accent/40 hover:bg-accent/5 transition-all group w-full text-left"
                 >
                   <Download size={16} className="text-accent shrink-0" />
                   <span className="text-sm font-medium text-foreground group-hover:text-accent transition-colors">{att.label}</span>
-                </a>
+                </button>
               )
             )}
           </div>
