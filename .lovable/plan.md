@@ -1,51 +1,63 @@
 
 
-## Add Uploaded Templates to Resources & Playbook
+# Build Reader and Download for LX-001 to LX-005
 
-### Categorization
+## What We're Building
 
-Based on file names and the existing page structure:
+Enable the "Read Guide" and "Download PDF" buttons for LX-001 through LX-005 with full written content. LX-006 to LX-014 stay as "Coming Soon." Also add relevant attachments to each of these 5 guides.
 
-**Resources page** (student-facing downloadable templates — 6 new cards):
-| File | Card Title |
-|------|-----------|
-| 02_Followup_Email_Template.docx | Follow-up Email Template |
-| 03_ThankYou_Email_Template.docx | Thank You Email Template |
-| 04_NOC_Request_Letter_Template.docx | NOC Request Letter Template |
-| 05_Internship_Application_Tracker.xlsx | Internship Application Tracker |
-| 06_Monthly_Internship_Log.docx | Monthly Internship Log |
-| 07_LinkedIn_Profile_Checklist.docx | LinkedIn Profile Checklist |
+## Plan
 
-**Playbook page** (firm-facing templates — attached as downloads to existing guides):
-| File | Linked Guide |
-|------|-------------|
-| 16_Internship_Offer_Letter_Template.docx | LX-010: Building Your Firm's Internship Program |
-| 17_Intern_NDA_Template.docx | LX-010: Building Your Firm's Internship Program |
-| 18_Intern_Evaluation_Rubric.docx | LX-009: How to Evaluate a Law Intern |
-| 19_Intern_Daily_Task_Sheet.docx | LX-009: How to Evaluate a Law Intern |
+### 1. Write Full Guide Content (LX-001 to LX-005)
 
-### Steps
+Add a `content` field to the Guide interface — an array of `{ heading: string; body: string }` objects matching each guide's sections. Each section will have 2-3 paragraphs of practical, actionable content tailored to Indian law students.
 
-**1. Process all files (exec)**
-- Copy all 10 files to `public/documents/`
-- Convert each DOCX/XLSX → PDF → JPEG preview images via LibreOffice + pdftoppm
-- Name pattern: `followup-page-*.jpg`, `thankyou-page-*.jpg`, etc.
+| Guide | Topic | Sections |
+|-------|-------|----------|
+| LX-001 | Cold emailing law firms | Why emails fail, finding contacts, subject lines, email structure, following up |
+| LX-002 | Non-NLU students getting top internships | Reframing disadvantage, what firms want, portfolio, direct apps, persistence |
+| LX-003 | First legal internship expectations | Day one, types of work, asking questions, tracking work, exit checklist |
+| LX-004 | Writing a legal research memo | What a memo is, IRAC, research methodology, style/tone, common mistakes |
+| LX-005 | Converting internship to PPO | What firms want, visibility, feedback, follow-up timeline, PPO request |
 
-**2. Update `src/pages/Resources.tsx`**
-- Add 6 new resource cards with Download + Preview support (same pattern as existing CV and Cold Email cards)
-- Each card gets appropriate icon, title, description, download link, and preview images
-- Reorder: CV Analyser and Book Your Session (coming soon) move to the end
+### 2. Build the Reader View
 
-**3. Update `src/pages/Playbook.tsx`**
-- Add optional `attachments` array to the `Guide` interface: `{ label: string; href: string }[]`
-- Add attachments to LX-009 (Evaluation Rubric + Daily Task Sheet) and LX-010 (Offer Letter + NDA)
-- In the guide detail view, render an "Attachments" section with download buttons below the "What's inside" section
+When "Read Guide" is clicked for LX-001-005:
+- Toggle the guide detail into a full reading mode showing all section content
+- Each section renders as a heading + body text with clean typography
+- Add a "Back to overview" button to return to the section list view
+- Smooth transition between overview and reader
 
-### Files
+### 3. Generate Downloadable PDFs
+
+Create 5 PDF files using a script (reportlab or docx-js → LibreOffice):
+- Professional formatting with Locus branding (dark header, gold accents)
+- Cover page with guide title, case number, audience, read time
+- All 5 sections with headings and body content
+- Output to `public/documents/` as `LX-001-ColdEmail.pdf`, etc.
+
+### 4. Add Attachments to LX-001 through LX-005
+
+Using existing uploaded templates:
+
+| Guide | Attachments |
+|-------|-------------|
+| LX-001 | Cold Email Template (cross-link from Resources), Follow-up Email Template |
+| LX-002 | Internship Application Tracker, LinkedIn Profile Checklist |
+| LX-003 | Monthly Internship Log, First Day Checklist (Coming Soon) |
+| LX-004 | Legal Research Memo Template (Coming Soon), Sample IRAC Memo (Coming Soon) |
+| LX-005 | Thank You Email Template, NOC Request Letter Template |
+
+### 5. Conditional Button States
+
+In `GuideDetail`, check if guide has content:
+- **LX-001 to LX-005**: "Read Guide" and "Download PDF" buttons are active and functional
+- **LX-006 to LX-014**: Buttons remain disabled with "Coming Soon" label
+
+### Files Changed
 
 | Action | File |
 |--------|------|
-| Create | `public/documents/` — 10 template files + their preview images |
-| Edit | `src/pages/Resources.tsx` — add 6 new downloadable resource cards |
-| Edit | `src/pages/Playbook.tsx` — add attachments field to Guide, attach 4 firm templates to relevant guides |
+| Edit | `src/pages/Playbook.tsx` — add content field, reader view, attachments, conditional buttons |
+| Create | `public/documents/LX-001-ColdEmail.pdf` through `LX-005-ConvertPPO.pdf` — downloadable guide PDFs |
 
