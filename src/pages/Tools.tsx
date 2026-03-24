@@ -509,34 +509,18 @@ Include sections: Parties, Recitals, Term of Internship, Scope of Work, Supervis
           )}
         </div>
 
-        {/* Audience Section */}
-        {!selectedTool && (
-          <div className="lt-audience">
-            <div className="lt-audience-label">Built for</div>
-            <div className="lt-audience-grid">
-              {[
-                { icon: "⚖️", label: "Law Firms & Chambers", count: "4 tools" },
-                { icon: "🚀", label: "Startups & Founders", count: "3 tools" },
-                { icon: "🎵", label: "Artists & Musicians", count: "2 tools" },
-                { icon: "🎓", label: "Law Students", count: "2 tools" },
-                { icon: "🏢", label: "Small Companies & SMBs", count: "3 tools" },
-                { icon: "🏫", label: "Law Schools & Institutions", count: "2 tools" },
-              ].map((a) => (
-                <div key={a.label} className="lt-audience-chip">
-                  <span className="lt-audience-icon">{a.icon}</span>
-                  {a.label}
-                  <span className="lt-audience-count">{a.count}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Catalogue View */}
         {!selectedTool && (
           <div className="lt-catalogue">
+            <div className="lt-cat-filter">
+              {CATEGORIES.map((cat) => (
+                <button key={cat.id} className={`lt-cat-chip${activeCategory === cat.id ? " active" : ""}`} onClick={() => setActiveCategory(cat.id)}>
+                  {cat.label}<span className="lt-chip-count">({cat.count})</span>
+                </button>
+              ))}
+            </div>
             <div className="lt-catalogue-grid">
-              {TOOL_CATALOG.map((tool) => (
+              {TOOL_CATALOG.filter((t) => activeCategory === "All" || t.categories.includes(activeCategory)).map((tool) => (
                 <div key={tool.num} className={`lt-cat-card${tool.comingSoon ? " coming-soon" : ""}`} onClick={() => !tool.comingSoon && openTool(tool.id)}>
                   {tool.comingSoon && <span className="lt-coming-badge">Coming Soon</span>}
                   <div className="lt-cat-top">
