@@ -236,7 +236,7 @@ export default function Playbook() {
                   </div>
 
                   {/* Prompt */}
-                  <p className="text-xs text-muted-foreground animate-fade-in pulse" style={{ animationDelay: '900ms', animationFillMode: 'both' }}>
+                  <p className="text-lg font-semibold text-[#D4A017] animate-fade-in animate-pulse" style={{ animationDelay: '900ms', animationFillMode: 'both' }}>
                     ← Select a guide from the left panel to get started
                   </p>
                 </div>
