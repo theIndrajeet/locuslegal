@@ -137,6 +137,7 @@ function parseChecklist(text: string): ChecklistSection[] {
 export default function Tools() {
   const [selectedTool, setSelectedTool] = useState<ToolType | null>(null);
   const [activeTool, setActiveTool] = useState<ToolType>("nda");
+  const [activeCategory, setActiveCategory] = useState<CategoryType>("All");
   const [loading, setLoading] = useState<Record<ToolType, boolean>>({ nda: false, checklist: false, dpa: false, internship: false });
   const [outputs, setOutputs] = useState<Record<ToolType, string>>({ nda: "", checklist: "", dpa: "", internship: "" });
   const [rawText, setRawText] = useState<Record<ToolType, string>>({ nda: "", checklist: "", dpa: "", internship: "" });
