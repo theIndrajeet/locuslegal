@@ -175,7 +175,7 @@ const guides: Guide[] = [
     pdfHref: "/documents/LX-003-FirstInternship.pdf",
     attachments: [
       { label: "Monthly Internship Log", href: "/documents/MonthlyInternshipLog.docx" },
-      { label: "First Day Checklist", href: "#", comingSoon: true },
+      { label: "First Day Checklist", href: "/documents/FirstDayChecklist.docx" },
     ],
   },
   {
