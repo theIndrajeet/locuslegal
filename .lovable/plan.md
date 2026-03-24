@@ -1,46 +1,38 @@
 
 
-# Tools Page — Catalogue View with Drill-Down
+# Add "Coming Soon" Tool Cards to Catalogue
 
 ## Summary
 
-Replace the current tab-based Tools page with a two-state layout: a **catalogue grid** showing all 4 tools as cards, and a **detail view** when a tool is clicked — matching the Playbook/Resources drill-down pattern.
+Add 6 new tool cards to the catalogue grid for startups, artists, singers, and small companies. These will be visually distinct with a "COMING SOON" badge and non-clickable (greyed out / locked appearance).
 
 ## Changes
 
-### 1. Edit `src/pages/Tools.tsx`
+### Edit `src/pages/Tools.tsx`
 
-**Add catalogue state**: New `selectedTool` state (`ToolType | null`). When `null`, show the catalogue grid. When set, show the existing tool form/output UI.
+**Extend `TOOL_CATALOG`** with 6 new entries, each having a `comingSoon: true` flag:
 
-**Catalogue view** (when no tool selected):
-- Hero section with "LOCUS TOOLS" heading, eyebrow pill, subtitle
-- 4 tool cards in a 2×2 grid (stacks to 1 col on mobile), each showing:
-  - Tool number (`01`–`04`)
-  - Tool name
-  - Short description (e.g. "Generate enforceable NDAs across APAC jurisdictions")
-  - Jurisdiction/feature tags
-  - Arrow icon → click opens the tool
-- Cards styled in the neobrutalist theme: black bg, yellow borders, hard shadows, hover lift
+| # | Tool | Tags | Description |
+|---|------|------|-------------|
+| 05 | Founder Agreement | Startups, Equity, Vesting | Co-founder equity splits, vesting schedules, and IP assignment clauses |
+| 06 | Freelancer Contract | SMBs, IP, Payments | Service agreements with payment terms, IP ownership, and liability caps |
+| 07 | Music Licensing Agreement | Artists, Royalties, Sync | Sync licensing, royalty splits, and territory-based distribution rights |
+| 08 | Artist Commission Contract | Creators, IP, Milestones | Commission scope, revision limits, usage rights, and payment milestones |
+| 09 | Terms of Service Generator | Startups, SaaS, E-commerce | Website/app ToS with liability limitations and dispute resolution |
+| 10 | Equity & ESOP Template | Startups, ESOPs, Vesting | Employee stock option plans with cliff periods and exercise terms |
 
-**Detail view** (when tool selected):
-- Back button ("← All Tools") at top to return to catalogue
-- Existing tool form + output UI (unchanged)
-- `activeTool` auto-set to `selectedTool`
+**Styling changes:**
+- Add a `.coming-soon` modifier class on catalogue cards
+- "COMING SOON" pill badge positioned at top-right corner (yellow bg, black text, small caps)
+- Card has reduced opacity (~0.6), no hover lift, `cursor: default`
+- "Open Tool" arrow replaced with "Coming Soon" text
+- Grid stays responsive `auto-fill, minmax(280px, 1fr)` to handle 10 cards nicely (was fixed 2-col)
 
-**Tool descriptions** (new constant):
-| Tool | Description |
-|------|-------------|
-| NDA Generator | Generate enforceable non-disclosure agreements across multiple jurisdictions |
-| Data Protection Checklist | Interactive compliance audit with risk-rated action items |
-| DPA Template | Draft data processing agreements with cross-border transfer clauses |
-| Internship Agreement | Formalize legal internship terms with BCI-compliant templates |
-
-### 2. No other files need changes
-Route and nav link already exist.
+**No logic changes** to the existing 4 working tools. Coming-soon cards simply don't call `openTool`.
 
 ## Files
 
 | Action | File |
 |--------|------|
-| Edit | `src/pages/Tools.tsx` — add catalogue grid + drill-down state |
+| Edit | `src/pages/Tools.tsx` — extend catalogue array, add coming-soon card styles |
 
