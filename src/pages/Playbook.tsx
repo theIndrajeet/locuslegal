@@ -307,17 +307,13 @@ function GuideDetail({ guide }: { guide: Guide }) {
           <Button
             variant="default"
             size="sm"
-            className="bg-accent text-accent-foreground hover:bg-accent/90"
-            asChild
+            className="bg-accent text-accent-foreground hover:bg-accent/90 opacity-50 cursor-not-allowed"
+            disabled
           >
-            <a href={`/guides/${guide.slug}`}>
-              <BookOpen size={14} /> Read Guide
-            </a>
+            <BookOpen size={14} /> Read Guide — Coming Soon
           </Button>
-          <Button variant="outline" size="sm" asChild>
-            <a href="#">
-              <Download size={14} /> Download PDF
-            </a>
+          <Button variant="outline" size="sm" className="opacity-50 cursor-not-allowed" disabled>
+            <Download size={14} /> Download PDF
           </Button>
         </div>
       </div>
