@@ -28,27 +28,27 @@ export default function WaitlistSection() {
 
   const handleStudent = (e: FormEvent) => {
     e.preventDefault();
-    const existing = JSON.parse(localStorage.getItem("lexroot_students") || "[]");
+    const existing = JSON.parse(localStorage.getItem("locus_students") || "[]");
     existing.push({ ...studentForm, submittedAt: new Date().toISOString() });
-    localStorage.setItem("lexroot_students", JSON.stringify(existing));
+    localStorage.setItem("locus_students", JSON.stringify(existing));
     setStudentForm({ email: "", year: "", city: "", school: "" });
     toast({ title: "You're on the list! 🎉", description: "We'll reach out when we launch." });
   };
 
   const handleFirm = (e: FormEvent) => {
     e.preventDefault();
-    const existing = JSON.parse(localStorage.getItem("lexroot_firms") || "[]");
+    const existing = JSON.parse(localStorage.getItem("locus_firms") || "[]");
     existing.push({ ...firmForm, submittedAt: new Date().toISOString() });
-    localStorage.setItem("lexroot_firms", JSON.stringify(existing));
+    localStorage.setItem("locus_firms", JSON.stringify(existing));
     setFirmForm({ email: "", firmName: "", city: "", practiceArea: "" });
     toast({ title: "You're on the list! 🎉", description: "We'll connect you with top candidates soon." });
   };
 
   const handleUni = (e: FormEvent) => {
     e.preventDefault();
-    const existing = JSON.parse(localStorage.getItem("lexroot_universities") || "[]");
+    const existing = JSON.parse(localStorage.getItem("locus_universities") || "[]");
     existing.push({ ...uniForm, submittedAt: new Date().toISOString() });
-    localStorage.setItem("lexroot_universities", JSON.stringify(existing));
+    localStorage.setItem("locus_universities", JSON.stringify(existing));
     setUniForm({ email: "", institutionName: "", city: "", type: "" });
     toast({ title: "You're on the list! 🎉", description: "We'll reach out about partnership options." });
   };

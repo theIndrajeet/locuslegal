@@ -29,14 +29,14 @@ const painCards = [
 const valueProps = [
   { icon: Target, title: "Matched to firms looking for you", body: "Tell us your practice area interest, availability, and skills. We surface opportunities that fit — no scrolling through 200 irrelevant listings." },
   { icon: BadgeCheck, title: "A profile that speaks for you", body: "Not just a CV. A verified skill profile that shows firms what you can do — so your college name is the last thing they look at." },
-  { icon: Building2, title: "Access firms that don't do campus drives", body: "Corporate legal teams, IP boutiques, compliance departments, LegalTech startups — all on LexRoot. None of them visit your campus. All of them are reachable now." },
+  { icon: Building2, title: "Access firms that don't do campus drives", body: "Corporate legal teams, IP boutiques, compliance departments, LegalTech startups — all on Locus. None of them visit your campus. All of them are reachable now." },
   { icon: Send, title: "Apply directly. No referral needed.", body: "No alumni connection. No professor email. No cold outreach. Just your profile, their opening, and a direct line between the two." },
 ];
 
 const faqs = [
   {
     q: "I'm from a non-NLU. Will firms actually consider me?",
-    a: "That's exactly what LexRoot is built for. Firms on our platform are here because they want merit-based candidates — not just NLU names. Your college is not a disqualifier here.",
+    a: "That's exactly what Locus is built for. Firms on our platform are here because they want merit-based candidates — not just NLU names. Your college is not a disqualifier here.",
   },
   {
     q: "I'm only in 2nd year. Is it too early?",
@@ -44,7 +44,7 @@ const faqs = [
   },
   {
     q: "I already use Internshala or Lawctopus.",
-    a: "LexRoot is the only platform built exclusively for legal internships, with firm-vetted opportunities and skill-based matching. The quality difference is significant.",
+    a: "Locus is the only platform built exclusively for legal internships, with firm-vetted opportunities and skill-based matching. The quality difference is significant.",
   },
 ];
 
@@ -103,7 +103,7 @@ export default function ForStudents() {
           <p className="font-heading text-2xl md:text-3xl lg:text-4xl italic leading-snug font-medium">
             "Merit got you into law school.{" "}
             <br className="hidden md:block" />
-            LexRoot gets you into the room."
+            Locus gets you into the room."
           </p>
         </div>
       </div>

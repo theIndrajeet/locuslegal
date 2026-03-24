@@ -6,12 +6,13 @@ export default function Footer() {
       
       <div className="container mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
         <div className="text-center md:text-left">
-          <span className="font-heading text-xl font-bold">
-            Lex<span className="text-accent">Root</span>
-          </span>
+          <div className="font-heading leading-none">
+            <span className="text-xl font-bold">Loc<span className="text-accent">us</span></span>
+            <span className="text-[9px] font-medium text-muted-foreground tracking-widest uppercase ml-1">by LexRoot</span>
+          </div>
           <p className="text-sm text-muted-foreground mt-1">Your merit. Your internship.</p>
         </div>
-        <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} LexRoot. All rights reserved.</p>
+        <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} Locus by LexRoot. All rights reserved.</p>
       </div>
     </footer>
   );

@@ -32,8 +32,9 @@ export default function Navbar() {
       }`}
     >
       <div className="container mx-auto flex items-center justify-between py-3 px-4 md:px-8">
-        <Link to="/" className="font-heading text-2xl font-extrabold tracking-tight">
-          Lex<span className="text-accent">Root</span>
+        <Link to="/" className="font-heading tracking-tight flex flex-col leading-none">
+          <span className="text-2xl font-extrabold">Loc<span className="text-accent">us</span></span>
+          <span className="text-[9px] font-medium text-muted-foreground tracking-widest uppercase">by LexRoot</span>
         </Link>
 
         <div className="hidden md:flex items-center gap-8">

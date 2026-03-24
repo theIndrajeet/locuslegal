@@ -27,7 +27,7 @@ const painCards = [
 ];
 
 const valueProps = [
-  { icon: CheckCircle, title: "Pre-screened profiles", body: "Every student on LexRoot has been assessed on core legal skills — not just their college name. You see what they can actually do." },
+  { icon: CheckCircle, title: "Pre-screened profiles", body: "Every student on Locus has been assessed on core legal skills — not just their college name. You see what they can actually do." },
   { icon: SlidersHorizontal, title: "You set the filter", body: "Practice area, city, duration, remote or in-office — we surface candidates that match your needs, not a generic list." },
   { icon: Globe, title: "Reach the unreached", body: "Access 500,000+ law students across 1,800 colleges that have zero placement infrastructure. This talent pool doesn't exist anywhere else." },
   { icon: UserCheck, title: "Save your associate's time", body: "No more sifting. Shortlists are curated. Your team only sees candidates worth a second look." },
@@ -44,7 +44,7 @@ const faqs = [
   },
   {
     q: "We already use Lawctopus, LinkedIn, or word of mouth.",
-    a: "Keep using them. LexRoot is additive. We just give you access to a talent pool that none of those channels reach.",
+    a: "Keep using them. Locus is additive. We just give you access to a talent pool that none of those channels reach.",
   },
 ];
 
@@ -70,7 +70,7 @@ export default function ForFirms() {
             You're short on <span className="text-accent">the right ones.</span>
           </h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto leading-relaxed">
-            Every year, thousands of driven law students — sharp, hungry, and skilled — never reach your inbox. Not because they lack merit. Because they lack the network. LexRoot fixes that.
+            Every year, thousands of driven law students — sharp, hungry, and skilled — never reach your inbox. Not because they lack merit. Because they lack the network. Locus fixes that.
           </p>
         </div>
       </div>
