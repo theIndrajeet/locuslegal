@@ -167,7 +167,7 @@ export default function Playbook() {
   const isMobile = useIsMobile();
 
   useEffect(() => {
-    document.title = "The Locus Playbook — Guides & Resources | Locus by LexRoot";
+    document.title = "The Locus Playbook — Guides & Resources | Locus";
   }, []);
 
   const filtered = guides.filter(
