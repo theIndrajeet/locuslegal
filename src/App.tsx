@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import Directory from "./pages/Directory";
 import Resources from "./pages/Resources";
 import Playbook from "./pages/Playbook";
+import Tools from "./pages/Tools";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
               <Route path="/directory" element={<Directory />} />
               <Route path="/playbook" element={<Playbook />} />
               <Route path="/resources" element={<Resources />} />
+              <Route path="/tools" element={<Tools />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
