@@ -1,56 +1,46 @@
 
 
-# Create Tools Page with AI-Powered Legal Document Generation
+# Tools Page — Catalogue View with Drill-Down
 
 ## Summary
 
-Build the `/tools` page (4 legal document generators) using Lovable AI via a Supabase edge function. The original HTML called Anthropic directly from the browser — we'll route through Lovable Cloud instead, which already has `LOVABLE_API_KEY` available.
-
-## Architecture
-
-```text
-Tools Page (React) → Edge Function (chat-legal) → Lovable AI Gateway → Response
-```
+Replace the current tab-based Tools page with a two-state layout: a **catalogue grid** showing all 4 tools as cards, and a **detail view** when a tool is clicked — matching the Playbook/Resources drill-down pattern.
 
 ## Changes
 
-### 1. Enable Lovable Cloud
-Set up Supabase/Lovable Cloud to get edge functions working.
+### 1. Edit `src/pages/Tools.tsx`
 
-### 2. Create Edge Function: `supabase/functions/chat-legal/index.ts`
-- Accepts tool-specific prompts from the client
-- Adds the legal system prompt (senior legal drafter with expertise in Indian law, GDPR, APAC)
-- Calls Lovable AI Gateway (non-streaming, since we render full documents)
-- Returns generated text
-- Handles 429/402 errors
+**Add catalogue state**: New `selectedTool` state (`ToolType | null`). When `null`, show the catalogue grid. When set, show the existing tool form/output UI.
 
-### 3. Add Google Fonts to `index.html`
-- Add `Cormorant Garamond`, `DM Sans`, `DM Mono` for the tools page's distinct look
+**Catalogue view** (when no tool selected):
+- Hero section with "LOCUS TOOLS" heading, eyebrow pill, subtitle
+- 4 tool cards in a 2×2 grid (stacks to 1 col on mobile), each showing:
+  - Tool number (`01`–`04`)
+  - Tool name
+  - Short description (e.g. "Generate enforceable NDAs across APAC jurisdictions")
+  - Jurisdiction/feature tags
+  - Arrow icon → click opens the tool
+- Cards styled in the neobrutalist theme: black bg, yellow borders, hard shadows, hover lift
 
-### 4. Create `src/pages/Tools.tsx`
-Full React port of all 4 tools with the navy/gold theme:
-- **Tab system**: NDA Generator, Data Protection Checklist, DPA Template, Internship Agreement
-- **Form panels**: All inputs/selects/textareas from the HTML, using React controlled state
-- **Output panels**: Placeholder → Loading spinner → Rendered document
-- **Checklist tool**: Interactive checkboxes with progress bar
-- **Copy/Download**: Working clipboard and .txt download
-- **All CSS**: Scoped `<style>` block with the distinct color palette (`--bg: #08080e`, `--gold: #c9a84c`, Cormorant Garamond headings, DM Mono labels)
-- **AI calls**: Invoke the edge function with the same prompts from the HTML
-- **Responsive**: Single column on mobile
+**Detail view** (when tool selected):
+- Back button ("← All Tools") at top to return to catalogue
+- Existing tool form + output UI (unchanged)
+- `activeTool` auto-set to `selectedTool`
 
-### 5. Add route in `src/App.tsx`
-- `<Route path="/tools" element={<Tools />} />`
+**Tool descriptions** (new constant):
+| Tool | Description |
+|------|-------------|
+| NDA Generator | Generate enforceable non-disclosure agreements across multiple jurisdictions |
+| Data Protection Checklist | Interactive compliance audit with risk-rated action items |
+| DPA Template | Draft data processing agreements with cross-border transfer clauses |
+| Internship Agreement | Formalize legal internship terms with BCI-compliant templates |
 
-### 6. Add nav link in `src/components/Navbar.tsx`
-- Add "Tools" to the `navLinks` array
+### 2. No other files need changes
+Route and nav link already exist.
 
 ## Files
 
 | Action | File |
 |--------|------|
-| Create | `supabase/functions/chat-legal/index.ts` |
-| Edit | `index.html` — add font imports |
-| Create | `src/pages/Tools.tsx` |
-| Edit | `src/App.tsx` — add route |
-| Edit | `src/components/Navbar.tsx` — add nav link |
+| Edit | `src/pages/Tools.tsx` — add catalogue grid + drill-down state |
 
