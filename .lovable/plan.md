@@ -1,37 +1,27 @@
 
 
-## Make Demo CV Downloadable & Viewable
+## Rebrand: LexRoot → Locus by LexRoot
 
-### What
-Copy the uploaded DOCX file into the project and update the Demo CV card to offer two actions: **Download** (saves the file) and **Preview** (opens an in-page modal showing a rendered preview of the CV).
+### Scope
+Find-and-replace all brand references across 6 files. The new brand is **Locus** with a subtle "by LexRoot" sub-brand where appropriate.
 
-### Approach
-Since browsers can't natively render DOCX files, the best approach is:
-1. Convert the DOCX to a PDF for preview (using a script at build time), then show the PDF in an iframe/embed inside a Dialog modal
-2. Keep the original DOCX available for download
+### Brand format
+- **Logo/navbar**: `Locus` (accent on "Locus") with a small `by LexRoot` subtitle
+- **Body copy**: Replace "LexRoot" → "Locus" throughout
+- **localStorage keys**: Update `lexroot_*` → `locus_*`
+- **HTML meta**: Update title, description, author, OG tags
 
-However, since we can't run server-side conversions in this client-side app, the pragmatic approach is:
-- **Convert the DOCX → PDF now** (one-time, during this session) and store both files in `public/`
-- **Download button** → links to the `.docx` file
-- **Preview button** → opens a Dialog/modal with the PDF embedded via `<iframe>` or `<embed>`
+### Files to change
 
-### Changes
+| File | What changes |
+|------|-------------|
+| `index.html` | Title → "Locus by LexRoot — Merit-Based Legal Internships in India", author → "Locus by LexRoot", all OG/Twitter meta tags |
+| `src/components/Navbar.tsx` | Logo text → `Locus` with small "by LexRoot" beneath |
+| `src/components/Footer.tsx` | Brand → `Locus` with "by LexRoot", copyright → "Locus" |
+| `src/components/ForFirms.tsx` | All "LexRoot" → "Locus" in copy text |
+| `src/components/ForUniversities.tsx` | All "LexRoot" → "Locus" in copy text (~8 occurrences) |
+| `src/components/WaitlistSection.tsx` | localStorage keys `lexroot_students/firms/universities` → `locus_students/firms/universities` |
+| `src/components/ForStudents.tsx` | Check for any "LexRoot" references |
 
-**One-time conversion** (exec step)
-- Parse the uploaded DOCX, convert to PDF using LibreOffice, copy both files to `public/documents/`
-
-**`src/pages/Resources.tsx`**
-- Import `Dialog` from `src/components/ui/dialog.tsx`
-- Add `Eye` icon from lucide-react
-- For the Demo CV card, replace the single button with two buttons side by side:
-  - **Download** — an `<a>` tag with `href="/documents/IdealCVTemplate.docx"` and `download` attribute
-  - **Preview** — opens a Dialog containing an `<embed src="/documents/IdealCVTemplate.pdf" type="application/pdf">` for full-page PDF viewing
-- Dialog styled to be large (max-w-4xl, h-[80vh]) for comfortable reading
-
-**Files**
-| Action | File |
-|--------|------|
-| Copy | `public/documents/IdealCVTemplate.docx` |
-| Generate | `public/documents/IdealCVTemplate.pdf` |
-| Edit | `src/pages/Resources.tsx` |
+No structural or layout changes — purely text/brand updates.
 
