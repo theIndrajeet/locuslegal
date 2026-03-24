@@ -1,47 +1,56 @@
 
 
-# Footer Arcade — Locus Theme
+# Create Tools Page with AI-Powered Legal Document Generation
 
 ## Summary
 
-Port the memory card game into a React component, recolored to match the Locus brand: black background, white/light text, and yellow (`hsl(45, 100%, 51%)`) accent instead of terracotta.
+Build the `/tools` page (4 legal document generators) using Lovable AI via a Supabase edge function. The original HTML called Anthropic directly from the browser — we'll route through Lovable Cloud instead, which already has `LOVABLE_API_KEY` available.
 
-## Color Mapping
+## Architecture
 
-| Original | Locus Theme |
-|----------|-------------|
-| `#1a1916` (bg) | `hsl(0,0%,3%)` (site `--background` dark) |
-| `#e8ddd1` (card-back, text) | `#fafafa` (white) |
-| `#b96848` (card-front, accent) | `hsl(45,100%,51%)` / `#FFCC02` (yellow accent) |
-| `#a35a3a` (hover) | `hsl(40,100%,45%)` (darker yellow) |
-| `#7a7060` (muted) | `hsl(0,0%,40%)` (muted-foreground) |
-| SVG stroke `#1a1916` | `#000` on yellow front, `#000` on white back |
-| Eye highlight `#b96848` | `#FFCC02` (yellow) |
-| Flower petals `#b96848` | `#FFCC02` (yellow) |
-
-Fonts: Use existing `Sora` for heading and `Inter`/monospace for moves counter — no new Google Font imports needed, keeping it consistent with the site.
+```text
+Tools Page (React) → Edge Function (chat-legal) → Lovable AI Gateway → Response
+```
 
 ## Changes
 
-### 1. Create `src/components/FooterArcade.tsx`
+### 1. Enable Lovable Cloud
+Set up Supabase/Lovable Cloud to get edge functions working.
 
-Full React port of the game:
-- State: `cards`, `flipped` (indices), `matched` (set), `moves`, `locked`, `wrongPair`
-- All 12 SVG symbols + back pattern as string constants, with colors swapped to black strokes on yellow fronts, black strokes on white backs, yellow petals/highlights
-- CSS via a `<style>` tag injected in the component with Locus colors
-- Grid: 8 cols desktop, 6 cols mobile
-- Win overlay with site-consistent styling
-- `dangerouslySetInnerHTML` for SVG rendering (same pattern as source)
+### 2. Create Edge Function: `supabase/functions/chat-legal/index.ts`
+- Accepts tool-specific prompts from the client
+- Adds the legal system prompt (senior legal drafter with expertise in Indian law, GDPR, APAC)
+- Calls Lovable AI Gateway (non-streaming, since we render full documents)
+- Returns generated text
+- Handles 429/402 errors
 
-### 2. Edit `src/components/Footer.tsx`
+### 3. Add Google Fonts to `index.html`
+- Add `Cormorant Garamond`, `DM Sans`, `DM Mono` for the tools page's distinct look
 
-- Import and render `<FooterArcade />` above the branding section
-- Add a gradient separator between arcade and branding
+### 4. Create `src/pages/Tools.tsx`
+Full React port of all 4 tools with the navy/gold theme:
+- **Tab system**: NDA Generator, Data Protection Checklist, DPA Template, Internship Agreement
+- **Form panels**: All inputs/selects/textareas from the HTML, using React controlled state
+- **Output panels**: Placeholder → Loading spinner → Rendered document
+- **Checklist tool**: Interactive checkboxes with progress bar
+- **Copy/Download**: Working clipboard and .txt download
+- **All CSS**: Scoped `<style>` block with the distinct color palette (`--bg: #08080e`, `--gold: #c9a84c`, Cormorant Garamond headings, DM Mono labels)
+- **AI calls**: Invoke the edge function with the same prompts from the HTML
+- **Responsive**: Single column on mobile
+
+### 5. Add route in `src/App.tsx`
+- `<Route path="/tools" element={<Tools />} />`
+
+### 6. Add nav link in `src/components/Navbar.tsx`
+- Add "Tools" to the `navLinks` array
 
 ## Files
 
 | Action | File |
 |--------|------|
-| Create | `src/components/FooterArcade.tsx` |
-| Edit | `src/components/Footer.tsx` |
+| Create | `supabase/functions/chat-legal/index.ts` |
+| Edit | `index.html` — add font imports |
+| Create | `src/pages/Tools.tsx` |
+| Edit | `src/App.tsx` — add route |
+| Edit | `src/components/Navbar.tsx` — add nav link |
 
