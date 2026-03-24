@@ -175,7 +175,7 @@ const guides: Guide[] = [
     pdfHref: "/documents/LX-003-FirstInternship.pdf",
     attachments: [
       { label: "Monthly Internship Log", href: "/documents/MonthlyInternshipLog.docx" },
-      { label: "First Day Checklist", href: "#", comingSoon: true },
+      { label: "First Day Checklist", href: "/documents/FirstDayChecklist.docx" },
     ],
   },
   {
@@ -185,8 +185,8 @@ const guides: Guide[] = [
     content: guideContent["4"],
     pdfHref: "/documents/LX-004-ResearchMemo.pdf",
     attachments: [
-      { label: "Legal Research Memo Template", href: "#", comingSoon: true },
-      { label: "Sample IRAC Memo", href: "#", comingSoon: true },
+      { label: "Legal Research Memo Template", href: "/documents/LegalResearchMemoTemplate.docx" },
+      { label: "Sample IRAC Memo", href: "/documents/SampleIRACMemo.docx" },
     ],
   },
   {
