@@ -202,8 +202,44 @@ export default function Playbook() {
                 <GuideDetail guide={selected} />
               </div>
             ) : (
-              <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-                Select a guide to preview
+              <div className="flex items-center justify-center h-full relative overflow-hidden">
+                {/* Subtle gold radial gradient */}
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_hsl(45_100%_51%/0.06)_0%,_transparent_70%)]" />
+
+                <div className="relative z-10 flex flex-col items-center text-center px-8 max-w-xl">
+                  {/* Hero */}
+                  <h2 className="text-4xl font-bold text-foreground animate-fade-in" style={{ animationFillMode: 'both' }}>
+                    The Locus Playbook
+                  </h2>
+                  <div className="h-1 w-20 bg-[#D4A017] rounded-full mt-4 mb-3 animate-fade-in" style={{ animationDelay: '150ms', animationFillMode: 'both' }} />
+                  <p className="text-muted-foreground text-base mb-10 animate-fade-in" style={{ animationDelay: '300ms', animationFillMode: 'both' }}>
+                    Your case file system for navigating legal internships in India.
+                  </p>
+
+                  {/* Feature cards */}
+                  <div className="grid grid-cols-3 gap-5 w-full mb-12">
+                    {[
+                      { icon: BookOpen, label: "14 Guides", desc: "Covering every stage from application to PPO conversion" },
+                      { icon: Users, label: "3 Audiences", desc: "Tailored for students, firms, and institutions" },
+                      { icon: Layers, label: "Actionable", desc: "Step-by-step sections you can use right away" },
+                    ].map((item, i) => (
+                      <div
+                        key={item.label}
+                        className="flex flex-col items-center gap-2 rounded-lg border border-border bg-card/50 p-5 animate-fade-in"
+                        style={{ animationDelay: `${450 + i * 150}ms`, animationFillMode: 'both' }}
+                      >
+                        <item.icon className="w-6 h-6 text-[#D4A017] mb-1" />
+                        <span className="text-sm font-semibold text-foreground">{item.label}</span>
+                        <span className="text-xs text-muted-foreground leading-relaxed">{item.desc}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Prompt */}
+                  <p className="text-xs text-muted-foreground animate-fade-in pulse" style={{ animationDelay: '900ms', animationFillMode: 'both' }}>
+                    ← Select a guide from the left panel to get started
+                  </p>
+                </div>
               </div>
             )}
           </div>
