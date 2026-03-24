@@ -9,6 +9,7 @@ type Filter = "All" | Audience;
 interface GuideAttachment {
   label: string;
   href: string;
+  comingSoon?: boolean;
 }
 
 interface Guide {
@@ -88,6 +89,9 @@ const guides: Guide[] = [
     id: "11", caseNumber: "LX-011", title: "What to Look for in a Law Intern's CV",
     audience: "Firms", stage: "Firm Resources", readTime: "4 min", slug: "law-intern-cv",
     sections: ["Red flags vs green flags", "Academic record weight", "Extracurriculars that matter", "Writing samples", "What to ignore"],
+    attachments: [
+      { label: "CV Screening Checklist", href: "#", comingSoon: true },
+    ],
   },
   {
     id: "12", caseNumber: "LX-012", title: "How to Post Your Firm on Locus",
@@ -98,11 +102,18 @@ const guides: Guide[] = [
     id: "13", caseNumber: "LX-013", title: "How to Set Up a Placement Cell",
     audience: "Institutions", stage: "Institution Resources", readTime: "7 min", slug: "setup-placement-cell",
     sections: ["What a placement cell actually does", "Core team structure", "Building a firm database", "Student preparation pipeline", "Tracking placements"],
+    attachments: [
+      { label: "Placement Cell Structure Template", href: "#", comingSoon: true },
+      { label: "Firm Database Format", href: "#", comingSoon: true },
+    ],
   },
   {
     id: "14", caseNumber: "LX-014", title: "How to Register Your Institution on Locus",
     audience: "Institutions", stage: "Institution Resources", readTime: "5 min", slug: "register-institution-locus",
     sections: ["Eligibility", "Documents needed", "Verification process", "What you get access to", "Managing your student roster"],
+    attachments: [
+      { label: "Institution Registration Guide", href: "#", comingSoon: true },
+    ],
   },
 ];
 
@@ -356,17 +367,30 @@ function GuideDetail({ guide }: { guide: Guide }) {
             Attachments
           </h2>
           <div className="space-y-2">
-            {guide.attachments.map((att, i) => (
-              <a
-                key={i}
-                href={att.href}
-                download
-                className="flex items-center gap-3 p-3 rounded-lg border border-border/50 bg-card/50 hover:border-accent/40 hover:bg-accent/5 transition-all group"
-              >
-                <Download size={16} className="text-accent shrink-0" />
-                <span className="text-sm font-medium text-foreground group-hover:text-accent transition-colors">{att.label}</span>
-              </a>
-            ))}
+            {guide.attachments.map((att, i) =>
+              att.comingSoon ? (
+                <div
+                  key={i}
+                  className="flex items-center gap-3 p-3 rounded-lg border border-border/30 bg-card/30 opacity-60"
+                >
+                  <Download size={16} className="text-muted-foreground shrink-0" />
+                  <span className="text-sm font-medium text-muted-foreground">{att.label}</span>
+                  <span className="ml-auto text-[10px] font-bold uppercase tracking-wider bg-accent/10 text-accent px-2 py-0.5 rounded-full">
+                    Coming Soon
+                  </span>
+                </div>
+              ) : (
+                <a
+                  key={i}
+                  href={att.href}
+                  download
+                  className="flex items-center gap-3 p-3 rounded-lg border border-border/50 bg-card/50 hover:border-accent/40 hover:bg-accent/5 transition-all group"
+                >
+                  <Download size={16} className="text-accent shrink-0" />
+                  <span className="text-sm font-medium text-foreground group-hover:text-accent transition-colors">{att.label}</span>
+                </a>
+              )
+            )}
           </div>
         </div>
       )}
