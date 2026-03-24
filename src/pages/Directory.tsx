@@ -8,11 +8,29 @@ const allTiers = [...new Set(firms.map((f) => f.tier).filter(Boolean))].sort();
 
 const PAGE_SIZE = 30;
 
+type FirmType = "Law Firm" | "Chamber" | "Individual Advocate";
+
+const typeFilters: { label: string; value: FirmType | "" }[] = [
+  { label: "All", value: "" },
+  { label: "Law Firms", value: "Law Firm" },
+  { label: "Chambers", value: "Chamber" },
+  { label: "Individual Advocates", value: "Individual Advocate" },
+];
+
+function getType(firm: (typeof firms)[0]): FirmType {
+  const name = firm.name.toLowerCase();
+  const tierLower = (firm.tier || "").toLowerCase();
+  if (name.includes("chamber") || tierLower.includes("individual chamber")) return "Chamber";
+  if (name.includes("advocate") || name.includes("adv.") || name.includes("adv ")) return "Individual Advocate";
+  return "Law Firm";
+}
+
 export default function Directory() {
   const [search, setSearch] = useState("");
   const [city, setCity] = useState("");
   const [area, setArea] = useState("");
   const [tier, setTier] = useState("");
+  const [type, setType] = useState<FirmType | "">("");
   const [page, setPage] = useState(1);
 
   // Filter areas based on selected city
