@@ -8,11 +8,29 @@ const allTiers = [...new Set(firms.map((f) => f.tier).filter(Boolean))].sort();
 
 const PAGE_SIZE = 30;
 
+type FirmType = "Law Firm" | "Chamber" | "Individual Advocate";
+
+const typeFilters: { label: string; value: FirmType | "" }[] = [
+  { label: "All", value: "" },
+  { label: "Law Firms", value: "Law Firm" },
+  { label: "Chambers", value: "Chamber" },
+  { label: "Individual Advocates", value: "Individual Advocate" },
+];
+
+function getType(firm: (typeof firms)[0]): FirmType {
+  const name = firm.name.toLowerCase();
+  const tierLower = (firm.tier || "").toLowerCase();
+  if (name.includes("chamber") || tierLower.includes("individual chamber")) return "Chamber";
+  if (name.includes("advocate") || name.includes("adv.") || name.includes("adv ")) return "Individual Advocate";
+  return "Law Firm";
+}
+
 export default function Directory() {
   const [search, setSearch] = useState("");
   const [city, setCity] = useState("");
   const [area, setArea] = useState("");
   const [tier, setTier] = useState("");
+  const [type, setType] = useState<FirmType | "">("");
   const [page, setPage] = useState(1);
 
   // Filter areas based on selected city
@@ -28,9 +46,10 @@ export default function Directory() {
       if (city && f.city !== city) return false;
       if (area && f.area !== area) return false;
       if (tier && f.tier !== tier) return false;
+      if (type && getType(f) !== type) return false;
       return true;
     });
-  }, [search, city, area, tier]);
+  }, [search, city, area, tier, type]);
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -79,6 +98,23 @@ export default function Directory() {
               {allTiers.map((t) => <option key={t} value={t}>{t}</option>)}
             </select>
           </div>
+
+          {/* Type filter pills */}
+          <div className="flex flex-wrap gap-2 mt-4">
+            {typeFilters.map((tf) => (
+              <button
+                key={tf.value}
+                onClick={() => setType(tf.value)}
+                className={`px-4 py-1.5 text-sm font-medium rounded-full border transition-colors ${
+                  type === tf.value
+                    ? "bg-accent text-accent-foreground border-accent"
+                    : "bg-card text-foreground border-border hover:border-accent/40"
+                }`}
+              >
+                {tf.label}
+              </button>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -114,6 +150,9 @@ export default function Directory() {
                   <div className="flex flex-wrap gap-2 mb-3">
                     <span className="text-[11px] font-medium bg-secondary text-secondary-foreground px-2 py-0.5 rounded-full">
                       {f.tier}
+                    </span>
+                    <span className="text-[11px] font-medium bg-accent/10 text-accent px-2 py-0.5 rounded-full">
+                      {getType(f)}
                     </span>
                   </div>
 
