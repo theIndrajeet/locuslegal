@@ -1,63 +1,33 @@
 
 
-# Build Reader and Download for LX-001 to LX-005
+# Simplify "Read Guide" to PDF Viewer
 
-## What We're Building
+## Problem
 
-Enable the "Read Guide" and "Download PDF" buttons for LX-001 through LX-005 with full written content. LX-006 to LX-014 stay as "Coming Soon." Also add relevant attachments to each of these 5 guides.
+Currently, "Read Guide" renders all the guide content as typed-out text in the page. You want it to simply open a PDF preview dialog (like the Resources page does) showing the uploaded PDF pages as images.
 
 ## Plan
 
-### 1. Write Full Guide Content (LX-001 to LX-005)
+### 1. Generate preview images from the 5 LX PDFs
 
-Add a `content` field to the Guide interface — an array of `{ heading: string; body: string }` objects matching each guide's sections. Each section will have 2-3 paragraphs of practical, actionable content tailored to Indian law students.
+Convert each PDF (`LX-001-ColdEmail.pdf` through `LX-005-ConvertPPO.pdf`) to page images using `pdftoppm`. These will be saved as `LX-001-ColdEmail-page-1.jpg`, `LX-001-ColdEmail-page-2.jpg`, etc.
 
-| Guide | Topic | Sections |
-|-------|-------|----------|
-| LX-001 | Cold emailing law firms | Why emails fail, finding contacts, subject lines, email structure, following up |
-| LX-002 | Non-NLU students getting top internships | Reframing disadvantage, what firms want, portfolio, direct apps, persistence |
-| LX-003 | First legal internship expectations | Day one, types of work, asking questions, tracking work, exit checklist |
-| LX-004 | Writing a legal research memo | What a memo is, IRAC, research methodology, style/tone, common mistakes |
-| LX-005 | Converting internship to PPO | What firms want, visibility, feedback, follow-up timeline, PPO request |
+### 2. Replace reader mode with PDF preview dialog
 
-### 2. Build the Reader View
+Remove the inline reader mode (the typed-out content view) from `GuideDetail`. Instead, add a `Dialog` component (same pattern as Resources page) that opens when "Read Guide" is clicked. The dialog shows the PDF page images in a scrollable container.
 
-When "Read Guide" is clicked for LX-001-005:
-- Toggle the guide detail into a full reading mode showing all section content
-- Each section renders as a heading + body text with clean typography
-- Add a "Back to overview" button to return to the section list view
-- Smooth transition between overview and reader
+### 3. Add preview metadata to guide data
 
-### 3. Generate Downloadable PDFs
+Add `previewPages` and `previewPrefix` fields to each guide (LX-001 through LX-005) so the dialog knows how many pages to render and where to find the images.
 
-Create 5 PDF files using a script (reportlab or docx-js → LibreOffice):
-- Professional formatting with Locus branding (dark header, gold accents)
-- Cover page with guide title, case number, audience, read time
-- All 5 sections with headings and body content
-- Output to `public/documents/` as `LX-001-ColdEmail.pdf`, etc.
+### 4. Remove typed content
 
-### 4. Add Attachments to LX-001 through LX-005
-
-Using existing uploaded templates:
-
-| Guide | Attachments |
-|-------|-------------|
-| LX-001 | Cold Email Template (cross-link from Resources), Follow-up Email Template |
-| LX-002 | Internship Application Tracker, LinkedIn Profile Checklist |
-| LX-003 | Monthly Internship Log, First Day Checklist (Coming Soon) |
-| LX-004 | Legal Research Memo Template (Coming Soon), Sample IRAC Memo (Coming Soon) |
-| LX-005 | Thank You Email Template, NOC Request Letter Template |
-
-### 5. Conditional Button States
-
-In `GuideDetail`, check if guide has content:
-- **LX-001 to LX-005**: "Read Guide" and "Download PDF" buttons are active and functional
-- **LX-006 to LX-014**: Buttons remain disabled with "Coming Soon" label
+Remove the large `guideContent` object with all the typed-out section text — no longer needed since the PDFs themselves serve as the content.
 
 ### Files Changed
 
 | Action | File |
 |--------|------|
-| Edit | `src/pages/Playbook.tsx` — add content field, reader view, attachments, conditional buttons |
-| Create | `public/documents/LX-001-ColdEmail.pdf` through `LX-005-ConvertPPO.pdf` — downloadable guide PDFs |
+| Create | `public/documents/LX-001-ColdEmail-page-*.jpg` through `LX-005-ConvertPPO-page-*.jpg` (preview images) |
+| Edit | `src/pages/Playbook.tsx` — replace reader mode with PDF preview dialog, remove `guideContent`, add preview metadata |
 
