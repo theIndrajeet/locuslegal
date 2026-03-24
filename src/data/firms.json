@@ -1,0 +1,18 @@
+[
+  { "name": "AZB & Partners", "type": "Law Firm", "city": "Mumbai", "state": "Maharashtra", "tier": 1, "description": "Full-service law firm specializing in M&A, capital markets, and banking & finance." },
+  { "name": "Shardul Amarchand Mangaldas", "type": "Law Firm", "city": "New Delhi", "state": "Delhi", "tier": 1, "description": "Leading Indian law firm with expertise in corporate, disputes, and regulatory work." },
+  { "name": "Cyril Amarchand Mangaldas", "type": "Law Firm", "city": "Mumbai", "state": "Maharashtra", "tier": 1, "description": "One of India's largest law firms handling complex transactions and disputes." },
+  { "name": "Khaitan & Co", "type": "Law Firm", "city": "Mumbai", "state": "Maharashtra", "tier": 1, "description": "Premier law firm with deep expertise in corporate, tax, and dispute resolution." },
+  { "name": "Trilegal", "type": "Law Firm", "city": "Bengaluru", "state": "Karnataka", "tier": 1, "description": "Multi-practice law firm known for PE/VC, tech, and regulatory advisory." },
+  { "name": "Luthra and Luthra", "type": "Law Firm", "city": "New Delhi", "state": "Delhi", "tier": 2, "description": "Full-service firm with strong presence in infrastructure and project finance." },
+  { "name": "Argus Partners", "type": "Law Firm", "city": "Kolkata", "state": "West Bengal", "tier": 2, "description": "Rapidly growing firm with expertise in corporate and commercial law." },
+  { "name": "IndusLaw", "type": "Law Firm", "city": "Bengaluru", "state": "Karnataka", "tier": 2, "description": "Full-service firm advising on M&A, PE, employment, and disputes." },
+  { "name": "Phoenix Legal", "type": "Law Firm", "city": "New Delhi", "state": "Delhi", "tier": 2, "description": "Mid-size firm with a focus on infrastructure, energy, and real estate." },
+  { "name": "LexOrbis", "type": "IP Boutique", "city": "New Delhi", "state": "Delhi", "tier": 2, "description": "India's leading IP law firm handling patents, trademarks, and design registrations." },
+  { "name": "K&S Partners", "type": "IP Boutique", "city": "Chennai", "state": "Tamil Nadu", "tier": 2, "description": "Specializes in intellectual property prosecution, litigation, and advisory." },
+  { "name": "Supreme Court Chamber", "type": "Chamber", "city": "New Delhi", "state": "Delhi", "tier": 1, "description": "Litigation chamber handling constitutional law and Supreme Court matters." },
+  { "name": "Bombay High Court Chamber", "type": "Chamber", "city": "Mumbai", "state": "Maharashtra", "tier": 2, "description": "Well-known chamber handling commercial litigation in the Bombay High Court." },
+  { "name": "SpotDraft", "type": "LegalTech Startup", "city": "Bengaluru", "state": "Karnataka", "tier": 2, "description": "AI-powered contract lifecycle management platform for legal teams." },
+  { "name": "Tata Legal (Tata Sons)", "type": "Corporate Legal", "city": "Mumbai", "state": "Maharashtra", "tier": 1, "description": "In-house legal team of Tata Group, handling diverse corporate legal matters." },
+  { "name": "Reliance Legal", "type": "Corporate Legal", "city": "Mumbai", "state": "Maharashtra", "tier": 1, "description": "In-house legal division managing regulatory, M&A, and commercial matters." }
+]
