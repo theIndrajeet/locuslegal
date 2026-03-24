@@ -1,37 +1,53 @@
-import { FileText, Download, ScanSearch, CalendarCheck } from "lucide-react";
+import { useState } from "react";
+import { FileText, Download, ScanSearch, CalendarCheck, Eye } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const resources = [
   {
     title: "Demo CV",
-    description: "Download a professionally formatted legal CV template tailored for law students and early-career lawyers.",
+    description:
+      "Download a professionally formatted legal CV template tailored for law students and early-career lawyers.",
     icon: FileText,
-    action: "Download",
     comingSoon: false,
+    hasPreview: true,
   },
   {
     title: "Cover Letter Template",
-    description: "A well-structured cover letter template designed for applications to law firms, chambers, and corporate legal teams.",
+    description:
+      "A well-structured cover letter template designed for applications to law firms, chambers, and corporate legal teams.",
     icon: Download,
     action: "Download",
     comingSoon: false,
+    hasPreview: false,
   },
   {
     title: "CV Analyser",
-    description: "Get AI-powered feedback on your legal CV — structure, keywords, formatting, and content suggestions.",
+    description:
+      "Get AI-powered feedback on your legal CV — structure, keywords, formatting, and content suggestions.",
     icon: ScanSearch,
     action: "Coming Soon",
     comingSoon: true,
+    hasPreview: false,
   },
   {
     title: "Book Your Session",
-    description: "Schedule a 1-on-1 mentoring session with practicing lawyers and industry professionals.",
+    description:
+      "Schedule a 1-on-1 mentoring session with practicing lawyers and industry professionals.",
     icon: CalendarCheck,
     action: "Coming Soon",
     comingSoon: true,
+    hasPreview: false,
   },
 ];
 
 export default function Resources() {
+  const [previewOpen, setPreviewOpen] = useState(false);
+
   return (
     <main className="pt-24 pb-16">
       {/* Hero */}
@@ -41,7 +57,8 @@ export default function Resources() {
           <span className="text-accent">Legal Career</span>
         </h1>
         <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-          Templates, tools, and mentorship to help you stand out in the legal industry.
+          Templates, tools, and mentorship to help you stand out in the legal
+          industry.
         </p>
       </section>
 
@@ -63,21 +80,62 @@ export default function Resources() {
                 <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center mb-5 group-hover:bg-accent/20 transition-colors">
                   <Icon className="text-accent" size={24} />
                 </div>
-                <h3 className="font-heading text-xl font-bold mb-2">{r.title}</h3>
+                <h3 className="font-heading text-xl font-bold mb-2">
+                  {r.title}
+                </h3>
                 <p className="text-sm text-muted-foreground leading-relaxed mb-6">
                   {r.description}
                 </p>
-                <button
-                  disabled={r.comingSoon}
-                  className="text-sm font-semibold px-5 py-2.5 rounded-lg bg-accent text-accent-foreground hover:brightness-110 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  {r.action}
-                </button>
+
+                {r.hasPreview ? (
+                  <div className="flex gap-3">
+                    <a
+                      href="/documents/IdealCVTemplate.docx"
+                      download
+                      className="inline-flex items-center gap-2 text-sm font-semibold px-5 py-2.5 rounded-lg bg-accent text-accent-foreground hover:brightness-110 transition-all"
+                    >
+                      <Download size={16} />
+                      Download
+                    </a>
+                    <button
+                      onClick={() => setPreviewOpen(true)}
+                      className="inline-flex items-center gap-2 text-sm font-semibold px-5 py-2.5 rounded-lg border border-accent text-accent hover:bg-accent/10 transition-all"
+                    >
+                      <Eye size={16} />
+                      Preview
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    disabled={r.comingSoon}
+                    className="text-sm font-semibold px-5 py-2.5 rounded-lg bg-accent text-accent-foreground hover:brightness-110 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    {r.action}
+                  </button>
+                )}
               </div>
             );
           })}
         </div>
       </section>
+
+      {/* PDF Preview Dialog */}
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-w-4xl w-[95vw] h-[85vh] p-0 overflow-hidden">
+          <DialogHeader className="px-6 pt-5 pb-3">
+            <DialogTitle className="font-heading">
+              Demo CV — Preview
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 px-6 pb-6 h-[calc(85vh-4rem)]">
+            <embed
+              src="/documents/IdealCVTemplate.pdf"
+              type="application/pdf"
+              className="w-full h-full rounded-lg border border-border"
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }
