@@ -243,7 +243,9 @@ export default function TheBar() {
     return () => subscription.unsubscribe();
   }, []);
 
-  const fetchQuestions = useCallback(async () => {
+  const [questionsLoaded, setQuestionsLoaded] = useState(false);
+
+  const refreshQuestions = async () => {
     try {
       let data: any[] | null = null;
       const { data: joined, error } = await supabase
@@ -252,7 +254,6 @@ export default function TheBar() {
         .order(sort === "new" ? "created_at" : "votes", { ascending: false });
 
       if (error) {
-        // Fallback: query without join
         const { data: plain, error: plainErr } = await supabase
           .from("bar_questions")
           .select("*")
@@ -268,12 +269,52 @@ export default function TheBar() {
       countData?.forEach((a: any) => { counts[a.question_id] = (counts[a.question_id] || 0) + 1; });
 
       setQuestions((data || []).map((q: any) => ({ ...q, answer_count: counts[q.id] || 0 })));
+      setQuestionsLoaded(true);
     } catch (err) {
       toast.error("Failed to load questions");
+      setQuestionsLoaded(true);
     }
-  }, [sort]);
+  };
 
-  useEffect(() => { fetchQuestions(); }, [fetchQuestions]);
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        let data: any[] | null = null;
+        const { data: joined, error } = await supabase
+          .from("bar_questions")
+          .select("*, profiles(display_name)")
+          .order(sort === "new" ? "created_at" : "votes", { ascending: false });
+
+        if (error) {
+          const { data: plain, error: plainErr } = await supabase
+            .from("bar_questions")
+            .select("*")
+            .order(sort === "new" ? "created_at" : "votes", { ascending: false });
+          if (plainErr) { if (!cancelled) toast.error("Failed to load questions"); return; }
+          data = plain;
+        } else {
+          data = joined;
+        }
+
+        const { data: countData } = await supabase.from("bar_answers").select("question_id");
+        const counts: Record<string, number> = {};
+        countData?.forEach((a: any) => { counts[a.question_id] = (counts[a.question_id] || 0) + 1; });
+
+        if (!cancelled) {
+          setQuestions((data || []).map((q: any) => ({ ...q, answer_count: counts[q.id] || 0 })));
+          setQuestionsLoaded(true);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          toast.error("Failed to load questions");
+          setQuestionsLoaded(true);
+        }
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [sort]);
 
   const fetchAnswers = async (qId: string) => {
     try {
@@ -324,7 +365,7 @@ export default function TheBar() {
     else {
       toast.success("Question posted!");
       setAskOpen(false); setNewTitle(""); setNewBody(""); setNewTags([]);
-      fetchQuestions();
+      refreshQuestions();
     }
     setLoading(false);
   };
@@ -338,7 +379,7 @@ export default function TheBar() {
     if (error) toast.error(error.message);
     else {
       toast.success("Answer posted!"); setAnswerBody("");
-      fetchAnswers(selectedQuestion.id); fetchQuestions();
+      fetchAnswers(selectedQuestion.id); refreshQuestions();
     }
     setLoading(false);
   };
@@ -352,7 +393,7 @@ export default function TheBar() {
     if (error) toast.error(error.message);
     else {
       toast.success("Reply posted!"); setReplyBody(""); setReplyingTo(null);
-      fetchAnswers(selectedQuestion.id); fetchQuestions();
+      fetchAnswers(selectedQuestion.id); refreshQuestions();
     }
     setLoading(false);
   };
@@ -360,7 +401,7 @@ export default function TheBar() {
   const vote = async (table: "bar_questions" | "bar_answers", id: string, current: number) => {
     requireAuth(async () => {
       await supabase.from(table).update({ votes: current + 1 }).eq("id", id);
-      if (table === "bar_questions") fetchQuestions();
+      if (table === "bar_questions") refreshQuestions();
       else if (selectedQuestion) fetchAnswers(selectedQuestion.id);
     });
   };
@@ -371,7 +412,7 @@ export default function TheBar() {
     else {
       toast.success("Question deleted");
       setSelectedQuestion(null);
-      fetchQuestions();
+      refreshQuestions();
     }
   };
 
@@ -381,7 +422,7 @@ export default function TheBar() {
     else {
       toast.success("Answer deleted");
       if (selectedQuestion) fetchAnswers(selectedQuestion.id);
-      fetchQuestions();
+      refreshQuestions();
     }
   };
 
@@ -634,7 +675,11 @@ export default function TheBar() {
               </div>
             </div>
 
-            {filtered.length === 0 ? (
+            {!questionsLoaded ? (
+              <div className="text-center py-16 text-muted-foreground">
+                <p className="text-sm">Loading questions...</p>
+              </div>
+            ) : filtered.length === 0 ? (
               <div className="text-center py-16 text-muted-foreground">
                 <MessageSquare size={32} className="mx-auto mb-3 opacity-50" />
                 <p className="text-sm">No questions yet. Be the first to ask!</p>
