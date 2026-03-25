@@ -244,29 +244,60 @@ export default function TheBar() {
   }, []);
 
   const fetchQuestions = useCallback(async () => {
-    const { data, error } = await supabase
-      .from("bar_questions")
-      .select("*, profiles(display_name)")
-      .order(sort === "new" ? "created_at" : "votes", { ascending: false });
-    if (error) { console.error(error); return; }
+    try {
+      let data: any[] | null = null;
+      const { data: joined, error } = await supabase
+        .from("bar_questions")
+        .select("*, profiles(display_name)")
+        .order(sort === "new" ? "created_at" : "votes", { ascending: false });
 
-    const { data: countData } = await supabase.from("bar_answers").select("question_id");
-    const counts: Record<string, number> = {};
-    countData?.forEach((a: any) => { counts[a.question_id] = (counts[a.question_id] || 0) + 1; });
+      if (error) {
+        // Fallback: query without join
+        const { data: plain, error: plainErr } = await supabase
+          .from("bar_questions")
+          .select("*")
+          .order(sort === "new" ? "created_at" : "votes", { ascending: false });
+        if (plainErr) { toast.error("Failed to load questions"); return; }
+        data = plain;
+      } else {
+        data = joined;
+      }
 
-    setQuestions((data || []).map((q: any) => ({ ...q, answer_count: counts[q.id] || 0 })));
+      const { data: countData } = await supabase.from("bar_answers").select("question_id");
+      const counts: Record<string, number> = {};
+      countData?.forEach((a: any) => { counts[a.question_id] = (counts[a.question_id] || 0) + 1; });
+
+      setQuestions((data || []).map((q: any) => ({ ...q, answer_count: counts[q.id] || 0 })));
+    } catch (err) {
+      toast.error("Failed to load questions");
+    }
   }, [sort]);
 
   useEffect(() => { fetchQuestions(); }, [fetchQuestions]);
 
   const fetchAnswers = async (qId: string) => {
-    const { data } = await supabase
-      .from("bar_answers")
-      .select("*, profiles(display_name)")
-      .eq("question_id", qId)
-      .order("is_top", { ascending: false })
-      .order("votes", { ascending: false });
-    setAnswers(data || []);
+    try {
+      const { data, error } = await supabase
+        .from("bar_answers")
+        .select("*, profiles(display_name)")
+        .eq("question_id", qId)
+        .order("is_top", { ascending: false })
+        .order("votes", { ascending: false });
+      if (error) {
+        const { data: plain, error: plainErr } = await supabase
+          .from("bar_answers")
+          .select("*")
+          .eq("question_id", qId)
+          .order("is_top", { ascending: false })
+          .order("votes", { ascending: false });
+        if (plainErr) { toast.error("Failed to load answers"); return; }
+        setAnswers(plain || []);
+      } else {
+        setAnswers(data || []);
+      }
+    } catch {
+      toast.error("Failed to load answers");
+    }
   };
 
   const openQuestion = (q: Question) => {
