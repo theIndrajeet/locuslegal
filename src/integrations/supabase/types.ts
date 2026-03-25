@@ -20,6 +20,7 @@ export type Database = {
           created_at: string
           id: string
           is_top: boolean
+          parent_id: string | null
           question_id: string
           user_id: string
           votes: number
@@ -29,6 +30,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_top?: boolean
+          parent_id?: string | null
           question_id: string
           user_id: string
           votes?: number
@@ -38,11 +40,19 @@ export type Database = {
           created_at?: string
           id?: string
           is_top?: boolean
+          parent_id?: string | null
           question_id?: string
           user_id?: string
           votes?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "bar_answers_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "bar_answers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "bar_answers_question_id_fkey"
             columns: ["question_id"]
