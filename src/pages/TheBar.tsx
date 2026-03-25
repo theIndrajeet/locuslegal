@@ -383,7 +383,7 @@ export default function TheBar() {
     if (error) toast.error(error.message);
     else {
       toast.success("Question posted!");
-      setAskOpen(false); setNewTitle(""); setNewBody(""); setNewTags([]);
+      setAskOpen(false); setNewTitle(""); setNewBody(""); setNewTags([]); setCustomTagInput("");
       refreshQuestions();
     }
     setLoading(false);
