@@ -795,75 +795,118 @@ export default function TheBar() {
                 <p className="text-sm">Loading questions...</p>
               </div>
             ) : filtered.length === 0 ? (
-              <div className="text-center py-16 text-muted-foreground">
-                <MessageSquare size={32} className="mx-auto mb-3 opacity-50" />
-                <p className="text-sm">No questions yet. Be the first to ask!</p>
+              <div className="text-center py-16 border border-dashed border-border rounded-lg bg-card/50">
+                <MessageSquare size={40} className="mx-auto mb-4 text-accent opacity-70" />
+                <p className="text-base font-semibold text-foreground mb-1">No questions yet</p>
+                <p className="text-sm text-muted-foreground mb-4">Be the first to spark a conversation!</p>
+                <Button onClick={() => requireAuth(() => setAskOpen(true))} className="gap-2">
+                  <Plus size={16} /> Ask a Question
+                </Button>
               </div>
             ) : (
               <div className="space-y-3">
-                {filtered.map((q) => (
-                  <div
-                    key={q.id}
-                    className="relative w-full text-left border border-border rounded-lg p-4 bg-card hover:border-accent/50 transition-colors group"
-                  >
-                    <button onClick={() => openQuestion(q)} className="w-full text-left">
-                      <div className="flex gap-4">
-                        <div className="flex flex-col items-center gap-0.5 text-muted-foreground min-w-[40px]">
-                          <ChevronUp size={14} />
-                          <span className="text-sm font-bold text-foreground">{q.votes}</span>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-foreground group-hover:text-accent transition-colors text-sm line-clamp-2">
-                            {q.title}
-                          </h3>
-                          <div className="flex items-center gap-1.5 mt-1 text-xs text-muted-foreground">
-                            <User size={10} />
-                            <span className="font-medium text-foreground">{q.profiles?.display_name || "Anon"}</span>
-                            <span>· {timeAgo(q.created_at)}</span>
-                          </div>
-                          <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                            <Badge variant="outline" className="text-[10px]">{AUDIENCE_LABELS[q.audience]}</Badge>
-                            {q.tags.slice(0, 3).map((t) => {
-                              const color = getTagColor(t);
-                              return (
-                                <span key={t} className={`text-[10px] px-1.5 py-0.5 rounded-full border ${color.text} ${color.border} ${color.bg}`}>
-                                  #{t}
-                                </span>
-                              );
-                            })}
-                            <span className={`text-[10px] px-1.5 py-0.5 rounded-full ml-auto flex items-center gap-1 ${
-                              (q.answer_count ?? 0) > 0 ? "text-emerald-400 bg-emerald-400/10" : "text-muted-foreground bg-muted"
+                {filtered.map((q, index) => {
+                  const audienceBorder = q.audience === "student"
+                    ? "border-l-yellow-400"
+                    : q.audience === "firm"
+                    ? "border-l-blue-400"
+                    : "border-l-purple-400";
+                  const answerCount = q.answer_count ?? 0;
+                  const bodyPreview = q.body.length > 120 ? q.body.slice(0, 120) + "…" : q.body;
+
+                  return (
+                    <div
+                      key={q.id}
+                      className={`relative w-full text-left border border-border ${audienceBorder} border-l-4 rounded-lg p-4 bg-card hover:bg-accent/[0.03] hover:border-accent/40 hover:shadow-[0_0_20px_-8px_hsl(var(--accent)/0.15)] transition-all duration-200 group`}
+                      style={{ animationDelay: `${index * 50}ms` }}
+                    >
+                      <button onClick={() => openQuestion(q)} className="w-full text-left">
+                        <div className="flex gap-4">
+                          {/* Vote column */}
+                          <div className="flex flex-col items-center gap-0.5 min-w-[44px]">
+                            <div className="group/vote hover:scale-110 transition-transform text-muted-foreground hover:text-accent">
+                              <ChevronUp size={16} className="group-hover/vote:animate-bounce" />
+                            </div>
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                              q.votes > 0 ? "bg-accent/10 text-accent" : "bg-muted text-muted-foreground"
                             }`}>
-                              <MessageSquare size={10} /> {q.answer_count} {(q.answer_count ?? 0) === 1 ? "answer" : "answers"}
-                            </span>
+                              {q.votes}
+                            </div>
+                          </div>
+
+                          <div className="flex-1 min-w-0">
+                            {/* Title */}
+                            <h3 className="font-bold text-foreground group-hover:text-accent transition-colors text-[15px] leading-snug line-clamp-2">
+                              {q.title}
+                            </h3>
+
+                            {/* Body preview */}
+                            <p className="text-xs text-muted-foreground mt-1.5 line-clamp-2 leading-relaxed">
+                              {bodyPreview}
+                            </p>
+
+                            {/* Author + time */}
+                            <div className="flex items-center gap-1.5 mt-2.5 text-xs text-muted-foreground">
+                              <div className="w-5 h-5 rounded-full bg-accent/20 flex items-center justify-center">
+                                <User size={10} className="text-accent" />
+                              </div>
+                              <span className="font-medium text-foreground">{q.profiles?.display_name || "Anon"}</span>
+                              <span>· {timeAgo(q.created_at)}</span>
+                            </div>
+
+                            {/* Separator */}
+                            <div className="border-t border-border/50 mt-2.5 pt-2.5">
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <Badge variant="outline" className="text-[10px]">{AUDIENCE_LABELS[q.audience]}</Badge>
+                                {q.tags.slice(0, 3).map((t) => {
+                                  const color = getTagColor(t);
+                                  return (
+                                    <span key={t} className={`text-[10px] px-1.5 py-0.5 rounded-full border flex items-center gap-1 ${color.text} ${color.border} ${color.bg}`}>
+                                      <span className={`w-1.5 h-1.5 rounded-full bg-current`} />
+                                      #{t}
+                                    </span>
+                                  );
+                                })}
+                                <span className={`text-[10px] px-2 py-0.5 rounded-full ml-auto flex items-center gap-1 font-medium ${
+                                  answerCount > 0
+                                    ? "text-emerald-400 bg-emerald-400/10 border border-emerald-400/20"
+                                    : "text-muted-foreground bg-muted italic"
+                                }`}>
+                                  <MessageSquare size={10} />
+                                  {answerCount > 0
+                                    ? `${answerCount} ${answerCount === 1 ? "answer" : "answers"}`
+                                    : "Be first to answer"}
+                                </span>
+                              </div>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </button>
-                    {user?.id === q.user_id && (
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <button
-                            onClick={(e) => e.stopPropagation()}
-                            className="absolute top-3 right-3 text-muted-foreground hover:text-destructive p-1 rounded"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete this question?</AlertDialogTitle>
-                            <AlertDialogDescription>All answers will be permanently removed. This can't be undone.</AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => deleteQuestion(q.id)}>Delete</AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    )}
-                  </div>
-                ))}
+                      </button>
+                      {user?.id === q.user_id && (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <button
+                              onClick={(e) => e.stopPropagation()}
+                              className="absolute top-3 right-3 text-muted-foreground hover:text-destructive p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete this question?</AlertDialogTitle>
+                              <AlertDialogDescription>All answers will be permanently removed. This can't be undone.</AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => deleteQuestion(q.id)}>Delete</AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
