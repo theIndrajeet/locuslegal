@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Moon, Sun, Menu, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Link, useLocation } from "react-router-dom";
 
@@ -8,13 +8,12 @@ const navLinks = [
   { label: "Directory", href: "/directory" },
   { label: "Playbook", href: "/playbook" },
   { label: "Resources", href: "/resources" },
-  { label: "Tools", href: "/tools" },
+  { label: "Tools", href: "/tools", pulse: true },
   { label: "The Bar", href: "/the-bar", glitch: true },
 ];
 
 export default function Navbar() {
   const { theme, setTheme } = useTheme();
-  const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
 
@@ -26,6 +25,32 @@ export default function Navbar() {
 
   const isActive = (href: string) => location.pathname === href;
 
+  const renderChip = (l: typeof navLinks[number]) => {
+    const active = isActive(l.href);
+    const base =
+      "relative whitespace-nowrap rounded-lg border-2 border-foreground px-3 py-1 text-xs font-bold tracking-wide uppercase transition-all duration-200 snap-center shrink-0";
+    const activeClass =
+      "bg-accent text-accent-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))]";
+    const inactiveClass =
+      "bg-transparent text-muted-foreground hover:text-foreground active:scale-95 shadow-[2px_2px_0_0_hsl(var(--foreground))]";
+
+    return (
+      <Link
+        key={l.href}
+        to={l.href}
+        className={`${base} ${active ? activeClass : inactiveClass}`}
+        {...(l.glitch ? { "data-text": l.label } : {})}
+      >
+        <span className={`inline-flex items-center gap-1 ${l.glitch ? "glitch-link" : ""}`}>
+          {l.pulse && (
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
+          )}
+          {l.label}
+        </span>
+      </Link>
+    );
+  };
+
   return (
     <nav
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
@@ -36,12 +61,15 @@ export default function Navbar() {
     >
       <div className="container mx-auto flex items-center justify-between py-3 px-4 md:px-8">
         <Link to="/" className="font-heading tracking-tight leading-none">
-          <span className="text-2xl font-extrabold">Loc<span className="text-accent">us</span></span>
+          <span className="text-2xl font-extrabold">
+            Loc<span className="text-accent">us</span>
+          </span>
         </Link>
 
+        {/* Desktop nav */}
         <div className="hidden md:flex items-center gap-8">
           {navLinks.map((l) =>
-            l.label === "Tools" ? (
+            l.pulse ? (
               <Link
                 key={l.href}
                 to={l.href}
@@ -55,7 +83,7 @@ export default function Navbar() {
                 </span>
                 <span className="absolute -bottom-1 left-0 w-full h-[2px] bg-accent scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
               </Link>
-            ) : (l as any).glitch ? (
+            ) : l.glitch ? (
               <Link
                 key={l.href}
                 to={l.href}
@@ -89,7 +117,8 @@ export default function Navbar() {
           </button>
         </div>
 
-        <div className="flex md:hidden items-center gap-2">
+        {/* Mobile theme toggle only */}
+        <div className="flex md:hidden items-center">
           <button
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
             className="p-2 rounded-full hover:bg-muted/50 transition-colors"
@@ -97,30 +126,17 @@ export default function Navbar() {
           >
             {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
           </button>
-          <button onClick={() => setOpen(!open)} className="p-2" aria-label="Menu">
-            {open ? <X size={22} /> : <Menu size={22} />}
-          </button>
         </div>
       </div>
 
-      {open && (
-        <div className="md:hidden bg-background/80 backdrop-blur-xl border-t border-border/50 px-6 pb-6 pt-2 animate-fade-in">
-          {navLinks.map((l) => (
-            <Link
-              key={l.href}
-              to={l.href}
-              onClick={() => setOpen(false)}
-              className={`block py-3 text-base font-medium transition-colors ${
-                isActive(l.href)
-                  ? "text-accent"
-                  : "text-muted-foreground hover:text-accent"
-              }`}
-            >
-              {l.label}
-            </Link>
-          ))}
+      {/* Mobile scrollable nav strip */}
+      <div className="relative md:hidden">
+        <div className="flex gap-2 px-4 pb-2 overflow-x-auto scrollbar-hide snap-x snap-mandatory">
+          {navLinks.map(renderChip)}
         </div>
-      )}
+        {/* Right fade hint */}
+        <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-background/80 to-transparent" />
+      </div>
     </nav>
   );
 }
