@@ -560,8 +560,13 @@ export default function TheBar() {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl md:text-4xl font-extrabold text-foreground font-heading">
-              The B<span className="text-accent">a</span>r
+            <h1 className="text-3xl md:text-4xl font-extrabold text-foreground font-heading group/title relative cursor-default">
+              <span className="relative inline-block">
+                <span className="group-hover/title:animate-none">The B<span className="text-accent">a</span>r</span>
+                <span className="absolute inset-0 opacity-0 group-hover/title:opacity-100 text-accent [text-shadow:2px_0_hsl(var(--accent)),_-2px_0_hsl(var(--destructive))] animate-none group-hover/title:animate-[glitch_0.3s_infinite]" aria-hidden="true">
+                  The B<span className="text-foreground">a</span>r
+                </span>
+              </span>
             </h1>
             <p className="text-muted-foreground text-sm mt-1">Ask. Answer. Argue. — The legal community board.</p>
           </div>
