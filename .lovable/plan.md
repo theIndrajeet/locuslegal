@@ -1,37 +1,48 @@
 
 
-# Username Login + "Vote" Label
+# Top Scrollable Nav Strip — But Make It Cool
 
 ## Summary
 
-Keep email for registration, but use **username** (display name) for login. Add "Vote"/"Voted" text to the heart button.
+Replace the hamburger with an always-visible horizontal nav strip below the logo bar on mobile. But instead of boring plain text links, we'll make it **on-brand neobrutalist** with personality.
 
-## How username login works
+## Design Details
 
-Supabase requires email for auth. The approach: on signup, store the username as `display_name` in profiles (already happens). On login, look up the user's email from the `profiles` table by display_name, then sign in with that email + password.
+- **Each link is a mini pill/chip** with a thick neobrutalist border (`border-2 border-black dark:border-white`), small shadow (`shadow-[2px_2px_0_0_#000]`), rounded corners
+- **Active link**: filled accent/yellow background with dark text — pops immediately
+- **Inactive links**: transparent bg, muted text, on tap/hover they get a micro bounce
+- **Tools chip**: has the pulse dot inside the pill
+- **The Bar chip**: keeps glitch text effect
+- **Scroll behavior**: `overflow-x-auto`, hide scrollbar, horizontal snap — the strip is swipeable, with a subtle gradient fade on the right edge to hint "there's more"
+- **Sticky**: scrolls with the navbar, always accessible
+- **Spacing**: `gap-2 px-4 py-2`, compact but tactile
 
-This requires a database function since profiles RLS doesn't expose emails — we need a `SECURITY DEFINER` function that takes a username and returns the matching email from `auth.users`.
+```text
+┌──────────────────────────────────────┐
+│  Locus                          ☀️   │
+│──────────────────────────────────────│
+│  [Home] [Directory] [Playbook] [R→   │  ← neobrutalist pill chips
+└──────────────────────────────────────┘
+```
+
+The chips give it a tactile, app-like, design-forward feel — not a boring nav bar.
 
 ## Changes
 
-### 1. Database — new function `get_email_by_username`
-- Create a `SECURITY DEFINER` function that joins `profiles.id` → `auth.users.id` to find the email for a given `display_name`
-- Returns `text` (the email) or null if not found
+### `src/components/Navbar.tsx`
+- Remove `open` state, `Menu`/`X` imports, hamburger button, mobile dropdown
+- Add a `md:hidden` scrollable row inside the sticky `<nav>` after the logo bar
+- Each link rendered as a pill chip with neobrutalist styling
+- Active = accent bg + shadow; inactive = outlined
+- Right-edge fade gradient overlay to hint at scrollability
 
-### 2. `src/pages/Auth.tsx`
-- **Signup form**: Keep Email + Password fields. Rename "Display Name" to **"Username"** (required, no spaces). This becomes their login identity.
-- **Login form**: Show **Username** + **Password** fields (no email field). On submit, call the `get_email_by_username` RPC to resolve the email, then `signInWithPassword` with that email.
-- Keep "Forgot password" for the signup/email flow only (remove from login view since there's no email field there).
-
-### 3. `src/components/FeatureVoteButton.tsx`
-- Add **"Vote"** text next to the heart icon
-- When voted, show **"Voted"** in red instead
+### `src/index.css`
+- Add `.scrollbar-hide` utility (`::-webkit-scrollbar { display: none }`)
 
 ## Files
 
 | Action | File |
 |--------|------|
-| Migration | Create `get_email_by_username` function |
-| Edit | `src/pages/Auth.tsx` — username login, email signup |
-| Edit | `src/components/FeatureVoteButton.tsx` — add Vote/Voted label |
+| Edit | `src/components/Navbar.tsx` |
+| Edit | `src/index.css` |
 
