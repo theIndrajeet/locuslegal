@@ -687,31 +687,54 @@ export default function TheBar() {
             ) : (
               <div className="space-y-3">
                 {filtered.map((q) => (
-                  <button
+                  <div
                     key={q.id}
-                    onClick={() => openQuestion(q)}
-                    className="w-full text-left border border-border rounded-lg p-4 bg-card hover:border-accent/50 transition-colors group"
+                    className="relative w-full text-left border border-border rounded-lg p-4 bg-card hover:border-accent/50 transition-colors group"
                   >
-                    <div className="flex gap-4">
-                      <div className="flex flex-col items-center gap-0.5 text-muted-foreground min-w-[40px]">
-                        <ChevronUp size={14} />
-                        <span className="text-sm font-bold text-foreground">{q.votes}</span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-foreground group-hover:text-accent transition-colors text-sm line-clamp-2">
-                          {q.title}
-                        </h3>
-                        <div className="flex flex-wrap items-center gap-2 mt-2">
-                          <Badge variant="outline" className="text-[10px]">{AUDIENCE_LABELS[q.audience]}</Badge>
-                          {q.tags.slice(0, 3).map((t) => <Badge key={t} variant="secondary" className="text-[10px]">{t}</Badge>)}
-                          <span className="text-xs text-muted-foreground ml-auto flex items-center gap-1">
-                            <MessageSquare size={12} /> {q.answer_count}
-                          </span>
-                          <span className="text-xs text-muted-foreground">{timeAgo(q.created_at)}</span>
+                    <button onClick={() => openQuestion(q)} className="w-full text-left">
+                      <div className="flex gap-4">
+                        <div className="flex flex-col items-center gap-0.5 text-muted-foreground min-w-[40px]">
+                          <ChevronUp size={14} />
+                          <span className="text-sm font-bold text-foreground">{q.votes}</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-foreground group-hover:text-accent transition-colors text-sm line-clamp-2">
+                            {q.title}
+                          </h3>
+                          <div className="flex flex-wrap items-center gap-2 mt-2">
+                            <Badge variant="outline" className="text-[10px]">{AUDIENCE_LABELS[q.audience]}</Badge>
+                            {q.tags.slice(0, 3).map((t) => <Badge key={t} variant="secondary" className="text-[10px]">{t}</Badge>)}
+                            <span className="text-xs text-muted-foreground ml-auto flex items-center gap-1">
+                              <MessageSquare size={12} /> {q.answer_count}
+                            </span>
+                            <span className="text-xs text-muted-foreground">{timeAgo(q.created_at)}</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </button>
+                    </button>
+                    {user?.id === q.user_id && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <button
+                            onClick={(e) => e.stopPropagation()}
+                            className="absolute top-3 right-3 text-muted-foreground hover:text-destructive p-1 rounded"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete this question?</AlertDialogTitle>
+                            <AlertDialogDescription>All answers will be permanently removed. This can't be undone.</AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => deleteQuestion(q.id)}>Delete</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
+                  </div>
                 ))}
               </div>
             )}
