@@ -15,7 +15,7 @@ export default function MobileBottomDock() {
 
   return (
     <nav className="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 md:hidden animate-slide-up-dock">
-      <div className="flex items-center gap-5 px-5 py-2.5 rounded-full bg-background/60 backdrop-blur-xl border border-border/40 shadow-xl shadow-black/10">
+      <div className="flex items-center gap-4 px-6 py-3 rounded-full bg-background/60 backdrop-blur-xl border border-border/40 shadow-xl shadow-black/10">
         {NAV_ITEMS.map(({ to, icon: Icon, label, pulse }) => {
           const isActive = to === "/" ? pathname === "/" : pathname.startsWith(to);
           return (
@@ -23,10 +23,10 @@ export default function MobileBottomDock() {
               key={to}
               to={to}
               aria-label={label}
-              className="relative flex flex-col items-center justify-center transition-transform duration-150 active:scale-90"
+              className="relative w-10 h-10 flex items-center justify-center transition-transform duration-150 active:scale-90"
             >
               <Icon
-                size={20}
+                size={24}
                 strokeWidth={isActive ? 2.5 : 1.8}
                 className={
                   isActive

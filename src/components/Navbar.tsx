@@ -129,14 +129,6 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Mobile scrollable nav strip */}
-      <div className="relative md:hidden">
-        <div className="flex gap-2 px-4 pb-2 overflow-x-auto scrollbar-hide snap-x snap-mandatory">
-          {navLinks.map(renderChip)}
-        </div>
-        {/* Right fade hint */}
-        <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-background/80 to-transparent" />
-      </div>
     </nav>
   );
 }
