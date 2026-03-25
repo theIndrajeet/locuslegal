@@ -76,11 +76,19 @@ export default function Auth() {
   };
 
   const handleForgotPassword = async () => {
-    if (!email) {
-      toast.error("Enter your email in the signup form to reset your password");
+    if (!username.trim()) {
+      toast.error("Enter your username to reset your password");
       return;
     }
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    const { data: resolvedEmail, error: rpcError } = await supabase.rpc(
+      "get_email_by_username",
+      { p_username: username.trim() }
+    );
+    if (rpcError || !resolvedEmail) {
+      toast.error("Username not found");
+      return;
+    }
+    const { error } = await supabase.auth.resetPasswordForEmail(resolvedEmail, {
       redirectTo: `${window.location.origin}/reset-password`,
     });
     if (error) toast.error(error.message);
@@ -197,7 +205,7 @@ export default function Auth() {
             />
           </div>
 
-          {!isLogin && (
+{isLogin && (
             <button
               type="button"
               onClick={handleForgotPassword}
