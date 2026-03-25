@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Link, useLocation } from "react-router-dom";
+import ProfileMenu from "./ProfileMenu";
 
 const navLinks = [
   { label: "Home", href: "/" },
@@ -115,9 +116,10 @@ export default function Navbar() {
           >
             {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
           </button>
+          <ProfileMenu />
         </div>
 
-        {/* Mobile theme toggle only */}
+        {/* Mobile theme toggle + profile */}
         <div className="flex md:hidden items-center">
           <button
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
@@ -126,6 +128,7 @@ export default function Navbar() {
           >
             {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
           </button>
+          <ProfileMenu />
         </div>
       </div>
 
