@@ -16,6 +16,7 @@ export function GooeyText({
   className,
   textClassName,
 }: GooeyTextProps) {
+  const [filterReady, setFilterReady] = React.useState(false);
   const text1Ref = React.useRef<HTMLSpanElement>(null);
   const text2Ref = React.useRef<HTMLSpanElement>(null);
 
@@ -91,26 +92,34 @@ export function GooeyText({
     };
   }, [texts, morphTime, cooldownTime]);
 
+  React.useEffect(() => {
+    // Defer SVG filter to avoid blocking LCP paint
+    const id = requestAnimationFrame(() => setFilterReady(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
+
   return (
     <div className={cn("relative inline-block", className)}>
-      <svg className="absolute h-0 w-0">
-        <defs>
-          <filter id="gooey-text-threshold">
-            <feColorMatrix
-              in="SourceGraphic"
-              type="matrix"
-              values="1 0 0 0 0
-                      0 1 0 0 0
-                      0 0 1 0 0
-                      0 0 0 255 -140"
-            />
-          </filter>
-        </defs>
-      </svg>
+      {filterReady && (
+        <svg className="absolute h-0 w-0">
+          <defs>
+            <filter id="gooey-text-threshold">
+              <feColorMatrix
+                in="SourceGraphic"
+                type="matrix"
+                values="1 0 0 0 0
+                        0 1 0 0 0
+                        0 0 1 0 0
+                        0 0 0 255 -140"
+              />
+            </filter>
+          </defs>
+        </svg>
+      )}
 
       <div
         className="relative"
-        style={{ filter: "url(#gooey-text-threshold)" }}
+        style={filterReady ? { filter: "url(#gooey-text-threshold)" } : undefined}
       >
         <span
           ref={text1Ref}
