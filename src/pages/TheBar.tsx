@@ -105,13 +105,14 @@ function timeAgo(d: string) {
 
 // --- AnswerThread component ---
 function AnswerThread({
-  node, depth, opUserId, user, collapsedIds, toggleCollapse, replyingTo, setReplyingTo,
+  node, depth, opUserId, user, isAdmin, collapsedIds, toggleCollapse, replyingTo, setReplyingTo,
   replyBody, setReplyBody, onSubmitReply, onVote, onDelete, loading,
 }: {
   node: AnswerNode;
   depth: number;
   opUserId: string;
   user: SupaUser | null;
+  isAdmin: boolean;
   collapsedIds: Set<string>;
   toggleCollapse: (id: string) => void;
   replyingTo: string | null;
@@ -126,7 +127,7 @@ function AnswerThread({
   const isCollapsed = collapsedIds.has(node.id);
   const hasChildren = node.children.length > 0;
   const isOP = node.user_id === opUserId;
-  const isOwner = user?.id === node.user_id;
+  const canDelete = user?.id === node.user_id || isAdmin;
   const effectiveDepth = Math.min(depth, 5);
 
   return (
@@ -168,7 +169,7 @@ function AnswerThread({
                   <Reply size={12} /> Reply
                 </button>
               )}
-              {isOwner && (
+              {canDelete && (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <button className="flex items-center gap-1 text-xs text-muted-foreground hover:text-destructive">
@@ -216,7 +217,7 @@ function AnswerThread({
       {!isCollapsed && node.children.map((child) => (
         <AnswerThread
           key={child.id} node={child} depth={depth + 1} opUserId={opUserId}
-          user={user} collapsedIds={collapsedIds} toggleCollapse={toggleCollapse}
+          user={user} isAdmin={isAdmin} collapsedIds={collapsedIds} toggleCollapse={toggleCollapse}
           replyingTo={replyingTo} setReplyingTo={setReplyingTo}
           replyBody={replyBody} setReplyBody={setReplyBody}
           onSubmitReply={onSubmitReply} onVote={onVote} onDelete={onDelete} loading={loading}
@@ -249,15 +250,26 @@ export default function TheBar() {
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
   const [authReady, setAuthReady] = useState(false);
   const [browseFilter, setBrowseFilter] = useState<"all" | "unanswered">("all");
+  const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setUser(data.session?.user ?? null);
       setAuthReady(true);
+      if (data.session?.user) {
+        supabase.from("user_roles").select("role").eq("user_id", data.session.user.id).eq("role", "admin").maybeSingle()
+          .then(({ data: roleData }) => setIsAdmin(!!roleData));
+      }
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
       setUser(session?.user ?? null);
+      if (session?.user) {
+        supabase.from("user_roles").select("role").eq("user_id", session.user.id).eq("role", "admin").maybeSingle()
+          .then(({ data: roleData }) => setIsAdmin(!!roleData));
+      } else {
+        setIsAdmin(false);
+      }
     });
     return () => subscription.unsubscribe();
   }, []);
@@ -487,7 +499,7 @@ export default function TheBar() {
               <div className="flex-1">
                 <div className="flex items-start justify-between gap-2">
                   <h1 className="text-xl font-bold text-foreground font-heading mb-2">{selectedQuestion.title}</h1>
-                  {user?.id === selectedQuestion.user_id && (
+                  {(user?.id === selectedQuestion.user_id || isAdmin) && (
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <button className="text-muted-foreground hover:text-destructive shrink-0 mt-1">
@@ -528,7 +540,7 @@ export default function TheBar() {
             {answerTree.map((node) => (
               <AnswerThread
                 key={node.id} node={node} depth={0} opUserId={selectedQuestion.user_id}
-                user={user} collapsedIds={collapsedIds} toggleCollapse={toggleCollapse}
+                user={user} isAdmin={isAdmin} collapsedIds={collapsedIds} toggleCollapse={toggleCollapse}
                 replyingTo={replyingTo} setReplyingTo={setReplyingTo}
                 replyBody={replyBody} setReplyBody={setReplyBody}
                 onSubmitReply={submitReply}
@@ -882,7 +894,7 @@ export default function TheBar() {
                           </div>
                         </div>
                       </button>
-                      {user?.id === q.user_id && (
+                      {(user?.id === q.user_id || isAdmin) && (
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <button
