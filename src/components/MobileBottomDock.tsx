@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Home, Building2, BookOpen, Library, Wrench, Wine } from "lucide-react";
+import { Home, Building2, BookOpen, Library, Wrench, Gavel } from "lucide-react";
 
 const NAV_ITEMS = [
   { to: "/", icon: Home, label: "Home" },
@@ -7,7 +7,7 @@ const NAV_ITEMS = [
   { to: "/playbook", icon: BookOpen, label: "Playbook" },
   { to: "/resources", icon: Library, label: "Resources" },
   { to: "/tools", icon: Wrench, label: "Tools", pulse: true },
-  { to: "/the-bar", icon: Wine, label: "The Bar" },
+  { to: "/the-bar", icon: Gavel, label: "The Bar" },
 ];
 
 export default function MobileBottomDock() {
