@@ -176,3 +176,12 @@ html {
     transform: translateY(-10px);
   }
 }
+
+/* Hide scrollbar for nav strip */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
