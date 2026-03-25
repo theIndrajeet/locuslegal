@@ -1,21 +1,12 @@
 
 
-## Plan: Clear Q&A Data and Prepare for New Seed Content
+## Plan: Rename "judgyhelmet" to "locus" in The Bar
 
-### Current State
-- 1 question exists ("asdsdasd") — test data
-- 0 answers
+### Analysis
+All seeded Q&A content was attributed to user `3a7ce47a-d597-470d-b21e-ce27bee27dec`. The display name "judgyhelmet" is stored in the `profiles` table. Since answers/questions reference the profile via `user_id`, we only need to update one row in `profiles`.
 
-### Steps
+### Step
+1. **Update the profile display_name** from "judgyhelmet" to "locus" for user `3a7ce47a-d597-470d-b21e-ce27bee27dec` using the insert tool (data UPDATE operation).
 
-1. **Delete all existing bar_answers** (already empty, but run for safety)
-2. **Delete all existing bar_questions** (1 row)
-3. **Reset answer_count** (will be clean after delete)
-
-These deletes need to run via the insert tool (data operations, not schema changes). Answers must be deleted first due to the foreign key on `question_id`.
-
-After clearing, I'll wait for you to share the new Q&A content to seed into the database as Locus-branded entries.
-
-### Note
-The deletions will require a user_id with appropriate permissions. Since you have admin role setup, I'll use direct SQL DELETE statements via the data tool.
+This single change will reflect across all Q&A cards in The Bar since they join on the profile.
 
