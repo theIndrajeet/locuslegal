@@ -9,6 +9,7 @@ const navLinks = [
   { label: "Playbook", href: "/playbook" },
   { label: "Resources", href: "/resources" },
   { label: "Tools", href: "/tools" },
+  { label: "The Bar", href: "/the-bar", glitch: true },
 ];
 
 export default function Navbar() {
@@ -53,6 +54,17 @@ export default function Navbar() {
                   {l.label}
                 </span>
                 <span className="absolute -bottom-1 left-0 w-full h-[2px] bg-accent scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
+              </Link>
+            ) : (l as any).glitch ? (
+              <Link
+                key={l.href}
+                to={l.href}
+                className={`relative text-sm font-bold transition-all duration-300 glitch-link ${
+                  isActive(l.href) ? "text-accent" : "text-muted-foreground hover:text-accent"
+                }`}
+                data-text={l.label}
+              >
+                {l.label}
               </Link>
             ) : (
               <Link
