@@ -241,6 +241,7 @@ export default function TheBar() {
   const [newBody, setNewBody] = useState("");
   const [newAudience, setNewAudience] = useState<Audience>("student");
   const [newTags, setNewTags] = useState<string[]>([]);
+  const [customTagInput, setCustomTagInput] = useState("");
   const [answerBody, setAnswerBody] = useState("");
   const [loading, setLoading] = useState(false);
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
@@ -382,7 +383,7 @@ export default function TheBar() {
     if (error) toast.error(error.message);
     else {
       toast.success("Question posted!");
-      setAskOpen(false); setNewTitle(""); setNewBody(""); setNewTags([]);
+      setAskOpen(false); setNewTitle(""); setNewBody(""); setNewTags([]); setCustomTagInput("");
       refreshQuestions();
     }
     setLoading(false);
@@ -605,17 +606,74 @@ export default function TheBar() {
                 </div>
                 <div>
                   <Label>Tags</Label>
-                  <div className="flex flex-wrap gap-2 mt-1">
-                    {TAG_OPTIONS.map((t) => (
-                      <Badge
-                        key={t}
-                        variant={newTags.includes(t) ? "default" : "outline"}
-                        className="cursor-pointer text-xs"
-                        onClick={() => setNewTags((prev) => prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t])}
-                      >
-                        {t}
-                      </Badge>
-                    ))}
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {TAG_OPTIONS.map((t) => {
+                      const color = getTagColor(t);
+                      const selected = newTags.includes(t);
+                      return (
+                        <button
+                          key={t}
+                          type="button"
+                          onClick={() => setNewTags((prev) => prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t])}
+                          className={`px-3 py-1 rounded-full text-xs font-medium border transition-all ${
+                            selected
+                              ? `${color.bg} ${color.text} ${color.border} ring-1 ring-current`
+                              : `border-border text-muted-foreground hover:${color.text} hover:${color.border}`
+                          }`}
+                        >
+                          {t}
+                        </button>
+                      );
+                    })}
+                    {/* Custom tags already added */}
+                    {newTags.filter((t) => !TAG_OPTIONS.includes(t)).map((t) => {
+                      const color = getTagColor(t);
+                      return (
+                        <button
+                          key={t}
+                          type="button"
+                          onClick={() => setNewTags((prev) => prev.filter((x) => x !== t))}
+                          className={`px-3 py-1 rounded-full text-xs font-medium border ${color.bg} ${color.text} ${color.border} ring-1 ring-current`}
+                        >
+                          {t} ×
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {/* Add custom tag */}
+                  <div className="flex gap-2 mt-2">
+                    <Input
+                      value={customTagInput}
+                      onChange={(e) => setCustomTagInput(e.target.value)}
+                      placeholder="Add custom tag..."
+                      className="h-8 text-xs"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          const tag = customTagInput.trim();
+                          if (tag && !newTags.includes(tag)) {
+                            setNewTags((prev) => [...prev, tag]);
+                            setCustomTagInput("");
+                          }
+                        }
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-8 text-xs shrink-0"
+                      onClick={() => {
+                        const tag = customTagInput.trim();
+                        if (tag && !newTags.includes(tag)) {
+                          setNewTags((prev) => [...prev, tag]);
+                          setCustomTagInput("");
+                        }
+                      }}
+                      disabled={!customTagInput.trim()}
+                    >
+                      <Plus size={12} /> Add
+                    </Button>
                   </div>
                 </div>
                 <Button onClick={submitQuestion} disabled={loading || !newTitle.trim() || !newBody.trim()} className="w-full">
