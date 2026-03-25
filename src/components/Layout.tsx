@@ -18,7 +18,7 @@ export default function Layout() {
             .from("profiles")
             .select("display_name")
             .eq("id", session.user.id)
-            .single();
+            .maybeSingle();
 
           if (!profile?.display_name || profile.display_name.trim() === "") {
             navigate("/choose-username");

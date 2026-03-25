@@ -18,7 +18,7 @@ export default function ProfileEdit() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) { navigate("/auth"); return; }
       setUserId(session.user.id);
-      supabase.from("profiles").select("display_name").eq("id", session.user.id).single()
+      supabase.from("profiles").select("display_name").eq("id", session.user.id).maybeSingle()
         .then(({ data }) => {
           setDisplayName(data?.display_name || "");
           setLoading(false);
@@ -29,7 +29,7 @@ export default function ProfileEdit() {
   const handleSaveUsername = async () => {
     if (!userId || !displayName.trim()) return;
     setSaving(true);
-    const { error } = await supabase.from("profiles").update({ display_name: displayName.trim() }).eq("id", userId);
+    const { error } = await supabase.from("profiles").upsert({ id: userId, display_name: displayName.trim() });
     setSaving(false);
     if (error) toast.error(error.message);
     else toast.success("Username updated!");

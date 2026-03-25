@@ -29,7 +29,7 @@ export default function ProfileMenu() {
   }, []);
 
   const fetchDisplayName = async (uid: string) => {
-    const { data } = await supabase.from("profiles").select("display_name").eq("id", uid).single();
+    const { data } = await supabase.from("profiles").select("display_name").eq("id", uid).maybeSingle();
     setDisplayName(data?.display_name || null);
   };
 
