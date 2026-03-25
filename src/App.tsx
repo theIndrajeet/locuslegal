@@ -13,6 +13,7 @@ import Tools from "./pages/Tools";
 import TheBar from "./pages/TheBar";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
+import ChooseUsername from "./pages/ChooseUsername";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,6 +36,7 @@ const App = () => (
             </Route>
             <Route path="/auth" element={<Auth />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/choose-username" element={<ChooseUsername />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
