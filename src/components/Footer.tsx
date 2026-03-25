@@ -1,10 +1,20 @@
-import FooterArcade from "./FooterArcade";
+import { lazy, Suspense } from "react";
+import { useLocation } from "react-router-dom";
+
+const FooterArcade = lazy(() => import("./FooterArcade"));
 
 export default function Footer() {
+  const location = useLocation();
+  const showArcade = location.pathname !== "/the-bar";
+
   return (
     <footer className="relative">
-      {/* Arcade Game */}
-      <FooterArcade />
+      {/* Arcade Game — deferred and skipped on The Bar */}
+      {showArcade && (
+        <Suspense fallback={null}>
+          <FooterArcade />
+        </Suspense>
+      )}
 
       {/* Gradient separator */}
       <div className="h-px bg-gradient-to-r from-transparent via-accent/40 to-transparent" />
