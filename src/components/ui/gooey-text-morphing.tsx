@@ -16,6 +16,7 @@ export function GooeyText({
   className,
   textClassName,
 }: GooeyTextProps) {
+  const [filterReady, setFilterReady] = React.useState(false);
   const text1Ref = React.useRef<HTMLSpanElement>(null);
   const text2Ref = React.useRef<HTMLSpanElement>(null);
 
