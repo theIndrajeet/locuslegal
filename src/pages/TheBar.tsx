@@ -275,11 +275,13 @@ export default function TheBar() {
   }, []);
 
   const [questionsLoaded, setQuestionsLoaded] = useState(false);
+  const fetchingRef = React.useRef(false);
 
-  const refreshQuestions = async () => {
+  const refreshQuestions = useCallback(async () => {
+    if (fetchingRef.current) return;
+    fetchingRef.current = true;
     try {
-      let data: any[] | null = null;
-      const { data: joined, error } = await supabase
+      const { data, error } = await supabase
         .from("bar_questions")
         .select("*, profiles(display_name)")
         .order(sort === "new" ? "created_at" : "votes", { ascending: false });
@@ -290,62 +292,42 @@ export default function TheBar() {
           .select("*")
           .order(sort === "new" ? "created_at" : "votes", { ascending: false });
         if (plainErr) { toast.error("Failed to load questions"); return; }
-        data = plain;
+        setQuestions(plain || []);
       } else {
-        data = joined;
+        setQuestions(data || []);
       }
-
-      const { data: countData } = await supabase.from("bar_answers").select("question_id");
-      const counts: Record<string, number> = {};
-      countData?.forEach((a: any) => { counts[a.question_id] = (counts[a.question_id] || 0) + 1; });
-
-      setQuestions((data || []).map((q: any) => ({ ...q, answer_count: counts[q.id] || 0 })));
       setQuestionsLoaded(true);
-    } catch (err) {
+    } catch {
       toast.error("Failed to load questions");
       setQuestionsLoaded(true);
+    } finally {
+      fetchingRef.current = false;
     }
-  };
-
-  useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      try {
-        let data: any[] | null = null;
-        const { data: joined, error } = await supabase
-          .from("bar_questions")
-          .select("*, profiles(display_name)")
-          .order(sort === "new" ? "created_at" : "votes", { ascending: false });
-
-        if (error) {
-          const { data: plain, error: plainErr } = await supabase
-            .from("bar_questions")
-            .select("*")
-            .order(sort === "new" ? "created_at" : "votes", { ascending: false });
-          if (plainErr) { if (!cancelled) toast.error("Failed to load questions"); return; }
-          data = plain;
-        } else {
-          data = joined;
-        }
-
-        const { data: countData } = await supabase.from("bar_answers").select("question_id");
-        const counts: Record<string, number> = {};
-        countData?.forEach((a: any) => { counts[a.question_id] = (counts[a.question_id] || 0) + 1; });
-
-        if (!cancelled) {
-          setQuestions((data || []).map((q: any) => ({ ...q, answer_count: counts[q.id] || 0 })));
-          setQuestionsLoaded(true);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          toast.error("Failed to load questions");
-          setQuestionsLoaded(true);
-        }
-      }
-    };
-    load();
-    return () => { cancelled = true; };
   }, [sort]);
+
+  // Initial load + re-fetch on sort change
+  useEffect(() => {
+    refreshQuestions();
+  }, [refreshQuestions]);
+
+  // Realtime sync: refresh feed when any question or answer changes
+  useEffect(() => {
+    const channel = supabase
+      .channel("bar-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "bar_questions" }, () => {
+        refreshQuestions();
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "bar_answers" }, (payload: any) => {
+        refreshQuestions();
+        // If detail view is open for the affected question, refresh its thread
+        const qId = payload.new?.question_id || payload.old?.question_id;
+        if (qId && selectedQuestion && selectedQuestion.id === qId) {
+          fetchAnswers(qId);
+        }
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [refreshQuestions, selectedQuestion]);
 
   const fetchAnswers = async (qId: string) => {
     try {
