@@ -34,9 +34,12 @@ export default function ProfileMenu() {
   };
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
     setOpen(false);
+    await supabase.auth.signOut();
+    setSession(null);
+    setDisplayName(null);
     navigate("/");
+    toast.success("Signed out");
   };
 
   const handleResetPassword = async () => {
