@@ -137,14 +137,12 @@ html {
 .glitch-link::before {
   color: #ff00c1;
   z-index: -1;
-  opacity: 0.8;
-  animation: glitch-1 0.3s infinite linear alternate-reverse;
+  animation: glitch-burst-1 4s infinite;
 }
 .glitch-link::after {
   color: #00fff9;
   z-index: -1;
-  opacity: 0.8;
-  animation: glitch-2 0.3s infinite linear alternate-reverse;
+  animation: glitch-burst-2 4s infinite;
 }
 
 @keyframes glitch-1 {
