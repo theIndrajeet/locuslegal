@@ -278,6 +278,7 @@ export default function TheBar() {
   };
 
   const requireAuth = (action: () => void) => {
+    if (!authReady) return; // session still loading
     if (!user) { navigate("/auth"); return; }
     action();
   };
