@@ -1,42 +1,31 @@
 
 
-# Add Profile Icon to Navbar with Auth-Aware Menu
+# Fix Profile Edit Page & Show Username in Menu
 
-## Summary
+## Problems
 
-Add a user/profile icon next to the theme toggle in both desktop and mobile navbar. Clicking it opens a dropdown: if not logged in, shows "Sign In"; if logged in, shows profile actions (change username, change password, sign out).
+1. **Profile edit page stuck on "Loading..."** — the `.single()` call fails if no profile row exists for the user (e.g. if the trigger didn't fire for OAuth users). Need to use `.maybeSingle()` and handle the missing-row case.
+2. **Menu shows email instead of username** — same `.single()` issue in ProfileMenu, plus the Google OAuth user may not have set a username yet. Should always prefer `display_name` and only fall back to email.
 
 ## Changes
 
-### 1. Create `src/components/ProfileMenu.tsx`
-- Shared component used in both desktop and mobile navbar areas
-- Uses Popover (already available) for the dropdown
-- On mount, subscribe to `supabase.auth.onAuthStateChange` to track session
-- **Not logged in**: Show `UserCircle` icon → clicking opens popover with "Sign In" link to `/auth`
-- **Logged in**: Show `UserCircle` icon (filled/accent) → popover with:
-  - Display current username
-  - "Change Username" → navigates to `/profile/edit`
-  - "Change Password" → triggers `supabase.auth.resetPasswordForEmail` with user's email
-  - "Sign Out" → calls `supabase.auth.signOut()` and redirects to `/`
+### 1. Fix `src/components/ProfileMenu.tsx`
+- Change `.single()` to `.maybeSingle()` in `fetchDisplayName`
+- Keep showing `displayName || session.user.email` (this part is fine, just needs the query fix)
 
-### 2. Create `src/pages/ProfileEdit.tsx`
-- Authenticated-only page (redirect to `/auth` if not logged in)
-- Form to update `display_name` in profiles table
-- Form to change password via `supabase.auth.updateUser({ password })`
-- Both in one clean page
+### 2. Fix `src/pages/ProfileEdit.tsx`
+- Change `.single()` to `.maybeSingle()` in the useEffect query
+- If no profile row exists, still allow editing (upsert instead of update in `handleSaveUsername`)
+- Use `upsert` with `{ onConflict: 'id' }` so it creates the profile if missing
 
-### 3. Edit `src/components/Navbar.tsx`
-- Import and render `<ProfileMenu />` next to the theme toggle button in both desktop (`md:flex`) and mobile (`md:hidden`) sections
-
-### 4. Edit `src/App.tsx`
-- Add route `/profile/edit` → `ProfileEdit` inside the Layout wrapper
+### 3. Fix `src/components/Layout.tsx`
+- Change `.single()` to `.maybeSingle()` so it doesn't error when no profile exists
 
 ## Files
 
 | Action | File |
 |--------|------|
-| Create | `src/components/ProfileMenu.tsx` |
-| Create | `src/pages/ProfileEdit.tsx` |
-| Edit   | `src/components/Navbar.tsx` |
-| Edit   | `src/App.tsx` |
+| Edit | `src/components/ProfileMenu.tsx` — `.single()` → `.maybeSingle()` |
+| Edit | `src/pages/ProfileEdit.tsx` — `.single()` → `.maybeSingle()`, `.update()` → `.upsert()` |
+| Edit | `src/components/Layout.tsx` — `.single()` → `.maybeSingle()` |
 
