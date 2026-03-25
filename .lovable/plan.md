@@ -1,66 +1,53 @@
 
 
-# "The Bar" — Community Q&A Board with Auth & Database
+# Add Feature Voting System (Heart Icon)
 
 ## Summary
 
-Build a community Q&A page at `/the-bar` with database-backed posts, authentication (login required to post, public reading), and a glitchy nav link. This is a significant feature requiring database tables, auth pages, and the main board UI.
+Add a heart-icon voting system for all "Coming Soon" items across three pages: **Tools** (6 items), **Resources** (2 items), and **Playbook** (attachments). Only logged-in users can vote; vote counts are visible to everyone.
 
-## Database (3 tables + RLS)
+## Database
 
-### `profiles` table
-- `id` (uuid, FK → auth.users, PK)
-- `display_name` (text, not null)
-- `created_at` (timestamptz)
-- Auto-created via trigger on signup
+### New table: `feature_votes`
+- `id` (uuid, PK, default gen_random_uuid())
+- `user_id` (uuid, FK → profiles, not null)
+- `feature_key` (text, not null) — unique identifier like `tool-05`, `resource-cv-analyser`, `playbook-att-LX-011-cv-screening`
+- `created_at` (timestamptz, default now())
+- Unique constraint on `(user_id, feature_key)` — one vote per user per feature
 
-### `bar_questions` table
-- `id` (uuid, PK), `user_id` (uuid, FK → profiles), `title`, `body`, `audience` (enum: student/firm/institution), `tags` (text[]), `votes` (int, default 0), `created_at`
-- RLS: anyone can SELECT; authenticated users can INSERT (own user_id); authors can UPDATE/DELETE
+### RLS policies
+- SELECT: anyone (public can see vote counts)
+- INSERT: authenticated, where `auth.uid() = user_id`
+- DELETE: authenticated, where `auth.uid() = user_id` (to un-vote)
 
-### `bar_answers` table
-- `id`, `question_id` (FK → bar_questions), `user_id` (FK → profiles), `body`, `votes` (int, default 0), `is_top` (bool, default false), `created_at`
-- RLS: same pattern as questions
+## New shared hook: `src/hooks/useFeatureVotes.ts`
+- Fetches all vote counts grouped by `feature_key` in one query
+- Fetches current user's votes (if logged in) to show filled hearts
+- Provides `toggleVote(featureKey)` — inserts or deletes vote; redirects to `/auth` if not logged in
+- Returns `{ voteCounts, userVotes, toggleVote, loading }`
 
-## Auth
+## Page changes
 
-### Create `src/pages/Auth.tsx`
-- Login / Signup toggle form using Supabase email auth
-- Email + password fields, error handling
-- Redirect to `/the-bar` after login
-- Route at `/auth`
+### `src/pages/Tools.tsx`
+- On each coming-soon card, add a heart icon + count in the bottom-right area (next to "Coming Soon" text)
+- Heart filled = user voted, outline = not voted
+- Clicking heart calls `toggleVote('tool-{num}')`
 
-### Create `src/pages/ResetPassword.tsx`
-- Password reset form at `/reset-password`
+### `src/pages/Resources.tsx`
+- On each coming-soon card, add heart + count below the "Coming Soon" button
+- Feature keys: `resource-cv-analyser`, `resource-book-session`
 
-## The Bar Page — `src/pages/TheBar.tsx`
-
-**Layout:** Sidebar (filters) + main feed, matching site's dark neobrutalist theme.
-
-- **Sidebar:** Audience filters (All, Students, Firms, Institutions) + topic tag cloud
-- **Main feed:** Search bar, sort tabs (Hot/New/Top), question cards with vote count, tags, answer count
-- **Detail view:** Full question, answers list with "Top Answer" badge, answer form (auth-gated)
-- **"Ask a Question" button:** Opens modal (auth-gated), posts to database
-- **Vote buttons:** Auth-gated, increment/decrement via Supabase
-
-## Navbar Changes — `src/components/Navbar.tsx`
-
-- Add `{ label: "The Bar", href: "/the-bar" }` to navLinks
-- Apply CSS glitch animation on "The Bar" link: `::before`/`::after` pseudo-elements with chromatic aberration (red/cyan offsets) and `clip-path` keyframe jitter on hover
-
-## Routing — `src/App.tsx`
-
-- Add routes: `/the-bar`, `/auth`, `/reset-password`
-- Auth and reset-password outside Layout wrapper (no navbar needed on those)
+### `src/pages/Playbook.tsx`
+- On coming-soon attachment rows, add heart + count next to the "Coming Soon" badge
+- Feature keys derived from case number + attachment label
 
 ## Files
 
 | Action | File |
 |--------|------|
-| Create | `src/pages/TheBar.tsx` |
-| Create | `src/pages/Auth.tsx` |
-| Create | `src/pages/ResetPassword.tsx` |
-| Edit   | `src/App.tsx` — add 3 routes |
-| Edit   | `src/components/Navbar.tsx` — add link + glitch CSS |
-| Migration | Create profiles, bar_questions, bar_answers tables with RLS + trigger |
+| Migration | Create `feature_votes` table with RLS |
+| Create | `src/hooks/useFeatureVotes.ts` |
+| Edit | `src/pages/Tools.tsx` — add heart to coming-soon cards |
+| Edit | `src/pages/Resources.tsx` — add heart to coming-soon cards |
+| Edit | `src/pages/Playbook.tsx` — add heart to coming-soon attachments |
 
