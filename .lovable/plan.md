@@ -1,48 +1,56 @@
 
 
-# Top Scrollable Nav Strip — But Make It Cool
+# Add Floating Bottom Dock (Mobile) — No Emojis, Lucide Icons Only
 
 ## Summary
 
-Replace the hamburger with an always-visible horizontal nav strip below the logo bar on mobile. But instead of boring plain text links, we'll make it **on-brand neobrutalist** with personality.
+Add a floating bottom dock on mobile with Lucide icons for thumb-friendly navigation. Complements the existing top scrollable strip. Zero emojis anywhere.
 
-## Design Details
-
-- **Each link is a mini pill/chip** with a thick neobrutalist border (`border-2 border-black dark:border-white`), small shadow (`shadow-[2px_2px_0_0_#000]`), rounded corners
-- **Active link**: filled accent/yellow background with dark text — pops immediately
-- **Inactive links**: transparent bg, muted text, on tap/hover they get a micro bounce
-- **Tools chip**: has the pulse dot inside the pill
-- **The Bar chip**: keeps glitch text effect
-- **Scroll behavior**: `overflow-x-auto`, hide scrollbar, horizontal snap — the strip is swipeable, with a subtle gradient fade on the right edge to hint "there's more"
-- **Sticky**: scrolls with the navbar, always accessible
-- **Spacing**: `gap-2 px-4 py-2`, compact but tactile
+## Design
 
 ```text
-┌──────────────────────────────────────┐
-│  Locus                          ☀️   │
-│──────────────────────────────────────│
-│  [Home] [Directory] [Playbook] [R→   │  ← neobrutalist pill chips
-└──────────────────────────────────────┘
+│         ... page content ...         │
+│                                      │
+│    ┌─────────────────────────────┐    │
+│    │  H   D   B   L   W   Wi    │    │  ← Lucide icons in a glass pill
+│    └─────────────────────────────┘    │
+│              (bottom)                │
 ```
 
-The chips give it a tactile, app-like, design-forward feel — not a boring nav bar.
+- **Shape**: Rounded-full pill, fixed ~20px from bottom, centered
+- **Background**: Glassmorphic — `bg-background/60 backdrop-blur-xl`, subtle border
+- **Shadow**: Soft ambient `shadow-xl shadow-black/20`
+- **Icons (Lucide only)**: `Home`, `Building2`, `BookOpen`, `Library`, `Wrench`, `Wine`
+- **Active**: Accent color + small dot indicator below icon
+- **Inactive**: Muted color, `active:scale-90` on tap
+- **Tools icon**: Tiny pulse dot overlay
+- **No labels**: Icons only, compact
+- **Entrance**: Slide-up animation on mount
+- **Visibility**: `md:hidden`
 
 ## Changes
 
-### `src/components/Navbar.tsx`
-- Remove `open` state, `Menu`/`X` imports, hamburger button, mobile dropdown
-- Add a `md:hidden` scrollable row inside the sticky `<nav>` after the logo bar
-- Each link rendered as a pill chip with neobrutalist styling
-- Active = accent bg + shadow; inactive = outlined
-- Right-edge fade gradient overlay to hint at scrollability
+### Create `src/components/MobileBottomDock.tsx`
+- 6 icon buttons mapped to nav routes
+- Active detection via `useLocation()`
+- Glassmorphic fixed-bottom pill container
+- Slide-up entrance animation
 
-### `src/index.css`
-- Add `.scrollbar-hide` utility (`::-webkit-scrollbar { display: none }`)
+### Edit `src/components/Layout.tsx`
+- Import and render `<MobileBottomDock />`
+
+### Edit `src/index.css`
+- Add `@keyframes slide-up-dock` animation
+
+### Update `.lovable/plan.md`
+- Remove emoji from ASCII diagram, update plan to include bottom dock
 
 ## Files
 
 | Action | File |
 |--------|------|
-| Edit | `src/components/Navbar.tsx` |
-| Edit | `src/index.css` |
+| Create | `src/components/MobileBottomDock.tsx` |
+| Edit   | `src/components/Layout.tsx` |
+| Edit   | `src/index.css` |
+| Edit   | `.lovable/plan.md` |
 
