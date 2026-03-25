@@ -10,6 +10,9 @@ import Directory from "./pages/Directory";
 import Resources from "./pages/Resources";
 import Playbook from "./pages/Playbook";
 import Tools from "./pages/Tools";
+import TheBar from "./pages/TheBar";
+import Auth from "./pages/Auth";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,7 +31,10 @@ const App = () => (
               <Route path="/playbook" element={<Playbook />} />
               <Route path="/resources" element={<Resources />} />
               <Route path="/tools" element={<Tools />} />
+              <Route path="/the-bar" element={<TheBar />} />
             </Route>
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
