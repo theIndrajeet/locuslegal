@@ -420,23 +420,20 @@ export default function TheBar() {
   };
 
   const deleteQuestion = async (id: string) => {
+    // Optimistic: remove from local state immediately
+    setQuestions((prev) => prev.filter((q) => q.id !== id));
+    setSelectedQuestion(null);
     const { error } = await supabase.from("bar_questions").delete().eq("id", id);
-    if (error) toast.error(error.message);
-    else {
-      toast.success("Question deleted");
-      setSelectedQuestion(null);
-      refreshQuestions();
-    }
+    if (error) { toast.error(error.message); refreshQuestions(); }
+    else toast.success("Question deleted");
   };
 
   const deleteAnswer = async (id: string) => {
+    // Optimistic: remove from local answers immediately
+    setAnswers((prev) => prev.filter((a) => a.id !== id));
     const { error } = await supabase.from("bar_answers").delete().eq("id", id);
-    if (error) toast.error(error.message);
-    else {
-      toast.success("Answer deleted");
-      if (selectedQuestion) fetchAnswers(selectedQuestion.id);
-      refreshQuestions();
-    }
+    if (error) { toast.error(error.message); if (selectedQuestion) fetchAnswers(selectedQuestion.id); }
+    else toast.success("Answer deleted");
   };
 
   const toggleCollapse = (id: string) => {
