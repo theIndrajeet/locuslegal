@@ -57,6 +57,23 @@ const AUDIENCE_LABELS: Record<string, string> = {
 
 const TAG_OPTIONS = ["Contract", "Litigation", "IP", "Employment", "Compliance", "Tax", "M&A", "Real Estate", "Criminal", "Family"];
 
+const TAG_COLORS = [
+  { text: "text-emerald-400", border: "border-emerald-400/30", bg: "bg-emerald-400/10" },
+  { text: "text-blue-400", border: "border-blue-400/30", bg: "bg-blue-400/10" },
+  { text: "text-purple-400", border: "border-purple-400/30", bg: "bg-purple-400/10" },
+  { text: "text-pink-400", border: "border-pink-400/30", bg: "bg-pink-400/10" },
+  { text: "text-orange-400", border: "border-orange-400/30", bg: "bg-orange-400/10" },
+  { text: "text-red-400", border: "border-red-400/30", bg: "bg-red-400/10" },
+  { text: "text-cyan-400", border: "border-cyan-400/30", bg: "bg-cyan-400/10" },
+  { text: "text-yellow-400", border: "border-yellow-400/30", bg: "bg-yellow-400/10" },
+];
+
+function getTagColor(tag: string) {
+  let hash = 0;
+  for (let i = 0; i < tag.length; i++) hash = tag.charCodeAt(i) + ((hash << 5) - hash);
+  return TAG_COLORS[Math.abs(hash) % TAG_COLORS.length];
+}
+
 function buildTree(answers: Answer[]): AnswerNode[] {
   const map = new Map<string, AnswerNode>();
   answers.forEach((a) => map.set(a.id, { ...a, children: [] }));
@@ -230,6 +247,7 @@ export default function TheBar() {
   const [replyBody, setReplyBody] = useState("");
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
   const [authReady, setAuthReady] = useState(false);
+  const [browseFilter, setBrowseFilter] = useState<"all" | "unanswered">("all");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -438,10 +456,14 @@ export default function TheBar() {
     if (audienceFilter !== "all" && q.audience !== audienceFilter) return false;
     if (tagFilter && !q.tags.includes(tagFilter)) return false;
     if (search && !q.title.toLowerCase().includes(search.toLowerCase())) return false;
+    if (browseFilter === "unanswered" && (q.answer_count ?? 0) > 0) return false;
     return true;
   });
 
   const allTags = Array.from(new Set(questions.flatMap((q) => q.tags)));
+  const unansweredCount = questions.filter((q) => (q.answer_count ?? 0) === 0).length;
+  const tagCounts: Record<string, number> = {};
+  questions.forEach((q) => q.tags?.forEach((t) => { tagCounts[t] = (tagCounts[t] || 0) + 1; }));
   const answerTree = buildTree(answers);
 
   // Detail view
@@ -605,40 +627,75 @@ export default function TheBar() {
         </div>
 
         <div className="flex flex-col md:flex-row gap-6">
-          <aside className="w-full md:w-56 shrink-0 space-y-6">
+          <aside className="w-full md:w-60 shrink-0 space-y-5">
+            {/* BROWSE */}
             <div>
-              <h3 className="text-xs font-bold uppercase text-muted-foreground mb-2 tracking-wider">Audience</h3>
-              <div className="space-y-1">
+              <h3 className="text-[10px] font-bold uppercase text-muted-foreground mb-2 tracking-widest">Browse</h3>
+              <div className="space-y-0.5">
+                <button
+                  onClick={() => setBrowseFilter("all")}
+                  className={`flex items-center justify-between w-full px-3 py-2 rounded-md text-sm transition-colors ${
+                    browseFilter === "all" ? "bg-accent text-accent-foreground font-semibold" : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                  }`}
+                >
+                  <span>All Questions</span>
+                  <span className={`text-xs px-1.5 py-0.5 rounded-full ${browseFilter === "all" ? "bg-accent-foreground/20" : "bg-muted"}`}>{questions.length}</span>
+                </button>
+                <button
+                  onClick={() => setBrowseFilter("unanswered")}
+                  className={`flex items-center justify-between w-full px-3 py-2 rounded-md text-sm transition-colors ${
+                    browseFilter === "unanswered" ? "bg-accent text-accent-foreground font-semibold" : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                  }`}
+                >
+                  <span>Unanswered</span>
+                  <span className={`text-xs px-1.5 py-0.5 rounded-full ${browseFilter === "unanswered" ? "bg-accent-foreground/20" : "bg-muted"}`}>{unansweredCount}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* TOPICS */}
+            {allTags.length > 0 && (
+              <div>
+                <h3 className="text-[10px] font-bold uppercase text-muted-foreground mb-2 tracking-widest">Topics</h3>
+                <div className="space-y-0.5">
+                  {allTags.map((t) => {
+                    const color = getTagColor(t);
+                    const isActive = tagFilter === t;
+                    return (
+                      <button
+                        key={t}
+                        onClick={() => setTagFilter(tagFilter === t ? null : t)}
+                        className={`flex items-center justify-between w-full px-3 py-1.5 rounded-md text-sm transition-colors ${
+                          isActive ? "bg-muted font-semibold" : "hover:bg-muted/50"
+                        }`}
+                      >
+                        <span className={color.text}>#{t}</span>
+                        <span className="text-xs text-muted-foreground">{tagCounts[t] || 0}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* AUDIENCE */}
+            <div>
+              <h3 className="text-[10px] font-bold uppercase text-muted-foreground mb-2 tracking-widest">Audience</h3>
+              <div className="space-y-0.5">
                 {Object.entries(AUDIENCE_LABELS).map(([k, v]) => (
                   <button
                     key={k}
                     onClick={() => setAudienceFilter(k)}
-                    className={`block w-full text-left px-3 py-1.5 rounded text-sm transition-colors ${
-                      audienceFilter === k ? "bg-accent text-accent-foreground font-medium" : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                    className={`block w-full text-left px-3 py-1.5 rounded-md text-sm transition-colors ${
+                      audienceFilter === k ? "bg-accent text-accent-foreground font-semibold" : "text-muted-foreground hover:text-foreground hover:bg-muted"
                     }`}
                   >
-                    {v}
+                    {k === "all" ? v : `For ${v}`}
                   </button>
                 ))}
               </div>
             </div>
-            {allTags.length > 0 && (
-              <div>
-                <h3 className="text-xs font-bold uppercase text-muted-foreground mb-2 tracking-wider">Tags</h3>
-                <div className="flex flex-wrap gap-1.5">
-                  {allTags.map((t) => (
-                    <Badge
-                      key={t}
-                      variant={tagFilter === t ? "default" : "outline"}
-                      className="cursor-pointer text-xs"
-                      onClick={() => setTagFilter(tagFilter === t ? null : t)}
-                    >
-                      {t}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
+
             {user && (
               <div className="pt-4 border-t border-border">
                 <p className="text-xs text-muted-foreground">
@@ -701,13 +758,26 @@ export default function TheBar() {
                           <h3 className="font-semibold text-foreground group-hover:text-accent transition-colors text-sm line-clamp-2">
                             {q.title}
                           </h3>
-                          <div className="flex flex-wrap items-center gap-2 mt-2">
+                          <div className="flex items-center gap-1.5 mt-1 text-xs text-muted-foreground">
+                            <User size={10} />
+                            <span className="font-medium text-foreground">{q.profiles?.display_name || "Anon"}</span>
+                            <span>· {timeAgo(q.created_at)}</span>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-1.5 mt-2">
                             <Badge variant="outline" className="text-[10px]">{AUDIENCE_LABELS[q.audience]}</Badge>
-                            {q.tags.slice(0, 3).map((t) => <Badge key={t} variant="secondary" className="text-[10px]">{t}</Badge>)}
-                            <span className="text-xs text-muted-foreground ml-auto flex items-center gap-1">
-                              <MessageSquare size={12} /> {q.answer_count}
+                            {q.tags.slice(0, 3).map((t) => {
+                              const color = getTagColor(t);
+                              return (
+                                <span key={t} className={`text-[10px] px-1.5 py-0.5 rounded-full border ${color.text} ${color.border} ${color.bg}`}>
+                                  #{t}
+                                </span>
+                              );
+                            })}
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-full ml-auto flex items-center gap-1 ${
+                              (q.answer_count ?? 0) > 0 ? "text-emerald-400 bg-emerald-400/10" : "text-muted-foreground bg-muted"
+                            }`}>
+                              <MessageSquare size={10} /> {q.answer_count} {(q.answer_count ?? 0) === 1 ? "answer" : "answers"}
                             </span>
-                            <span className="text-xs text-muted-foreground">{timeAgo(q.created_at)}</span>
                           </div>
                         </div>
                       </div>
