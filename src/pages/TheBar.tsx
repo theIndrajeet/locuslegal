@@ -365,7 +365,7 @@ export default function TheBar() {
     else {
       toast.success("Question posted!");
       setAskOpen(false); setNewTitle(""); setNewBody(""); setNewTags([]);
-      fetchQuestions();
+      refreshQuestions();
     }
     setLoading(false);
   };
@@ -379,7 +379,7 @@ export default function TheBar() {
     if (error) toast.error(error.message);
     else {
       toast.success("Answer posted!"); setAnswerBody("");
-      fetchAnswers(selectedQuestion.id); fetchQuestions();
+      fetchAnswers(selectedQuestion.id); refreshQuestions();
     }
     setLoading(false);
   };
@@ -393,7 +393,7 @@ export default function TheBar() {
     if (error) toast.error(error.message);
     else {
       toast.success("Reply posted!"); setReplyBody(""); setReplyingTo(null);
-      fetchAnswers(selectedQuestion.id); fetchQuestions();
+      fetchAnswers(selectedQuestion.id); refreshQuestions();
     }
     setLoading(false);
   };
@@ -401,7 +401,7 @@ export default function TheBar() {
   const vote = async (table: "bar_questions" | "bar_answers", id: string, current: number) => {
     requireAuth(async () => {
       await supabase.from(table).update({ votes: current + 1 }).eq("id", id);
-      if (table === "bar_questions") fetchQuestions();
+      if (table === "bar_questions") refreshQuestions();
       else if (selectedQuestion) fetchAnswers(selectedQuestion.id);
     });
   };
@@ -412,7 +412,7 @@ export default function TheBar() {
     else {
       toast.success("Question deleted");
       setSelectedQuestion(null);
-      fetchQuestions();
+      refreshQuestions();
     }
   };
 
@@ -422,7 +422,7 @@ export default function TheBar() {
     else {
       toast.success("Answer deleted");
       if (selectedQuestion) fetchAnswers(selectedQuestion.id);
-      fetchQuestions();
+      refreshQuestions();
     }
   };
 
