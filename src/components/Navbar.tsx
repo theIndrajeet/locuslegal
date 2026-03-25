@@ -28,11 +28,11 @@ export default function Navbar() {
   const renderChip = (l: typeof navLinks[number]) => {
     const active = isActive(l.href);
     const base =
-      "relative whitespace-nowrap rounded-lg border-2 border-foreground px-3 py-1 text-xs font-bold tracking-wide uppercase transition-all duration-200 snap-center shrink-0";
+      "relative whitespace-nowrap rounded-full border border-border/60 px-3.5 py-1 text-[11px] font-semibold tracking-wide transition-all duration-200 snap-center shrink-0";
     const activeClass =
-      "bg-accent text-accent-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))]";
+      "bg-accent text-accent-foreground border-accent shadow-[0_0_12px_hsl(var(--accent)/0.35)]";
     const inactiveClass =
-      "bg-transparent text-muted-foreground hover:text-foreground active:scale-95 shadow-[2px_2px_0_0_hsl(var(--foreground))]";
+      "bg-muted/30 text-muted-foreground hover:text-foreground hover:bg-muted/60 active:scale-95";
 
     return (
       <Link
