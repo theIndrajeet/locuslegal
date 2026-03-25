@@ -751,7 +751,13 @@ export default function TheBar() {
                   Signed in as <span className="text-foreground font-medium">{user.email}</span>
                 </p>
                 <button
-                  onClick={async () => { await supabase.auth.signOut(); toast.success("Signed out"); }}
+                  onClick={async () => {
+                    await supabase.auth.signOut();
+                    setUser(null);
+                    setIsAdmin(false);
+                    toast.success("Signed out");
+                    navigate("/");
+                  }}
                   className="text-xs text-accent hover:underline mt-1"
                 >
                   Sign out
