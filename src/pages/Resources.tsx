@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { FileText, Download, ScanSearch, CalendarCheck, Eye } from "lucide-react";
+import { useFeatureVotes } from "@/hooks/useFeatureVotes";
+import { FeatureVoteButton } from "@/components/FeatureVoteButton";
 import {
   Dialog,
   DialogContent,
@@ -127,6 +129,7 @@ const resources = [
 
 export default function Resources() {
   const [previewResource, setPreviewResource] = useState<string | null>(null);
+  const { voteCounts, hasVoted, toggleVote } = useFeatureVotes();
   const activeResource = resources.find((r) => r.hasPreview && r.previewKey === previewResource);
 
   return (
@@ -187,12 +190,22 @@ export default function Resources() {
                     </button>
                   </div>
                 ) : (
-                  <button
-                    disabled={r.comingSoon}
-                    className="text-sm font-semibold px-5 py-2.5 rounded-lg bg-accent text-accent-foreground hover:brightness-110 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    {r.action}
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <button
+                      disabled={r.comingSoon}
+                      className="text-sm font-semibold px-5 py-2.5 rounded-lg bg-accent text-accent-foreground hover:brightness-110 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      {r.action}
+                    </button>
+                    {r.comingSoon && (
+                      <FeatureVoteButton
+                        featureKey={`resource-${r.title.toLowerCase().replace(/\s+/g, '-')}`}
+                        count={voteCounts[`resource-${r.title.toLowerCase().replace(/\s+/g, '-')}`] || 0}
+                        voted={hasVoted(`resource-${r.title.toLowerCase().replace(/\s+/g, '-')}`)}
+                        onToggle={toggleVote}
+                      />
+                    )}
+                  </div>
                 )}
               </div>
             );
