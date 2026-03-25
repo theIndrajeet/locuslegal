@@ -675,7 +675,11 @@ export default function TheBar() {
               </div>
             </div>
 
-            {filtered.length === 0 ? (
+            {!questionsLoaded ? (
+              <div className="text-center py-16 text-muted-foreground">
+                <p className="text-sm">Loading questions...</p>
+              </div>
+            ) : filtered.length === 0 ? (
               <div className="text-center py-16 text-muted-foreground">
                 <MessageSquare size={32} className="mx-auto mb-3 opacity-50" />
                 <p className="text-sm">No questions yet. Be the first to ask!</p>
