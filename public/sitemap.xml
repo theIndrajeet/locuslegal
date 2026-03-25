@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://locus.legal/</loc><priority>1.0</priority></url>
+  <url><loc>https://locus.legal/directory</loc><priority>0.8</priority></url>
+  <url><loc>https://locus.legal/playbook</loc><priority>0.8</priority></url>
+  <url><loc>https://locus.legal/resources</loc><priority>0.7</priority></url>
+  <url><loc>https://locus.legal/tools</loc><priority>0.7</priority></url>
+  <url><loc>https://locus.legal/the-bar</loc><priority>0.7</priority></url>
+</urlset>
