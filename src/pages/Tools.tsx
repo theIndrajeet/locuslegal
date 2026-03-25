@@ -1,6 +1,8 @@
 import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useFeatureVotes } from "@/hooks/useFeatureVotes";
+import { FeatureVoteButton } from "@/components/FeatureVoteButton";
 
 type ToolType = "nda" | "checklist" | "dpa" | "internship";
 
@@ -138,6 +140,7 @@ export default function Tools() {
   const [selectedTool, setSelectedTool] = useState<ToolType | null>(null);
   const [activeTool, setActiveTool] = useState<ToolType>("nda");
   const [activeCategory, setActiveCategory] = useState<CategoryType>("All");
+  const { voteCounts, hasVoted, toggleVote } = useFeatureVotes();
   const [loading, setLoading] = useState<Record<ToolType, boolean>>({ nda: false, checklist: false, dpa: false, internship: false });
   const [outputs, setOutputs] = useState<Record<ToolType, string>>({ nda: "", checklist: "", dpa: "", internship: "" });
   const [rawText, setRawText] = useState<Record<ToolType, string>>({ nda: "", checklist: "", dpa: "", internship: "" });
@@ -533,7 +536,17 @@ Include sections: Parties, Recitals, Term of Internship, Scope of Work, Supervis
                       <span key={tag} className="lt-cat-tag">{tag}</span>
                     ))}
                   </div>
-                  <div className="lt-cat-arrow">{tool.comingSoon ? "Coming Soon" : "Open Tool →"}</div>
+                  <div className="lt-cat-arrow" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                    <span>{tool.comingSoon ? "Coming Soon" : "Open Tool →"}</span>
+                    {tool.comingSoon && (
+                      <FeatureVoteButton
+                        featureKey={`tool-${tool.num}`}
+                        count={voteCounts[`tool-${tool.num}`] || 0}
+                        voted={hasVoted(`tool-${tool.num}`)}
+                        onToggle={toggleVote}
+                      />
+                    )}
+                  </div>
                 </div>
               ))}
             </div>

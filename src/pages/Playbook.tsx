@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { ArrowLeft, BookOpen, Download, Clock, Users, Layers } from "lucide-react";
+import { useFeatureVotes } from "@/hooks/useFeatureVotes";
+import { FeatureVoteButton } from "@/components/FeatureVoteButton";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
@@ -327,6 +329,7 @@ export default function Playbook() {
 
 function GuideDetail({ guide }: { guide: Guide }) {
   const [previewOpen, setPreviewOpen] = useState(false);
+  const { voteCounts, hasVoted, toggleVote } = useFeatureVotes();
   const hasPreview = !!guide.pdfHref;
 
   return (
@@ -439,8 +442,16 @@ function GuideDetail({ guide }: { guide: Guide }) {
                 >
                   <Download size={16} className="text-muted-foreground shrink-0" />
                   <span className="text-sm font-medium text-muted-foreground">{att.label}</span>
-                  <span className="ml-auto text-[10px] font-bold uppercase tracking-wider bg-accent/10 text-accent px-2 py-0.5 rounded-full">
-                    Coming Soon
+                  <span className="ml-auto flex items-center gap-2">
+                    <FeatureVoteButton
+                      featureKey={`playbook-${guide.caseNumber}-${att.label.toLowerCase().replace(/\s+/g, '-')}`}
+                      count={voteCounts[`playbook-${guide.caseNumber}-${att.label.toLowerCase().replace(/\s+/g, '-')}`] || 0}
+                      voted={hasVoted(`playbook-${guide.caseNumber}-${att.label.toLowerCase().replace(/\s+/g, '-')}`)}
+                      onToggle={toggleVote}
+                    />
+                    <span className="text-[10px] font-bold uppercase tracking-wider bg-accent/10 text-accent px-2 py-0.5 rounded-full">
+                      Coming Soon
+                    </span>
                   </span>
                 </div>
               ) : (
