@@ -1,34 +1,58 @@
 
 
-# Fix The Bar: Silent Query Failures
+# Fix: Questions Not Rendering Despite Successful Fetch
 
 ## Root Cause
-`fetchQuestions` and `fetchAnswers` fail silently -- errors are only logged to `console.error` with no user feedback. When the join query `.select("*, profiles(display_name)")` encounters any issue, the entire feed breaks with zero indication to the user.
+Network logs confirm the API returns 3 questions with status 200. The published site renders them correctly. The preview doesn't — meaning the data is fetched but lost before rendering. This is likely caused by a React state race condition: the auth `useEffect` triggers `setUser`/`setAuthReady` state updates which cause re-renders, and combined with `useCallback`/`useEffect` chaining for `fetchQuestions`, the questions state may be getting reset.
 
-## Changes
+## Fix (in `src/pages/TheBar.tsx`)
 
-### Edit `src/pages/TheBar.tsx`
+**1. Add console.log debugging to isolate the exact failure point:**
+- Log inside `fetchQuestions` after data arrives and after `setQuestions`
+- Log `filtered.length` before rendering
+- Log any caught errors with full details
 
-**1. Add error toasts to `fetchQuestions`:**
-- Replace `console.error(error); return;` with `toast.error("Failed to load questions"); return;`
-- Add a try/catch wrapper around the entire function
+**2. Simplify fetchQuestions to remove potential race condition:**
+- Remove `useCallback` wrapper — use a plain `async function` inside `useEffect` directly
+- This eliminates the stale closure / reference identity issues
 
-**2. Add error toasts to `fetchAnswers`:**
-- Add error handling that shows a toast instead of silently failing
+**3. Add a `questionsLoaded` state for better rendering logic:**
+- Track whether fetch has completed (separate from empty results)
+- Show a loading spinner while fetching, "No questions yet" only after confirmed empty results
 
-**3. Make the join query more resilient:**
-- Wrap the `profiles(display_name)` join in error handling -- if it fails, fall back to querying without the join and display "Anon" for all authors
-- Add `.throwOnError()` to Supabase queries so errors are properly surfaced
+### Code changes:
 
-**4. Fix the "Post Question" feedback loop:**
-- After `submitQuestion` succeeds and `fetchQuestions` is called, add a toast or loading state so the user knows the post went through even if the refetch fails
-- Show a loading spinner on the "Post Question" button while submitting
+Replace the current `useCallback` + `useEffect` pattern:
+```tsx
+// BEFORE (current)
+const fetchQuestions = useCallback(async () => { ... }, [sort]);
+useEffect(() => { fetchQuestions(); }, [fetchQuestions]);
+```
 
-**5. Add error toast to `submitAnswer` and `submitReply`:**
-- Ensure every database call has visible error feedback
+With a direct `useEffect`:
+```tsx
+// AFTER
+useEffect(() => {
+  let cancelled = false;
+  const fetchQuestions = async () => {
+    try {
+      // ... same query logic ...
+      if (!cancelled) {
+        setQuestions(mapped);
+      }
+    } catch { if (!cancelled) toast.error("Failed to load questions"); }
+  };
+  fetchQuestions();
+  return () => { cancelled = true; };
+}, [sort]);
+```
+
+This prevents stale updates if the effect re-runs before the previous fetch completes.
+
+**4. Keep `fetchQuestions` as a separate callable function for post-submit refreshes** (called after posting a question), but make the initial load use the `useEffect` pattern above.
 
 ## Files
 | Action | File |
 |--------|------|
-| Edit | `src/pages/TheBar.tsx` -- add error toasts, resilient queries, loading feedback |
+| Edit | `src/pages/TheBar.tsx` — fix race condition, add cancellation, add debug logging |
 
