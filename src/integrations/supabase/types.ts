@@ -71,6 +71,7 @@ export type Database = {
       }
       bar_questions: {
         Row: {
+          answer_count: number
           audience: Database["public"]["Enums"]["bar_audience"]
           body: string
           created_at: string
@@ -81,6 +82,7 @@ export type Database = {
           votes: number
         }
         Insert: {
+          answer_count?: number
           audience?: Database["public"]["Enums"]["bar_audience"]
           body: string
           created_at?: string
@@ -91,6 +93,7 @@ export type Database = {
           votes?: number
         }
         Update: {
+          answer_count?: number
           audience?: Database["public"]["Enums"]["bar_audience"]
           body?: string
           created_at?: string
