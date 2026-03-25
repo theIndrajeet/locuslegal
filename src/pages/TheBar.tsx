@@ -105,13 +105,14 @@ function timeAgo(d: string) {
 
 // --- AnswerThread component ---
 function AnswerThread({
-  node, depth, opUserId, user, collapsedIds, toggleCollapse, replyingTo, setReplyingTo,
+  node, depth, opUserId, user, isAdmin, collapsedIds, toggleCollapse, replyingTo, setReplyingTo,
   replyBody, setReplyBody, onSubmitReply, onVote, onDelete, loading,
 }: {
   node: AnswerNode;
   depth: number;
   opUserId: string;
   user: SupaUser | null;
+  isAdmin: boolean;
   collapsedIds: Set<string>;
   toggleCollapse: (id: string) => void;
   replyingTo: string | null;
@@ -126,7 +127,7 @@ function AnswerThread({
   const isCollapsed = collapsedIds.has(node.id);
   const hasChildren = node.children.length > 0;
   const isOP = node.user_id === opUserId;
-  const isOwner = user?.id === node.user_id;
+  const canDelete = user?.id === node.user_id || isAdmin;
   const effectiveDepth = Math.min(depth, 5);
 
   return (
