@@ -14,7 +14,110 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      bar_answers: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          is_top: boolean
+          question_id: string
+          user_id: string
+          votes: number
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          is_top?: boolean
+          question_id: string
+          user_id: string
+          votes?: number
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          is_top?: boolean
+          question_id?: string
+          user_id?: string
+          votes?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bar_answers_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "bar_questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bar_answers_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bar_questions: {
+        Row: {
+          audience: Database["public"]["Enums"]["bar_audience"]
+          body: string
+          created_at: string
+          id: string
+          tags: string[]
+          title: string
+          user_id: string
+          votes: number
+        }
+        Insert: {
+          audience?: Database["public"]["Enums"]["bar_audience"]
+          body: string
+          created_at?: string
+          id?: string
+          tags?: string[]
+          title: string
+          user_id: string
+          votes?: number
+        }
+        Update: {
+          audience?: Database["public"]["Enums"]["bar_audience"]
+          body?: string
+          created_at?: string
+          id?: string
+          tags?: string[]
+          title?: string
+          user_id?: string
+          votes?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bar_questions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +126,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      bar_audience: "student" | "firm" | "institution"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +253,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      bar_audience: ["student", "firm", "institution"],
+    },
   },
 } as const
