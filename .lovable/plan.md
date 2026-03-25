@@ -1,41 +1,69 @@
 
 
-# SEO, Meta Tags, and Favicon Overhaul
+# Add Google + Apple Sign-In with Username Selection
 
 ## Summary
 
-Complete SEO and branding update: generate an SVG favicon with the Locus brand mark, add all missing meta tags (canonical, sitemap, structured data, theme-color), and clean up existing OG/Twitter tags.
+Add Google and Apple OAuth buttons to the auth page. After first OAuth sign-in, if the user has no username yet, redirect them to a "Choose your username" screen before they can proceed.
+
+## Flow
+
+```text
+Auth Page
+  ├── Email/password (existing)
+  ├── "Continue with Google" button
+  └── "Continue with Apple" button
+         │
+         ▼
+  OAuth callback → check profiles table
+         │
+    has display_name? ──yes──→ redirect to /the-bar
+         │
+        no
+         │
+         ▼
+  /choose-username page
+    → user picks a username
+    → upsert into profiles
+    → redirect to /the-bar
+```
 
 ## Changes
 
-### Create `public/favicon.svg`
-- SVG favicon: a bold "L" lettermark in the accent color on a dark rounded-square background
-- Matches the Locus brand identity
+### 1. Configure Social Auth (tool call)
+- Use the Configure Social Login tool to generate the `lovable` auth module for Google and Apple providers
 
-### Edit `index.html`
-- Replace `favicon.ico` reference with `favicon.svg`
-- Add `<link rel="icon">` and `<link rel="apple-touch-icon">` pointing to the SVG
-- Add `<meta name="theme-color" content="#1a1a2e">` (dark theme) for browser chrome styling
-- Add `<link rel="canonical" href="https://locus.legal/">` 
-- Add `<meta property="og:url" content="https://locus.legal/">`
-- Add `<meta property="og:site_name" content="Locus">`
-- Add `<meta name="robots" content="index, follow">`
-- Add structured data (`application/ld+json`) for Organization schema with name, url, description
-- Keep existing OG/Twitter title, description, and image tags (they're good)
+### 2. Edit `src/pages/Auth.tsx`
+- Add "Continue with Google" and "Continue with Apple" buttons below the email form
+- Use `lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin })` and same for `"apple"`
+- Visual separator ("or") between email form and social buttons
 
-### Create `public/sitemap.xml`
-- List all public routes: `/`, `/directory`, `/playbook`, `/resources`, `/tools`, `/the-bar`
-- Reference `https://locus.legal` as the base URL
+### 3. Create `src/pages/ChooseUsername.tsx`
+- Simple page with a single input for username (no spaces, required)
+- On submit: update the user's `profiles` row with `display_name`
+- Redirect to `/the-bar` on success
+- If user already has a display_name, redirect immediately
 
-### Edit `public/robots.txt`
-- Add `Sitemap: https://locus.legal/sitemap.xml` line
+### 4. Edit `src/App.tsx`
+- Add route `/choose-username` pointing to `ChooseUsername`
+
+### 5. Update `handle_new_user` trigger function (migration)
+- For OAuth users, Google/Apple won't pass `display_name` in metadata
+- Set a sentinel default (e.g., empty string or null) so we can detect "needs username"
+- Make `display_name` nullable or default to empty string for OAuth users
+
+### 6. Create auth listener for username check
+- In `Layout.tsx` or a shared auth context, after login detect if `profiles.display_name` is empty
+- If so, redirect to `/choose-username`
 
 ## Files
 
 | Action | File |
 |--------|------|
-| Create | `public/favicon.svg` |
-| Create | `public/sitemap.xml` |
-| Edit   | `index.html` |
-| Edit   | `public/robots.txt` |
+| Tool   | Configure Social Login (Google + Apple) |
+| Migration | Update `handle_new_user` to handle OAuth users without display_name |
+| Edit   | `src/pages/Auth.tsx` |
+| Create | `src/pages/ChooseUsername.tsx` |
+| Edit   | `src/App.tsx` |
+| Edit   | `src/components/Layout.tsx` (or create auth context) |
 
