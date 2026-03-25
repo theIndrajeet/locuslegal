@@ -9,9 +9,9 @@ import { Link } from "react-router-dom";
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [displayName, setDisplayName] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -21,16 +21,31 @@ export default function Auth() {
 
     try {
       if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        // Resolve email from username via DB function
+        const { data: resolvedEmail, error: rpcError } = await supabase.rpc(
+          "get_email_by_username",
+          { p_username: username.trim() }
+        );
+        if (rpcError) throw rpcError;
+        if (!resolvedEmail) {
+          throw new Error("Username not found");
+        }
+        const { error } = await supabase.auth.signInWithPassword({
+          email: resolvedEmail,
+          password,
+        });
         if (error) throw error;
         toast.success("Welcome back!");
         navigate("/the-bar");
       } else {
+        if (!username.trim() || /\s/.test(username)) {
+          throw new Error("Username is required and cannot contain spaces");
+        }
         const { error } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            data: { display_name: displayName || email.split("@")[0] },
+            data: { display_name: username.trim() },
             emailRedirectTo: window.location.origin,
           },
         });
@@ -46,7 +61,7 @@ export default function Auth() {
 
   const handleForgotPassword = async () => {
     if (!email) {
-      toast.error("Enter your email first");
+      toast.error("Enter your email in the signup form to reset your password");
       return;
     }
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -69,35 +84,43 @@ export default function Auth() {
             {isLogin ? "Sign in to The Bar" : "Join The Bar"}
           </h1>
           <p className="text-muted-foreground mt-2 text-sm">
-            {isLogin ? "Welcome back, counselor." : "Create an account to ask & answer questions."}
+            {isLogin
+              ? "Welcome back, counselor."
+              : "Create an account to ask & answer questions."}
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Username — shown in both login and signup */}
+          <div>
+            <Label htmlFor="username">Username</Label>
+            <Input
+              id="username"
+              type="text"
+              required
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder={isLogin ? "Your username" : "Choose a username (no spaces)"}
+              className="mt-1"
+            />
+          </div>
+
+          {/* Email — signup only */}
           {!isLogin && (
             <div>
-              <Label htmlFor="displayName">Display Name</Label>
+              <Label htmlFor="email">Email</Label>
               <Input
-                id="displayName"
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                placeholder="How others will see you"
+                id="email"
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
                 className="mt-1"
               />
             </div>
           )}
-          <div>
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              className="mt-1"
-            />
-          </div>
+
           <div>
             <Label htmlFor="password">Password</Label>
             <Input
@@ -112,7 +135,7 @@ export default function Auth() {
             />
           </div>
 
-          {isLogin && (
+          {!isLogin && (
             <button
               type="button"
               onClick={handleForgotPassword}

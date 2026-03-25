@@ -152,7 +152,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_email_by_username: { Args: { p_username: string }; Returns: string }
     }
     Enums: {
       bar_audience: "student" | "firm" | "institution"
