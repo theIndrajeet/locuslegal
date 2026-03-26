@@ -21,7 +21,7 @@ export default function Footer() {
 
       {/* Founder note */}
       <div className="py-6 text-center italic text-sm text-muted-foreground">
-        Built by <span className="text-accent font-semibold not-italic">your senior</span> — a law grad, frustrated with how internships work in India. 👋
+        Built by <span className="text-accent font-semibold not-italic">your senior</span> — a law grad, frustrated with how internships work in India.
       </div>
 
       {/* Branding */}
