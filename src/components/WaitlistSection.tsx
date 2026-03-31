@@ -27,31 +27,50 @@ export default function WaitlistSection() {
   const [firmForm, setFirmForm] = useState({ email: "", firmName: "", city: "", practiceArea: "" });
   const [uniForm, setUniForm] = useState({ email: "", institutionName: "", city: "", type: "" });
 
-  const handleStudent = (e: FormEvent) => {
-    e.preventDefault();
-    const existing = JSON.parse(localStorage.getItem("locus_students") || "[]");
-    existing.push({ ...studentForm, submittedAt: new Date().toISOString() });
-    localStorage.setItem("locus_students", JSON.stringify(existing));
-    setStudentForm({ email: "", year: "", city: "", school: "" });
-    toast({ title: "You're on the list! 🎉", description: "We'll reach out when we launch." });
+  const [loading, setLoading] = useState(false);
+
+  const submitToDb = async (type: string, email: string, data: Record<string, string>) => {
+    setLoading(true);
+    const { error } = await supabase.from("waitlist_submissions" as any).insert({ type, email, data });
+    setLoading(false);
+    if (error) {
+      toast({ title: "Something went wrong", description: "Please try again.", variant: "destructive" });
+      return false;
+    }
+    return true;
   };
 
-  const handleFirm = (e: FormEvent) => {
+  const handleStudent = async (e: FormEvent) => {
     e.preventDefault();
-    const existing = JSON.parse(localStorage.getItem("locus_firms") || "[]");
-    existing.push({ ...firmForm, submittedAt: new Date().toISOString() });
-    localStorage.setItem("locus_firms", JSON.stringify(existing));
-    setFirmForm({ email: "", firmName: "", city: "", practiceArea: "" });
-    toast({ title: "You're on the list! 🎉", description: "We'll connect you with top candidates soon." });
+    const ok = await submitToDb("student", studentForm.email, {
+      year: studentForm.year, school: studentForm.school, city: studentForm.city,
+    });
+    if (ok) {
+      setStudentForm({ email: "", year: "", city: "", school: "" });
+      toast({ title: "You're on the list! 🎉", description: "We'll reach out when we launch." });
+    }
   };
 
-  const handleUni = (e: FormEvent) => {
+  const handleFirm = async (e: FormEvent) => {
     e.preventDefault();
-    const existing = JSON.parse(localStorage.getItem("locus_universities") || "[]");
-    existing.push({ ...uniForm, submittedAt: new Date().toISOString() });
-    localStorage.setItem("locus_universities", JSON.stringify(existing));
-    setUniForm({ email: "", institutionName: "", city: "", type: "" });
-    toast({ title: "You're on the list! 🎉", description: "We'll reach out about partnership options." });
+    const ok = await submitToDb("firm", firmForm.email, {
+      firmName: firmForm.firmName, city: firmForm.city, practiceArea: firmForm.practiceArea,
+    });
+    if (ok) {
+      setFirmForm({ email: "", firmName: "", city: "", practiceArea: "" });
+      toast({ title: "You're on the list! 🎉", description: "We'll connect you with top candidates soon." });
+    }
+  };
+
+  const handleUni = async (e: FormEvent) => {
+    e.preventDefault();
+    const ok = await submitToDb("institution", uniForm.email, {
+      institutionName: uniForm.institutionName, city: uniForm.city, type: uniForm.type,
+    });
+    if (ok) {
+      setUniForm({ email: "", institutionName: "", city: "", type: "" });
+      toast({ title: "You're on the list! 🎉", description: "We'll reach out about partnership options." });
+    }
   };
 
   const inputClass =
