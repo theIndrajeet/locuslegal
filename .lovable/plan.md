@@ -1,18 +1,17 @@
 
 
-## Plan: Auto-hide Mobile Dock on Scroll Idle
+## Plan: Softer Mobile Dock Animation
 
-### What
-Make the mobile bottom dock visible only while the user is actively scrolling. When scrolling stops, the dock fades out after a short delay (~1.5s). This keeps the view clean when reading static content.
+### Problem
+The dock vanishes abruptly — `duration-300` is too fast, `translate-y-24` is too dramatic, and `opacity-0` makes it fully disappear.
 
-### How
+### Changes (single file: `src/components/MobileBottomDock.tsx`)
 
-**File: `src/components/MobileBottomDock.tsx`**
-- Add `useState` for a `visible` boolean (default `false`)
-- Add `useEffect` with a `scroll` event listener on `window`
-- On scroll: set `visible = true`, clear any existing timeout, set a new ~1.5s timeout to set `visible = false`
-- Apply conditional classes: when not visible, translate the dock downward (`translate-y-24`) and reduce opacity to 0; when visible, restore position with a smooth transition
-- Use `transition-all duration-300` for smooth show/hide animation
+1. **Slower, gentler transition**: Change `duration-300` → `duration-700` with `ease-in-out` for a smooth fade
+2. **Subtle slide**: Replace `translate-y-24` → `translate-y-4` so it barely drifts down instead of flying off-screen
+3. **Partial fade**: Change `opacity-0` → `opacity-0` but with the slower duration it will feel much more natural
+4. **Longer idle timeout**: Increase from `1500ms` → `2500ms` so the dock lingers a bit longer after scrolling stops
+5. **Show on first touch too**: Also listen for `touchstart` so tapping the screen area briefly reveals the dock
 
-Single file change, ~15 lines added.
+The result: the dock gently fades and slides down ~16px over 700ms instead of snapping away. It stays visible 2.5s after scroll stops.
 
