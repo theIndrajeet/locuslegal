@@ -13,6 +13,21 @@ const NAV_ITEMS = [
 
 export default function MobileBottomDock() {
   const { pathname } = useLocation();
+  const [visible, setVisible] = useState(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout>>(null);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setVisible(true);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      timeoutRef.current = setTimeout(() => setVisible(false), 1500);
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
 
   return (
     <nav className="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 md:hidden animate-slide-up-dock">
