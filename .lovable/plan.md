@@ -1,33 +1,17 @@
 
 
-## Plan: Add Mobile Number (Phone/SMS) Login
+## Fix: "Signups not allowed for this instance" for Phone Login
 
-### Overview
-Add a phone number login option to the Auth page. Users enter their phone number, receive an OTP via SMS, and verify it to sign in.
+### Root Cause
+The Phone provider is correctly enabled, but the **global signup toggle** is turned off. This blocks all new user creation including via phone OTP. The auth logs confirm: `error_code: "signup_disabled"` on `/otp`.
 
-### Prerequisites (Manual Step)
-You need to enable Phone (SMS) authentication in your Cloud settings. Since you're already viewing the Auth settings section:
-- Go to **Users > Auth Settings (gear icon) > Sign in methods**
-- Enable **Phone (SMS)** authentication
+### Fix (Manual — No Code Changes Needed)
+In your Cloud settings:
+1. Go to **Cloud → Users → Auth Settings (gear icon)**
+2. Look for a **general setting** called **"Allow new users to sign up"** (this is separate from the Phone provider toggle)
+3. **Enable it**
 
-Once enabled, confirm here and I'll implement the UI.
+This is the master switch that controls whether any new accounts can be created across all providers (email, phone, Google, Apple). With it off, only existing users can sign in.
 
-### Code Changes
-
-**File: `src/pages/Auth.tsx`**
-- Add a "Continue with Phone" button in the social login section (or as a tab/toggle)
-- Add phone login state: `phone`, `otp`, `otpSent`
-- Implement two-step flow:
-  1. **Send OTP**: Call `supabase.auth.signInWithOtp({ phone })` — sends SMS code
-  2. **Verify OTP**: Show OTP input, call `supabase.auth.verifyOtp({ phone, token, type: 'sms' })` — signs user in
-- On successful verification, check if user has a display name; if not, redirect to `/choose-username` (same flow as social login)
-- Phone input uses E.164 format with a placeholder like `+1234567890`
-
-### UI Layout
-The phone login will appear as a third social-style button ("Continue with Phone") above the separator. Clicking it swaps the form to a phone number input + "Send Code" button, then an OTP input + "Verify" button.
-
-### Technical Details
-- Uses `supabase.auth.signInWithOtp()` (not the lovable OAuth wrapper, since phone is handled directly by the auth client)
-- No database changes needed — phone auth creates users in the auth system automatically
-- The existing `handle_new_user` trigger will create a profile row for phone-based signups
+Once enabled, phone OTP login will work immediately — no code changes are required.
 
