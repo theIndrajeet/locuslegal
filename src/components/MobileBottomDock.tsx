@@ -20,17 +20,19 @@ export default function MobileBottomDock() {
     const handleScroll = () => {
       setVisible(true);
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      timeoutRef.current = setTimeout(() => setVisible(false), 1500);
+      timeoutRef.current = setTimeout(() => setVisible(false), 2500);
     };
     window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("touchstart", handleScroll, { passive: true });
     return () => {
       window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("touchstart", handleScroll);
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
   }, []);
 
   return (
-    <nav className={`fixed bottom-5 left-1/2 -translate-x-1/2 z-50 md:hidden transition-all duration-300 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-24 pointer-events-none"}`}>
+    <nav className={`fixed bottom-5 left-1/2 -translate-x-1/2 z-50 md:hidden transition-all duration-700 ease-in-out ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"}`}>
       <div className="flex items-center gap-4 px-6 py-3 rounded-full bg-background/60 backdrop-blur-xl border border-border/40 shadow-xl shadow-black/10">
         {NAV_ITEMS.map(({ to, icon: Icon, label, pulse }) => {
           const isActive = to === "/" ? pathname === "/" : pathname.startsWith(to);
