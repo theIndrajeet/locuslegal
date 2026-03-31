@@ -1,17 +1,17 @@
 
 
-## Fix: "Signups not allowed for this instance" for Phone Login
+## Plan: Remove Phone Login Option
 
-### Root Cause
-The Phone provider is correctly enabled, but the **global signup toggle** is turned off. This blocks all new user creation including via phone OTP. The auth logs confirm: `error_code: "signup_disabled"` on `/otp`.
+Remove the phone/SMS login flow from the Auth page since it requires a Twilio account to function.
 
-### Fix (Manual — No Code Changes Needed)
-In your Cloud settings:
-1. Go to **Cloud → Users → Auth Settings (gear icon)**
-2. Look for a **general setting** called **"Allow new users to sign up"** (this is separate from the Phone provider toggle)
-3. **Enable it**
+### Changes
 
-This is the master switch that controls whether any new accounts can be created across all providers (email, phone, Google, Apple). With it off, only existing users can sign in.
-
-Once enabled, phone OTP login will work immediately — no code changes are required.
+**File: `src/pages/Auth.tsx`**
+- Remove the `phone`, `otp`, and `mode` state variables
+- Remove `handleSendOtp` and `handleVerifyOtp` functions
+- Remove the "Continue with Phone" button
+- Remove the phone-enter and phone-verify UI sections
+- Remove the `Phone`, `ArrowLeft` icon imports and `InputOTP` imports
+- Simplify `AuthMode` type (no longer needed)
+- Keep Google and Apple social login + credentials form as-is
 
