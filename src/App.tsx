@@ -15,6 +15,7 @@ import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import ChooseUsername from "./pages/ChooseUsername";
 import ProfileEdit from "./pages/ProfileEdit";
+import AdminWaitlist from "./pages/AdminWaitlist";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
