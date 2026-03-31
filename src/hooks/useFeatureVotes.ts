@@ -25,13 +25,13 @@ export function useFeatureVotes() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Fetch all vote counts
+  // Fetch aggregate vote counts via RPC (no user data exposed)
   const fetchCounts = useCallback(async () => {
-    const { data } = await supabase.from("feature_votes").select("feature_key");
+    const { data } = await supabase.rpc("get_feature_vote_counts");
     if (data) {
       const counts: Record<string, number> = {};
-      data.forEach((row) => {
-        counts[row.feature_key] = (counts[row.feature_key] || 0) + 1;
+      (data as { feature_key: string; vote_count: number }[]).forEach((row) => {
+        counts[row.feature_key] = row.vote_count;
       });
       setVoteCounts(counts);
     }

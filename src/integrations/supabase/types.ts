@@ -184,6 +184,13 @@ export type Database = {
     }
     Functions: {
       get_email_by_username: { Args: { p_username: string }; Returns: string }
+      get_feature_vote_counts: {
+        Args: never
+        Returns: {
+          feature_key: string
+          vote_count: number
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
