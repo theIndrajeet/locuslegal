@@ -1,24 +1,18 @@
 
 
-## Plan: Add Founder Note to the Platform
+## Plan: Auto-hide Mobile Dock on Scroll Idle
 
 ### What
-Add a warm, personal "founder note" strip just above the footer branding — a single line that humanizes the platform: *"Built by your senior — a law grad, frustrated with how internships work in India."*
+Make the mobile bottom dock visible only while the user is actively scrolling. When scrolling stops, the dock fades out after a short delay (~1.5s). This keeps the view clean when reading static content.
 
-### Where
-In `src/components/Footer.tsx`, between the gradient separator and the branding block. This keeps it visible on every page without cluttering the hero or main content.
+### How
 
-### Design
-- Centered text, small/medium size, italic styling
-- Muted foreground color with a subtle accent on "your senior"
-- A small `👋` or `Heart` icon for warmth
-- Sits in a compact `py-6` section, blending naturally with the footer
+**File: `src/components/MobileBottomDock.tsx`**
+- Add `useState` for a `visible` boolean (default `false`)
+- Add `useEffect` with a `scroll` event listener on `window`
+- On scroll: set `visible = true`, clear any existing timeout, set a new ~1.5s timeout to set `visible = false`
+- Apply conditional classes: when not visible, translate the dock downward (`translate-y-24`) and reduce opacity to 0; when visible, restore position with a smooth transition
+- Use `transition-all duration-300` for smooth show/hide animation
 
-### Change
-**File: `src/components/Footer.tsx`**
-- Insert a new `<div>` block after the gradient separator (line 20) and before the branding block (line 23)
-- Content: `"Built by your senior — a law grad, frustrated with how internships work in India."`
-- Style: `text-sm text-muted-foreground italic text-center` with "your senior" in `text-accent font-semibold`
-
-Single file, ~5 lines added.
+Single file change, ~15 lines added.
 
