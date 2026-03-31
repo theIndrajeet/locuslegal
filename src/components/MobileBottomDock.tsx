@@ -30,7 +30,7 @@ export default function MobileBottomDock() {
   }, []);
 
   return (
-    <nav className="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 md:hidden animate-slide-up-dock">
+    <nav className={`fixed bottom-5 left-1/2 -translate-x-1/2 z-50 md:hidden transition-all duration-300 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-24 pointer-events-none"}`}>
       <div className="flex items-center gap-4 px-6 py-3 rounded-full bg-background/60 backdrop-blur-xl border border-border/40 shadow-xl shadow-black/10">
         {NAV_ITEMS.map(({ to, icon: Icon, label, pulse }) => {
           const isActive = to === "/" ? pathname === "/" : pathname.startsWith(to);
