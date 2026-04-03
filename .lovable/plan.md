@@ -1,17 +1,27 @@
 
 
-## Plan: Remove Phone Login Option
+## Plan: Add Pixelated Visit Counter to Footer
 
-Remove the phone/SMS login flow from the Auth page since it requires a Twilio account to function.
+### What
+A minimal, retro-digital visit counter in the footer branding section — styled like an old-school pixel/LCD hit counter with a semi-blurred glow effect. It will track total page visits persistently in the database.
 
-### Changes
+### Database
+- Create a `visit_counter` table with a single row: `id` (int, default 1), `count` (bigint, default 0).
+- Seed it with one row.
+- RLS: allow anonymous `SELECT`; use a database function `increment_visit_count()` (security definer) to atomically increment — no direct update needed from the client.
 
-**File: `src/pages/Auth.tsx`**
-- Remove the `phone`, `otp`, and `mode` state variables
-- Remove `handleSendOtp` and `handleVerifyOtp` functions
-- Remove the "Continue with Phone" button
-- Remove the phone-enter and phone-verify UI sections
-- Remove the `Phone`, `ArrowLeft` icon imports and `InputOTP` imports
-- Simplify `AuthMode` type (no longer needed)
-- Keep Google and Apple social login + credentials form as-is
+### Component: `src/components/VisitCounter.tsx`
+- On mount, call the `increment_visit_count` RPC which returns the new count.
+- Render each digit as a separate block using a pixel/monospace font (`font-mono`).
+- Style: dark translucent background, subtle blue/cyan glow (`text-shadow` + `backdrop-blur`), slight border, zero-padded to 6+ digits.
+- Tiny label underneath: "visitors" in muted small text.
+- CSS gives a pixelated, LCD look using `font-feature-settings: "tnum"` and stepped letter-spacing.
+
+### Footer Integration: `src/components/Footer.tsx`
+- Import and place `<VisitCounter />` in the branding row, between the logo and copyright — or centered below the founder note.
+
+### Files Changed
+1. **New migration** — `visit_counter` table + `increment_visit_count()` function
+2. **New** `src/components/VisitCounter.tsx`
+3. **Edit** `src/components/Footer.tsx` — add the counter
 
