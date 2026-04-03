@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { usePageMeta } from "@/hooks/usePageMeta";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useFeatureVotes } from "@/hooks/useFeatureVotes";
@@ -137,6 +138,7 @@ function parseChecklist(text: string): ChecklistSection[] {
 }
 
 export default function Tools() {
+  usePageMeta({ title: "Legal Tools", description: "Free legal document generators — NDA, DPA, internship agreements, and compliance checklists for Indian law.", path: "/tools" });
   const [selectedTool, setSelectedTool] = useState<ToolType | null>(null);
   const [activeTool, setActiveTool] = useState<ToolType>("nda");
   const [activeCategory, setActiveCategory] = useState<CategoryType>("All");

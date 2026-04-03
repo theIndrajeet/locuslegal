@@ -1,8 +1,10 @@
 import { Link } from "react-router-dom";
+import { usePageMeta } from "@/hooks/usePageMeta";
 import { MessageSquare, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function TheBar() {
+  usePageMeta({ title: "The Bar — Community Q&A", description: "Ask questions, share insights, and connect with India's legal community on The Bar.", path: "/the-bar" });
   return (
     <section className="min-h-screen pt-24 pb-16 bg-background">
       <div className="container mx-auto px-4 max-w-2xl flex flex-col items-center justify-center min-h-[60vh] text-center">

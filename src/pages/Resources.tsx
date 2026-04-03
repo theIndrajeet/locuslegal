@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { usePageMeta } from "@/hooks/usePageMeta";
 import { FileText, Download, ScanSearch, CalendarCheck, Eye } from "lucide-react";
 import { useFeatureVotes } from "@/hooks/useFeatureVotes";
 import { FeatureVoteButton } from "@/components/FeatureVoteButton";
@@ -128,6 +129,7 @@ const resources = [
 ];
 
 export default function Resources() {
+  usePageMeta({ title: "Resources", description: "CV templates, cold email scripts, trackers, and mentorship for law students building their legal career in India.", path: "/resources" });
   const [previewResource, setPreviewResource] = useState<string | null>(null);
   const { voteCounts, hasVoted, toggleVote } = useFeatureVotes();
   const activeResource = resources.find((r) => r.hasPreview && r.previewKey === previewResource);
