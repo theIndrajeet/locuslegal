@@ -164,6 +164,7 @@ const audienceTagStyles: Record<Audience, string> = {
 };
 
 export default function Playbook() {
+  usePageMeta({ title: "The Playbook", description: "Step-by-step guides for law students, firms, and institutions — from landing internships to running legal ops.", path: "/playbook" });
   const [activeFilter, setActiveFilter] = useState<Filter>("All");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false);

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 
 export default function ProfileEdit() {
+  usePageMeta({ title: "Edit Profile", description: "Update your Locus profile and display name.", path: "/profile/edit" });
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { Link } from "react-router-dom";
 
 export default function Auth() {
+  usePageMeta({ title: "Sign In", description: "Sign in or create your Locus account to access merit-based legal internships.", path: "/auth" });
   const [isLogin, setIsLogin] = useState(true);
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");

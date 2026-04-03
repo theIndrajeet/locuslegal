@@ -39,6 +39,7 @@ function getType(firm: (typeof firms)[0]): FirmType {
 }
 
 export default function Directory() {
+  usePageMeta({ title: "Firm Directory", description: "Browse 500+ verified law firms, chambers, and advocates across India. Filter by city, practice area, and tier.", path: "/directory" });
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [city, setCity] = useState("");
