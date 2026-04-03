@@ -5,7 +5,8 @@ export default function VisitCounter() {
   const [count, setCount] = useState<number | null>(null);
 
   useEffect(() => {
-    supabase.rpc("increment_visit_count").then(({ data }) => {
+    supabase.rpc("increment_visit_count" as any).then(({ data, error }) => {
+      if (error) console.error("visit counter error:", error);
       if (typeof data === "number") setCount(data);
     });
   }, []);
