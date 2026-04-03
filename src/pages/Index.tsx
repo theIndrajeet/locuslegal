@@ -22,6 +22,7 @@ const Index = () => {
     <ForUniversities />
     <WaitlistSection />
   </>
-);
+  );
+};
 
 export default Index;

@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
+import { usePageMeta } from "@/hooks/usePageMeta";
 import { Search, Building2, MapPin, Star, Phone, Mail, X, ArrowUpDown, LayoutGrid, Map as MapIcon, GitCompareArrows } from "lucide-react";
 import firms from "@/data/firms.json";
 import FirmDrawer from "@/components/FirmDrawer";
