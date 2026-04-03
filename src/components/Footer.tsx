@@ -1,5 +1,6 @@
 import { lazy, Suspense } from "react";
 import { useLocation } from "react-router-dom";
+import VisitCounter from "./VisitCounter";
 
 const FooterArcade = lazy(() => import("./FooterArcade"));
 
@@ -22,6 +23,11 @@ export default function Footer() {
       {/* Founder note */}
       <div className="py-6 text-center italic text-sm text-muted-foreground">
         Built by <span className="text-accent font-semibold not-italic">your senior</span> — a law grad, frustrated with how internships work in India.
+      </div>
+
+      {/* Visit counter */}
+      <div className="flex justify-center pb-4">
+        <VisitCounter />
       </div>
 
       {/* Branding */}
