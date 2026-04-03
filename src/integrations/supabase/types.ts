@@ -178,6 +178,21 @@ export type Database = {
         }
         Relationships: []
       }
+      visit_counter: {
+        Row: {
+          count: number
+          id: number
+        }
+        Insert: {
+          count?: number
+          id?: number
+        }
+        Update: {
+          count?: number
+          id?: number
+        }
+        Relationships: []
+      }
       waitlist_submissions: {
         Row: {
           created_at: string
@@ -222,6 +237,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_visit_count: { Args: never; Returns: number }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
