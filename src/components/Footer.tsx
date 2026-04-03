@@ -1,6 +1,5 @@
 import { lazy, Suspense } from "react";
 import { useLocation } from "react-router-dom";
-import VisitCounter from "./VisitCounter";
 
 const FooterArcade = lazy(() => import("./FooterArcade"));
 
