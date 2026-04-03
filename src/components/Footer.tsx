@@ -25,6 +25,11 @@ export default function Footer() {
         Built by <span className="text-accent font-semibold not-italic">your senior</span> — a law grad, frustrated with how internships work in India.
       </div>
 
+      {/* Visit counter */}
+      <div className="flex justify-center pb-4">
+        <VisitCounter />
+      </div>
+
       {/* Branding */}
       <div className="pt-12 pb-10 px-4">
         <div className="container mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
