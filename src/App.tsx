@@ -14,6 +14,7 @@ import TheBar from "./pages/TheBar";
 import TheBarBrowse from "./pages/TheBarBrowse";
 import TheBarChallenge from "./pages/TheBarChallenge";
 import TheBarHistory from "./pages/TheBarHistory";
+import TheBarLeaderboard from "./pages/TheBarLeaderboard";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import ChooseUsername from "./pages/ChooseUsername";
@@ -43,6 +44,7 @@ const App = () => (
               <Route path="/the-bar/browse" element={<TheBarBrowse />} />
               <Route path="/the-bar/challenge/:id" element={<TheBarChallenge />} />
               <Route path="/the-bar/history" element={<TheBarHistory />} />
+              <Route path="/the-bar/leaderboard" element={<TheBarLeaderboard />} />
               <Route path="/profile/edit" element={<ProfileEdit />} />
               <Route path="/u/:username" element={<PublicProfile />} />
               <Route path="/admin/waitlist" element={<AdminWaitlist />} />
