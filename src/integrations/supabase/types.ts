@@ -14,6 +14,300 @@ export type Database = {
   }
   public: {
     Tables: {
+      bar_attempts: {
+        Row: {
+          attempted_at: string
+          challenge_id: string
+          id: string
+          is_correct: boolean
+          points_awarded: number
+          submitted_answer: Json
+          time_taken_seconds: number | null
+          user_id: string
+        }
+        Insert: {
+          attempted_at?: string
+          challenge_id: string
+          id?: string
+          is_correct: boolean
+          points_awarded?: number
+          submitted_answer: Json
+          time_taken_seconds?: number | null
+          user_id: string
+        }
+        Update: {
+          attempted_at?: string
+          challenge_id?: string
+          id?: string
+          is_correct?: boolean
+          points_awarded?: number
+          submitted_answer?: Json
+          time_taken_seconds?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bar_attempts_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "bar_challenges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bar_attempts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bar_challenges: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          area_of_law: Database["public"]["Enums"]["bar_area_of_law"]
+          created_at: string
+          created_by: string
+          difficulty: Database["public"]["Enums"]["bar_difficulty"]
+          explanation: string | null
+          id: string
+          payload: Json
+          points_base: number
+          prompt: string
+          question_type: Database["public"]["Enums"]["bar_question_type"]
+          rejection_reason: string | null
+          source_citation: string | null
+          source_id: string | null
+          source_page: number | null
+          status: Database["public"]["Enums"]["bar_challenge_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          area_of_law: Database["public"]["Enums"]["bar_area_of_law"]
+          created_at?: string
+          created_by: string
+          difficulty: Database["public"]["Enums"]["bar_difficulty"]
+          explanation?: string | null
+          id?: string
+          payload?: Json
+          points_base: number
+          prompt: string
+          question_type: Database["public"]["Enums"]["bar_question_type"]
+          rejection_reason?: string | null
+          source_citation?: string | null
+          source_id?: string | null
+          source_page?: number | null
+          status?: Database["public"]["Enums"]["bar_challenge_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          area_of_law?: Database["public"]["Enums"]["bar_area_of_law"]
+          created_at?: string
+          created_by?: string
+          difficulty?: Database["public"]["Enums"]["bar_difficulty"]
+          explanation?: string | null
+          id?: string
+          payload?: Json
+          points_base?: number
+          prompt?: string
+          question_type?: Database["public"]["Enums"]["bar_question_type"]
+          rejection_reason?: string | null
+          source_citation?: string | null
+          source_id?: string | null
+          source_page?: number | null
+          status?: Database["public"]["Enums"]["bar_challenge_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bar_challenges_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bar_challenges_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bar_challenges_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "bar_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bar_daily_attempts: {
+        Row: {
+          attempt_count: number
+          attempt_date: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          attempt_count?: number
+          attempt_date: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          attempt_count?: number
+          attempt_date?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bar_daily_attempts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bar_sources: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          license: Database["public"]["Enums"]["bar_source_license"]
+          source_type: Database["public"]["Enums"]["bar_source_type"]
+          storage_path: string | null
+          title: string
+          topic_prompt: string | null
+          uploaded_by: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          license?: Database["public"]["Enums"]["bar_source_license"]
+          source_type: Database["public"]["Enums"]["bar_source_type"]
+          storage_path?: string | null
+          title: string
+          topic_prompt?: string | null
+          uploaded_by: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          license?: Database["public"]["Enums"]["bar_source_license"]
+          source_type?: Database["public"]["Enums"]["bar_source_type"]
+          storage_path?: string | null
+          title?: string
+          topic_prompt?: string | null
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bar_sources_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bar_user_stats: {
+        Row: {
+          accuracy_pct: number
+          correct_attempts: number
+          current_streak: number
+          designation: Database["public"]["Enums"]["bar_designation"]
+          last_attempt_at: string | null
+          longest_streak: number
+          total_attempts: number
+          total_points: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          accuracy_pct?: number
+          correct_attempts?: number
+          current_streak?: number
+          designation?: Database["public"]["Enums"]["bar_designation"]
+          last_attempt_at?: string | null
+          longest_streak?: number
+          total_attempts?: number
+          total_points?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          accuracy_pct?: number
+          correct_attempts?: number
+          current_streak?: number
+          designation?: Database["public"]["Enums"]["bar_designation"]
+          last_attempt_at?: string | null
+          longest_streak?: number
+          total_attempts?: number
+          total_points?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bar_user_stats_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bar_user_stats_by_area: {
+        Row: {
+          area_of_law: Database["public"]["Enums"]["bar_area_of_law"]
+          correct_attempts: number
+          id: string
+          total_attempts: number
+          total_points: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          area_of_law: Database["public"]["Enums"]["bar_area_of_law"]
+          correct_attempts?: number
+          id?: string
+          total_attempts?: number
+          total_points?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          area_of_law?: Database["public"]["Enums"]["bar_area_of_law"]
+          correct_attempts?: number
+          id?: string
+          total_attempts?: number
+          total_points?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bar_user_stats_by_area_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       feature_votes: {
         Row: {
           created_at: string
@@ -286,10 +580,60 @@ export type Database = {
         Returns: boolean
       }
       increment_visit_count: { Args: never; Returns: number }
+      is_admin: { Args: { uid: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
+      bar_area_of_law:
+        | "constitutional"
+        | "criminal"
+        | "contract"
+        | "torts"
+        | "corporate"
+        | "ip"
+        | "labour"
+        | "tax"
+        | "evidence"
+        | "procedure"
+        | "family"
+        | "property"
+        | "administrative"
+        | "international"
+        | "jurisprudence"
+        | "environmental"
+        | "other"
       bar_audience: "student" | "firm" | "institution"
+      bar_challenge_status:
+        | "draft"
+        | "pending_review"
+        | "approved"
+        | "rejected"
+        | "archived"
+      bar_designation:
+        | "trainee"
+        | "junior_associate"
+        | "associate"
+        | "senior_associate"
+        | "partner"
+        | "senior_partner"
+        | "silk"
+      bar_difficulty: "easy" | "medium" | "hard"
+      bar_question_type:
+        | "mcq"
+        | "issue_spotter"
+        | "speed_round"
+        | "jurisdiction"
+        | "document_review"
+        | "brief_builder"
+        | "ethics"
+        | "client_counseling"
+      bar_source_license:
+        | "public_domain"
+        | "licensed"
+        | "fair_use_claim"
+        | "user_submitted"
+        | "other"
+      bar_source_type: "pdf_extraction" | "topic_prompt" | "manual"
       degree_type:
         | "BA LLB"
         | "BBA LLB"
@@ -432,7 +776,61 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user"],
+      bar_area_of_law: [
+        "constitutional",
+        "criminal",
+        "contract",
+        "torts",
+        "corporate",
+        "ip",
+        "labour",
+        "tax",
+        "evidence",
+        "procedure",
+        "family",
+        "property",
+        "administrative",
+        "international",
+        "jurisprudence",
+        "environmental",
+        "other",
+      ],
       bar_audience: ["student", "firm", "institution"],
+      bar_challenge_status: [
+        "draft",
+        "pending_review",
+        "approved",
+        "rejected",
+        "archived",
+      ],
+      bar_designation: [
+        "trainee",
+        "junior_associate",
+        "associate",
+        "senior_associate",
+        "partner",
+        "senior_partner",
+        "silk",
+      ],
+      bar_difficulty: ["easy", "medium", "hard"],
+      bar_question_type: [
+        "mcq",
+        "issue_spotter",
+        "speed_round",
+        "jurisdiction",
+        "document_review",
+        "brief_builder",
+        "ethics",
+        "client_counseling",
+      ],
+      bar_source_license: [
+        "public_domain",
+        "licensed",
+        "fair_use_claim",
+        "user_submitted",
+        "other",
+      ],
+      bar_source_type: ["pdf_extraction", "topic_prompt", "manual"],
       degree_type: [
         "BA LLB",
         "BBA LLB",
