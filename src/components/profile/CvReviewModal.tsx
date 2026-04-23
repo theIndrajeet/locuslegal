@@ -509,8 +509,22 @@ export default function CvReviewModal({ open, onOpenChange, userId, parsed, curr
                 <Input value={row.role} onChange={(e) => updateInternship(row._id, { role: e.target.value })} />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Start date</Label>
-                <Input type="date" value={row.start_date || ""} onChange={(e) => updateInternship(row._id, { start_date: e.target.value || null })} />
+                <Label className="text-xs">Start date <span className="text-destructive">*</span></Label>
+                {(() => {
+                  const invalid = row._checked && !(row.start_date && /^\d{4}-\d{2}-\d{2}$/.test(row.start_date));
+                  return (
+                    <>
+                      <Input
+                        type="date"
+                        value={row.start_date || ""}
+                        onChange={(e) => updateInternship(row._id, { start_date: e.target.value || null })}
+                        aria-invalid={invalid}
+                        className={invalid ? "border-destructive focus-visible:ring-destructive" : ""}
+                      />
+                      {invalid && <p className="text-xs text-destructive">Start date is required to save this entry.</p>}
+                    </>
+                  );
+                })()}
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">End date (blank if ongoing)</Label>
