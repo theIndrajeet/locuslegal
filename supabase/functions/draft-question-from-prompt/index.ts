@@ -1,0 +1,281 @@
+// draft-question-from-prompt
+//
+// MANUAL TEST CASES:
+// 1. Valid admin + valid topic source + valid params → 200, 1 challenge created.
+// 2. AI returns {refused: true} → 422 with reason.
+// 3. source_id is a PDF source → 400.
+// 4. Non-admin caller → 403.
+// 5. Missing/invalid body → 400.
+
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { z } from "https://esm.sh/zod@3.23.8";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
+
+const MODEL = "google/gemini-3-flash-preview";
+
+const McqPayloadSchema = z.object({
+  options: z.array(z.object({ id: z.string().min(1), text: z.string().min(1) })).min(2).max(6),
+  correct_option_id: z.string().min(1),
+}).refine((p) => p.options.some((o) => o.id === p.correct_option_id), { message: "correct_option_id mismatch" });
+
+const IssueSpotterPayloadSchema = z.object({
+  issue_options: z.array(z.object({ id: z.string().min(1), text: z.string().min(1) })).min(3).max(10),
+  correct_issue_ids: z.array(z.string().min(1)).min(1),
+}).refine((p) => {
+  const ids = new Set(p.issue_options.map((o) => o.id));
+  return p.correct_issue_ids.every((id) => ids.has(id));
+}, { message: "correct_issue_ids mismatch" });
+
+const SpeedRoundPayloadSchema = z.object({
+  questions: z.array(z.object({ id: z.string().min(1), prompt: z.string().min(1), answer: z.string().min(1) })).min(5).max(15),
+  time_limit_seconds: z.number().int().min(30).max(300),
+});
+
+const JurisdictionPayloadSchema = z.object({
+  options: z.array(z.object({ id: z.string().min(1), jurisdiction: z.string().min(1), reasoning: z.string().min(1) })).min(2).max(5),
+  correct_option_id: z.string().min(1),
+}).refine((p) => p.options.some((o) => o.id === p.correct_option_id), { message: "correct_option_id mismatch" });
+
+const V1_TYPES = ["mcq", "issue_spotter", "speed_round", "jurisdiction"] as const;
+type V1Type = typeof V1_TYPES[number];
+
+const AREAS = [
+  "constitutional", "criminal", "contract", "torts", "corporate", "ip", "labour", "tax", "evidence",
+  "procedure", "family", "property", "administrative", "international", "jurisprudence", "environmental", "other",
+] as const;
+const DIFFS = ["easy", "medium", "hard"] as const;
+
+const BASE_POINTS_BY_TYPE: Record<V1Type, number> = { mcq: 5, issue_spotter: 15, jurisdiction: 10, speed_round: 3 };
+const DIFFICULTY_MULTIPLIER: Record<typeof DIFFS[number], number> = { easy: 1.0, medium: 1.5, hard: 2.0 };
+
+function computeBasePoints(type: V1Type, diff: typeof DIFFS[number], speedRoundCount?: number): number {
+  if (type === "speed_round") {
+    const n = speedRoundCount ?? 5;
+    return Math.max(1, Math.min(100, Math.round(BASE_POINTS_BY_TYPE.speed_round * n * DIFFICULTY_MULTIPLIER[diff])));
+  }
+  return Math.max(1, Math.min(100, Math.round(BASE_POINTS_BY_TYPE[type] * DIFFICULTY_MULTIPLIER[diff])));
+}
+
+const BodySchema = z.object({
+  source_id: z.string().uuid(),
+  question_type: z.enum(V1_TYPES),
+  area_of_law: z.enum(AREAS),
+  difficulty: z.enum(DIFFS),
+});
+
+function buildPrompt(topic: string, qt: V1Type, area: string, diff: string): string {
+  return `You are drafting a single legal question for an Indian law student platform.
+
+Topic prompt provided by admin:
+"""
+${topic}
+"""
+
+Required parameters:
+- Question type: ${qt}
+- Area of law: ${area}
+- Difficulty: ${diff}
+
+Return EXACTLY ONE question as a JSON object (not an array). Per-type payload shapes:
+- mcq: { "options":[{"id":"a","text":"..."}], "correct_option_id":"a" }  (2-6 options)
+- issue_spotter: { "issue_options":[{"id":"a","text":"..."}], "correct_issue_ids":["a"] }  (3-10 issues)
+- speed_round: { "questions":[{"id":"q1","prompt":"...","answer":"..."}], "time_limit_seconds":60 }  (5-8 sub-qs)
+- jurisdiction: { "options":[{"id":"a","jurisdiction":"...","reasoning":"..."}], "correct_option_id":"a" }  (2-5 options)
+
+Outer object shape:
+{
+  "question_type": "${qt}",
+  "area_of_law": "${area}",
+  "difficulty": "${diff}",
+  "title": string (60 chars max),
+  "prompt": string,
+  "explanation": string | null,
+  "payload": { ... }
+}
+
+RULES:
+1. Must be grounded in real Indian law. Do not invent sections, cases, or rules.
+2. If you cannot confidently draft a correct question at the requested difficulty, return {"refused": true, "reason": "..."}.
+3. Otherwise return the challenge object directly. No markdown. No preamble.
+4. MCQ distractors must be plausible (reflect common student errors), not obviously wrong.
+5. Issue spotter: include at least 1 red-herring issue.
+6. Speed round: 5-8 sub-questions, 60s time limit unless topic suggests otherwise.
+7. Jurisdiction reasoning must reference real Indian statutes or case law if possible.
+8. Explanation: 1-3 sentences (rule + why correct answer follows).
+
+Return the JSON object. Nothing else.`;
+}
+
+function stripFencesObj(t: string): string {
+  let s = t.trim();
+  const fence = s.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+  if (fence) s = fence[1].trim();
+  const first = s.indexOf("{");
+  const last = s.lastIndexOf("}");
+  if (first !== -1 && last !== -1 && last > first) s = s.slice(first, last + 1);
+  return s;
+}
+
+function validatePayload(qt: V1Type, payload: unknown): boolean {
+  switch (qt) {
+    case "mcq": return McqPayloadSchema.safeParse(payload).success;
+    case "issue_spotter": return IssueSpotterPayloadSchema.safeParse(payload).success;
+    case "speed_round": return SpeedRoundPayloadSchema.safeParse(payload).success;
+    case "jurisdiction": return JurisdictionPayloadSchema.safeParse(payload).success;
+  }
+}
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  const start = Date.now();
+
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+  const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+  const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+
+  const json = (status: number, body: unknown) =>
+    new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+  let generationId: string | null = null;
+  const adminClient = createClient(SUPABASE_URL, SERVICE_ROLE);
+
+  const finalizeLog = async (patch: Record<string, unknown>) => {
+    if (!generationId) return;
+    await adminClient.from("bar_ai_generations").update({ ...patch, duration_ms: Date.now() - start }).eq("id", generationId);
+  };
+
+  try {
+    if (!LOVABLE_API_KEY) return json(500, { error: "LOVABLE_API_KEY not configured", retryable: false });
+
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) return json(401, { error: "Unauthorized", retryable: false });
+
+    const authClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { global: { headers: { Authorization: authHeader } } });
+    const token = authHeader.replace("Bearer ", "");
+    const { data: userRes, error: authErr } = await authClient.auth.getUser(token);
+    if (authErr || !userRes?.user?.id) return json(401, { error: "Unauthorized", retryable: false });
+    const userId = userRes.user.id;
+
+    const { data: roleRow } = await adminClient.from("user_roles").select("role").eq("user_id", userId).eq("role", "admin").maybeSingle();
+    if (!roleRow) return json(403, { error: "Forbidden — admin only", retryable: false });
+
+    const parsedBody = BodySchema.safeParse(await req.json().catch(() => ({})));
+    if (!parsedBody.success) return json(400, { error: "Invalid body", details: parsedBody.error.flatten(), retryable: false });
+    const { source_id, question_type, area_of_law, difficulty } = parsedBody.data;
+
+    const { data: source } = await adminClient.from("bar_sources").select("*").eq("id", source_id).maybeSingle();
+    if (!source) return json(404, { error: "Source not found", retryable: false });
+    if (source.source_type !== "topic_prompt") return json(400, { error: "Source is not a topic_prompt source", retryable: false });
+    if (!source.topic_prompt) return json(400, { error: "Source has no topic_prompt text", retryable: false });
+
+    const { data: logRow, error: logErr } = await adminClient.from("bar_ai_generations").insert({
+      source_id, generation_type: "topic_draft", requested_by: userId,
+      question_type_hint: question_type, area_of_law_hint: area_of_law, difficulty_hint: difficulty,
+      model: MODEL, outcome: "ai_error",
+    }).select("id").single();
+    if (logErr || !logRow) return json(500, { error: "Failed to create log row", retryable: true });
+    generationId = logRow.id;
+
+    const userPrompt = buildPrompt(source.topic_prompt, question_type, area_of_law, difficulty);
+
+    const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: MODEL,
+        messages: [
+          { role: "system", content: "You draft accurate Indian legal questions. Return strict JSON only." },
+          { role: "user", content: userPrompt },
+        ],
+      }),
+    });
+
+    if (aiResp.status === 429) {
+      await finalizeLog({ outcome: "rate_limit", error_message: "AI rate limited" });
+      return json(429, { error: "Rate limited — try again shortly.", retryable: true });
+    }
+    if (aiResp.status === 402) {
+      await finalizeLog({ outcome: "quota_exceeded", error_message: "AI credits exhausted" });
+      return json(402, { error: "AI credits exhausted.", retryable: false });
+    }
+    if (!aiResp.ok) {
+      const t = await aiResp.text();
+      await finalizeLog({ outcome: "ai_error", error_message: `Gateway ${aiResp.status}: ${t.slice(0, 500)}` });
+      return json(500, { error: "AI gateway error", retryable: true });
+    }
+
+    const aiData = await aiResp.json();
+    const text: string = aiData.choices?.[0]?.message?.content ?? "";
+    const promptTokens = aiData.usage?.prompt_tokens ?? null;
+    const completionTokens = aiData.usage?.completion_tokens ?? null;
+
+    let parsed: any;
+    try {
+      parsed = JSON.parse(stripFencesObj(text));
+    } catch {
+      await finalizeLog({ outcome: "parse_fail", error_message: "JSON parse failed", prompt_tokens: promptTokens, completion_tokens: completionTokens });
+      return json(500, { error: "AI returned malformed JSON", retryable: true });
+    }
+
+    if (parsed?.refused === true) {
+      const reason = typeof parsed.reason === "string" ? parsed.reason : "AI declined";
+      await finalizeLog({ outcome: "validation_fail", error_message: reason, prompt_tokens: promptTokens, completion_tokens: completionTokens });
+      return json(422, { error: `AI declined to draft a question on this topic: ${reason}`, retryable: false });
+    }
+
+    // Validate
+    if (parsed?.question_type !== question_type) {
+      await finalizeLog({ outcome: "validation_fail", error_message: "question_type mismatch", prompt_tokens: promptTokens, completion_tokens: completionTokens });
+      return json(422, { error: "AI returned wrong question type", retryable: true });
+    }
+    if (typeof parsed.title !== "string" || typeof parsed.prompt !== "string") {
+      await finalizeLog({ outcome: "validation_fail", error_message: "missing title/prompt", prompt_tokens: promptTokens, completion_tokens: completionTokens });
+      return json(422, { error: "AI output missing title/prompt", retryable: true });
+    }
+    if (!validatePayload(question_type, parsed.payload)) {
+      await finalizeLog({ outcome: "validation_fail", error_message: "payload validation failed", prompt_tokens: promptTokens, completion_tokens: completionTokens });
+      return json(422, { error: "AI payload failed validation", retryable: true });
+    }
+
+    const speedCount = question_type === "speed_round" ? parsed.payload.questions?.length : undefined;
+    const points = computeBasePoints(question_type, difficulty, speedCount);
+
+    const { data: inserted, error: insErr } = await adminClient.from("bar_challenges").insert({
+      title: String(parsed.title).slice(0, 200),
+      prompt: parsed.prompt,
+      explanation: typeof parsed.explanation === "string" ? parsed.explanation : null,
+      question_type, area_of_law, difficulty,
+      payload: parsed.payload,
+      points_base: points,
+      status: "draft",
+      source_id,
+      source_page: null,
+      source_citation: `Drafted from topic: ${source.title}`,
+      ai_generation_id: generationId,
+      created_by: userId,
+    }).select("id").single();
+
+    if (insErr || !inserted) {
+      await finalizeLog({ outcome: "ai_error", error_message: insErr?.message ?? "insert failed", prompt_tokens: promptTokens, completion_tokens: completionTokens });
+      return json(500, { error: "Failed to insert challenge", retryable: true });
+    }
+
+    await finalizeLog({
+      outcome: "success", challenges_created: 1,
+      prompt_tokens: promptTokens, completion_tokens: completionTokens,
+    });
+
+    return json(200, { generation_id: generationId, challenge_id: inserted.id });
+  } catch (e) {
+    console.error("draft-question-from-prompt error:", e);
+    await finalizeLog({ outcome: "ai_error", error_message: e instanceof Error ? e.message : "Unknown" });
+    return json(500, { error: e instanceof Error ? e.message : "Unknown", retryable: true });
+  }
+});
