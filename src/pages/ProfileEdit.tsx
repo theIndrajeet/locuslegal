@@ -51,7 +51,7 @@ export default function ProfileEdit() {
   const handleSaveUsername = async () => {
     if (!userId || !displayName.trim()) return;
     setSaving(true);
-    const { error } = await supabase.from("profiles").upsert({ id: userId, display_name: displayName.trim() });
+    const { error } = await supabase.from("profiles").update({ display_name: displayName.trim() }).eq("id", userId);
     setSaving(false);
     if (error) toast.error(error.message);
     else toast.success("Username updated!");
