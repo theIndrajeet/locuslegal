@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import AiExtractDialog from "./AiExtractDialog";
 import AiDraftDialog from "./AiDraftDialog";
+import AiSuggestTopicsDialog from "./AiSuggestTopicsDialog";
 
 const LICENSES = ["public_domain", "licensed", "fair_use_claim", "user_submitted", "other"] as const;
 
@@ -35,6 +36,7 @@ export default function SourceLibrary() {
   const [loading, setLoading] = useState(true);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [promptOpen, setPromptOpen] = useState(false);
+  const [suggestOpen, setSuggestOpen] = useState(false);
   const [viewSource, setViewSource] = useState<Source | null>(null);
   const [deleteSource, setDeleteSource] = useState<Source | null>(null);
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
@@ -86,8 +88,11 @@ export default function SourceLibrary() {
           <Button onClick={() => setUploadOpen(true)} variant="outline">
             <Upload className="w-4 h-4 mr-2" /> Upload PDF
           </Button>
-          <Button onClick={() => setPromptOpen(true)}>
+          <Button onClick={() => setPromptOpen(true)} variant="outline">
             <MessageSquare className="w-4 h-4 mr-2" /> Add Topic Prompt
+          </Button>
+          <Button onClick={() => setSuggestOpen(true)}>
+            <Sparkles className="w-4 h-4 mr-2" /> AI Suggest Topics
           </Button>
         </div>
       </div>
@@ -149,6 +154,7 @@ export default function SourceLibrary() {
 
       <UploadPdfDialog open={uploadOpen} onOpenChange={setUploadOpen} onCreated={load} />
       <AddPromptDialog open={promptOpen} onOpenChange={setPromptOpen} onCreated={load} />
+      <AiSuggestTopicsDialog open={suggestOpen} onOpenChange={setSuggestOpen} onCreated={load} />
 
       {extractTarget && (
         <AiExtractDialog
