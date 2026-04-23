@@ -1,151 +1,99 @@
-# The Bar — Student Experience (Prompt 3)
 
-Rebuilds `/the-bar` from placeholder into the full student arena: dashboard, browser, attempt flow, history. One edge function for server-side grading. Zero correct answers ever leave the server before submission.
 
-## Edge function: `submit-bar-attempt`
+# The Bar — Leaderboards & Profile Integration (Prompt 4)
 
-`supabase/functions/submit-bar-attempt/index.ts` — JWT validated in code (no admin gate; any authenticated user).
+Closes the flywheel: rank becomes visible publicly, leaderboards create competitive pressure, firms get a discovery hook. Final prompt of the Bar build.
 
-Flow:
+## Schema migration
 
-1. CORS preflight + parse + Zod-validate body (`challenge_id` uuid, `submitted_answer` unknown, optional `time_taken_seconds`).
-2. Extract caller from `Authorization` header → 401 if missing/invalid.
-3. Service-role client fetches challenge by id. 404 if missing; 403 if `status !== 'approved'`.
-4. Pre-check: `bar_attempts` where `user_id=caller AND challenge_id=:id`. If exists → 409 `already_attempted`.
-5. Fetch caller's current `bar_user_stats.designation` → `previous_designation`.
-6. Grade: inline copies of the 4 per-type Zod payload schemas + grading functions from `src/lib/bar/scoring.ts` (edge functions can't import from `src/`). Call `gradeAttempt(question_type, payload, submitted_answer, points_base)`. On `GradingError` → 400 with message.
-7. INSERT `bar_attempts` row (`user_id`, `challenge_id`, `submitted_answer`, `is_correct`, `points_awarded`, `time_taken_seconds`). The existing BEFORE/AFTER triggers handle daily cap, stats, streak, designation, per-area rollup, daily counter.
-8. Translate Postgres exceptions: `daily_cap_exceeded` → 429; `challenge_not_approved` → 403; unique violation → 409.
-9. Re-fetch `bar_user_stats` for caller → `new_stats` block including `designation_changed = (new !== previous_designation)`.
-10. Build `correct_answer_summary` per type (mcq: text of correct option; issue_spotter: comma-joined correct issue texts; speed_round: "X of Y correct" + `per_question` array; jurisdiction: `<jurisdiction> — <reasoning>`).
-11. Return `{ is_correct, points_awarded, explanation, correct_answer_summary, per_question?, new_stats: { total_points, accuracy_pct, current_streak, longest_streak, designation, designation_changed, previous_designation } }`.
+One migration:
 
-Manual test cases (listed in top-of-file comment): valid submit, unapproved → 403, resubmit → 409, malformed → 400, unauthenticated → 401, daily cap → 429, rank-up flow returns `designation_changed=true`.
+- **`profiles`**: add `bar_leaderboard_opt_out boolean NOT NULL DEFAULT false`.
+- **New table `bar_user_colleges`**: `user_id uuid PK REFERENCES profiles ON DELETE CASCADE`, `college_normalized text NOT NULL`, `college_display text NOT NULL`, `updated_at timestamptz`. Index on `college_normalized`. RLS: public SELECT, no user writes.
+- **Trigger `profiles_sync_college`** on AFTER INSERT/UPDATE OF college on `profiles`: normalize (lowercase, trim, collapse whitespace via `regexp_replace(trim(lower(...)), '\s+', ' ', 'g')`); if non-empty → upsert `bar_user_colleges`; if null/empty → delete row. SECURITY DEFINER, search_path=public.
+- **Backfill**: insert one row per existing profile with non-empty college.
+- **View `bar_weekly_stats`**: aggregates `bar_attempts` since `date_trunc('week', now() AT TIME ZONE 'UTC')` (Postgres week starts Monday) → `weekly_points`, `weekly_attempts`, `weekly_correct`, `weekly_accuracy_pct`. GRANT SELECT to authenticated.
 
-`time_taken_seconds` is self-reported — comment notes honor-system for v1.
+## Leaderboard page
 
-## Frontend — pages
+**`src/pages/TheBarLeaderboard.tsx`** (new) — public, no auth required.
 
-`**src/pages/TheBar.tsx**` (replace existing):
+- Hero "Leaderboard" / "Who's lawyering hardest right now."
+- Shadcn Tabs (4): All-Time, This Week, By Area, By College. Tab + filters URL-backed via `useSearchParams` (`?tab=`, `?area=`, `?college=`).
+- Per-tab queries exactly as specified in the PRD, all filtered with `bar_leaderboard_opt_out = false` and `total_attempts > 0`, capped at 500 rows, paginated 50/page.
+- Dropdowns:
+  - By Area: shadcn Select of all 17 areas (from existing constants).
+  - By College: query distinct `bar_user_colleges` grouped + counted, top 100, label `"NLSIU Bangalore (12)"`.
+- Empty states per spec for each tab.
+- "You are here" logic: if logged-in user is in the result set, highlight row with accent border + "You" chip. If outside current page, sticky footer "You're ranked #N — jump to your row" → paginates + scrolls. If user has zero attempts, show pinned banner at top "You: unranked — take your first challenge" with CTA.
+- `usePageMeta` title `"Leaderboard · Locus"`.
 
-- Logged-out: hero + "Sign in to enter The Bar" CTA → `/auth`.
-- Logged-in dashboard:
-  - Hero: "The Bar — prove you can lawyer" + tagline. No "coming soon" badge.
-  - `<StatsStrip />` — 4 cards (designation, total points, accuracy, current streak) + small progress bar "Next rank in N pts" via `pointsToNextRank()`. "Max rank reached" at silk; if accuracy below next tier shows "Lift accuracy to X% to unlock {next rank}".
-  - Quick-action: primary "Take a Challenge" → `/the-bar/browse`; secondary "View Full History" → `/the-bar/history`.
-  - Recent attempts: last 10 rows via `<AttemptListItem />`. Click → `<AttemptReviewDialog />`. Empty state with browser CTA.
-- `usePageMeta` title `"The Bar — {designationLabel} · Locus"`.
+**`src/components/bar/LeaderboardTable.tsx`** (new): shared table shell. Columns: Rank, Student, Designation, Points, Accuracy, Streak. Top 3 ranks get gold/silver/bronze accent on the rank cell (within b/w/yellow palette — yellow for #1, white-on-darker for #2/#3). Mobile: collapses to a card stack (rank chip + avatar + designation + points; accuracy/streak demoted to a small row).
 
-`**src/pages/TheBarBrowse.tsx**` (new):
+**`src/components/bar/LeaderboardRow.tsx`** (new): single row/card. Avatar + display_name + `@username` link → `/u/:username`. Designation badge (outline). Points bold right-aligned. Accuracy `xx.x%`. Streak with Lucide `Flame` if ≥7. "You" chip if `userId === currentUserId`. Pagination via shadcn `Pagination`.
 
-- Two-step query: fetch caller's attempted `challenge_id`s, then fetch approved `bar_challenges` excluding those, ordered by `approved_at DESC`.
-- Filter bar (URL-params backed via `useSearchParams`): question_type, area_of_law, difficulty, sort (newest / points desc / difficulty asc).
-- Daily cap banner: query `bar_daily_attempts` for today. ≥18 → yellow warning "N attempts left today". =20 → red banner + cards disabled.
-- Grid: 3 cols desktop / 1 col mobile of `<ChallengeCard />`. Pagination 30/page (shadcn `Pagination`).
-- Empty states for: zero approved, all attempted, filters yield none.
+## Public profile rank badge
 
-`**src/pages/TheBarChallenge.tsx**` (new) — the attempt flow:
+**`src/components/bar/RankBadgeBlock.tsx`** (new): compact card (~140–180px), `border-2 border-border`. Lucide `Scale` + "The Bar" header. Designation bold; points; accuracy. Conditional rank line: `"Ranked #N overall"` linked to `/the-bar/leaderboard?tab=all-time` with anchor; hidden if subject opted out AND viewer ≠ subject. Streak line with Lucide `Flame` if `current_streak >= 3`. Bottom "View attempts" link (currently to leaderboard with anchor).
 
-- Fetch challenge by id; 404 if missing or not approved.
-- Pre-check `bar_attempts` for prior attempt → redirect to `/the-bar` with toast "already attempted".
-- `**stripCorrectAnswer(type, payload)**` runs immediately after fetch; the unstripped payload is never stored in component state. Returns:
-  - mcq: `{ options }` (drops `correct_option_id`)
-  - issue_spotter: `{ issue_options }` (drops `correct_issue_ids`)
-  - speed_round: `{ questions: [{id, prompt}], time_limit_seconds }` (drops `answer`)
-  - jurisdiction: `{ options }` (drops `correct_option_id`; jurisdiction + reasoning kept)
-- Header: back button, type/area/difficulty badges, "Worth up to {points_base} pts", source citation if present.
-- Renders the appropriate `<XRenderer mode="answer" />`. Tracks `time_taken_seconds` via wall-clock from mount.
-- Submit calls `supabase.functions.invoke('submit-bar-attempt')`. Disabled state + spinner. Errors → toasts (409, 429, 400, 500). On 200 → swap to `<ResultScreen />`.
+**`src/pages/PublicProfile.tsx`** (modify): add isolated parallel fetch for `bar_user_stats` for profile id; if exists AND `total_attempts > 0`, also run rank query `SELECT count(*) + 1 FROM bar_user_stats WHERE total_points > $points AND bar_leaderboard_opt_out = false` (skip rank query when subject opted out and viewer ≠ subject). Render `<RankBadgeBlock />` between academic block and subjects of interest. Wrap in try/catch — failure must not block profile render. Hide entirely if no row or zero attempts.
 
-`**src/pages/TheBarHistory.tsx**` (new): paginated table (30/page) of caller's `bar_attempts` joined with `bar_challenges` (title, type, area). Click row → `<AttemptReviewDialog />`. Optional filters: correct/incorrect, type, area.
+## Profile edit opt-out
 
-## Frontend — components
+**`src/components/profile/BarPrivacySection.tsx`** (new): Card "The Bar". Single shadcn Checkbox "Show me on Bar leaderboards" (inverted: checked → `opt_out=false`). Helper text per PRD. Save button writes `profiles.bar_leaderboard_opt_out` via `.upsert`. Loads current value on mount.
 
-`**src/components/bar/StatsStrip.tsx**`: 4 shadcn Cards with `border-2`. Designation card includes Lucide `Scale` icon and the rank progress sub-line.
+**`src/pages/ProfileEdit.tsx`** (modify): include `bar_leaderboard_opt_out` in initial fetch; render `<BarPrivacySection />` below CV section, above any password change area.
 
-`**src/components/bar/ChallengeCard.tsx**`: clickable card → `/the-bar/challenge/:id`. Shows type badge (top-left), difficulty badge (top-right), prompt preview (first 100 chars), points (accent, large), area chip, source_citation (italic muted, optional). Hover lift.
+## Dashboard updates
 
-`**src/components/bar/AttemptListItem.tsx**`: row with title, type badge, Lucide `Check`/`X` icon (no emoji), points, relative date.
+**`src/pages/TheBar.tsx`** (modify):
+- Quick-action block: add third button "View Leaderboard" → `/the-bar/leaderboard` (Lucide `Trophy`, outline variant — primary stays "Take a Challenge").
+- Stats strip: when `total_attempts > 0`, render below the streak card a small "You're #N overall" pill linking to leaderboard. Computed via `SELECT count(*) + 1 FROM bar_user_stats WHERE total_points > $myPoints AND bar_leaderboard_opt_out = false`. If user is opted out, show "You're #N overall (hidden from public)" so they still see their position.
 
-`**src/components/bar/AttemptReviewDialog.tsx**`: shadcn Dialog. Re-fetches the full challenge (RLS allows read of approved challenges) and the user's attempt row. Renders the appropriate renderer in `mode="review"` so submitted answer is highlighted (green if correct, red if wrong) and the correct answer is highlighted green. Shows explanation + points earned.
+## Directory stub
 
-**Renderers** (`src/components/bar/renderers/`): each accepts `mode: 'answer' | 'review'`, `payload`, optional `submitted` + `correct` for review mode.
-
-- `McqRenderer.tsx`: shadcn `RadioGroup`. Submit disabled until selection.
-- `IssueSpotterRenderer.tsx`: shadcn `Checkbox` list, multi-select. Helper text "Select ALL issues present." Always submittable.
-- `SpeedRoundRenderer.tsx`: countdown header from `time_limit_seconds`, one sub-question at a time with text input, "Next" button, "Question N of M" progress, no going back. Timer hits 0 → auto-submit current state + "Time's up!" toast. Cleanup interval on unmount/submit.
-- `JurisdictionRenderer.tsx`: shadcn `RadioGroup` with `<jurisdiction>` bold + `<reasoning>` muted sub-text per option.
-
-`**src/components/bar/ResultScreen.tsx**`: large card with Lucide `CheckCircle2`/`XCircle`, "Correct!"/"Not quite", animated points count-up. If `designation_changed` → tasteful accent banner "You ranked up to {new}!" (no confetti library — CSS pulse on accent). Shows `correct_answer_summary`, explanation card, mini new-stats strip. Two CTAs: "Another Challenge" → `/the-bar/browse`, "Back to Dashboard" → `/the-bar`. Speed round adds `per_question` table.
-
-## Helpers + constants
-
-`**src/lib/bar/display.ts**` (new):
-
-- `formatDesignation(d)` → `DESIGNATION_LABELS[d]`
-- `pointsToNextRank(points, accuracy, current)` → `{ nextRank, pointsNeeded, accuracyBlocker }`
-- `getRelativeDateLabel(iso)` → "2h ago" / "3d ago" / "Jan 15"
-
-`**src/lib/bar/constants.ts**` (modify): export `DESIGNATION_ORDER` (trainee → silk array) + `getNextDesignation(current)` helper.
+**`src/pages/Directory.tsx`** (modify): add a small callout card (sidebar or beneath the firm grid, whichever fits the existing layout cleanly): "Looking for students? Check out the Bar leaderboard →" + one-line "Students ranked by legal skill, not just college." Links to `/the-bar/leaderboard`.
 
 ## Routing
 
-`**src/App.tsx**`: add inside existing `<Layout>`:
+**`src/App.tsx`** (modify): add `/the-bar/leaderboard → TheBarLeaderboard` inside existing `<Layout>` block.
 
-- `/the-bar` → `TheBar`
-- `/the-bar/browse` → `TheBarBrowse`
-- `/the-bar/challenge/:id` → `TheBarChallenge`
-- `/the-bar/history` → `TheBarHistory`
+## Security checklist
 
-The existing placeholder `/the-bar` route is replaced.
+- All 4 leaderboard queries explicitly filter `p.bar_leaderboard_opt_out = false`.
+- Profile rank number hidden from other viewers if subject opted out; always visible to the subject themselves (`auth.uid() === profile.id` check).
+- `bar_user_colleges` contains no data not already in `profiles`; public SELECT is safe.
+- All queries `LIMIT`-capped (500 / 100). No new edge functions = no new attack surface.
+- Trigger is SECURITY DEFINER with `search_path=public`.
+- Defensive: rank-badge fetch wrapped so its failure cannot break `/u/:username`.
 
-## Security posture
+## Performance notes
 
-- Correct answer fields stripped immediately on fetch in `TheBarChallenge.tsx` via `stripCorrectAnswer`. Raw payload discarded; only stripped version enters React state. Verifiable in DevTools / network tab.
-- All grading server-side. Edge function never returns the full unstripped payload pre-submission (the GET happens via the Supabase client because the data is needed for rendering the question; only `correct_*` keys leak risk, which is exactly what `stripCorrectAnswer` removes immediately on the client). Note: students with DevTools could intercept the raw client-side fetch — true server-only delivery would require a `get-bar-challenge` edge function. Flagged but deferred unless you want it now.
-- Daily cap and one-attempt-per-challenge enforced by DB triggers / unique constraint, not the UI.
-- RLS already restricts non-admins to approved challenges; queries also filter explicitly.
-- Edge function uses JWT for identity, service role only for server-side reads/inserts.  
-  
-Good flag. Choose option C ("B-lite"): create a Postgres view `bar_challenges_student` that selects everything from bar_challenges EXCEPT the correct-answer keys inside the payload jsonb. Specifically:
-  CREATE VIEW bar_challenges_student AS
-  SELECT 
-    id, source_id, source_page, source_citation, question_type, area_of_law,
-    difficulty, title, prompt, explanation, status, points_base,
-    created_by, approved_by, approved_at, created_at, updated_at, ai_generation_id,
-    CASE question_type
-      WHEN 'mcq' THEN jsonb_build_object('options', payload->'options')
-      WHEN 'issue_spotter' THEN jsonb_build_object('issue_options', payload->'issue_options')
-      WHEN 'speed_round' THEN jsonb_build_object(
-        'time_limit_seconds', payload->'time_limit_seconds',
-        'questions', (
-          SELECT jsonb_agg(jsonb_build_object('id', q->'id', 'prompt', q->'prompt'))
-          FROM jsonb_array_elements(payload->'questions') q
-        )
-      )
-      WHEN 'jurisdiction' THEN jsonb_build_object('options', payload->'options')
-      ELSE '{}'::jsonb
-    END AS payload
-  FROM bar_challenges
-  WHERE status = 'approved';
-  Grant SELECT on this view to authenticated users. Keep bar_challenges itself RLS-restricted to admins only for SELECT (tighten the existing policy — students now use the view, not the table).
-  Updates to frontend:
-  - TheBarBrowse.tsx → query bar_challenges_student instead of bar_challenges
-  - TheBarChallenge.tsx → query bar_challenges_student
-  - AttemptReviewDialog.tsx → needs the full answer, so it stays on bar_challenges BUT only for challenges the user has already attempted. Add a helper: if bar_attempts has a row for (current_user, challenge_id), allow SELECT on bar_challenges. Implement via a new RLS policy on bar_challenges: "Users can read challenges they've attempted." Keep admin-only for everything else.
-  Skip stripCorrectAnswer client-side logic since the view handles it. Client just reads and renders — correct answers are never in the response.
-  Confirm this before implementing.
+- Add btree index on `bar_user_stats(total_points DESC, last_attempt_at ASC)` if not already present (verify in migration; only create when missing).
+- Add btree index on `bar_user_stats_by_area(area_of_law, total_points DESC)` if not already present.
+- `bar_user_colleges.college_normalized` indexed.
+- Weekly view scans `bar_attempts` within 7 days; acceptable at v1 scale; flagged for materialization later.
 
-## Out of scope (deferred to prompt 4)
+## Files
 
-Leaderboards, rank badge on `/u/:username`, firm-side discovery, retake cooldowns, push/email reminders, admin attempt audit, types 5–8, AI grading.
+**New**
+- `supabase/migrations/<ts>_bar_leaderboards.sql`
+- `src/pages/TheBarLeaderboard.tsx`
+- `src/components/bar/LeaderboardTable.tsx`
+- `src/components/bar/LeaderboardRow.tsx`
+- `src/components/bar/RankBadgeBlock.tsx`
+- `src/components/profile/BarPrivacySection.tsx`
 
-## Open question (one)
+**Modified**
+- `src/pages/PublicProfile.tsx`
+- `src/pages/ProfileEdit.tsx`
+- `src/pages/TheBar.tsx`
+- `src/pages/Directory.tsx`
+- `src/App.tsx`
 
-The PRD strips correct answers **client-side after fetch**, but a determined student can sniff the raw network response from `bar_challenges`. To make answers truly server-only, we'd add a `get-bar-challenge` edge function returning the pre-stripped payload. Want me to:
+## Out of scope
+Student directory, firm accounts, notifications, historical rank graphs, monthly leaderboards, achievement badges beyond designations, CSV export, admin moderation tools.
 
-- **A**: Build it as specified (client-side strip, accepts the small leak window), or
-- **B**: Add a `get-bar-challenge` edge function so the raw correct answer never crosses the wire?
+## Definition of Done
+Migration applied (opt-out column + colleges table + trigger + backfill + weekly view). Leaderboard page live with 4 functional tabs, pagination, "You are here" indicator. Opt-out toggle on /profile/edit removes user from all 4 leaderboards. RankBadgeBlock shows on /u/:username for users with attempts (with rank-number visibility honoring opt-out). Dashboard has "View Leaderboard" + "Your rank" pill. Directory shows callout. Trigger keeps `bar_user_colleges` in sync with `profiles.college` edits. Weekly tab respects Monday 00:00 UTC reset. All mobile + dark-mode clean.
 
-Default if you don't reply: **A** (matches your PRD literally).  
-  
