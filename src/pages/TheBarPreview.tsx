@@ -615,9 +615,9 @@ function DocReviewPreview() {
     <PreviewShell type="document_review" sample={s}>
       {(mode) =>
         mode === "answer" ? (
-          <DocumentReviewRenderer mode="answer" payload={s.payload} value={val} onChange={setVal} />
+          <PremiumDocumentReview mode="answer" payload={s.payload} value={val} onChange={setVal} />
         ) : (
-          <DocumentReviewRenderer
+          <PremiumDocumentReview
             mode="review"
             payload={s.payload}
             submitted={{
@@ -645,15 +645,15 @@ function BriefBuilderPreview() {
       {(mode) =>
         mode === "answer" ? (
           <div className="space-y-3">
-            <BriefBuilderRenderer mode="answer" payload={s.payload} currentStep={step} value={val} onChange={setVal} onAdvance={() => !isLast && setStep(step + 1)} />
+            <PremiumBriefBuilder mode="answer" payload={s.payload} currentStep={step} value={val} onChange={setVal} onAdvance={() => !isLast && setStep(step + 1)} />
             <div className="flex items-center justify-between gap-2">
               <Button size="sm" variant="ghost" disabled={step === 0} onClick={() => setStep(step - 1)}>← Prev step</Button>
-              <span className="text-xs text-muted-foreground">Step {step + 1} of {s.payload.steps.length}</span>
+              <span className="text-xs text-[hsl(var(--premium-muted))]">Step {step + 1} of {s.payload.steps.length}</span>
               <Button size="sm" variant="default" disabled={isLast} onClick={() => setStep(step + 1)}>Next step →</Button>
             </div>
           </div>
         ) : (
-          <BriefBuilderRenderer
+          <PremiumBriefBuilder
             mode="review"
             payload={s.payload}
             currentStep={s.payload.steps.length - 1}
@@ -681,7 +681,7 @@ function EthicsPreview() {
       {(mode) =>
         mode === "answer" ? (
           <div className="space-y-3">
-            <EthicsRenderer mode="answer" payload={s.payload} stage={stage} value={val} onChange={setVal} />
+            <PremiumEthics mode="answer" payload={s.payload} stage={stage} value={val} onChange={setVal} />
             <div className="flex items-center justify-end gap-2">
               {stage === "decision" && (
                 <Button size="sm" disabled={!val.selected_decision_id} onClick={() => setStage("consequence")}>
@@ -694,7 +694,7 @@ function EthicsPreview() {
             </div>
           </div>
         ) : (
-          <EthicsRenderer
+          <PremiumEthics
             mode="review"
             payload={s.payload}
             stage="reveal"
@@ -716,15 +716,15 @@ function ClientCounselingPreview() {
       {(mode) =>
         mode === "answer" ? (
           <div className="space-y-3">
-            <ClientCounselingRenderer mode="answer" payload={s.payload} currentTurn={turn} value={val} onChange={setVal} />
+            <PremiumClientCounseling mode="answer" payload={s.payload} currentTurn={turn} value={val} onChange={setVal} />
             <div className="flex items-center justify-between gap-2">
               <Button size="sm" variant="ghost" disabled={turn === 1} onClick={() => setTurn(turn - 1)}>← Prev turn</Button>
-              <span className="text-xs text-muted-foreground">Turn {turn} of {total}</span>
+              <span className="text-xs text-[hsl(var(--premium-muted))]">Turn {turn} of {total}</span>
               <Button size="sm" variant="default" disabled={turn >= total} onClick={() => setTurn(turn + 1)}>Next turn →</Button>
             </div>
           </div>
         ) : (
-          <ClientCounselingRenderer
+          <PremiumClientCounseling
             mode="review"
             payload={s.payload}
             submitted={{
