@@ -163,6 +163,18 @@ export default function TheBar() {
           />
         )}
 
+
+        {/* Overall rank pill */}
+        {!loading && overallRank !== null && (
+          <Link to="/the-bar/leaderboard?tab=all-time" className="inline-flex">
+            <span className="inline-flex items-center gap-2 bg-accent/10 hover:bg-accent/20 transition-colors text-accent border border-accent/30 rounded-full px-4 py-1.5 text-sm font-semibold">
+              <Trophy size={14} />
+              You're #{overallRank.toLocaleString()} overall
+              {optedOut && <span className="text-muted-foreground font-normal">(hidden from public)</span>}
+            </span>
+          </Link>
+        )}
+
         {/* Quick actions */}
         <div className="flex flex-col sm:flex-row gap-3">
           <Link to="/the-bar/browse" className="flex-1">
@@ -170,9 +182,14 @@ export default function TheBar() {
               Take a Challenge <ArrowRight size={18} />
             </Button>
           </Link>
+          <Link to="/the-bar/leaderboard">
+            <Button size="lg" variant="outline" className="gap-2 h-14 w-full sm:w-auto">
+              <Trophy size={18} /> View Leaderboard
+            </Button>
+          </Link>
           <Link to="/the-bar/history">
             <Button size="lg" variant="outline" className="gap-2 h-14 w-full sm:w-auto">
-              <History size={18} /> View Full History
+              <History size={18} /> History
             </Button>
           </Link>
         </div>

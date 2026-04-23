@@ -15,6 +15,7 @@ import InternshipsSection, { Internship } from "@/components/profile/Internships
 import MootsSection, { Moot } from "@/components/profile/MootsSection";
 import PublicationsSection, { Publication } from "@/components/profile/PublicationsSection";
 import CvSection from "@/components/profile/CvSection";
+import BarPrivacySection from "@/components/profile/BarPrivacySection";
 
 type Degree = "BA LLB" | "BBA LLB" | "BCom LLB" | "LLB (3yr)" | "LLM" | "Other";
 
@@ -237,6 +238,8 @@ export default function ProfileEdit() {
           }}
           onParsedApplied={() => setRefreshTick((t) => t + 1)}
         />
+
+        <BarPrivacySection userId={userId} />
 
         {hasPassword && (
           <Card>
