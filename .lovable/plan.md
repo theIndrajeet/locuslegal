@@ -1,83 +1,52 @@
 
 
-# Rit — "Reason It Through" post-answer chat
+# Show Rit on the preview page (demo mode)
 
-After a student sees the explanation, drop in a chat panel where they can debate the answer, ask follow-ups, or get clarification.
+The preview at `/the-bar/preview` currently shows the renderers in Answer/Review modes but never shows the **Reason It Through (Rit)** panel — so visitors can't see the new feature. Add a demo version of Rit that appears in **Review** mode on the preview page only.
 
-**Naming**: Feature is called **"Reason It Through"** everywhere user-facing. The short form **"Rit"** only appears as a small UI affordance — the chat header pill, the assistant's bubble label, and the typing indicator (`Rit is thinking…`). No "with Rit" phrasing anywhere. Easter-egg dedication lives only in a code comment.
+## Approach
 
-## Where it appears
+Add a `demoMode` prop to `RitChatPanel` that:
 
-Gated behind a successful answer submission so it can't be used as a cheat tool:
+- Skips the DB history load (no real `attempt_id` exists).
+- Routes "send" to a small canned-reply function instead of the `rit-chat` edge function (no auth, no cost, no logging).
+- Keeps the **exact same UI**: collapsible card, header pill, greeting, starter chips, typing indicator (1.2s simulated delay), markdown rendering, message cap, clear-conversation, character cap.
+- Disables persistence — refreshing resets the demo conversation.
 
-1. **`ResultScreen`** (right after submit on `TheBarChallenge`) — collapsed card under the "Why?" explanation: *"Reason It Through →"*. Click expands to chat.
-2. **`AttemptReviewDialog`** (review past attempts) — same card under the explanation; conversation persists per-attempt.
+This way, the production behaviour stays untouched and we get a faithful visual demo with zero backend dependency.
 
-Not shown on `/the-bar/preview` (no real attempt to anchor to).
+## Canned demo replies
 
-## UX
+A tiny in-file map keyed off the starter chip labels plus a generic fallback:
 
-- Card with neobrutalist 2px border. Header: **"Reason It Through"** title + tiny `Rit` accent pill on the right.
-- Auto-greeting from question context: *"The answer was C because [one-liner]. What part would you like to dig into?"* — labeled as **Rit** in the bubble.
-- 3 starter chips: **"Why isn't B correct?"**, **"Cite the leading case"**, **"Give me a similar hypo"**.
-- Markdown rendering (`react-markdown`) for assistant messages.
-- Input + Send; Enter sends, Shift+Enter newline; 1500-char cap; disabled while loading.
-- Typing indicator: `Rit is thinking…`
-- Per-attempt cap: **20 messages**, then soft lock with "Start a fresh challenge" CTA.
-- "Clear conversation" link in header (local-only hide for v1).
+- *"Why isn't my answer correct?"* → 2-paragraph markdown explaining why the user's choice was wrong, grounded in the sample question's domain.
+- *"Cite the leading case"* → bullet list of 1-2 plausible Indian cases relevant to that sample.
+- *"Give me a similar hypothetical"* → a short hypo that tests the same rule.
+- Anything else typed → friendly "In the live version I'd reason this through with you using the actual question context. This is a static demo — try the chips above."
 
-## Data model (1 migration)
+One canned set per sample question type (MCQ, Issue Spotter, Jurisdiction, Speed Round), so the demo feels relevant to whichever tab is open.
 
-New table `bar_rit_messages`:
-- `id uuid pk`, `attempt_id uuid fk → bar_attempts(id) on delete cascade`
-- `user_id uuid` (denormalized for RLS), `role text check (role in ('user','assistant'))`
-- `content text`, `created_at timestamptz default now()`
-- Index on `(attempt_id, created_at)`
+## Where it appears in the preview
 
-RLS: user can `select`/`insert` only where `user_id = auth.uid()` AND parent attempt belongs to them (verified via `exists` subquery on `bar_attempts`). No client update/delete.
+Inside `PreviewShell`, only when `mode === "review"` and the sample has an explanation:
 
-## New edge function: `rit-chat`
+- Render the existing explanation card.
+- Right under it, render `<RitChatPanel demoMode demoReplies={...} attemptId="preview" challenge={...} defaultOpen={false} />`.
 
-Path: `supabase/functions/rit-chat/index.ts`. Same auth pattern as `chat-legal` (JWT required).
+Speed Round's review block already shows a `perQuestion` table — Rit appears under that.
 
-Body: `{ attempt_id: string, message: string }`.
+A small muted note above Rit on the preview: *"Demo mode — replies are canned. The real tutor uses your actual attempt."*
 
-Server flow:
-1. Validate JWT, load `bar_attempts` + joined `bar_challenges`, confirm `attempt.user_id === claims.sub` else 403.
-2. Enforce 20-message cap.
-3. Load existing `bar_rit_messages` (ordered) for full history.
-4. System prompt: senior Indian-law tutor; ground answers in Indian statutes/cases; **never reveal answers to other questions**; explain why a wrong theory is wrong; refuse off-topic; ~250 words max. Includes question prompt, options/payload, correct answer, official explanation, what user submitted, whether they got it right.
-5. Call Lovable AI Gateway `google/gemini-3-flash-preview`.
-6. 429 → "Rit is taking a breather — try again in a moment." 402 → "Rit is out of credits."
-7. Insert user message + assistant reply, return `{ reply, message_count }`.
+## Files
 
-Non-streaming for v1.
+**Modified**
+- `src/components/bar/rit/RitChatPanel.tsx` — add `demoMode?: boolean` and `demoReplies?: Record<string, string>` props; when `demoMode`, skip the history fetch and the edge-function call, simulate a typing delay, and pull replies from `demoReplies` (with a default fallback). No other behaviour changes.
+- `src/pages/TheBarPreview.tsx` — wire `<RitChatPanel demoMode … />` into `PreviewShell` review mode for each of the 4 sample types, with type-specific `demoReplies` and a short demo-mode note.
 
-## New client components
-
-- `src/components/bar/rit/RitChatPanel.tsx` — collapsible card; props `{ attemptId, challenge, attempt }`.
-- `src/components/bar/rit/RitMessage.tsx` — bubble with `react-markdown`, role-coloured.
-- `src/components/bar/rit/RitStarterChip.tsx` — neobrutalist chip.
-
-## Wire-up
-
-- `src/components/bar/ResultScreen.tsx` — accept `attemptId` + `challenge` props; render `<RitChatPanel>` after explanation.
-- `src/pages/TheBarChallenge.tsx` — pass `attemptId` and challenge to `ResultScreen`.
-- `src/components/bar/AttemptReviewDialog.tsx` — render `<RitChatPanel>` after the "Why?" card.
-
-## Dependency
-
-Add `react-markdown` if not already installed.
-
-## Easter egg
-
-Single dedication comment at the top of `RitChatPanel.tsx`. UI never reveals the name.
-
-## Out of scope (v1)
-
-Sharing/export, streaming, mid-question access (cheating risk), admin moderation UI, billing.
+**Unchanged**
+- `rit-chat` edge function, `bar_rit_messages` table, RLS, `ResultScreen`, `AttemptReviewDialog`, `TheBarChallenge` — all untouched.
 
 ## Definition of Done
 
-After answering any challenge, a "Reason It Through" card appears below the explanation with a small `Rit` pill. Expanding shows greeting + 3 chips. Sending gets a contextual reply within ~5s, grounded in the question + correct answer. Conversation persists across `/the-bar/history` revisits. After 20 messages, input locks. Wrong-user requests to `rit-chat` get 403. The `/the-bar/preview` page is unchanged.
+Visit `/the-bar/preview` → switch any tab to **Review** → a "Reason It Through" card with the `Rit` pill appears under the explanation. Expanding it shows the greeting + 3 starter chips. Tapping a chip shows `Rit is thinking…` for ~1.2s, then a markdown-rendered canned reply relevant to that question type. Typing a custom message returns the friendly demo-mode line. The 20-message cap and Clear Conversation still work. Production usage on real attempts is byte-identical to before.
 
