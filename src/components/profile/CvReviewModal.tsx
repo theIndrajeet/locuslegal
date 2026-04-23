@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, X, Plus } from "lucide-react";
+import { Loader2, X } from "lucide-react";
 import type { Internship } from "./InternshipsSection";
 import type { Moot } from "./MootsSection";
 import type { Publication } from "./PublicationsSection";
