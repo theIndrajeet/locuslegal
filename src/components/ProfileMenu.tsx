@@ -14,6 +14,7 @@ export default function ProfileMenu() {
   const [username, setUsername] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
+  const isAdmin = useAdminRole();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
