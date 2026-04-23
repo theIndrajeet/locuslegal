@@ -58,47 +58,101 @@ export default function ProfileEdit() {
     let mounted = true;
 
     const init = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!mounted) return;
-      if (!session) { navigate("/auth"); return; }
-      const uid = session.user.id;
-      setUserId(uid);
+      console.log("[ProfileEdit] init start");
+      let uid: string | null = null;
 
-      // Detect whether the user has an email/password identity (vs OAuth-only).
-      const { data: userRes } = await supabase.auth.getUser();
-      if (mounted) {
-        const identities = userRes?.user?.identities ?? [];
-        setHasPassword(identities.some((i) => i.provider === "email"));
+      try {
+        // 1. Session
+        try {
+          const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+          if (sessionError) throw sessionError;
+          if (!mounted) return;
+          if (!session) {
+            console.log("[ProfileEdit] no session, redirecting");
+            navigate("/auth");
+            return;
+          }
+          uid = session.user.id;
+          setUserId(uid);
+          console.log("[ProfileEdit] session resolved");
+        } catch (e) {
+          console.error("[ProfileEdit] session error:", e);
+          toast.error("Could not verify session. Please sign in again.");
+          return;
+        }
+
+        // 2. Identities (non-blocking)
+        try {
+          console.log("[ProfileEdit] fetching identities");
+          const { data: userRes, error: userErr } = await supabase.auth.getUser();
+          if (userErr) throw userErr;
+          if (mounted) {
+            const identities = userRes?.user?.identities ?? [];
+            const hasPwd = identities.some((i) => i.provider === "email");
+            setHasPassword(hasPwd);
+            console.log(`[ProfileEdit] identities fetched (hasPassword=${hasPwd})`);
+          }
+        } catch (e) {
+          console.error("[ProfileEdit] identities error (defaulting hasPassword=true):", e);
+          if (mounted) setHasPassword(true);
+        }
+
+        // 3. Profile + lists
+        try {
+          console.log("[ProfileEdit] fetching profile + lists");
+          const [profileRes, internshipsRes, mootsRes, pubsRes] = await Promise.all([
+            supabase.from("profiles").select("*").eq("id", uid!).maybeSingle(),
+            supabase.from("profile_internships").select("*").eq("user_id", uid!).order("start_date", { ascending: false }),
+            supabase.from("profile_moots").select("*").eq("user_id", uid!).order("year", { ascending: false }),
+            supabase.from("profile_publications").select("*").eq("user_id", uid!).order("publication_date", { ascending: false }),
+          ]);
+
+          if (!mounted) return;
+
+          console.log(`[ProfileEdit] profile fetched (rowPresent=${!!profileRes.data})`);
+          if (profileRes.error) console.error("[ProfileEdit] profile error:", profileRes.error);
+
+          if (!profileRes.data && !profileRes.error) {
+            console.error("[ProfileEdit] profile row missing for authenticated user", uid);
+            toast.error("Profile not found. Please sign out and sign back in.");
+          }
+
+          if (profileRes.data) {
+            const p = profileRes.data;
+            setDisplayName(p.display_name || "");
+            setUsername(p.username || "");
+            setBio(p.bio || "");
+            setAvatarUrl(p.avatar_url || null);
+            setCollege(p.college || "");
+            setDegree((p.degree as Degree) || "");
+            setGraduationYear(p.graduation_year ? String(p.graduation_year) : "");
+            setCgpa(p.cgpa !== null && p.cgpa !== undefined ? String(p.cgpa) : "");
+            setSubjects(p.subjects_of_interest || []);
+            setCvUrl(p.cv_url || null);
+            setCvUploadedAt(p.cv_uploaded_at || null);
+          }
+
+          if (internshipsRes.error) console.error("[ProfileEdit] internships error:", internshipsRes.error);
+          if (mootsRes.error) console.error("[ProfileEdit] moots error:", mootsRes.error);
+          if (pubsRes.error) console.error("[ProfileEdit] publications error:", pubsRes.error);
+
+          if (internshipsRes.data) setInternships(internshipsRes.data as Internship[]);
+          if (mootsRes.data) setMoots(mootsRes.data as Moot[]);
+          if (pubsRes.data) setPublications(pubsRes.data as Publication[]);
+
+          console.log(
+            `[ProfileEdit] lists fetched (internships=${internshipsRes.data?.length ?? 0}, moots=${mootsRes.data?.length ?? 0}, publications=${pubsRes.data?.length ?? 0})`
+          );
+        } catch (e) {
+          console.error("[ProfileEdit] profile/lists error:", e);
+          toast.error("Could not load profile data.");
+        }
+      } catch (e) {
+        console.error("[ProfileEdit] init unexpected error:", e);
+      } finally {
+        if (mounted) setLoading(false);
+        console.log("[ProfileEdit] init done");
       }
-
-      const [profileRes, internshipsRes, mootsRes, pubsRes] = await Promise.all([
-        supabase.from("profiles").select("*").eq("id", uid).maybeSingle(),
-        supabase.from("profile_internships").select("*").eq("user_id", uid).order("start_date", { ascending: false }),
-        supabase.from("profile_moots").select("*").eq("user_id", uid).order("year", { ascending: false }),
-        supabase.from("profile_publications").select("*").eq("user_id", uid).order("publication_date", { ascending: false }),
-      ]);
-
-      if (!mounted) return;
-
-      if (profileRes.data) {
-        const p = profileRes.data;
-        setDisplayName(p.display_name || "");
-        setUsername(p.username || "");
-        setBio(p.bio || "");
-        setAvatarUrl(p.avatar_url || null);
-        setCollege(p.college || "");
-        setDegree((p.degree as Degree) || "");
-        setGraduationYear(p.graduation_year ? String(p.graduation_year) : "");
-        setCgpa(p.cgpa !== null && p.cgpa !== undefined ? String(p.cgpa) : "");
-        setSubjects(p.subjects_of_interest || []);
-        setCvUrl(p.cv_url || null);
-        setCvUploadedAt(p.cv_uploaded_at || null);
-      }
-      if (internshipsRes.data) setInternships(internshipsRes.data as Internship[]);
-      if (mootsRes.data) setMoots(mootsRes.data as Moot[]);
-      if (pubsRes.data) setPublications(pubsRes.data as Publication[]);
-
-      setLoading(false);
     };
 
     init();
