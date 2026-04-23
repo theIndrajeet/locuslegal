@@ -40,9 +40,16 @@ interface Props {
   greeting?: string;
   /** Default open state (closed by default) */
   defaultOpen?: boolean;
+  /** Demo mode: skip DB/edge function, use canned replies. Used on the preview page. */
+  demoMode?: boolean;
+  /** Canned replies keyed by message text (case-insensitive exact match). */
+  demoReplies?: Record<string, string>;
 }
 
-export function RitChatPanel({ attemptId, challenge, greeting, defaultOpen = false }: Props) {
+const DEMO_FALLBACK =
+  "In the live version I'd reason this through with you using your actual question and answer. This is a static demo — try one of the chips above to see Rit in action.";
+
+export function RitChatPanel({ attemptId, challenge, greeting, defaultOpen = false, demoMode = false, demoReplies }: Props) {
   const [open, setOpen] = useState(defaultOpen);
   const [loaded, setLoaded] = useState(false);
   const [messages, setMessages] = useState<RitMsg[]>([]);
