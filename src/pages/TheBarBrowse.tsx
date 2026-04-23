@@ -66,32 +66,43 @@ export default function TheBarBrowse() {
 
   useEffect(() => {
     if (!authReady) return;
-    if (!userId) { navigate("/auth"); return; }
     let active = true;
     (async () => {
       setLoading(true);
       const today = new Date();
       const todayStr = today.toISOString().slice(0, 10);
 
-      const [attemptedRes, dailyRes, challengeRes] = await Promise.all([
-        supabase.from("bar_attempts").select("challenge_id").eq("user_id", userId),
-        supabase.from("bar_daily_attempts").select("attempt_count").eq("user_id", userId).eq("attempt_date", todayStr).maybeSingle(),
-        // Read from the safe view — correct answers stripped server-side
-        supabase
+      if (userId) {
+        const [attemptedRes, dailyRes, challengeRes] = await Promise.all([
+          supabase.from("bar_attempts").select("challenge_id").eq("user_id", userId),
+          supabase.from("bar_daily_attempts").select("attempt_count").eq("user_id", userId).eq("attempt_date", todayStr).maybeSingle(),
+          // Read from the safe view — correct answers stripped server-side
+          supabase
+            .from("bar_challenges_student" as any)
+            .select("id, question_type, area_of_law, difficulty, prompt, points_base, source_citation, approved_at")
+            .order("approved_at", { ascending: false })
+            .limit(500),
+        ]);
+        if (!active) return;
+        const attemptedIds = new Set((attemptedRes.data ?? []).map((a: any) => a.challenge_id));
+        const all = ((challengeRes.data ?? []) as unknown) as Challenge[];
+        setChallenges(all.filter((c) => !attemptedIds.has(c.id)));
+        setTodayCount((dailyRes.data as any)?.attempt_count ?? 0);
+      } else {
+        // Guest: just list every approved challenge — no attempt filtering, no daily cap
+        const { data: challengeData } = await supabase
           .from("bar_challenges_student" as any)
           .select("id, question_type, area_of_law, difficulty, prompt, points_base, source_citation, approved_at")
           .order("approved_at", { ascending: false })
-          .limit(500),
-      ]);
-      if (!active) return;
-      const attemptedIds = new Set((attemptedRes.data ?? []).map((a: any) => a.challenge_id));
-      const all = ((challengeRes.data ?? []) as unknown) as Challenge[];
-      setChallenges(all.filter((c) => !attemptedIds.has(c.id)));
-      setTodayCount((dailyRes.data as any)?.attempt_count ?? 0);
+          .limit(500);
+        if (!active) return;
+        setChallenges(((challengeData ?? []) as unknown) as Challenge[]);
+        setTodayCount(0);
+      }
       setLoading(false);
     })();
     return () => { active = false; };
-  }, [authReady, userId, navigate]);
+  }, [authReady, userId]);
 
   const filtered = useMemo(() => {
     let out = challenges;
@@ -126,8 +137,9 @@ export default function TheBarBrowse() {
   };
 
   const remaining = Math.max(0, 20 - todayCount);
-  const capReached = todayCount >= 20;
-  const capWarning = todayCount >= 18 && !capReached;
+  const capReached = !!userId && todayCount >= 20;
+  const capWarning = !!userId && todayCount >= 18 && !capReached;
+  const isGuest = !userId;
 
   return (
     <section className="min-h-screen pt-24 pb-16 bg-background">
@@ -142,6 +154,18 @@ export default function TheBarBrowse() {
             Browse Challenges
           </h1>
         </div>
+
+        {isGuest && (
+          <Card className="border-2 border-accent/40 bg-accent/5 p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="flex-1 text-sm text-foreground">
+              <span className="font-semibold">Browsing as guest.</span>{" "}
+              <span className="text-muted-foreground">Sign in to take a challenge and earn points.</span>
+            </div>
+            <Link to="/auth">
+              <Button size="sm" className="w-full sm:w-auto">Sign in</Button>
+            </Link>
+          </Card>
+        )}
 
         {capReached && (
           <Card className="border-2 border-rose-500/60 bg-rose-500/10 p-4 flex items-center gap-3">

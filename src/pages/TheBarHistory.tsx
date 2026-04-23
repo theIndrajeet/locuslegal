@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Check, X } from "lucide-react";
+import { ArrowLeft, Check, X, LogIn } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -39,7 +39,7 @@ export default function TheBarHistory() {
     description: "Your full Bar attempt history.",
     path: "/the-bar/history",
   });
-  const navigate = useNavigate();
+  // No nav redirect — guests see a friendly sign-in card instead
   const [authReady, setAuthReady] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
