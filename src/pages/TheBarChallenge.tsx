@@ -334,6 +334,23 @@ export default function TheBarChallenge() {
           </div>
         )}
       </div>
+
+      <AlertDialog open={showSignInDialog} onOpenChange={setShowSignInDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sign in to submit your answer</AlertDialogTitle>
+            <AlertDialogDescription>
+              You're previewing this challenge as a guest. Sign in to submit, earn points, and climb the leaderboard.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => navigate(`/auth?next=/the-bar/challenge/${challenge.id}`)}>
+              Sign in
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </section>
   );
 }
