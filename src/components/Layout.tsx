@@ -13,14 +13,25 @@ export default function Layout() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (event === "SIGNED_IN" && session?.user) {
-          // Check if user needs to pick a username
+          // Don't override navigation that Auth.tsx is already handling,
+          // and don't bounce a user already on the username picker.
+          if (
+            location.pathname === "/auth" ||
+            location.pathname === "/choose-username"
+          ) {
+            return;
+          }
+
+          // Only force the username picker for profiles with a truly empty
+          // username. The handle_new_user trigger normally derives one from
+          // the email, so this is effectively a no-op safety net.
           const { data: profile } = await supabase
             .from("profiles")
-            .select("display_name")
+            .select("username")
             .eq("id", session.user.id)
             .maybeSingle();
 
-          if (!profile?.display_name || profile.display_name.trim() === "") {
+          if (!profile?.username || profile.username.trim() === "") {
             navigate("/choose-username");
           }
         }
@@ -28,7 +39,7 @@ export default function Layout() {
     );
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigate, location.pathname]);
 
   return (
     <div className="min-h-screen">

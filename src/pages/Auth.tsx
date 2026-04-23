@@ -67,8 +67,9 @@ export default function Auth() {
   const handleSocialLogin = async (provider: "google" | "apple") => {
     setLoading(true);
     try {
+      const redirectTo = `${window.location.origin}${postLoginPath}`;
       const result = await lovable.auth.signInWithOAuth(provider, {
-        redirect_uri: window.location.origin,
+        redirect_uri: redirectTo,
       });
       if (result?.error) {
         toast.error(result.error.message || `Failed to sign in with ${provider}`);
