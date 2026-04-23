@@ -19,6 +19,12 @@ import { DocumentReviewRenderer } from "./renderers/DocumentReviewRenderer";
 import { BriefBuilderRenderer } from "./renderers/BriefBuilderRenderer";
 import { EthicsRenderer } from "./renderers/EthicsRenderer";
 import { ClientCounselingRenderer } from "./renderers/ClientCounselingRenderer";
+import { PremiumDocumentReview } from "./premium/PremiumDocumentReview";
+import { PremiumBriefBuilder } from "./premium/PremiumBriefBuilder";
+import { PremiumEthics } from "./premium/PremiumEthics";
+import { PremiumClientCounseling } from "./premium/PremiumClientCounseling";
+import { PremiumBadge } from "./premium/PremiumBadge";
+import { isPremiumType } from "@/lib/bar/premium";
 import { AREA_OF_LAW_LABELS, QUESTION_TYPE_LABELS } from "@/lib/bar/constants";
 import { RitChatPanel } from "./rit/RitChatPanel";
 
