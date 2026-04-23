@@ -15,6 +15,10 @@ import { McqRenderer } from "./renderers/McqRenderer";
 import { IssueSpotterRenderer } from "./renderers/IssueSpotterRenderer";
 import { JurisdictionRenderer } from "./renderers/JurisdictionRenderer";
 import { SpeedRoundRenderer } from "./renderers/SpeedRoundRenderer";
+import { DocumentReviewRenderer } from "./renderers/DocumentReviewRenderer";
+import { BriefBuilderRenderer } from "./renderers/BriefBuilderRenderer";
+import { EthicsRenderer } from "./renderers/EthicsRenderer";
+import { ClientCounselingRenderer } from "./renderers/ClientCounselingRenderer";
 import { AREA_OF_LAW_LABELS, QUESTION_TYPE_LABELS } from "@/lib/bar/constants";
 import { RitChatPanel } from "./rit/RitChatPanel";
 
