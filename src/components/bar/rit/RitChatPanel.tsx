@@ -333,7 +333,7 @@ export function RitChatPanel({ attemptId, challenge, greeting, defaultOpen = fal
                       "focus-visible:shadow-[0_0_0_3px_hsl(var(--accent)/0.45)]",
                     )}
                   >
-                    {sending ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
+                    <Send size={12} />
                     Send
                   </Button>
                 </div>
