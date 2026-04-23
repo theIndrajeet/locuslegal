@@ -115,6 +115,19 @@ export function RitChatPanel({ attemptId, challenge, greeting, defaultOpen = fal
     // optimistic user bubble
     setMessages((prev) => [...prev, { role: "user", content: trimmed }]);
 
+    if (demoMode) {
+      // Simulated typing delay + canned reply lookup
+      const lookup = demoReplies ?? {};
+      const key = Object.keys(lookup).find(
+        (k) => k.toLowerCase() === trimmed.toLowerCase()
+      );
+      const reply = key ? lookup[key] : DEMO_FALLBACK;
+      await new Promise((r) => setTimeout(r, 1200));
+      setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
+      setSending(false);
+      return;
+    }
+
     try {
       const { data, error } = await supabase.functions.invoke("rit-chat", {
         body: { attempt_id: attemptId, message: trimmed },
