@@ -19,7 +19,7 @@ export default function Auth() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const nextParam = searchParams.get("next");
-  const safeNext = nextParam && nextParam.startsWith("/") ? nextParam : null;
+  const safeNext = nextParam && nextParam.startsWith("/the-bar") ? nextParam : null;
   const postLoginPath = safeNext ?? "/the-bar";
 
   const handleSubmit = async (e: React.FormEvent) => {

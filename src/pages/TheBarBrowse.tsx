@@ -231,7 +231,7 @@ export default function TheBarBrowse() {
         ) : filtered.length === 0 ? (
           <Card className="border-2 border-dashed border-border p-12 text-center">
             <p className="text-muted-foreground">
-              {challenges.length === 0
+              {!isGuest && challenges.length === 0
                 ? "You've attempted every available challenge. Come back when new ones drop."
                 : "No challenges match your filters. Try broadening."}
             </p>
