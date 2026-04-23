@@ -256,7 +256,7 @@ export function RitChatPanel({ attemptId, challenge, greeting, defaultOpen = fal
         <div className="border-t-2 border-border">
           <div className="flex items-center justify-between px-4 py-2 bg-muted/20 border-b border-border text-[11px] text-muted-foreground">
             <span>{messageCount} / {MAX_MESSAGES} messages</span>
-            {messageCount > 0 && (
+            {visibleMessages.length > 0 && (
               <button
                 type="button"
                 onClick={() => { setHideBeforeIndex(messages.length); setHiddenCleared(true); }}
