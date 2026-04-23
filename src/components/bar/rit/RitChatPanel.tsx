@@ -40,9 +40,16 @@ interface Props {
   greeting?: string;
   /** Default open state (closed by default) */
   defaultOpen?: boolean;
+  /** Demo mode: skip DB/edge function, use canned replies. Used on the preview page. */
+  demoMode?: boolean;
+  /** Canned replies keyed by message text (case-insensitive exact match). */
+  demoReplies?: Record<string, string>;
 }
 
-export function RitChatPanel({ attemptId, challenge, greeting, defaultOpen = false }: Props) {
+const DEMO_FALLBACK =
+  "In the live version I'd reason this through with you using your actual question and answer. This is a static demo — try one of the chips above to see Rit in action.";
+
+export function RitChatPanel({ attemptId, challenge, greeting, defaultOpen = false, demoMode = false, demoReplies }: Props) {
   const [open, setOpen] = useState(defaultOpen);
   const [loaded, setLoaded] = useState(false);
   const [messages, setMessages] = useState<RitMsg[]>([]);
@@ -60,9 +67,13 @@ export function RitChatPanel({ attemptId, challenge, greeting, defaultOpen = fal
     return "Hi — I'm here to help you reason this through. What part of the question would you like to explore?";
   }, [greeting, challenge.correct_answer_summary]);
 
-  // Load history on first expand
+  // Load history on first expand (skipped in demo mode)
   useEffect(() => {
     if (!open || loaded) return;
+    if (demoMode) {
+      setLoaded(true);
+      return;
+    }
     let active = true;
     (async () => {
       const { data, error } = await supabase
@@ -78,7 +89,7 @@ export function RitChatPanel({ attemptId, challenge, greeting, defaultOpen = fal
       setLoaded(true);
     })();
     return () => { active = false; };
-  }, [open, loaded, attemptId]);
+  }, [open, loaded, attemptId, demoMode]);
 
   // Auto scroll to bottom when messages change
   useEffect(() => {
@@ -103,6 +114,19 @@ export function RitChatPanel({ attemptId, challenge, greeting, defaultOpen = fal
     setHiddenCleared(false);
     // optimistic user bubble
     setMessages((prev) => [...prev, { role: "user", content: trimmed }]);
+
+    if (demoMode) {
+      // Simulated typing delay + canned reply lookup
+      const lookup = demoReplies ?? {};
+      const key = Object.keys(lookup).find(
+        (k) => k.toLowerCase() === trimmed.toLowerCase()
+      );
+      const reply = key ? lookup[key] : DEMO_FALLBACK;
+      await new Promise((r) => setTimeout(r, 1200));
+      setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
+      setSending(false);
+      return;
+    }
 
     try {
       const { data, error } = await supabase.functions.invoke("rit-chat", {
