@@ -25,6 +25,13 @@ import { DocumentReviewRenderer, type DocReviewAnswerState } from "@/components/
 import { BriefBuilderRenderer, type BriefAnswerState } from "@/components/bar/renderers/BriefBuilderRenderer";
 import { EthicsRenderer, type EthicsAnswerState, type EthicsStage } from "@/components/bar/renderers/EthicsRenderer";
 import { ClientCounselingRenderer, type CounselingAnswerState } from "@/components/bar/renderers/ClientCounselingRenderer";
+import { PremiumDocumentReview } from "@/components/bar/premium/PremiumDocumentReview";
+import { PremiumBriefBuilder } from "@/components/bar/premium/PremiumBriefBuilder";
+import { PremiumEthics } from "@/components/bar/premium/PremiumEthics";
+import { PremiumClientCounseling } from "@/components/bar/premium/PremiumClientCounseling";
+import { PremiumShell } from "@/components/bar/premium/PremiumShell";
+import { PremiumButton } from "@/components/bar/premium/PremiumPrimitives";
+import { isPremiumType } from "@/lib/bar/premium";
 import { ResultScreen, type ResultScreenProps } from "@/components/bar/ResultScreen";
 import { AREA_OF_LAW_LABELS, QUESTION_TYPE_LABELS } from "@/lib/bar/constants";
 import type { AreaOfLaw, Difficulty, QuestionType } from "@/lib/bar/types";
