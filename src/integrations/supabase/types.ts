@@ -14,6 +14,87 @@ export type Database = {
   }
   public: {
     Tables: {
+      bar_ai_generations: {
+        Row: {
+          area_of_law_hint:
+            | Database["public"]["Enums"]["bar_area_of_law"]
+            | null
+          challenges_created: number
+          completion_tokens: number | null
+          created_at: string
+          difficulty_hint: Database["public"]["Enums"]["bar_difficulty"] | null
+          duration_ms: number | null
+          error_message: string | null
+          generation_type: string
+          id: string
+          model: string
+          outcome: string
+          prompt_tokens: number | null
+          question_type_hint:
+            | Database["public"]["Enums"]["bar_question_type"]
+            | null
+          requested_by: string
+          source_id: string
+        }
+        Insert: {
+          area_of_law_hint?:
+            | Database["public"]["Enums"]["bar_area_of_law"]
+            | null
+          challenges_created?: number
+          completion_tokens?: number | null
+          created_at?: string
+          difficulty_hint?: Database["public"]["Enums"]["bar_difficulty"] | null
+          duration_ms?: number | null
+          error_message?: string | null
+          generation_type: string
+          id?: string
+          model: string
+          outcome: string
+          prompt_tokens?: number | null
+          question_type_hint?:
+            | Database["public"]["Enums"]["bar_question_type"]
+            | null
+          requested_by: string
+          source_id: string
+        }
+        Update: {
+          area_of_law_hint?:
+            | Database["public"]["Enums"]["bar_area_of_law"]
+            | null
+          challenges_created?: number
+          completion_tokens?: number | null
+          created_at?: string
+          difficulty_hint?: Database["public"]["Enums"]["bar_difficulty"] | null
+          duration_ms?: number | null
+          error_message?: string | null
+          generation_type?: string
+          id?: string
+          model?: string
+          outcome?: string
+          prompt_tokens?: number | null
+          question_type_hint?:
+            | Database["public"]["Enums"]["bar_question_type"]
+            | null
+          requested_by?: string
+          source_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bar_ai_generations_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bar_ai_generations_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "bar_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bar_attempts: {
         Row: {
           attempted_at: string
@@ -64,6 +145,7 @@ export type Database = {
       }
       bar_challenges: {
         Row: {
+          ai_generation_id: string | null
           approved_at: string | null
           approved_by: string | null
           area_of_law: Database["public"]["Enums"]["bar_area_of_law"]
@@ -85,6 +167,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          ai_generation_id?: string | null
           approved_at?: string | null
           approved_by?: string | null
           area_of_law: Database["public"]["Enums"]["bar_area_of_law"]
@@ -106,6 +189,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          ai_generation_id?: string | null
           approved_at?: string | null
           approved_by?: string | null
           area_of_law?: Database["public"]["Enums"]["bar_area_of_law"]
@@ -127,6 +211,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "bar_challenges_ai_generation_id_fkey"
+            columns: ["ai_generation_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ai_generations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "bar_challenges_approved_by_fkey"
             columns: ["approved_by"]
