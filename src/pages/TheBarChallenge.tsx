@@ -110,7 +110,7 @@ export default function TheBarChallenge() {
         .maybeSingle();
       if (!active) return;
       if (!ch) { setNotFound(true); setLoading(false); return; }
-      setChallenge(ch as SafeChallenge);
+      setChallenge((ch as unknown) as SafeChallenge);
       setLoading(false);
     })();
     return () => { active = false; };

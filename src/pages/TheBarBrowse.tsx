@@ -85,9 +85,9 @@ export default function TheBarBrowse() {
       ]);
       if (!active) return;
       const attemptedIds = new Set((attemptedRes.data ?? []).map((a: any) => a.challenge_id));
-      const all = (challengeRes.data ?? []) as Challenge[];
+      const all = ((challengeRes.data ?? []) as unknown) as Challenge[];
       setChallenges(all.filter((c) => !attemptedIds.has(c.id)));
-      setTodayCount(dailyRes.data?.attempt_count ?? 0);
+      setTodayCount((dailyRes.data as any)?.attempt_count ?? 0);
       setLoading(false);
     })();
     return () => { active = false; };
