@@ -102,7 +102,6 @@ serve(async (req) => {
 
   const adminClient = createClient(SUPABASE_URL, SERVICE_ROLE);
   let generationId: string | null = null;
-  let placeholderSourceId: string | null = null;
 
   const finalizeLog = async (patch: Record<string, unknown>) => {
     if (!generationId) return;
@@ -132,21 +131,8 @@ serve(async (req) => {
     const body = parsed.data;
     const count = body.mode === "surprise" ? (body.count ?? 5) : 1;
 
-    // bar_ai_generations.source_id is NOT NULL — create a transient placeholder source we can later remove if log fails.
-    // Instead, we create a real "AI batch" placeholder source we delete only on total failure.
-    const { data: ph, error: phErr } = await adminClient.from("bar_sources").insert({
-      title: `[AI batch ${new Date().toISOString().slice(0, 19)}]`,
-      description: body.mode === "expand" ? `seed: ${body.seed}` : `surprise count=${count}`,
-      source_type: "topic_prompt",
-      topic_prompt: body.mode === "expand" ? body.seed! : "AI topic batch placeholder",
-      license: body.license,
-      uploaded_by: userId,
-    }).select("id").single();
-    if (phErr || !ph) return json(500, { error: "Failed to create batch placeholder", details: phErr?.message });
-    placeholderSourceId = ph.id;
-
     const { data: logRow, error: logErr } = await adminClient.from("bar_ai_generations").insert({
-      source_id: placeholderSourceId,
+      source_id: null,
       generation_type: "topic_suggest",
       requested_by: userId,
       area_of_law_hint: body.areas?.[0] ?? null,
@@ -155,8 +141,7 @@ serve(async (req) => {
       outcome: "ai_error",
     }).select("id").single();
     if (logErr || !logRow) {
-      await adminClient.from("bar_sources").delete().eq("id", placeholderSourceId);
-      return json(500, { error: "Failed to create log row" });
+      return json(500, { error: "Failed to create log row", details: logErr?.message });
     }
     generationId = logRow.id;
 
