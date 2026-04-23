@@ -1,93 +1,151 @@
+# The Bar — Student Experience (Prompt 3)
 
+Rebuilds `/the-bar` from placeholder into the full student arena: dashboard, browser, attempt flow, history. One edge function for server-side grading. Zero correct answers ever leave the server before submission.
 
-# The Bar — AI Question Authoring (Prompt 2)
+## Edge function: `submit-bar-attempt`
 
-Adds the AI authoring layer on top of prompt 1's foundation. Two edge functions, one schema migration, five UI changes. Zero AI output reaches students without admin approval.
-
-## Schema migration
-
-One migration file:
-
-- **New table `bar_ai_generations`**: provenance log per spec (id, source_id FK→bar_sources CASCADE, generation_type CHECK, requested_by FK→profiles RESTRICT, hint columns, model, token counts, outcome CHECK, error_message, challenges_created, duration_ms, created_at). Indexes on source_id, requested_by, created_at DESC, outcome.
-- **RLS on `bar_ai_generations`**: admin-only SELECT/UPDATE/DELETE via `is_admin(auth.uid())`. No INSERT policy — only the service role (edge function) writes.
-- **`bar_challenges` add column** `ai_generation_id uuid NULL REFERENCES bar_ai_generations(id) ON DELETE SET NULL` + index.
-
-## Edge function: `extract-questions-from-pdf`
-
-`supabase/functions/extract-questions-from-pdf/index.ts` — `verify_jwt = true` (default); JWT is also revalidated in code.
+`supabase/functions/submit-bar-attempt/index.ts` — JWT validated in code (no admin gate; any authenticated user).
 
 Flow:
-1. CORS preflight + parse + Zod-validate body (`source_id`, `mode`, optional `batch_size` 1–20 default 10, optional hints).
-2. Extract caller from `Authorization` header → reject 401 if missing. Use service-role client to query `user_roles` for admin role → 403 if not admin.
-3. Fetch source row. Verify exists (404) and `source_type='pdf_extraction'` (400 otherwise).
-4. INSERT `bar_ai_generations` row (outcome temporarily `'ai_error'` placeholder, updated at end). Capture `generation_id`.
-5. Download PDF from `bar-sources` bucket via service-role storage client (`download(storage_path)`). On failure → update log `outcome='ai_error'`, return 404.
-6. Convert PDF bytes to base64 data URL (`data:application/pdf;base64,...`) and send via Lovable AI Gateway as a multimodal message (image_url-style attachment, same pattern as parse-cv).
-7. Build system prompt per PRD with conditional hint blocks. For `mode=single`, instruct "Return exactly 1 item." For `mode=batch`, substitute `{BATCH_SIZE}`.
-8. POST to `https://ai.gateway.lovable.dev/v1/chat/completions` with `model: google/gemini-3-flash-preview`. Capture `usage.prompt_tokens`/`completion_tokens`. Handle 429 → log `rate_limit`, return 429. Handle 402 → log `quota_exceeded`, return 402.
-9. Strip ```json fences, parse. On parse fail → log `parse_fail`, return 500 retryable.
-10. Filter to v1 question types only. For each, validate `payload` against the question-type-specific Zod schema (schemas inlined in the function file — edge functions can't import from `src/`).
-11. If 0 valid → log `validation_fail`, return 422. Otherwise insert each as `bar_challenges` with status=`draft`, `source_id`, `source_page` from AI, `source_citation` = `"Adapted from {source.title}, page X"` (or without page if null), `ai_generation_id`, `created_by` = caller, `points_base` computed via inlined `computeBasePoints` (constants duplicated).
-12. UPDATE log row with `outcome='success'`, `challenges_created`, token counts, `duration_ms`.
-13. Return `{ generation_id, challenges_created, challenge_ids }`.
 
-Manual test cases listed in a top-of-file comment block per PRD.
+1. CORS preflight + parse + Zod-validate body (`challenge_id` uuid, `submitted_answer` unknown, optional `time_taken_seconds`).
+2. Extract caller from `Authorization` header → 401 if missing/invalid.
+3. Service-role client fetches challenge by id. 404 if missing; 403 if `status !== 'approved'`.
+4. Pre-check: `bar_attempts` where `user_id=caller AND challenge_id=:id`. If exists → 409 `already_attempted`.
+5. Fetch caller's current `bar_user_stats.designation` → `previous_designation`.
+6. Grade: inline copies of the 4 per-type Zod payload schemas + grading functions from `src/lib/bar/scoring.ts` (edge functions can't import from `src/`). Call `gradeAttempt(question_type, payload, submitted_answer, points_base)`. On `GradingError` → 400 with message.
+7. INSERT `bar_attempts` row (`user_id`, `challenge_id`, `submitted_answer`, `is_correct`, `points_awarded`, `time_taken_seconds`). The existing BEFORE/AFTER triggers handle daily cap, stats, streak, designation, per-area rollup, daily counter.
+8. Translate Postgres exceptions: `daily_cap_exceeded` → 429; `challenge_not_approved` → 403; unique violation → 409.
+9. Re-fetch `bar_user_stats` for caller → `new_stats` block including `designation_changed = (new !== previous_designation)`.
+10. Build `correct_answer_summary` per type (mcq: text of correct option; issue_spotter: comma-joined correct issue texts; speed_round: "X of Y correct" + `per_question` array; jurisdiction: `<jurisdiction> — <reasoning>`).
+11. Return `{ is_correct, points_awarded, explanation, correct_answer_summary, per_question?, new_stats: { total_points, accuracy_pct, current_streak, longest_streak, designation, designation_changed, previous_designation } }`.
 
-## Edge function: `draft-question-from-prompt`
+Manual test cases (listed in top-of-file comment): valid submit, unapproved → 403, resubmit → 409, malformed → 400, unauthenticated → 401, daily cap → 429, rank-up flow returns `designation_changed=true`.
 
-`supabase/functions/draft-question-from-prompt/index.ts` — same auth/CORS pattern.
+`time_taken_seconds` is self-reported — comment notes honor-system for v1.
 
-Flow: validate body (`source_id`, `question_type`, `area_of_law`, `difficulty`); admin check; verify source is `topic_prompt` type; INSERT log row with `generation_type='topic_draft'`; build prompt substituting topic text + parameters; call gateway (no PDF attachment); parse JSON object; if `{ refused: true, reason }` → log `validation_fail` with reason, return 422 with that reason; else Zod-validate against the requested type's schema; INSERT one `bar_challenges` row with `source_citation = "Drafted from topic: {source.title}"`, `source_page=null`; update log; return `{ generation_id, challenge_id }`.
+## Frontend — pages
 
-## Frontend
+`**src/pages/TheBar.tsx**` (replace existing):
 
-**`src/components/admin-bar/AiExtractDialog.tsx`** (new): single component handling both `mode='single'` and `mode='batch'` via prop. Form: optional type/area/difficulty selects; for batch, `batch_size` number input (1–20). Submits via `supabase.functions.invoke('extract-questions-from-pdf', { body })`. Shows sonner toast `"AI is working… this may take 10–45s"`. On success: toast with "Review drafts" action that navigates to `/admin/bar?tab=challenges&generation_id=...`. On error: surface message; show "Try again" if status >= 500 or 429.
+- Logged-out: hero + "Sign in to enter The Bar" CTA → `/auth`.
+- Logged-in dashboard:
+  - Hero: "The Bar — prove you can lawyer" + tagline. No "coming soon" badge.
+  - `<StatsStrip />` — 4 cards (designation, total points, accuracy, current streak) + small progress bar "Next rank in N pts" via `pointsToNextRank()`. "Max rank reached" at silk; if accuracy below next tier shows "Lift accuracy to X% to unlock {next rank}".
+  - Quick-action: primary "Take a Challenge" → `/the-bar/browse`; secondary "View Full History" → `/the-bar/history`.
+  - Recent attempts: last 10 rows via `<AttemptListItem />`. Click → `<AttemptReviewDialog />`. Empty state with browser CTA.
+- `usePageMeta` title `"The Bar — {designationLabel} · Locus"`.
 
-**`src/components/admin-bar/AiDraftDialog.tsx`** (new): required selects for question_type (4 v1 types), area_of_law, difficulty. Same toast/navigation pattern; calls `draft-question-from-prompt`.
+`**src/pages/TheBarBrowse.tsx**` (new):
 
-**`src/components/admin-bar/AiGenerationsLog.tsx`** (new): paginated table reading `bar_ai_generations` with join on `bar_sources(title)` and `profiles(username)`. Columns per PRD; outcome badge color-coded; error_message in tooltip on hover. Sort created_at desc.
+- Two-step query: fetch caller's attempted `challenge_id`s, then fetch approved `bar_challenges` excluding those, ordered by `approved_at DESC`.
+- Filter bar (URL-params backed via `useSearchParams`): question_type, area_of_law, difficulty, sort (newest / points desc / difficulty asc).
+- Daily cap banner: query `bar_daily_attempts` for today. ≥18 → yellow warning "N attempts left today". =20 → red banner + cards disabled.
+- Grid: 3 cols desktop / 1 col mobile of `<ChallengeCard />`. Pagination 30/page (shadcn `Pagination`).
+- Empty states for: zero approved, all attempted, filters yield none.
 
-**`src/components/admin-bar/SourceLibrary.tsx`** (modify): per-row action buttons. PDF rows get "Extract 1" + "Extract Batch" (Lucide `Sparkles` icon, no emoji per project memory). Topic-prompt rows get "Draft". Local `generatingSourceId` state disables buttons during invocation.
+`**src/pages/TheBarChallenge.tsx**` (new) — the attempt flow:
 
-**`src/components/admin-bar/ChallengesTable.tsx`** (modify): new "Origin" column rendering Manual / AI PDF / AI Topic outline badges (derived via join to `bar_sources.source_type` through `ai_generation_id → source_id`, fetched in the same query). Origin filter dropdown. Read `?generation_id=` from `useSearchParams` and pre-filter. AI-drafted rows show a small `Sparkles` icon next to the title with a tooltip "AI-generated from {source.title} · {date}". View/Edit dialog gains a read-only "Source trail" block with source title, page, citation, generation date, model, outcome.
+- Fetch challenge by id; 404 if missing or not approved.
+- Pre-check `bar_attempts` for prior attempt → redirect to `/the-bar` with toast "already attempted".
+- `**stripCorrectAnswer(type, payload)**` runs immediately after fetch; the unstripped payload is never stored in component state. Returns:
+  - mcq: `{ options }` (drops `correct_option_id`)
+  - issue_spotter: `{ issue_options }` (drops `correct_issue_ids`)
+  - speed_round: `{ questions: [{id, prompt}], time_limit_seconds }` (drops `answer`)
+  - jurisdiction: `{ options }` (drops `correct_option_id`; jurisdiction + reasoning kept)
+- Header: back button, type/area/difficulty badges, "Worth up to {points_base} pts", source citation if present.
+- Renders the appropriate `<XRenderer mode="answer" />`. Tracks `time_taken_seconds` via wall-clock from mount.
+- Submit calls `supabase.functions.invoke('submit-bar-attempt')`. Disabled state + spinner. Errors → toasts (409, 429, 400, 500). On 200 → swap to `<ResultScreen />`.
 
-**`src/components/admin-bar/ChallengeForm.tsx`** (modify): add optional `existingChallenge` prop. When provided, pre-fill all fields and submit calls UPDATE instead of INSERT. Manual create path untouched.
+`**src/pages/TheBarHistory.tsx**` (new): paginated table (30/page) of caller's `bar_attempts` joined with `bar_challenges` (title, type, area). Click row → `<AttemptReviewDialog />`. Optional filters: correct/incorrect, type, area.
 
-**`src/pages/AdminBar.tsx`** (modify): add fourth `TabsTrigger` "AI Log" rendering `<AiGenerationsLog />`. Tabs become controlled to honor `?tab=` query param.
+## Frontend — components
 
-## Soft rate limit
+`**src/components/bar/StatsStrip.tsx**`: 4 shadcn Cards with `border-2`. Designation card includes Lucide `Scale` icon and the rank progress sub-line.
 
-Both dialogs, before invoking the function: query `bar_ai_generations` count where `requested_by = current user` AND `created_at > now() - 60min`. If >= 20, show info toast and block. Defense in depth only; not a security boundary.
+`**src/components/bar/ChallengeCard.tsx**`: clickable card → `/the-bar/challenge/:id`. Shows type badge (top-left), difficulty badge (top-right), prompt preview (first 100 chars), points (accent, large), area chip, source_citation (italic muted, optional). Hover lift.
 
-## Security checklist
+`**src/components/bar/AttemptListItem.tsx**`: row with title, type badge, Lucide `Check`/`X` icon (no emoji), points, relative date.
 
-- Both functions revalidate the JWT and the admin role server-side; do not trust client.
-- Source ownership/type check before any AI call.
-- `LOVABLE_API_KEY` only used inside functions; never sent in responses.
-- PDF bytes fetched via service-role storage client; no signed URLs handed to the browser.
-- Logs store metadata only (token counts, outcome, error message) — never the PDF content or full AI output.
-- New table RLS: admin SELECT/UPDATE/DELETE only; service role inserts via the function (RLS bypass).
-- Every AI item passes Zod before insert; failed items skipped.
+`**src/components/bar/AttemptReviewDialog.tsx**`: shadcn Dialog. Re-fetches the full challenge (RLS allows read of approved challenges) and the user's attempt row. Renders the appropriate renderer in `mode="review"` so submitted answer is highlighted (green if correct, red if wrong) and the correct answer is highlighted green. Shows explanation + points earned.
 
-## File map
+**Renderers** (`src/components/bar/renderers/`): each accepts `mode: 'answer' | 'review'`, `payload`, optional `submitted` + `correct` for review mode.
 
-**New**
-- `supabase/functions/extract-questions-from-pdf/index.ts`
-- `supabase/functions/draft-question-from-prompt/index.ts`
-- `supabase/migrations/<timestamp>_bar_ai_generations.sql`
-- `src/components/admin-bar/AiExtractDialog.tsx`
-- `src/components/admin-bar/AiDraftDialog.tsx`
-- `src/components/admin-bar/AiGenerationsLog.tsx`
+- `McqRenderer.tsx`: shadcn `RadioGroup`. Submit disabled until selection.
+- `IssueSpotterRenderer.tsx`: shadcn `Checkbox` list, multi-select. Helper text "Select ALL issues present." Always submittable.
+- `SpeedRoundRenderer.tsx`: countdown header from `time_limit_seconds`, one sub-question at a time with text input, "Next" button, "Question N of M" progress, no going back. Timer hits 0 → auto-submit current state + "Time's up!" toast. Cleanup interval on unmount/submit.
+- `JurisdictionRenderer.tsx`: shadcn `RadioGroup` with `<jurisdiction>` bold + `<reasoning>` muted sub-text per option.
 
-**Modified**
-- `src/components/admin-bar/SourceLibrary.tsx`
-- `src/components/admin-bar/ChallengesTable.tsx`
-- `src/components/admin-bar/ChallengeForm.tsx`
-- `src/pages/AdminBar.tsx`
+`**src/components/bar/ResultScreen.tsx**`: large card with Lucide `CheckCircle2`/`XCircle`, "Correct!"/"Not quite", animated points count-up. If `designation_changed` → tasteful accent banner "You ranked up to {new}!" (no confetti library — CSS pulse on accent). Shows `correct_answer_summary`, explanation card, mini new-stats strip. Two CTAs: "Another Challenge" → `/the-bar/browse`, "Back to Dashboard" → `/the-bar`. Speed round adds `per_question` table.
 
-## Out of scope
-Student UI, attempt submission, leaderboards, profile rank badge, types 5–8, bulk approval, AI-assisted grading, email notifications.
+## Helpers + constants
 
-## Definition of Done
-Migration applied; both functions deployed and admin-gated; Sources tab exposes Extract/Draft buttons that successfully create draft challenges from a real PDF and a topic prompt; Challenges tab shows Origin column/filter, AI badge, generation_id pre-filter, edit mode; AI Log tab renders rows with token counts and outcome badges; soft 20/hr cap blocks excessive calls; approved drafts visible to public query, drafts/rejected not.
+`**src/lib/bar/display.ts**` (new):
 
+- `formatDesignation(d)` → `DESIGNATION_LABELS[d]`
+- `pointsToNextRank(points, accuracy, current)` → `{ nextRank, pointsNeeded, accuracyBlocker }`
+- `getRelativeDateLabel(iso)` → "2h ago" / "3d ago" / "Jan 15"
+
+`**src/lib/bar/constants.ts**` (modify): export `DESIGNATION_ORDER` (trainee → silk array) + `getNextDesignation(current)` helper.
+
+## Routing
+
+`**src/App.tsx**`: add inside existing `<Layout>`:
+
+- `/the-bar` → `TheBar`
+- `/the-bar/browse` → `TheBarBrowse`
+- `/the-bar/challenge/:id` → `TheBarChallenge`
+- `/the-bar/history` → `TheBarHistory`
+
+The existing placeholder `/the-bar` route is replaced.
+
+## Security posture
+
+- Correct answer fields stripped immediately on fetch in `TheBarChallenge.tsx` via `stripCorrectAnswer`. Raw payload discarded; only stripped version enters React state. Verifiable in DevTools / network tab.
+- All grading server-side. Edge function never returns the full unstripped payload pre-submission (the GET happens via the Supabase client because the data is needed for rendering the question; only `correct_*` keys leak risk, which is exactly what `stripCorrectAnswer` removes immediately on the client). Note: students with DevTools could intercept the raw client-side fetch — true server-only delivery would require a `get-bar-challenge` edge function. Flagged but deferred unless you want it now.
+- Daily cap and one-attempt-per-challenge enforced by DB triggers / unique constraint, not the UI.
+- RLS already restricts non-admins to approved challenges; queries also filter explicitly.
+- Edge function uses JWT for identity, service role only for server-side reads/inserts.  
+  
+Good flag. Choose option C ("B-lite"): create a Postgres view `bar_challenges_student` that selects everything from bar_challenges EXCEPT the correct-answer keys inside the payload jsonb. Specifically:
+  CREATE VIEW bar_challenges_student AS
+  SELECT 
+    id, source_id, source_page, source_citation, question_type, area_of_law,
+    difficulty, title, prompt, explanation, status, points_base,
+    created_by, approved_by, approved_at, created_at, updated_at, ai_generation_id,
+    CASE question_type
+      WHEN 'mcq' THEN jsonb_build_object('options', payload->'options')
+      WHEN 'issue_spotter' THEN jsonb_build_object('issue_options', payload->'issue_options')
+      WHEN 'speed_round' THEN jsonb_build_object(
+        'time_limit_seconds', payload->'time_limit_seconds',
+        'questions', (
+          SELECT jsonb_agg(jsonb_build_object('id', q->'id', 'prompt', q->'prompt'))
+          FROM jsonb_array_elements(payload->'questions') q
+        )
+      )
+      WHEN 'jurisdiction' THEN jsonb_build_object('options', payload->'options')
+      ELSE '{}'::jsonb
+    END AS payload
+  FROM bar_challenges
+  WHERE status = 'approved';
+  Grant SELECT on this view to authenticated users. Keep bar_challenges itself RLS-restricted to admins only for SELECT (tighten the existing policy — students now use the view, not the table).
+  Updates to frontend:
+  - TheBarBrowse.tsx → query bar_challenges_student instead of bar_challenges
+  - TheBarChallenge.tsx → query bar_challenges_student
+  - AttemptReviewDialog.tsx → needs the full answer, so it stays on bar_challenges BUT only for challenges the user has already attempted. Add a helper: if bar_attempts has a row for (current_user, challenge_id), allow SELECT on bar_challenges. Implement via a new RLS policy on bar_challenges: "Users can read challenges they've attempted." Keep admin-only for everything else.
+  Skip stripCorrectAnswer client-side logic since the view handles it. Client just reads and renders — correct answers are never in the response.
+  Confirm this before implementing.
+
+## Out of scope (deferred to prompt 4)
+
+Leaderboards, rank badge on `/u/:username`, firm-side discovery, retake cooldowns, push/email reminders, admin attempt audit, types 5–8, AI grading.
+
+## Open question (one)
+
+The PRD strips correct answers **client-side after fetch**, but a determined student can sniff the raw network response from `bar_challenges`. To make answers truly server-only, we'd add a `get-bar-challenge` edge function returning the pre-stripped payload. Want me to:
+
+- **A**: Build it as specified (client-side strip, accepts the small leak window), or
+- **B**: Add a `get-bar-challenge` edge function so the raw correct answer never crosses the wire?
+
+Default if you don't reply: **A** (matches your PRD literally).  
+  
