@@ -1,57 +1,82 @@
 
 
-# Fix login redirect on preview
+# AI Topic Suggester for Source Library
 
-Login is succeeding (auth logs confirm it). Two bugs are sending you somewhere unexpected after sign-in.
+Add a third button in the admin Source Library — **"AI Suggest Topics"** — next to "Upload PDF" and "Add Topic Prompt". It opens a dialog with two modes:
 
-## Bug 1 — Google/Apple OAuth ignores `?next=`
+1. **Surprise me** — AI proposes N tough/exam-worthy Indian-law topics across selected areas/difficulty.
+2. **Expand my seed** — Admin types a rough seed (e.g. *"Section 69A blocking orders"*); AI researches and writes a full topic prompt around it.
 
-`src/pages/Auth.tsx` `handleSocialLogin` hardcodes `redirect_uri: window.location.origin`, sending users to `/` after OAuth, regardless of any `?next=/the-bar/challenge/:id` param. Email/password already respects `postLoginPath` — social login should too.
+Each AI-returned topic becomes a row in `bar_sources` with `source_type = 'topic_prompt'`, ready for the existing "Draft" flow to turn into challenges.
 
-**Fix**: build an absolute redirect URL from `postLoginPath`:
-```
-const redirectTo = `${window.location.origin}${postLoginPath}`;
-lovable.auth.signInWithOAuth(provider, { redirect_uri: redirectTo });
-```
+## New edge function: `suggest-topics`
 
-## Bug 2 — `Layout.tsx` force-redirects every Google login to `/choose-username`
+Path: `supabase/functions/suggest-topics/index.ts`
 
-`src/components/Layout.tsx` checks `profiles.display_name` on every `SIGNED_IN` event. The `handle_new_user` trigger only sets `display_name` from `raw_user_meta_data.display_name`, which is empty for Google/Apple sign-ups. So your Google account has `username` populated but `display_name = ''`, meaning every login bounces to `/choose-username` — overriding wherever you tried to go.
+- Admin-only (same auth + role check pattern as `draft-question-from-prompt`).
+- Logs to `bar_ai_generations` with a new `generation_type = 'topic_suggest'`.
+- Reuses the 20-req/hour rate limit logic (already enforced client-side; server logs anyway).
+- Body schema:
+  ```ts
+  {
+    mode: "surprise" | "expand",
+    count: number (1-10),                 // surprise mode
+    seed?: string (max 500),              // expand mode
+    areas?: AreaOfLaw[] (optional filter),
+    difficulty_hint?: "easy"|"medium"|"hard",
+    license: "public_domain"|"licensed"|"fair_use_claim"|"user_submitted"|"other"
+  }
+  ```
+- Calls `google/gemini-3-flash-preview` via Lovable AI Gateway with a strict JSON tool-call schema:
+  ```
+  { "topics": [
+      { "title": "...", "description": "...", "topic_prompt": "...", "suggested_area": "...", "suggested_difficulty": "..." }
+  ] }
+  ```
+- System prompt: senior Indian-law academic; must ground topics in real statutes/cases; refuse if uncertain (returns `{refused: true, reason}`).
+- For each valid topic, inserts a row into `bar_sources` (`source_type='topic_prompt'`, `uploaded_by=admin uid`, `license` from request).
+- Returns `{ generation_id, sources_created, source_ids }`.
 
-**Fix**: change the gate to check `username` instead of `display_name`. The trigger always populates `username` (auto-derived from email when missing), so this gate only fires for genuinely missing usernames — which in practice is never under the current trigger, making the redirect effectively a no-op for normal users.
+## New dialog: `AiSuggestTopicsDialog.tsx`
 
-```ts
-const { data: profile } = await supabase
-  .from("profiles")
-  .select("username")
-  .eq("id", session.user.id)
-  .maybeSingle();
-if (!profile?.username || profile.username.trim() === "") {
-  navigate("/choose-username");
-}
-```
+Path: `src/components/admin-bar/AiSuggestTopicsDialog.tsx`
 
-## Bug 3 (defensive) — don't override an in-flight `?next=` redirect
+UI:
+- Tabs at top: **Surprise me** / **Expand a seed**.
+- Surprise me: count slider (1–10, default 5), optional Area-of-law multi-select (or "Any"), optional difficulty (Any/easy/medium/hard).
+- Expand a seed: large `Textarea` (max 500 chars) for the seed, optional area + difficulty.
+- Shared: License `Select` (defaults to `other`).
+- Footer: Cancel / **Generate** button with `Sparkles` icon and "Working… 10–45s" toast.
+- On success: toast `Created N topic source(s)` with action button **Review in Sources** → closes dialog and triggers `onCreated()` to reload the table; the new rows appear at top, ready for the existing **Draft** action.
 
-Even after fix #2, the Layout listener fires on every login and could race with `Auth.tsx`'s `navigate(postLoginPath)`. Make the Layout redirect a no-op when the user is already on `/auth` (Auth.tsx handles the navigation itself):
+Reuses the same `checkRateLimit()` pattern as `AiDraftDialog`.
 
-```ts
-if (location.pathname === "/auth" || location.pathname === "/choose-username") return;
-```
+## Wire-up in `SourceLibrary.tsx`
 
-This way Layout only intervenes for OAuth callbacks landing on `/` or other pages, and Auth.tsx remains in control of explicit email/password navigation.
+- Add a third button to the header row: `<Button variant="outline"><Sparkles/> AI Suggest Topics</Button>` → opens the new dialog.
+- Pass `onCreated={load}` so the table refreshes.
+- No changes to the table, view dialog, delete flow, or the existing Draft flow — newly created topic rows already get the **Draft** action.
+
+## Database
+
+No schema changes needed. `bar_ai_generations.generation_type` already accepts arbitrary string values (or, if it's an enum, we add `'topic_suggest'` via migration — verifying during implementation).
 
 ## Files
 
+**New**
+- `supabase/functions/suggest-topics/index.ts`
+- `src/components/admin-bar/AiSuggestTopicsDialog.tsx`
+
 **Modified**
-- `src/pages/Auth.tsx` — pass `postLoginPath` into OAuth `redirect_uri`
-- `src/components/Layout.tsx` — check `username` not `display_name`; skip when on `/auth` or `/choose-username`
+- `src/components/admin-bar/SourceLibrary.tsx` — add button + dialog mount.
+- `supabase/config.toml` — register new function (verify_jwt default).
+
+**Possibly modified**
+- One small migration if `generation_type` is an enum that needs `'topic_suggest'` added.
 
 ## Out of scope
-No DB changes. No changes to the trigger, RLS, or edge functions. No changes to the published-vs-preview OAuth config (auth itself is working — logs confirm successful logins).
+No changes to challenge drafting, scoring, RLS on `bar_sources` (admin-only writes already enforced), or student-facing pages. Topic suggestion does NOT auto-create challenges — admin still reviews each topic and clicks Draft to turn it into a question.
 
 ## Definition of Done
-- Logging in via Google or email/password from `/auth` lands on `/the-bar` (or `?next=/the-bar/...` target if set), not `/choose-username` or `/`.
-- `/choose-username` only triggers for the rare case of a profile with a truly empty `username`.
-- Fix verified on the preview URL — same code runs identically on published.
+Admin opens `/admin/bar` → Sources tab → clicks **AI Suggest Topics** → picks Surprise me + count 5 → gets 5 new topic_prompt rows in the table within ~30s, each with a populated description and topic_prompt body. Each new row has the **Draft** button ready. Expand-seed mode produces a single richer topic_prompt row from the seed text. AI refusals show a friendly error toast; rate-limited and credit-exhausted cases surface clear messages. Every call is logged in `bar_ai_generations`.
 
