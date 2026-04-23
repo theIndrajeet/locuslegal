@@ -254,7 +254,21 @@ export default function CvReviewModal({ open, onOpenChange, userId, parsed, curr
     onOpenChange(false);
   };
 
+  const dateRe = /^\d{4}-\d{2}-\d{2}$/;
+
+  const missingInternshipDates = internshipRows.filter((r) => r._checked && !(r.start_date && dateRe.test(r.start_date))).length;
+  const missingPubDates = pubRows.filter((r) => r._checked && !(r.publication_date && dateRe.test(r.publication_date))).length;
+  const hasBlockingErrors = missingInternshipDates > 0 || missingPubDates > 0;
+
   const handleFinish = async () => {
+    if (missingInternshipDates > 0) {
+      toast.error("Please add a start date to each checked internship before saving.");
+      return;
+    }
+    if (missingPubDates > 0) {
+      toast.error("Please add a publication date to each checked publication before saving.");
+      return;
+    }
     setSubmitting(true);
     try {
       // 1. Profile update (only checked fields)
@@ -282,15 +296,15 @@ export default function CvReviewModal({ open, onOpenChange, userId, parsed, curr
         if (error) throw new Error(`Profile update failed: ${error.message}`);
       }
 
-      // 2. Internships - insert checked rows
+      // 2. Internships - insert checked rows (start_date already validated above)
       const internshipsToInsert = internshipRows
-        .filter((r) => r._checked && r.firm_name.trim() && r.role.trim())
+        .filter((r) => r._checked && r.firm_name.trim() && r.role.trim() && r.start_date && dateRe.test(r.start_date))
         .map((r) => ({
           user_id: userId,
           firm_name: r.firm_name.trim(),
           role: r.role.trim(),
-          start_date: r.start_date && /^\d{4}-\d{2}-\d{2}$/.test(r.start_date) ? r.start_date : new Date().toISOString().slice(0, 10),
-          end_date: r.end_date && /^\d{4}-\d{2}-\d{2}$/.test(r.end_date) ? r.end_date : null,
+          start_date: r.start_date as string,
+          end_date: r.end_date && dateRe.test(r.end_date) ? r.end_date : null,
           description: r.description?.trim().slice(0, DESC_MAX) || null,
         }));
       if (internshipsToInsert.length) {
@@ -313,15 +327,15 @@ export default function CvReviewModal({ open, onOpenChange, userId, parsed, curr
         if (error) throw new Error(`Moots failed: ${error.message}`);
       }
 
-      // 4. Publications
+      // 4. Publications (publication_date already validated above)
       const pubsToInsert = pubRows
-        .filter((r) => r._checked && r.title.trim() && r.publisher.trim())
+        .filter((r) => r._checked && r.title.trim() && r.publisher.trim() && r.publication_date && dateRe.test(r.publication_date))
         .map((r) => ({
           user_id: userId,
           title: r.title.trim(),
           publisher: r.publisher.trim(),
           url: r.url?.trim() || null,
-          publication_date: r.publication_date && /^\d{4}-\d{2}-\d{2}$/.test(r.publication_date) ? r.publication_date : new Date().toISOString().slice(0, 10),
+          publication_date: r.publication_date as string,
         }));
       if (pubsToInsert.length) {
         const { error } = await supabase.from("profile_publications").insert(pubsToInsert);
