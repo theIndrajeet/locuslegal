@@ -83,3 +83,25 @@ export const DESIGNATION_LABELS: Record<BarDesignation, string> = {
   senior_partner: "Senior Partner",
   silk: "Silk",
 };
+
+export const DESIGNATION_ORDER: BarDesignation[] = [
+  "trainee",
+  "junior_associate",
+  "associate",
+  "senior_associate",
+  "partner",
+  "senior_partner",
+  "silk",
+];
+
+export function getNextDesignation(current: BarDesignation): BarDesignation | null {
+  const idx = DESIGNATION_ORDER.indexOf(current);
+  if (idx < 0 || idx === DESIGNATION_ORDER.length - 1) return null;
+  return DESIGNATION_ORDER[idx + 1];
+}
+
+export const DIFFICULTY_LABELS: Record<Difficulty, string> = {
+  easy: "Easy",
+  medium: "Medium",
+  hard: "Hard",
+};
