@@ -189,7 +189,13 @@ export default function TheBarChallenge() {
         toast.error("Submission failed. Please try again.");
         return;
       }
-      setResult(data as ResultScreenProps);
+      setResult({
+        ...(data as ResultScreenProps),
+        challenge_meta: {
+          title: challenge.title,
+          question_type: challenge.question_type,
+        },
+      });
     } catch (e) {
       console.error(e);
       toast.error("Network error. Please try again.");

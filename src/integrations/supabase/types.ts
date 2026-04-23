@@ -277,6 +277,41 @@ export type Database = {
           },
         ]
       }
+      bar_rit_messages: {
+        Row: {
+          attempt_id: string
+          content: string
+          created_at: string
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          attempt_id: string
+          content: string
+          created_at?: string
+          id?: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          attempt_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bar_rit_messages_attempt_id_fkey"
+            columns: ["attempt_id"]
+            isOneToOne: false
+            referencedRelation: "bar_attempts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bar_sources: {
         Row: {
           created_at: string

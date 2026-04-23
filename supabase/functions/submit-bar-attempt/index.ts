@@ -239,7 +239,11 @@ serve(async (req) => {
     };
     if (typeof time_taken_seconds === "number") insertPayload.time_taken_seconds = time_taken_seconds;
 
-    const { error: insertErr } = await admin.from("bar_attempts").insert(insertPayload);
+    const { data: insertedAttempt, error: insertErr } = await admin
+      .from("bar_attempts")
+      .insert(insertPayload)
+      .select("id")
+      .maybeSingle();
     if (insertErr) {
       const msg = insertErr.message ?? "";
       if (msg.includes("daily_cap_exceeded")) return jsonResponse(429, { error: "daily_cap_exceeded" });
@@ -261,6 +265,7 @@ serve(async (req) => {
     const designation = (newStats?.designation ?? previous_designation) as string;
 
     return jsonResponse(200, {
+      attempt_id: insertedAttempt?.id ?? null,
       is_correct,
       points_awarded,
       explanation: challenge.explanation ?? null,

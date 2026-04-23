@@ -16,6 +16,7 @@ import { IssueSpotterRenderer } from "./renderers/IssueSpotterRenderer";
 import { JurisdictionRenderer } from "./renderers/JurisdictionRenderer";
 import { SpeedRoundRenderer } from "./renderers/SpeedRoundRenderer";
 import { AREA_OF_LAW_LABELS, QUESTION_TYPE_LABELS } from "@/lib/bar/constants";
+import { RitChatPanel } from "./rit/RitChatPanel";
 
 interface Props {
   attemptId: string | null;
@@ -136,6 +137,14 @@ function ReviewContent({ attempt, challenge }: { attempt: any; challenge: any })
             <p className="text-sm leading-relaxed">{challenge.explanation}</p>
           </Card>
         )}
+
+        <RitChatPanel
+          attemptId={attempt.id}
+          challenge={{
+            title: challenge.title,
+            question_type: challenge.question_type,
+          }}
+        />
       </div>
     </>
   );
