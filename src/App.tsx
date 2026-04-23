@@ -17,6 +17,7 @@ import ChooseUsername from "./pages/ChooseUsername";
 import ProfileEdit from "./pages/ProfileEdit";
 import PublicProfile from "./pages/PublicProfile";
 import AdminWaitlist from "./pages/AdminWaitlist";
+import AdminBar from "./pages/AdminBar";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -39,6 +40,7 @@ const App = () => (
               <Route path="/profile/edit" element={<ProfileEdit />} />
               <Route path="/u/:username" element={<PublicProfile />} />
               <Route path="/admin/waitlist" element={<AdminWaitlist />} />
+              <Route path="/admin/bar" element={<AdminBar />} />
             </Route>
             <Route path="/auth" element={<Auth />} />
             <Route path="/reset-password" element={<ResetPassword />} />
