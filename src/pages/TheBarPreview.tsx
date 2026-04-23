@@ -40,7 +40,7 @@ const STARTERS = {
 } as const;
 
 // ---------- legacy 4 sample data (unchanged) ----------
-const SAMPLES = {
+const SAMPLES: any = {
   mcq: {
     title: "Multiple Choice",
     difficulty: "easy" as const,
@@ -606,7 +606,7 @@ function BriefBuilderPreview() {
       {(mode) =>
         mode === "answer" ? (
           <div className="space-y-3">
-            <BriefBuilderRenderer mode="answer" payload={s.payload} currentStep={step} value={val} onChange={setVal} />
+            <BriefBuilderRenderer mode="answer" payload={s.payload} currentStep={step} value={val} onChange={setVal} onAdvance={() => !isLast && setStep(step + 1)} />
             <div className="flex items-center justify-between gap-2">
               <Button size="sm" variant="ghost" disabled={step === 0} onClick={() => setStep(step - 1)}>← Prev step</Button>
               <span className="text-xs text-muted-foreground">Step {step + 1} of {s.payload.steps.length}</span>
