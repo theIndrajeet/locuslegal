@@ -10,9 +10,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Upload, FileText, MessageSquare, Eye, Trash2, Download } from "lucide-react";
+import { Upload, FileText, MessageSquare, Eye, Trash2, Download, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import AiExtractDialog from "./AiExtractDialog";
+import AiDraftDialog from "./AiDraftDialog";
 
 const LICENSES = ["public_domain", "licensed", "fair_use_claim", "user_submitted", "other"] as const;
 
@@ -36,6 +38,8 @@ export default function SourceLibrary() {
   const [viewSource, setViewSource] = useState<Source | null>(null);
   const [deleteSource, setDeleteSource] = useState<Source | null>(null);
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
+  const [extractTarget, setExtractTarget] = useState<{ source: Source; mode: "single" | "batch" } | null>(null);
+  const [draftTarget, setDraftTarget] = useState<Source | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -113,12 +117,29 @@ export default function SourceLibrary() {
                 <TableCell className="text-xs">{s.license.replace("_", " ")}</TableCell>
                 <TableCell className="text-xs text-muted-foreground">{format(new Date(s.created_at), "PP")}</TableCell>
                 <TableCell className="text-right">
-                  <Button size="icon" variant="ghost" onClick={() => setViewSource(s)}>
-                    <Eye className="w-4 h-4" />
-                  </Button>
-                  <Button size="icon" variant="ghost" onClick={() => setDeleteSource(s)}>
-                    <Trash2 className="w-4 h-4 text-destructive" />
-                  </Button>
+                  <div className="inline-flex items-center gap-1 flex-wrap justify-end">
+                    {s.source_type === "pdf_extraction" && (
+                      <>
+                        <Button size="sm" variant="outline" onClick={() => setExtractTarget({ source: s, mode: "single" })}>
+                          <Sparkles className="w-3 h-3 mr-1" /> Extract 1
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => setExtractTarget({ source: s, mode: "batch" })}>
+                          <Sparkles className="w-3 h-3 mr-1" /> Batch
+                        </Button>
+                      </>
+                    )}
+                    {s.source_type === "topic_prompt" && (
+                      <Button size="sm" variant="outline" onClick={() => setDraftTarget(s)}>
+                        <Sparkles className="w-3 h-3 mr-1" /> Draft
+                      </Button>
+                    )}
+                    <Button size="icon" variant="ghost" onClick={() => setViewSource(s)}>
+                      <Eye className="w-4 h-4" />
+                    </Button>
+                    <Button size="icon" variant="ghost" onClick={() => setDeleteSource(s)}>
+                      <Trash2 className="w-4 h-4 text-destructive" />
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
@@ -128,6 +149,24 @@ export default function SourceLibrary() {
 
       <UploadPdfDialog open={uploadOpen} onOpenChange={setUploadOpen} onCreated={load} />
       <AddPromptDialog open={promptOpen} onOpenChange={setPromptOpen} onCreated={load} />
+
+      {extractTarget && (
+        <AiExtractDialog
+          open={!!extractTarget}
+          onOpenChange={(o) => { if (!o) setExtractTarget(null); }}
+          sourceId={extractTarget.source.id}
+          sourceTitle={extractTarget.source.title}
+          mode={extractTarget.mode}
+        />
+      )}
+      {draftTarget && (
+        <AiDraftDialog
+          open={!!draftTarget}
+          onOpenChange={(o) => { if (!o) setDraftTarget(null); }}
+          sourceId={draftTarget.id}
+          sourceTitle={draftTarget.title}
+        />
+      )}
 
       {/* View dialog */}
       <Dialog open={!!viewSource} onOpenChange={(o) => !o && setViewSource(null)}>
