@@ -211,13 +211,13 @@ serve(async (req) => {
       global: { headers: { Authorization: authHeader } },
     });
     const token = authHeader.replace("Bearer ", "");
-    const { data: claims, error: authErr } = await authClient.auth.getClaims(token);
-    if (authErr || !claims?.claims?.sub) {
+    const { data: userRes, error: authErr } = await authClient.auth.getUser(token);
+    if (authErr || !userRes?.user?.id) {
       return new Response(JSON.stringify({ error: "Unauthorized", retryable: false }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    userId = claims.claims.sub as string;
+    userId = userRes.user.id;
 
     const body = await req.json().catch(() => ({}));
     const cvStoragePath = body?.cv_storage_path;
