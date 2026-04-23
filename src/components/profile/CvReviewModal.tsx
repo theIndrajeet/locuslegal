@@ -697,15 +697,28 @@ export default function CvReviewModal({ open, onOpenChange, userId, parsed, curr
     </div>
   );
 
+  const finishButton = (
+    <Button size="sm" onClick={handleFinish} disabled={submitting || hasBlockingErrors}>
+      {submitting && <Loader2 className="h-4 w-4 animate-spin mr-2" />}Finish & Save
+    </Button>
+  );
+
   const Footer = (
     <div className="flex flex-wrap items-center justify-between gap-2 w-full">
       <Button variant="ghost" size="sm" onClick={handleBack} disabled={step === 0 || submitting}>Back</Button>
       <div className="flex gap-2">
         <Button variant="outline" size="sm" onClick={handleSkipSection} disabled={submitting || totalSteps === 0}>Skip this section</Button>
         {isLastStep || totalSteps === 0 ? (
-          <Button size="sm" onClick={handleFinish} disabled={submitting}>
-            {submitting && <Loader2 className="h-4 w-4 animate-spin mr-2" />}Finish & Save
-          </Button>
+          hasBlockingErrors ? (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild><span tabIndex={0}>{finishButton}</span></TooltipTrigger>
+                <TooltipContent>Add missing required dates to save.</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ) : (
+            finishButton
+          )
         ) : (
           <Button size="sm" onClick={handleNext}>Next</Button>
         )}
