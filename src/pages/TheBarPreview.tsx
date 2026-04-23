@@ -29,6 +29,12 @@ import {
   ClientCounselingRenderer,
   type CounselingAnswerState,
 } from "@/components/bar/renderers/ClientCounselingRenderer";
+import { PremiumDocumentReview } from "@/components/bar/premium/PremiumDocumentReview";
+import { PremiumBriefBuilder } from "@/components/bar/premium/PremiumBriefBuilder";
+import { PremiumEthics } from "@/components/bar/premium/PremiumEthics";
+import { PremiumClientCounseling } from "@/components/bar/premium/PremiumClientCounseling";
+import { PremiumBadge } from "@/components/bar/premium/PremiumBadge";
+import { isPremiumType } from "@/lib/bar/premium";
 import { QUESTION_TYPE_LABELS } from "@/lib/bar/constants";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { RitChatPanel } from "@/components/bar/rit/RitChatPanel";
