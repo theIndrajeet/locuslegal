@@ -101,7 +101,10 @@ const AREAS = [
 ] as const;
 const DIFFS = ["easy", "medium", "hard"] as const;
 
-const BASE_POINTS_BY_TYPE: Record<V1Type, number> = { mcq: 5, issue_spotter: 15, jurisdiction: 10, speed_round: 3 };
+const BASE_POINTS_BY_TYPE: Record<V1Type, number> = {
+  mcq: 5, issue_spotter: 15, jurisdiction: 10, speed_round: 3,
+  document_review: 10, brief_builder: 10, ethics: 10, client_counseling: 10,
+};
 const DIFFICULTY_MULTIPLIER: Record<typeof DIFFS[number], number> = { easy: 1.0, medium: 1.5, hard: 2.0 };
 
 function computeBasePoints(type: V1Type, diff: typeof DIFFS[number], speedRoundCount?: number): number {
