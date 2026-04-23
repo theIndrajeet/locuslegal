@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { Moon, Sun } from "lucide-react";
+import { Moon, Sun, Shield } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Link, useLocation } from "react-router-dom";
 import ProfileMenu from "./ProfileMenu";
+import { useAdminRole } from "@/hooks/useAdminRole";
 
 const navLinks = [
   { label: "Home", href: "/" },
@@ -17,6 +18,7 @@ export default function Navbar() {
   const { theme, setTheme } = useTheme();
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
+  const isAdmin = useAdminRole();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -108,6 +110,16 @@ export default function Navbar() {
                 {l.label}
               </Link>
             )
+          )}
+          {isAdmin && (
+            <Link
+              to="/admin/bar"
+              className={`text-sm font-medium transition-colors duration-300 inline-flex items-center gap-1 ${
+                isActive("/admin/bar") ? "text-accent" : "text-muted-foreground hover:text-accent"
+              }`}
+            >
+              <Shield size={14} /> Admin
+            </Link>
           )}
           <button
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
