@@ -34,7 +34,7 @@ export type Database = {
             | Database["public"]["Enums"]["bar_question_type"]
             | null
           requested_by: string
-          source_id: string
+          source_id: string | null
         }
         Insert: {
           area_of_law_hint?:
@@ -55,7 +55,7 @@ export type Database = {
             | Database["public"]["Enums"]["bar_question_type"]
             | null
           requested_by: string
-          source_id: string
+          source_id?: string | null
         }
         Update: {
           area_of_law_hint?:
@@ -76,7 +76,7 @@ export type Database = {
             | Database["public"]["Enums"]["bar_question_type"]
             | null
           requested_by?: string
-          source_id?: string
+          source_id?: string | null
         }
         Relationships: [
           {
