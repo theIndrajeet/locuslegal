@@ -29,6 +29,12 @@ import {
   ClientCounselingRenderer,
   type CounselingAnswerState,
 } from "@/components/bar/renderers/ClientCounselingRenderer";
+import { PremiumDocumentReview } from "@/components/bar/premium/PremiumDocumentReview";
+import { PremiumBriefBuilder } from "@/components/bar/premium/PremiumBriefBuilder";
+import { PremiumEthics } from "@/components/bar/premium/PremiumEthics";
+import { PremiumClientCounseling } from "@/components/bar/premium/PremiumClientCounseling";
+import { PremiumBadge } from "@/components/bar/premium/PremiumBadge";
+import { isPremiumType } from "@/lib/bar/premium";
 import { QUESTION_TYPE_LABELS } from "@/lib/bar/constants";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { RitChatPanel } from "@/components/bar/rit/RitChatPanel";
@@ -431,9 +437,12 @@ function PreviewShell({
 }) {
   const [mode, setMode] = useState<"answer" | "review">("answer");
   const label = QUESTION_TYPE_LABELS[type as keyof typeof QUESTION_TYPE_LABELS] ?? type;
+  const premium = isPremiumType(type);
 
   return (
-    <Card className="border-2 border-border p-6 space-y-5">
+    <Card
+      className={`border-2 border-border p-6 space-y-5 ${premium ? "locus-plus bg-[hsl(var(--premium-bg))]" : ""}`}
+    >
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="outline" className="text-xs">{label}</Badge>
@@ -444,6 +453,7 @@ function PreviewShell({
           <Badge variant="outline" className="text-xs text-accent border-accent/40">
             {sample.points} pts
           </Badge>
+          {premium && <PremiumBadge size="sm" />}
         </div>
         <div className="flex gap-1 rounded-md border-2 border-border p-1">
           <Button size="sm" variant={mode === "answer" ? "default" : "ghost"} onClick={() => setMode("answer")} className="gap-1.5 h-7 px-2.5 text-xs">
@@ -456,16 +466,45 @@ function PreviewShell({
       </div>
 
       <div>
-        <h2 className="text-xl font-extrabold font-heading mb-2">{sample.title}</h2>
-        <p className="text-sm text-foreground leading-relaxed">{sample.prompt}</p>
+        <h2
+          className={
+            premium
+              ? "text-2xl md:text-3xl mb-2 text-[hsl(var(--premium-ink))] tracking-tight"
+              : "text-xl font-extrabold font-heading mb-2"
+          }
+          style={premium ? { fontFamily: "'Instrument Serif', serif" } : undefined}
+        >
+          {sample.title}
+        </h2>
+        <p className={`text-sm leading-relaxed ${premium ? "text-[hsl(var(--premium-muted))]" : "text-foreground"}`}>
+          {sample.prompt}
+        </p>
       </div>
 
-      <div className="pt-2 border-t border-border">{children(mode)}</div>
+      <div className={`pt-2 ${premium ? "border-t border-[hsl(var(--premium-border))]" : "border-t border-border"}`}>
+        {children(mode)}
+      </div>
 
       {mode === "review" && sample.explanation && (
-        <div className="p-4 bg-accent/5 border-2 border-accent/30 rounded-lg">
-          <div className="text-xs uppercase tracking-wider text-accent font-bold mb-1">Explanation</div>
-          <p className="text-sm text-foreground leading-relaxed">{sample.explanation}</p>
+        <div
+          className={
+            premium
+              ? "p-4 bg-white border border-[hsl(var(--premium-border))] rounded-lg"
+              : "p-4 bg-accent/5 border-2 border-accent/30 rounded-lg"
+          }
+        >
+          <div
+            className={
+              premium
+                ? "text-[10px] uppercase tracking-[0.18em] text-[hsl(var(--premium-muted))] font-medium mb-1"
+                : "text-xs uppercase tracking-wider text-accent font-bold mb-1"
+            }
+          >
+            Explanation
+          </div>
+          <p className={`text-sm leading-relaxed ${premium ? "text-[hsl(var(--premium-ink))]" : "text-foreground"}`}>
+            {sample.explanation}
+          </p>
         </div>
       )}
 
@@ -576,9 +615,9 @@ function DocReviewPreview() {
     <PreviewShell type="document_review" sample={s}>
       {(mode) =>
         mode === "answer" ? (
-          <DocumentReviewRenderer mode="answer" payload={s.payload} value={val} onChange={setVal} />
+          <PremiumDocumentReview mode="answer" payload={s.payload} value={val} onChange={setVal} />
         ) : (
-          <DocumentReviewRenderer
+          <PremiumDocumentReview
             mode="review"
             payload={s.payload}
             submitted={{
@@ -606,15 +645,15 @@ function BriefBuilderPreview() {
       {(mode) =>
         mode === "answer" ? (
           <div className="space-y-3">
-            <BriefBuilderRenderer mode="answer" payload={s.payload} currentStep={step} value={val} onChange={setVal} onAdvance={() => !isLast && setStep(step + 1)} />
+            <PremiumBriefBuilder mode="answer" payload={s.payload} currentStep={step} value={val} onChange={setVal} onAdvance={() => !isLast && setStep(step + 1)} />
             <div className="flex items-center justify-between gap-2">
               <Button size="sm" variant="ghost" disabled={step === 0} onClick={() => setStep(step - 1)}>← Prev step</Button>
-              <span className="text-xs text-muted-foreground">Step {step + 1} of {s.payload.steps.length}</span>
+              <span className="text-xs text-[hsl(var(--premium-muted))]">Step {step + 1} of {s.payload.steps.length}</span>
               <Button size="sm" variant="default" disabled={isLast} onClick={() => setStep(step + 1)}>Next step →</Button>
             </div>
           </div>
         ) : (
-          <BriefBuilderRenderer
+          <PremiumBriefBuilder
             mode="review"
             payload={s.payload}
             currentStep={s.payload.steps.length - 1}
@@ -642,7 +681,7 @@ function EthicsPreview() {
       {(mode) =>
         mode === "answer" ? (
           <div className="space-y-3">
-            <EthicsRenderer mode="answer" payload={s.payload} stage={stage} value={val} onChange={setVal} />
+            <PremiumEthics mode="answer" payload={s.payload} stage={stage} value={val} onChange={setVal} />
             <div className="flex items-center justify-end gap-2">
               {stage === "decision" && (
                 <Button size="sm" disabled={!val.selected_decision_id} onClick={() => setStage("consequence")}>
@@ -655,7 +694,7 @@ function EthicsPreview() {
             </div>
           </div>
         ) : (
-          <EthicsRenderer
+          <PremiumEthics
             mode="review"
             payload={s.payload}
             stage="reveal"
@@ -677,15 +716,15 @@ function ClientCounselingPreview() {
       {(mode) =>
         mode === "answer" ? (
           <div className="space-y-3">
-            <ClientCounselingRenderer mode="answer" payload={s.payload} currentTurn={turn} value={val} onChange={setVal} />
+            <PremiumClientCounseling mode="answer" payload={s.payload} currentTurn={turn} value={val} onChange={setVal} />
             <div className="flex items-center justify-between gap-2">
               <Button size="sm" variant="ghost" disabled={turn === 1} onClick={() => setTurn(turn - 1)}>← Prev turn</Button>
-              <span className="text-xs text-muted-foreground">Turn {turn} of {total}</span>
+              <span className="text-xs text-[hsl(var(--premium-muted))]">Turn {turn} of {total}</span>
               <Button size="sm" variant="default" disabled={turn >= total} onClick={() => setTurn(turn + 1)}>Next turn →</Button>
             </div>
           </div>
         ) : (
-          <ClientCounselingRenderer
+          <PremiumClientCounseling
             mode="review"
             payload={s.payload}
             submitted={{

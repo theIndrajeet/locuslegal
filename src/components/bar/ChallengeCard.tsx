@@ -3,6 +3,8 @@ import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
 import { AREA_OF_LAW_LABELS, QUESTION_TYPE_LABELS } from "@/lib/bar/constants";
 import type { AreaOfLaw, Difficulty, QuestionType } from "@/lib/bar/types";
+import { isPremiumType } from "@/lib/bar/premium";
+import { PremiumBadge } from "@/components/bar/premium/PremiumBadge";
 
 interface ChallengeCardProps {
   id: string;
@@ -42,9 +44,12 @@ export function ChallengeCard({
       }`}
     >
       <div className="flex items-start justify-between gap-2">
-        <Badge variant="outline" className="text-xs">
-          {QUESTION_TYPE_LABELS[question_type]}
-        </Badge>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <Badge variant="outline" className="text-xs">
+            {QUESTION_TYPE_LABELS[question_type]}
+          </Badge>
+          {isPremiumType(question_type) && <PremiumBadge size="sm" />}
+        </div>
         <Badge variant="outline" className={`text-xs capitalize ${DIFF_STYLES[difficulty]}`}>
           {difficulty}
         </Badge>
