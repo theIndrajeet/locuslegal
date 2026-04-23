@@ -13,6 +13,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, X } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Internship } from "./InternshipsSection";
 import type { Moot } from "./MootsSection";
 import type { Publication } from "./PublicationsSection";
@@ -253,7 +254,21 @@ export default function CvReviewModal({ open, onOpenChange, userId, parsed, curr
     onOpenChange(false);
   };
 
+  const dateRe = /^\d{4}-\d{2}-\d{2}$/;
+
+  const missingInternshipDates = internshipRows.filter((r) => r._checked && !(r.start_date && dateRe.test(r.start_date))).length;
+  const missingPubDates = pubRows.filter((r) => r._checked && !(r.publication_date && dateRe.test(r.publication_date))).length;
+  const hasBlockingErrors = missingInternshipDates > 0 || missingPubDates > 0;
+
   const handleFinish = async () => {
+    if (missingInternshipDates > 0) {
+      toast.error("Please add a start date to each checked internship before saving.");
+      return;
+    }
+    if (missingPubDates > 0) {
+      toast.error("Please add a publication date to each checked publication before saving.");
+      return;
+    }
     setSubmitting(true);
     try {
       // 1. Profile update (only checked fields)
@@ -281,15 +296,15 @@ export default function CvReviewModal({ open, onOpenChange, userId, parsed, curr
         if (error) throw new Error(`Profile update failed: ${error.message}`);
       }
 
-      // 2. Internships - insert checked rows
+      // 2. Internships - insert checked rows (start_date already validated above)
       const internshipsToInsert = internshipRows
-        .filter((r) => r._checked && r.firm_name.trim() && r.role.trim())
+        .filter((r) => r._checked && r.firm_name.trim() && r.role.trim() && r.start_date && dateRe.test(r.start_date))
         .map((r) => ({
           user_id: userId,
           firm_name: r.firm_name.trim(),
           role: r.role.trim(),
-          start_date: r.start_date && /^\d{4}-\d{2}-\d{2}$/.test(r.start_date) ? r.start_date : new Date().toISOString().slice(0, 10),
-          end_date: r.end_date && /^\d{4}-\d{2}-\d{2}$/.test(r.end_date) ? r.end_date : null,
+          start_date: r.start_date as string,
+          end_date: r.end_date && dateRe.test(r.end_date) ? r.end_date : null,
           description: r.description?.trim().slice(0, DESC_MAX) || null,
         }));
       if (internshipsToInsert.length) {
@@ -312,15 +327,15 @@ export default function CvReviewModal({ open, onOpenChange, userId, parsed, curr
         if (error) throw new Error(`Moots failed: ${error.message}`);
       }
 
-      // 4. Publications
+      // 4. Publications (publication_date already validated above)
       const pubsToInsert = pubRows
-        .filter((r) => r._checked && r.title.trim() && r.publisher.trim())
+        .filter((r) => r._checked && r.title.trim() && r.publisher.trim() && r.publication_date && dateRe.test(r.publication_date))
         .map((r) => ({
           user_id: userId,
           title: r.title.trim(),
           publisher: r.publisher.trim(),
           url: r.url?.trim() || null,
-          publication_date: r.publication_date && /^\d{4}-\d{2}-\d{2}$/.test(r.publication_date) ? r.publication_date : new Date().toISOString().slice(0, 10),
+          publication_date: r.publication_date as string,
         }));
       if (pubsToInsert.length) {
         const { error } = await supabase.from("profile_publications").insert(pubsToInsert);
@@ -494,8 +509,22 @@ export default function CvReviewModal({ open, onOpenChange, userId, parsed, curr
                 <Input value={row.role} onChange={(e) => updateInternship(row._id, { role: e.target.value })} />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Start date</Label>
-                <Input type="date" value={row.start_date || ""} onChange={(e) => updateInternship(row._id, { start_date: e.target.value || null })} />
+                <Label className="text-xs">Start date <span className="text-destructive">*</span></Label>
+                {(() => {
+                  const invalid = row._checked && !(row.start_date && /^\d{4}-\d{2}-\d{2}$/.test(row.start_date));
+                  return (
+                    <>
+                      <Input
+                        type="date"
+                        value={row.start_date || ""}
+                        onChange={(e) => updateInternship(row._id, { start_date: e.target.value || null })}
+                        aria-invalid={invalid}
+                        className={invalid ? "border-destructive focus-visible:ring-destructive" : ""}
+                      />
+                      {invalid && <p className="text-xs text-destructive">Start date is required to save this entry.</p>}
+                    </>
+                  );
+                })()}
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">End date (blank if ongoing)</Label>
@@ -605,8 +634,22 @@ export default function CvReviewModal({ open, onOpenChange, userId, parsed, curr
                 <Input value={row.publisher} onChange={(e) => updatePub(row._id, { publisher: e.target.value })} />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Date</Label>
-                <Input type="date" value={row.publication_date || ""} onChange={(e) => updatePub(row._id, { publication_date: e.target.value || null })} />
+                <Label className="text-xs">Date <span className="text-destructive">*</span></Label>
+                {(() => {
+                  const invalid = row._checked && !(row.publication_date && /^\d{4}-\d{2}-\d{2}$/.test(row.publication_date));
+                  return (
+                    <>
+                      <Input
+                        type="date"
+                        value={row.publication_date || ""}
+                        onChange={(e) => updatePub(row._id, { publication_date: e.target.value || null })}
+                        aria-invalid={invalid}
+                        className={invalid ? "border-destructive focus-visible:ring-destructive" : ""}
+                      />
+                      {invalid && <p className="text-xs text-destructive">Publication date is required to save this entry.</p>}
+                    </>
+                  );
+                })()}
               </div>
               <div className="space-y-1 sm:col-span-2">
                 <Label className="text-xs">URL (optional)</Label>
@@ -654,15 +697,28 @@ export default function CvReviewModal({ open, onOpenChange, userId, parsed, curr
     </div>
   );
 
+  const finishButton = (
+    <Button size="sm" onClick={handleFinish} disabled={submitting || hasBlockingErrors}>
+      {submitting && <Loader2 className="h-4 w-4 animate-spin mr-2" />}Finish & Save
+    </Button>
+  );
+
   const Footer = (
     <div className="flex flex-wrap items-center justify-between gap-2 w-full">
       <Button variant="ghost" size="sm" onClick={handleBack} disabled={step === 0 || submitting}>Back</Button>
       <div className="flex gap-2">
         <Button variant="outline" size="sm" onClick={handleSkipSection} disabled={submitting || totalSteps === 0}>Skip this section</Button>
         {isLastStep || totalSteps === 0 ? (
-          <Button size="sm" onClick={handleFinish} disabled={submitting}>
-            {submitting && <Loader2 className="h-4 w-4 animate-spin mr-2" />}Finish & Save
-          </Button>
+          hasBlockingErrors ? (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild><span tabIndex={0}>{finishButton}</span></TooltipTrigger>
+                <TooltipContent>Add missing required dates to save.</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ) : (
+            finishButton
+          )
         ) : (
           <Button size="sm" onClick={handleNext}>Next</Button>
         )}
