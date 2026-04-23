@@ -160,6 +160,7 @@ export type Database = {
           created_by: string
           difficulty: Database["public"]["Enums"]["bar_difficulty"]
           explanation: string | null
+          grading_config: Json
           id: string
           payload: Json
           points_base: number
@@ -182,6 +183,7 @@ export type Database = {
           created_by: string
           difficulty: Database["public"]["Enums"]["bar_difficulty"]
           explanation?: string | null
+          grading_config?: Json
           id?: string
           payload?: Json
           points_base: number
@@ -204,6 +206,7 @@ export type Database = {
           created_by?: string
           difficulty?: Database["public"]["Enums"]["bar_difficulty"]
           explanation?: string | null
+          grading_config?: Json
           id?: string
           payload?: Json
           points_base?: number
