@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
-import { ChevronDown, Sparkles, Send, Loader2, Trash2 } from "lucide-react";
+import { ChevronDown, Sparkles, Send, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { RitMessage } from "./RitMessage";
