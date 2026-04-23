@@ -321,6 +321,35 @@ export type Database = {
           },
         ]
       }
+      bar_user_colleges: {
+        Row: {
+          college_display: string
+          college_normalized: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          college_display: string
+          college_normalized: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          college_display?: string
+          college_normalized?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bar_user_colleges_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bar_user_stats: {
         Row: {
           accuracy_pct: number
@@ -555,6 +584,7 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          bar_leaderboard_opt_out: boolean
           bio: string | null
           cgpa: number | null
           college: string | null
@@ -570,6 +600,7 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          bar_leaderboard_opt_out?: boolean
           bio?: string | null
           cgpa?: number | null
           college?: string | null
@@ -585,6 +616,7 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          bar_leaderboard_opt_out?: boolean
           bio?: string | null
           cgpa?: number | null
           college?: string | null
@@ -754,6 +786,24 @@ export type Database = {
             columns: ["source_id"]
             isOneToOne: false
             referencedRelation: "bar_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bar_weekly_stats: {
+        Row: {
+          user_id: string | null
+          weekly_accuracy_pct: number | null
+          weekly_attempts: number | null
+          weekly_correct: number | null
+          weekly_points: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bar_attempts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
