@@ -325,6 +325,21 @@ export default function PublicProfile() {
             </div>
           )}
 
+          {barStats && (
+            <div className="pt-2 border-t border-border">
+              <RankBadgeBlock
+                designation={barStats.designation}
+                totalPoints={barStats.total_points}
+                accuracyPct={barStats.accuracy_pct}
+                currentStreak={barStats.current_streak}
+                rankPosition={barStats.rank_position}
+                isOwner={barStats.is_owner}
+                optedOut={barStats.opted_out}
+                username={profile.username}
+              />
+            </div>
+          )}
+
           {subjects.length > 0 && (
             <div className="space-y-2 pt-2 border-t border-border">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">Subjects of interest</p>

@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { usePageMeta } from "@/hooks/usePageMeta";
-import { Search, Building2, MapPin, Star, Phone, Mail, X, ArrowUpDown, LayoutGrid, Map as MapIcon, GitCompareArrows } from "lucide-react";
+import { Search, Building2, MapPin, Star, Phone, Mail, X, ArrowUpDown, LayoutGrid, Map as MapIcon, GitCompareArrows, Trophy, ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
 import firms from "@/data/firms.json";
 import FirmDrawer from "@/components/FirmDrawer";
 import CompareBar from "@/components/CompareBar";
@@ -165,6 +166,25 @@ export default function Directory() {
         <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
           Explore {firms.length.toLocaleString()} law firms, chambers, and legal practices across India.
         </p>
+      </section>
+
+      {/* Bar leaderboard callout */}
+      <section className="container mx-auto px-4 md:px-8 mb-6">
+        <Link
+          to="/the-bar/leaderboard"
+          className="block bg-card border-2 border-accent/40 hover:border-accent rounded-2xl p-4 md:p-5 transition-colors group"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-lg bg-accent/10 border border-accent/30 flex items-center justify-center shrink-0">
+              <Trophy size={20} className="text-accent" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="font-bold text-foreground text-sm md:text-base">Looking for students? Check out the Bar leaderboard</p>
+              <p className="text-xs md:text-sm text-muted-foreground">Students ranked by legal skill, not just college.</p>
+            </div>
+            <ArrowRight size={18} className="text-accent shrink-0 group-hover:translate-x-1 transition-transform" />
+          </div>
+        </Link>
       </section>
 
       {/* Filters */}
