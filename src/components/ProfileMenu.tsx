@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { UserCircle, LogOut, KeyRound, PenLine, User, ExternalLink } from "lucide-react";
+import { UserCircle, LogOut, KeyRound, PenLine, User, ExternalLink, Shield } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useAdminRole } from "@/hooks/useAdminRole";
 import type { Session } from "@supabase/supabase-js";
 
 export default function ProfileMenu() {
@@ -13,6 +14,7 @@ export default function ProfileMenu() {
   const [username, setUsername] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
+  const isAdmin = useAdminRole();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -114,6 +116,18 @@ export default function ProfileMenu() {
             </button>
 
             <Divider />
+
+            {isAdmin && (
+              <>
+                <button
+                  onClick={() => { setOpen(false); navigate("/admin/bar"); }}
+                  className="flex items-center gap-2 w-full px-3 py-2 text-sm font-semibold text-accent rounded-md hover:bg-accent/10 transition-colors"
+                >
+                  <Shield size={16} /> Admin Console
+                </button>
+                <Divider />
+              </>
+            )}
 
             <button
               onClick={handleSignOut}
