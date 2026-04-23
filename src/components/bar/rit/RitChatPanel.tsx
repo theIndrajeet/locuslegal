@@ -172,25 +172,83 @@ export function RitChatPanel({ attemptId, challenge, greeting, defaultOpen = fal
   };
 
   return (
-    <Card className="border-2 border-border overflow-hidden">
+    <Card className="border-2 border-border overflow-hidden group/rit">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center gap-3 p-4 text-left hover:bg-muted/30 transition-colors"
+        className={cn(
+          "rit-hover-trigger relative w-full flex items-center gap-3 p-4 text-left transition-colors",
+          "hover:bg-muted/30",
+        )}
       >
-        <div className="flex-shrink-0 w-9 h-9 rounded-md border-2 border-border bg-accent/15 flex items-center justify-center">
-          <MessageSquare size={16} className="text-accent" />
+        {/* Animated bottom border sweep — only when closed */}
+        {!open && (
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-px animate-rit-border-sweep"
+            style={{
+              background:
+                "linear-gradient(90deg, transparent 0%, hsl(var(--accent)) 50%, transparent 100%)",
+              backgroundSize: "200% 100%",
+            }}
+          />
+        )}
+
+        {/* Left icon block — neobrutalist square */}
+        <div
+          className={cn(
+            "flex-shrink-0 w-10 h-10 rounded-md border-2 border-border bg-accent/15 flex items-center justify-center",
+            "shadow-[2px_2px_0_0_hsl(var(--border))]",
+          )}
+        >
+          <Sparkles size={18} className="text-accent animate-rit-icon-pulse" />
         </div>
+
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <div className="text-sm font-extrabold font-heading text-foreground">Reason It Through</div>
-            <Badge variant="outline" className="h-5 px-1.5 text-[10px] font-bold border-accent text-accent">Rit</Badge>
+          <div className="flex items-center gap-2 flex-wrap">
+            <RitGlitchTitle text="Reason It Through" className="text-sm" />
+
+            {/* Animated Rit pill */}
+            <span
+              title="Reason It Through"
+              className={cn(
+                "relative inline-flex items-center gap-1 overflow-hidden",
+                "h-5 px-2 rounded-full border-2 border-accent",
+                "bg-accent/10 text-accent text-[10px] font-extrabold tracking-wide font-heading uppercase",
+                "shadow-[1.5px_1.5px_0_0_hsl(var(--accent))]",
+                "transition-all duration-150",
+                "group-hover/rit:scale-105 group-hover/rit:shadow-[1px_1px_0_0_hsl(var(--accent))]",
+              )}
+            >
+              <Sparkles size={8} className="text-accent" />
+              <span className="relative z-10">Rit</span>
+              {/* Shimmer sweep */}
+              <span
+                aria-hidden
+                className="pointer-events-none absolute inset-y-0 -left-1/2 w-1/2 animate-rit-pill-shimmer"
+                style={{
+                  background:
+                    "linear-gradient(90deg, transparent 0%, hsl(var(--accent) / 0.55) 50%, transparent 100%)",
+                }}
+              />
+            </span>
           </div>
-          <div className="text-xs text-muted-foreground">
-            {open ? "Debate the answer, ask follow-ups, or dig deeper." : "Still curious? Tap to open the tutor."}
+          <div className="text-xs text-muted-foreground mt-0.5">
+            Debate the answer
+            <span className="text-accent mx-1.5">·</span>
+            ask follow-ups
+            <span className="text-accent mx-1.5">·</span>
+            dig deeper
           </div>
         </div>
-        {open ? <ChevronUp size={18} className="text-muted-foreground" /> : <ChevronDown size={18} className="text-muted-foreground" />}
+
+        <ChevronDown
+          size={18}
+          className={cn(
+            "text-muted-foreground transition-transform duration-300",
+            open && "rotate-180",
+          )}
+        />
       </button>
 
       {open && (
@@ -210,7 +268,9 @@ export function RitChatPanel({ attemptId, challenge, greeting, defaultOpen = fal
 
           <div ref={scrollRef} className="max-h-[420px] overflow-y-auto p-4 space-y-3">
             {/* Greeting (always shown, not counted toward cap) */}
-            <RitMessage role="assistant" content={computedGreeting} />
+            <div className="animate-fade-in">
+              <RitMessage role="assistant" content={computedGreeting} />
+            </div>
 
             {visibleMessages.map((m, i) => (
               <RitMessage key={m.id ?? i} role={m.role} content={m.content} />
@@ -218,15 +278,25 @@ export function RitChatPanel({ attemptId, challenge, greeting, defaultOpen = fal
 
             {visibleMessages.length === 0 && !sending && (
               <div className="flex flex-wrap gap-2 pt-1">
-                {STARTERS.map((s) => (
-                  <RitStarterChip key={s} label={s} onClick={() => send(s)} disabled={sending} />
+                {STARTERS.map((s, i) => (
+                  <div
+                    key={s}
+                    className="animate-fade-in"
+                    style={{ animationDelay: `${i * 60}ms` }}
+                  >
+                    <RitStarterChip label={s} onClick={() => send(s)} disabled={sending} />
+                  </div>
                 ))}
               </div>
             )}
 
             {sending && (
               <div className="flex items-center gap-2 text-xs text-muted-foreground pl-1">
-                <Loader2 size={12} className="animate-spin" />
+                <span className="inline-flex items-center gap-1" aria-label="Rit is thinking">
+                  <span className="w-1.5 h-1.5 rounded-full bg-accent animate-rit-dot-bounce" style={{ animationDelay: "0ms" }} />
+                  <span className="w-1.5 h-1.5 rounded-full bg-accent animate-rit-dot-bounce" style={{ animationDelay: "120ms" }} />
+                  <span className="w-1.5 h-1.5 rounded-full bg-accent animate-rit-dot-bounce" style={{ animationDelay: "240ms" }} />
+                </span>
                 Rit is thinking…
               </div>
             )}
@@ -257,7 +327,10 @@ export function RitChatPanel({ attemptId, challenge, greeting, defaultOpen = fal
                     size="sm"
                     onClick={() => send(input)}
                     disabled={sending || input.trim().length === 0}
-                    className="gap-1.5"
+                    className={cn(
+                      "gap-1.5 transition-shadow",
+                      "focus-visible:shadow-[0_0_0_3px_hsl(var(--accent)/0.45)]",
+                    )}
                   >
                     {sending ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
                     Send
