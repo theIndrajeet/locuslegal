@@ -223,6 +223,21 @@ function PreviewShell({
           <p className="text-sm text-foreground leading-relaxed">{s.explanation}</p>
         </div>
       )}
+
+      {mode === "review" && (
+        <div className="space-y-2">
+          <p className="text-[11px] text-muted-foreground italic">
+            Demo mode — replies are canned. The real tutor uses your actual attempt.
+          </p>
+          <RitChatPanel
+            demoMode
+            attemptId="preview"
+            challenge={{ title: s.title, question_type: type }}
+            greeting={DEMO_GREETINGS[type]}
+            demoReplies={DEMO_REPLIES[type]}
+          />
+        </div>
+      )}
     </Card>
   );
 }
