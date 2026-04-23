@@ -5,13 +5,19 @@ import { CheckCircle2, XCircle, ArrowRight, Home, Sparkles, Check, X } from "luc
 import { Link } from "react-router-dom";
 import { formatDesignation } from "@/lib/bar/display";
 import type { BarDesignation } from "@/lib/bar/types";
+import { RitChatPanel } from "./rit/RitChatPanel";
 
 export interface ResultScreenProps {
+  attempt_id?: string | null;
   is_correct: boolean;
   points_awarded: number;
   explanation: string | null;
   correct_answer_summary: string;
   per_question?: { id: string; prompt: string; submitted: string; correct: string; got_right: boolean }[];
+  challenge_meta?: {
+    title?: string | null;
+    question_type?: string | null;
+  };
   new_stats: {
     total_points: number;
     accuracy_pct: number;
@@ -41,7 +47,7 @@ function CountUp({ to, duration = 800 }: { to: number; duration?: number }) {
 }
 
 export function ResultScreen(props: ResultScreenProps) {
-  const { is_correct, points_awarded, explanation, correct_answer_summary, per_question, new_stats } = props;
+  const { attempt_id, is_correct, points_awarded, explanation, correct_answer_summary, per_question, new_stats, challenge_meta } = props;
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -81,6 +87,17 @@ export function ResultScreen(props: ResultScreenProps) {
           </div>
           <p className="text-sm text-foreground leading-relaxed">{explanation}</p>
         </Card>
+      )}
+
+      {attempt_id && (
+        <RitChatPanel
+          attemptId={attempt_id}
+          challenge={{
+            title: challenge_meta?.title ?? null,
+            question_type: challenge_meta?.question_type ?? null,
+            correct_answer_summary,
+          }}
+        />
       )}
 
       {per_question && per_question.length > 0 && (

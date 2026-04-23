@@ -74,7 +74,7 @@ export function RitChatPanel({ attemptId, challenge, greeting, defaultOpen = fal
       if (error) {
         console.error("rit history load error", error);
       }
-      setMessages((data ?? []) as RitMsg[]);
+      setMessages((data ?? []) as unknown as RitMsg[]);
       setLoaded(true);
     })();
     return () => { active = false; };
