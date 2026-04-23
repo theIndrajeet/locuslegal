@@ -67,9 +67,13 @@ export function RitChatPanel({ attemptId, challenge, greeting, defaultOpen = fal
     return "Hi — I'm here to help you reason this through. What part of the question would you like to explore?";
   }, [greeting, challenge.correct_answer_summary]);
 
-  // Load history on first expand
+  // Load history on first expand (skipped in demo mode)
   useEffect(() => {
     if (!open || loaded) return;
+    if (demoMode) {
+      setLoaded(true);
+      return;
+    }
     let active = true;
     (async () => {
       const { data, error } = await supabase
@@ -85,7 +89,7 @@ export function RitChatPanel({ attemptId, challenge, greeting, defaultOpen = fal
       setLoaded(true);
     })();
     return () => { active = false; };
-  }, [open, loaded, attemptId]);
+  }, [open, loaded, attemptId, demoMode]);
 
   // Auto scroll to bottom when messages change
   useEffect(() => {
