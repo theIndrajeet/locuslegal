@@ -115,28 +115,14 @@ export default function TheBar() {
     );
   }
 
-  if (!userId) {
-    return (
-      <section className="min-h-screen pt-24 pb-16 bg-background">
-        <div className="container mx-auto px-4 max-w-2xl flex flex-col items-center justify-center min-h-[60vh] text-center">
-          <div className="w-20 h-20 rounded-2xl bg-accent/10 border-2 border-accent/30 flex items-center justify-center mx-auto mb-6">
-            <Sparkles size={36} className="text-accent" />
-          </div>
-          <h1 className="text-4xl md:text-5xl font-extrabold font-heading text-foreground mb-3">
-            The Bar
-          </h1>
-          <p className="text-lg text-muted-foreground mb-8 max-w-md">
-            Prove you can lawyer. Earn points. Climb from Trainee to Silk.
-          </p>
-          <Link to="/auth">
-            <Button size="lg" className="gap-2">
-              <LogIn size={16} /> Sign in to enter The Bar
-            </Button>
-          </Link>
-        </div>
-      </section>
-    );
-  }
+  const isGuest = !userId;
+  const displayStats = stats ?? {
+    total_points: 0,
+    accuracy_pct: 0,
+    current_streak: 0,
+    longest_streak: 0,
+    designation: "trainee" as BarDesignation,
+  };
 
   return (
     <section className="min-h-screen pt-24 pb-16 bg-background">
@@ -151,21 +137,37 @@ export default function TheBar() {
           </p>
         </div>
 
+        {/* Guest banner */}
+        {isGuest && (
+          <Card className="border-2 border-accent/40 bg-accent/5 p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+            <Sparkles size={20} className="text-accent flex-shrink-0" />
+            <div className="flex-1 text-sm text-foreground">
+              <span className="font-semibold">Browsing as guest.</span>{" "}
+              <span className="text-muted-foreground">Sign in to take challenges, earn points, and climb the ranks.</span>
+            </div>
+            <Link to="/auth">
+              <Button size="sm" className="gap-2 w-full sm:w-auto">
+                <LogIn size={14} /> Sign in
+              </Button>
+            </Link>
+          </Card>
+        )}
+
         {/* Stats */}
-        {loading || !stats ? (
+        {(loading && !isGuest) ? (
           <Skeleton className="h-32 w-full" />
         ) : (
           <StatsStrip
-            designation={stats.designation}
-            totalPoints={stats.total_points}
-            accuracyPct={Number(stats.accuracy_pct)}
-            currentStreak={stats.current_streak}
+            designation={displayStats.designation}
+            totalPoints={displayStats.total_points}
+            accuracyPct={Number(displayStats.accuracy_pct)}
+            currentStreak={displayStats.current_streak}
           />
         )}
 
 
-        {/* Overall rank pill */}
-        {!loading && overallRank !== null && (
+        {/* Overall rank pill — logged-in users with attempts only */}
+        {!isGuest && !loading && overallRank !== null && (
           <Link to="/the-bar/leaderboard?tab=all-time" className="inline-flex">
             <span className="inline-flex items-center gap-2 bg-accent/10 hover:bg-accent/20 transition-colors text-accent border border-accent/30 rounded-full px-4 py-1.5 text-sm font-semibold">
               <Trophy size={14} />
@@ -199,7 +201,18 @@ export default function TheBar() {
           <h2 className="text-xl font-bold font-heading text-foreground mb-4">
             Recent Attempts
           </h2>
-          {loading ? (
+          {isGuest ? (
+            <Card className="border-2 border-dashed border-border p-8 text-center">
+              <p className="text-muted-foreground mb-4">
+                Sign in to track your attempts and earn points.
+              </p>
+              <Link to="/auth">
+                <Button className="gap-2">
+                  <LogIn size={16} /> Sign in
+                </Button>
+              </Link>
+            </Card>
+          ) : loading ? (
             <div className="space-y-2">
               <Skeleton className="h-16 w-full" />
               <Skeleton className="h-16 w-full" />

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { usePageMeta } from "@/hooks/usePageMeta";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,10 @@ export default function Auth() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const nextParam = searchParams.get("next");
+  const safeNext = nextParam && nextParam.startsWith("/") ? nextParam : null;
+  const postLoginPath = safeNext ?? "/the-bar";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,7 +41,7 @@ export default function Auth() {
         });
         if (error) throw error;
         toast.success("Welcome back!");
-        navigate("/the-bar");
+        navigate(postLoginPath);
       } else {
         if (!username.trim() || /\s/.test(username)) {
           throw new Error("Username is required and cannot contain spaces");

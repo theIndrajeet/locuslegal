@@ -82,24 +82,25 @@ export default function TheBarChallenge() {
 
   useEffect(() => {
     if (!authReady) return;
-    if (!userId) { navigate("/auth"); return; }
     if (!id) { setNotFound(true); setLoading(false); return; }
 
     let active = true;
     (async () => {
       setLoading(true);
-      // Pre-check already attempted
-      const { data: prior } = await supabase
-        .from("bar_attempts")
-        .select("id")
-        .eq("user_id", userId)
-        .eq("challenge_id", id)
-        .maybeSingle();
-      if (!active) return;
-      if (prior) {
-        toast.info("You've already attempted this challenge.");
-        navigate("/the-bar");
-        return;
+      // Pre-check already attempted (only for logged-in users)
+      if (userId) {
+        const { data: prior } = await supabase
+          .from("bar_attempts")
+          .select("id")
+          .eq("user_id", userId)
+          .eq("challenge_id", id)
+          .maybeSingle();
+        if (!active) return;
+        if (prior) {
+          toast.info("You've already attempted this challenge.");
+          navigate("/the-bar");
+          return;
+        }
       }
 
       // Fetch from SAFE view (correct answers stripped server-side)
@@ -134,6 +135,11 @@ export default function TheBarChallenge() {
 
   const submit = async (override?: unknown) => {
     if (!challenge) return;
+    if (!userId) {
+      // Guest tried to submit — bounce to /auth with a return path
+      navigate(`/auth?next=/the-bar/challenge/${challenge.id}`);
+      return;
+    }
     const answer = override ?? buildAnswer();
     if (answer === null) {
       toast.error("Please make a selection first.");
