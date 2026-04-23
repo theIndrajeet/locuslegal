@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { usePageMeta } from "@/hooks/usePageMeta";
@@ -79,6 +79,8 @@ export default function PublicProfile() {
   const [internships, setInternships] = useState<Internship[]>([]);
   const [moots, setMoots] = useState<Moot[]>([]);
   const [publications, setPublications] = useState<Publication[]>([]);
+  const [activeTab, setActiveTab] = useState<string>("experience");
+  const hasAutoSelected = useRef(false);
 
   const metaTitle = profile
     ? `${profile.display_name || profile.username} (@${profile.username}) — Locus`
@@ -131,12 +133,14 @@ export default function PublicProfile() {
     return () => { mounted = false; };
   }, [username]);
 
-  const defaultTab = useMemo(() => {
-    if (internships.length) return "experience";
-    if (moots.length) return "moots";
-    if (publications.length) return "publications";
-    return "experience";
-  }, [internships.length, moots.length, publications.length]);
+  useEffect(() => {
+    if (loading || hasAutoSelected.current || !profile) return;
+    hasAutoSelected.current = true;
+    if (internships.length) setActiveTab("experience");
+    else if (moots.length) setActiveTab("moots");
+    else if (publications.length) setActiveTab("publications");
+    // else: stay on "experience" so the empty state shows
+  }, [loading, profile, internships.length, moots.length, publications.length]);
 
   const handleShare = async () => {
     const url = `${window.location.origin}/u/${username}`;
@@ -266,7 +270,7 @@ export default function PublicProfile() {
 
         {/* Right column */}
         <main>
-          <Tabs defaultValue={defaultTab} className="w-full">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList>
               <TabsTrigger value="experience">Experience ({internships.length})</TabsTrigger>
               <TabsTrigger value="moots">Moots ({moots.length})</TabsTrigger>

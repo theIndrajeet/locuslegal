@@ -51,6 +51,7 @@ export default function ProfileEdit() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [savingPwd, setSavingPwd] = useState(false);
+  const [hasPassword, setHasPassword] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -61,6 +62,13 @@ export default function ProfileEdit() {
       if (!session) { navigate("/auth"); return; }
       const uid = session.user.id;
       setUserId(uid);
+
+      // Detect whether the user has an email/password identity (vs OAuth-only).
+      const { data: userRes } = await supabase.auth.getUser();
+      if (mounted) {
+        const identities = userRes?.user?.identities ?? [];
+        setHasPassword(identities.some((i) => i.provider === "email"));
+      }
 
       const [profileRes, internshipsRes, mootsRes, pubsRes] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", uid).maybeSingle(),
@@ -158,20 +166,22 @@ export default function ProfileEdit() {
         <PublicationsSection userId={userId} publications={publications} setPublications={setPublications} />
         <CvSection userId={userId} cvUrl={cvUrl} cvUploadedAt={cvUploadedAt} setCvUrl={setCvUrl} setCvUploadedAt={setCvUploadedAt} />
 
-        <Card>
-          <CardHeader><CardTitle className="font-heading">Change password</CardTitle></CardHeader>
-          <CardContent className="space-y-3">
-            <div className="space-y-2">
-              <Label htmlFor="new-pwd">New password</Label>
-              <Input id="new-pwd" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirm-pwd">Confirm password</Label>
-              <Input id="confirm-pwd" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
-            </div>
-            <Button onClick={handleChangePassword} disabled={savingPwd} size="sm">Update password</Button>
-          </CardContent>
-        </Card>
+        {hasPassword && (
+          <Card>
+            <CardHeader><CardTitle className="font-heading">Change password</CardTitle></CardHeader>
+            <CardContent className="space-y-3">
+              <div className="space-y-2">
+                <Label htmlFor="new-pwd">New password</Label>
+                <Input id="new-pwd" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirm-pwd">Confirm password</Label>
+                <Input id="confirm-pwd" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+              </div>
+              <Button onClick={handleChangePassword} disabled={savingPwd} size="sm">Update password</Button>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );
