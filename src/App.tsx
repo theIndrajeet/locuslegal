@@ -15,6 +15,7 @@ import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import ChooseUsername from "./pages/ChooseUsername";
 import ProfileEdit from "./pages/ProfileEdit";
+import PublicProfile from "./pages/PublicProfile";
 import AdminWaitlist from "./pages/AdminWaitlist";
 import NotFound from "./pages/NotFound";
 
@@ -36,6 +37,7 @@ const App = () => (
               <Route path="/tools" element={<Tools />} />
               <Route path="/the-bar" element={<TheBar />} />
               <Route path="/profile/edit" element={<ProfileEdit />} />
+              <Route path="/u/:username" element={<PublicProfile />} />
               <Route path="/admin/waitlist" element={<AdminWaitlist />} />
             </Route>
             <Route path="/auth" element={<Auth />} />
