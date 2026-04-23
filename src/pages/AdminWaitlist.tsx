@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { useAdminRole } from "@/hooks/useAdminRole";
 
 interface Submission {
   id: string;
@@ -15,15 +16,20 @@ export default function AdminWaitlist() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("all");
   const navigate = useNavigate();
+  const isAdmin = useAdminRole();
 
   useEffect(() => {
-    const load = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        navigate("/auth");
-        return;
-      }
+    if (isAdmin === null) return;
+    if (isAdmin === false) {
+      // Either not signed in or signed in as a non-admin.
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (!session) navigate("/auth");
+      });
+      setLoading(false);
+      return;
+    }
 
+    const load = async () => {
       const { data, error } = await (supabase.from("waitlist_submissions" as any)
         .select("*")
         .order("created_at", { ascending: false }) as any);
@@ -35,7 +41,28 @@ export default function AdminWaitlist() {
       setLoading(false);
     };
     load();
-  }, [navigate]);
+  }, [navigate, isAdmin]);
+
+  if (isAdmin === null) {
+    return (
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
+        <p className="text-muted-foreground">Loading…</p>
+      </div>
+    );
+  }
+
+  if (isAdmin === false) {
+    return (
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-6">
+        <div className="max-w-md text-center space-y-3">
+          <h1 className="font-heading text-2xl font-bold">Access denied</h1>
+          <p className="text-muted-foreground text-sm">
+            You don't have permission to view this page.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const filtered = filter === "all" ? submissions : submissions.filter(s => s.type === filter);
 
