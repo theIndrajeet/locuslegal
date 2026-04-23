@@ -44,9 +44,12 @@ export function ChallengeCard({
       }`}
     >
       <div className="flex items-start justify-between gap-2">
-        <Badge variant="outline" className="text-xs">
-          {QUESTION_TYPE_LABELS[question_type]}
-        </Badge>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <Badge variant="outline" className="text-xs">
+            {QUESTION_TYPE_LABELS[question_type]}
+          </Badge>
+          {isPremiumType(question_type) && <PremiumBadge size="sm" />}
+        </div>
         <Badge variant="outline" className={`text-xs capitalize ${DIFF_STYLES[difficulty]}`}>
           {difficulty}
         </Badge>
