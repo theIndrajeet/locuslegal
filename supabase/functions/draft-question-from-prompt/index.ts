@@ -140,6 +140,10 @@ Return EXACTLY ONE question as a JSON object (not an array). Per-type payload sh
 - issue_spotter: { "issue_options":[{"id":"a","text":"..."}], "correct_issue_ids":["a"] }  (3-10 issues)
 - speed_round: { "questions":[{"id":"q1","prompt":"...","answer":"..."}], "time_limit_seconds":60 }  (5-8 sub-qs)
 - jurisdiction: { "options":[{"id":"a","jurisdiction":"...","reasoning":"..."}], "correct_option_id":"a" }  (2-5 options)
+- document_review: { "document_html":"<p>...</p>", "spans":[{"id":"s1","text":"exact substring"}], "categories":[{"id":"c1","label":"Risk"}], "correct_flags":[{"span_id":"s1","category_id":"c1"}] }
+- brief_builder: { "fact_pattern":"...", "citation":"X v. Y (2024)", "steps":[ {"kind":"mcq","label":"Statute","prompt":"...","options":[{"id":"a","letter":"A","title":"...","desc":"...","meta":""}],"correct_option_id":"a"}, {"kind":"mcq","label":"Precedent",...}, {"kind":"order","label":"Arguments","prompt":"order strongest→weakest","blocks":[{"id":"b1","text":"..."}],"correct_order":["b1","b2","b3"]}, {"kind":"mcq","label":"Rebuttal",...} ] }  (exactly 4 steps)
+- ethics: { "scenario":"...", "decision_options":[{"id":"a","letter":"A","text":"..."}], "correct_decision_id":"a", "consequence_text":"...", "followup_options":[{"id":"a","letter":"A","text":"..."}], "correct_followup_id":"a", "model_reasoning":"..." }
+- client_counseling: { "matter":"...", "transcript":[{"turn":1,"role":"client","text":"..."}], "decision_turns":[{"turn":1,"prompt":"How do you respond?","options":[{"id":"a","letter":"A","text":"..."}],"correct_option_id":"a","model_followup":"..."}] }  (3-5 decision turns)
 
 Outer object shape:
 {
