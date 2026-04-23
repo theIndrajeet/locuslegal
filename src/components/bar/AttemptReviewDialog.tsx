@@ -15,6 +15,10 @@ import { McqRenderer } from "./renderers/McqRenderer";
 import { IssueSpotterRenderer } from "./renderers/IssueSpotterRenderer";
 import { JurisdictionRenderer } from "./renderers/JurisdictionRenderer";
 import { SpeedRoundRenderer } from "./renderers/SpeedRoundRenderer";
+import { DocumentReviewRenderer } from "./renderers/DocumentReviewRenderer";
+import { BriefBuilderRenderer } from "./renderers/BriefBuilderRenderer";
+import { EthicsRenderer } from "./renderers/EthicsRenderer";
+import { ClientCounselingRenderer } from "./renderers/ClientCounselingRenderer";
 import { AREA_OF_LAW_LABELS, QUESTION_TYPE_LABELS } from "@/lib/bar/constants";
 import { RitChatPanel } from "./rit/RitChatPanel";
 
@@ -130,6 +134,42 @@ function ReviewContent({ attempt, challenge }: { attempt: any; challenge: any })
           });
           return <SpeedRoundRenderer mode="review" perQuestion={per} />;
         })()}
+        {type === "document_review" && (
+          <DocumentReviewRenderer
+            mode="review"
+            payload={challenge.payload}
+            submitted={(attempt.submitted_answer as any) ?? { flagged: [] }}
+            correct_flags={challenge.payload.correct_flags ?? []}
+          />
+        )}
+        {type === "brief_builder" && (
+          <div className="space-y-3">
+            {(challenge.payload.steps ?? []).map((_: any, i: number) => (
+              <BriefBuilderRenderer
+                key={i}
+                mode="review"
+                payload={challenge.payload}
+                currentStep={i}
+                submitted={(attempt.submitted_answer as any) ?? { step_answers: [] }}
+              />
+            ))}
+          </div>
+        )}
+        {type === "ethics" && (
+          <EthicsRenderer
+            mode="review"
+            payload={challenge.payload}
+            stage="reveal"
+            submitted={(attempt.submitted_answer as any) ?? { selected_decision_id: "", selected_followup_id: "" }}
+          />
+        )}
+        {type === "client_counseling" && (
+          <ClientCounselingRenderer
+            mode="review"
+            payload={challenge.payload}
+            submitted={(attempt.submitted_answer as any) ?? { turn_picks: [] }}
+          />
+        )}
 
         {challenge.explanation && (
           <Card className="border-2 border-border p-4 bg-muted/30">

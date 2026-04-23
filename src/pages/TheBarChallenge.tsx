@@ -1,22 +1,9 @@
 // TheBarChallenge — student attempt flow.
 //
-// MANUAL TEST CASES:
-// 1. Logged-out user → can preview, submit opens sign-in dialog.
-// 2. Challenge not found / not approved → 404 state.
-// 3. Already-attempted challenge → redirect to dashboard with toast.
-// 4. MCQ flow: select option → submit → result screen.
-// 5. Issue spotter with empty selection → marked incorrect, 0 pts.
-// 6. Speed round timer hits 0 → auto-submits with current answers.
-// 7. 20-attempts/day reached → submit returns 429.
-// 8. Rank threshold crossed → result screen shows ranked-up banner.
-//
-// SECURITY: This page reads from `bar_challenges_student` (a view that strips
-// `correct_option_id`, `correct_issue_ids`, and speed_round answers from the
-// payload at the database layer). The raw correct answer NEVER crosses the wire.
-// Underlying `bar_challenges` table is RLS-locked: only admins, the creator, or
-// users who have already attempted may read it. Guests can read the view (anon GRANT).
+// Reads from the SAFE view `bar_challenges_student` (correct answers stripped
+// at the database layer). Submits via the `submit-bar-attempt` edge function.
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { usePageMeta } from "@/hooks/usePageMeta";
@@ -28,12 +15,16 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { McqRenderer } from "@/components/bar/renderers/McqRenderer";
 import { IssueSpotterRenderer } from "@/components/bar/renderers/IssueSpotterRenderer";
 import { JurisdictionRenderer } from "@/components/bar/renderers/JurisdictionRenderer";
 import { SpeedRoundRenderer, type SpeedRoundAnswerState } from "@/components/bar/renderers/SpeedRoundRenderer";
+import { DocumentReviewRenderer, type DocReviewAnswerState } from "@/components/bar/renderers/DocumentReviewRenderer";
+import { BriefBuilderRenderer, type BriefAnswerState } from "@/components/bar/renderers/BriefBuilderRenderer";
+import { EthicsRenderer, type EthicsAnswerState, type EthicsStage } from "@/components/bar/renderers/EthicsRenderer";
+import { ClientCounselingRenderer, type CounselingAnswerState } from "@/components/bar/renderers/ClientCounselingRenderer";
 import { ResultScreen, type ResultScreenProps } from "@/components/bar/ResultScreen";
 import { AREA_OF_LAW_LABELS, QUESTION_TYPE_LABELS } from "@/lib/bar/constants";
 import type { AreaOfLaw, Difficulty, QuestionType } from "@/lib/bar/types";
@@ -47,7 +38,7 @@ interface SafeChallenge {
   prompt: string;
   points_base: number;
   source_citation: string | null;
-  payload: any; // already-stripped from view
+  payload: any;
 }
 
 export default function TheBarChallenge() {
@@ -65,10 +56,17 @@ export default function TheBarChallenge() {
   const [challenge, setChallenge] = useState<SafeChallenge | null>(null);
   const [notFound, setNotFound] = useState(false);
 
-  // Answer state per type
+  // Per-type answer state
   const [mcqValue, setMcqValue] = useState("");
   const [issueValues, setIssueValues] = useState<string[]>([]);
   const [jurValue, setJurValue] = useState("");
+  const [docReview, setDocReview] = useState<DocReviewAnswerState>({ flagged: [] });
+  const [brief, setBrief] = useState<BriefAnswerState>({ step_answers: [] });
+  const [briefStep, setBriefStep] = useState(0);
+  const [ethics, setEthics] = useState<Partial<EthicsAnswerState>>({});
+  const [ethicsStage, setEthicsStage] = useState<EthicsStage>("decision");
+  const [counseling, setCounseling] = useState<CounselingAnswerState>({ turn_picks: [] });
+  const [counselingTurn, setCounselingTurn] = useState(1);
 
   const [submitting, setSubmitting] = useState(false);
   const [startedAt] = useState(() => Date.now());
@@ -92,7 +90,6 @@ export default function TheBarChallenge() {
     let active = true;
     (async () => {
       setLoading(true);
-      // Pre-check already attempted (only for logged-in users)
       if (userId) {
         const { data: prior } = await supabase
           .from("bar_attempts")
@@ -108,7 +105,6 @@ export default function TheBarChallenge() {
         }
       }
 
-      // Fetch from SAFE view (correct answers stripped server-side)
       const { data: ch } = await supabase
         .from("bar_challenges_student" as any)
         .select("id, question_type, area_of_law, difficulty, title, prompt, points_base, source_citation, payload")
@@ -122,6 +118,12 @@ export default function TheBarChallenge() {
     return () => { active = false; };
   }, [authReady, userId, id, navigate]);
 
+  // Counseling: bump current turn when the active turn is answered
+  const counselingTurnsCount = useMemo(
+    () => (challenge?.payload?.decision_turns?.length ?? 0) as number,
+    [challenge],
+  );
+
   const buildAnswer = (): unknown | null => {
     if (!challenge) return null;
     switch (challenge.question_type) {
@@ -133,6 +135,20 @@ export default function TheBarChallenge() {
       case "jurisdiction":
         if (!jurValue) return null;
         return { selected_option_id: jurValue };
+      case "document_review":
+        if (docReview.flagged.length === 0) return null;
+        return docReview;
+      case "brief_builder": {
+        const totalSteps = challenge.payload?.steps?.length ?? 0;
+        if (brief.step_answers.length < totalSteps) return null;
+        return brief;
+      }
+      case "ethics":
+        if (!ethics.selected_decision_id || !ethics.selected_followup_id) return null;
+        return ethics as EthicsAnswerState;
+      case "client_counseling":
+        if (counseling.turn_picks.length < counselingTurnsCount) return null;
+        return counseling;
       default:
         return null;
     }
@@ -141,13 +157,12 @@ export default function TheBarChallenge() {
   const submit = async (override?: unknown) => {
     if (!challenge) return;
     if (!userId) {
-      // Guest tried to submit — show inline sign-in dialog instead of redirect
       setShowSignInDialog(true);
       return;
     }
     const answer = override ?? buildAnswer();
     if (answer === null) {
-      toast.error("Please make a selection first.");
+      toast.error("Please complete every step before submitting.");
       return;
     }
     setSubmitting(true);
@@ -242,18 +257,37 @@ export default function TheBarChallenge() {
     );
   }
 
+  // Brief Builder advance
+  const briefSteps = (challenge.payload?.steps ?? []) as Array<unknown>;
+  const briefAtLast = briefStep >= briefSteps.length - 1;
+  const briefCurrentDone = brief.step_answers.some((a) => a.step_index === briefStep);
+
+  // Counseling advance
+  const counselingHasPick = counseling.turn_picks.some((p) => p.turn === counselingTurn);
+  const counselingAtLast = counselingTurn >= counselingTurnsCount;
+
+  // Ethics advance
+  const ethicsCanAdvance =
+    ethicsStage === "decision" ? !!ethics.selected_decision_id :
+    ethicsStage === "consequence" ? !!ethics.selected_followup_id :
+    false;
+
   const canSubmitDirect = (() => {
     switch (challenge.question_type) {
       case "mcq": return !!mcqValue;
       case "issue_spotter": return true;
       case "jurisdiction": return !!jurValue;
+      case "document_review": return docReview.flagged.length > 0;
+      case "brief_builder": return brief.step_answers.length >= briefSteps.length;
+      case "ethics": return !!ethics.selected_decision_id && !!ethics.selected_followup_id;
+      case "client_counseling": return counseling.turn_picks.length >= counselingTurnsCount;
       default: return false;
     }
   })();
 
   return (
     <section className="min-h-screen pt-24 pb-16 bg-background">
-      <div className="container mx-auto px-4 max-w-3xl space-y-6">
+      <div className="container mx-auto px-4 max-w-4xl space-y-6">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="gap-2">
             <ArrowLeft size={16} /> Back
@@ -285,7 +319,8 @@ export default function TheBarChallenge() {
         )}
 
         <Card className="border-2 border-border p-6">
-          <p className="text-base md:text-lg leading-relaxed text-foreground whitespace-pre-wrap">
+          <h1 className="text-xl font-extrabold font-heading mb-3">{challenge.title}</h1>
+          <p className="text-base leading-relaxed text-foreground whitespace-pre-wrap">
             {challenge.prompt}
           </p>
         </Card>
@@ -325,18 +360,95 @@ export default function TheBarChallenge() {
               onComplete={(answer: SpeedRoundAnswerState) => submit(answer)}
             />
           )}
+          {challenge.question_type === "document_review" && (
+            <DocumentReviewRenderer
+              mode="answer"
+              payload={challenge.payload}
+              value={docReview}
+              onChange={setDocReview}
+            />
+          )}
+          {challenge.question_type === "brief_builder" && (
+            <BriefBuilderRenderer
+              mode="answer"
+              payload={challenge.payload}
+              currentStep={briefStep}
+              value={brief}
+              onChange={setBrief}
+              onAdvance={() => setBriefStep((s) => Math.min(s + 1, briefSteps.length - 1))}
+            />
+          )}
+          {challenge.question_type === "ethics" && (
+            <EthicsRenderer
+              mode="answer"
+              payload={challenge.payload}
+              stage={ethicsStage}
+              value={ethics}
+              onChange={setEthics}
+            />
+          )}
+          {challenge.question_type === "client_counseling" && (
+            <ClientCounselingRenderer
+              mode="answer"
+              payload={challenge.payload}
+              currentTurn={counselingTurn}
+              value={counseling}
+              onChange={setCounseling}
+            />
+          )}
         </div>
 
+        {/* Per-type advance / submit row */}
         {challenge.question_type !== "speed_round" && (
-          <div className="flex justify-end">
-            <Button
-              size="lg"
-              onClick={() => submit()}
-              disabled={submitting || !canSubmitDirect}
-              className="gap-2 min-w-[160px]"
-            >
-              {submitting ? <><Loader2 size={16} className="animate-spin" /> Grading…</> : "Submit"}
-            </Button>
+          <div className="flex justify-end gap-2">
+            {challenge.question_type === "brief_builder" && !briefAtLast && (
+              <Button
+                size="lg"
+                onClick={() => setBriefStep((s) => Math.min(s + 1, briefSteps.length - 1))}
+                disabled={!briefCurrentDone}
+                className="gap-2"
+              >
+                Next step <ArrowRight size={16} />
+              </Button>
+            )}
+            {challenge.question_type === "ethics" && ethicsStage === "decision" && (
+              <Button
+                size="lg"
+                onClick={() => setEthicsStage("consequence")}
+                disabled={!ethicsCanAdvance}
+                className="gap-2"
+              >
+                Continue <ArrowRight size={16} />
+              </Button>
+            )}
+            {challenge.question_type === "client_counseling" && !counselingAtLast && (
+              <Button
+                size="lg"
+                onClick={() => setCounselingTurn((t) => t + 1)}
+                disabled={!counselingHasPick}
+                className="gap-2"
+              >
+                Send response <ArrowRight size={16} />
+              </Button>
+            )}
+
+            {/* Submit appears once the format is complete */}
+            {(
+              challenge.question_type !== "brief_builder" || briefAtLast
+            ) && (
+              challenge.question_type !== "ethics" || ethicsStage === "consequence"
+            ) && (
+              challenge.question_type !== "client_counseling" || counselingAtLast
+            ) && (
+              <Button
+                size="lg"
+                onClick={() => submit()}
+                disabled={submitting || !canSubmitDirect}
+                className="gap-2 min-w-[160px]"
+              >
+                {submitting ? <><Loader2 size={16} className="animate-spin" /> Grading…</> : "Submit"}
+              </Button>
+            )}
           </div>
         )}
       </div>

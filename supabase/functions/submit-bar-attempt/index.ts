@@ -1,17 +1,18 @@
 // submit-bar-attempt
 //
-// MANUAL TEST CASES:
-// 1. Authenticated user submits a valid MCQ answer to an approved challenge → 200 with is_correct + new_stats.
-// 2. Submit an unapproved challenge id → 403.
-// 3. Submit the same challenge twice → 409 (already_attempted).
-// 4. Submit a malformed answer (wrong shape for type) → 400 with grading error.
-// 5. Submit without Authorization header → 401.
-// 6. After 20 attempts in one UTC day, 21st submit → 429 (daily_cap_exceeded).
-// 7. Crossing a rank threshold returns new_stats.designation_changed=true and previous_designation set.
+// Grades all 8 question types. For Ethics + Client Counseling, after
+// deterministic grading runs, the function calls the Lovable AI Gateway to
+// produce a reasoning rubric (0-100). is_correct = deterministic AND rubric
+// >= reasoning_threshold (default 60). Final points blend the two.
 //
-// time_taken_seconds is self-reported by the client (honor system for v1; a determined
-// student could falsify it for speed_round). Not a security concern for grading correctness
-// since it does not affect points awarded — purely a stat field for now.
+// MANUAL TEST CASES:
+// 1. MCQ correct → 200, is_correct true.
+// 2. Document Review with all flags right → is_correct true, breakdown returned.
+// 3. Brief Builder with one wrong step → is_correct false, step_results returned.
+// 4. Ethics with both stages right but rubric < threshold → is_correct false.
+// 5. Client Counseling with 4/5 right (≥80%) and rubric pass → is_correct true.
+// 6. AI gateway 429 → still returns 200 with rubric_score=null and a soft note.
+// 7. Already attempted → 409.
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
@@ -23,9 +24,19 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// ---------- Inlined types & schemas (mirror src/lib/bar/types.ts & scoring.ts) ----------
+// =============================================================================
+// SCHEMAS — mirror src/lib/bar/types.ts
+// =============================================================================
 
-type V1Type = "mcq" | "issue_spotter" | "speed_round" | "jurisdiction";
+type QType =
+  | "mcq"
+  | "issue_spotter"
+  | "speed_round"
+  | "jurisdiction"
+  | "document_review"
+  | "brief_builder"
+  | "ethics"
+  | "client_counseling";
 
 const McqPayloadSchema = z.object({
   options: z.array(z.object({ id: z.string().min(1), text: z.string().min(1) })).min(2).max(6),
@@ -37,9 +48,7 @@ const IssueSpotterPayloadSchema = z.object({
   issue_options: z.array(z.object({ id: z.string().min(1), text: z.string().min(1) })).min(3).max(10),
   correct_issue_ids: z.array(z.string().min(1)).min(1),
 });
-const IssueSpotterAnswerSchema = z.object({
-  selected_issue_ids: z.array(z.string().min(1)),
-});
+const IssueSpotterAnswerSchema = z.object({ selected_issue_ids: z.array(z.string().min(1)) });
 
 const SpeedRoundPayloadSchema = z.object({
   questions: z.array(z.object({ id: z.string().min(1), prompt: z.string().min(1), answer: z.string().min(1) })).min(5).max(15),
@@ -55,27 +64,115 @@ const JurisdictionPayloadSchema = z.object({
 });
 const JurisdictionAnswerSchema = z.object({ selected_option_id: z.string().min(1) });
 
+// Document Review
+const DocumentReviewPayloadSchema = z.object({
+  document_html: z.string().min(1),
+  spans: z.array(z.object({ id: z.string().min(1), text: z.string().min(1) })).min(2).max(20),
+  categories: z.array(z.object({ id: z.string().min(1), label: z.string().min(1) })).min(1).max(8),
+  correct_flags: z.array(z.object({ span_id: z.string().min(1), category_id: z.string().min(1) })).min(1),
+});
+const DocumentReviewAnswerSchema = z.object({
+  flagged: z.array(z.object({ span_id: z.string().min(1), category_id: z.string().min(1) })),
+});
+
+// Brief Builder
+const BriefMcqOptionSchema = z.object({
+  id: z.string().min(1),
+  letter: z.string().min(1).max(2),
+  title: z.string().min(1),
+  desc: z.string().optional().default(""),
+  meta: z.string().optional().default(""),
+});
+const BriefBlockSchema = z.object({ id: z.string().min(1), text: z.string().min(1) });
+const BriefStepSchema = z.object({
+  kind: z.enum(["mcq", "order"]),
+  label: z.string().min(1),
+  prompt: z.string().min(1),
+  options: z.array(BriefMcqOptionSchema).optional(),
+  correct_option_id: z.string().optional(),
+  blocks: z.array(BriefBlockSchema).optional(),
+  correct_order: z.array(z.string().min(1)).optional(),
+});
+const BriefBuilderPayloadSchema = z.object({
+  fact_pattern: z.string().min(1),
+  citation: z.string().optional().default(""),
+  steps: z.array(BriefStepSchema).min(2).max(6),
+});
+const BriefBuilderAnswerSchema = z.object({
+  step_answers: z.array(z.object({
+    step_index: z.number().int().min(0),
+    selected_option_id: z.string().optional(),
+    ordered_block_ids: z.array(z.string().min(1)).optional(),
+  })),
+});
+
+// Ethics
+const EthicsOptionSchema = z.object({
+  id: z.string().min(1),
+  letter: z.string().min(1).max(2),
+  text: z.string().min(1),
+});
+const EthicsPayloadSchema = z.object({
+  scenario: z.string().min(1),
+  decision_options: z.array(EthicsOptionSchema).min(2).max(6),
+  correct_decision_id: z.string().min(1),
+  consequence_text: z.string().min(1),
+  followup_options: z.array(EthicsOptionSchema).min(2).max(6),
+  correct_followup_id: z.string().min(1),
+  model_reasoning: z.string().min(1),
+});
+const EthicsAnswerSchema = z.object({
+  selected_decision_id: z.string().min(1),
+  selected_followup_id: z.string().min(1),
+});
+
+// Client Counseling
+const CounselingPayloadSchema = z.object({
+  matter: z.string().min(1),
+  transcript: z.array(z.object({
+    turn: z.number().int().min(1),
+    role: z.enum(["client", "lawyer"]),
+    text: z.string().min(1),
+  })).min(1).max(20),
+  decision_turns: z.array(z.object({
+    turn: z.number().int().min(1),
+    prompt: z.string().min(1),
+    options: z.array(EthicsOptionSchema).min(2).max(6),
+    correct_option_id: z.string().min(1),
+    model_followup: z.string().optional().default(""),
+  })).min(1).max(10),
+});
+const CounselingAnswerSchema = z.object({
+  turn_picks: z.array(z.object({
+    turn: z.number().int().min(1),
+    selected_option_id: z.string().min(1),
+    followup_text: z.string().optional().default(""),
+  })),
+});
+
 class GradingError extends Error {}
 
-function gradeMcq(payload: z.infer<typeof McqPayloadSchema>, answer: z.infer<typeof McqAnswerSchema>, points: number) {
-  const correct = answer.selected_option_id === payload.correct_option_id;
-  return { is_correct: correct, points_awarded: correct ? points : 0 };
-}
+// =============================================================================
+// DETERMINISTIC GRADERS
+// =============================================================================
 
-function gradeIssueSpotter(payload: z.infer<typeof IssueSpotterPayloadSchema>, answer: z.infer<typeof IssueSpotterAnswerSchema>, points: number) {
-  const sub = new Set(answer.selected_issue_ids);
-  const correct = new Set(payload.correct_issue_ids);
+function gradeMcq(p: z.infer<typeof McqPayloadSchema>, a: z.infer<typeof McqAnswerSchema>, points: number) {
+  const ok = a.selected_option_id === p.correct_option_id;
+  return { is_correct: ok, points_awarded: ok ? points : 0 };
+}
+function gradeIssueSpotter(p: z.infer<typeof IssueSpotterPayloadSchema>, a: z.infer<typeof IssueSpotterAnswerSchema>, points: number) {
+  const sub = new Set(a.selected_issue_ids);
+  const correct = new Set(p.correct_issue_ids);
   const exact = sub.size === correct.size && [...sub].every((id) => correct.has(id));
   return { is_correct: exact, points_awarded: exact ? points : 0 };
 }
-
-function gradeSpeedRound(payload: z.infer<typeof SpeedRoundPayloadSchema>, answer: z.infer<typeof SpeedRoundAnswerSchema>, points: number) {
-  const total = payload.questions.length;
+function gradeSpeedRound(p: z.infer<typeof SpeedRoundPayloadSchema>, a: z.infer<typeof SpeedRoundAnswerSchema>, points: number) {
+  const total = p.questions.length;
   if (total === 0) return { is_correct: false, points_awarded: 0, per_question: [] as Array<{ id: string; prompt: string; submitted: string; correct: string; got_right: boolean }> };
-  const map = new Map(answer.answers.map((a) => [a.question_id, a.submitted]));
+  const map = new Map(a.answers.map((x) => [x.question_id, x.submitted]));
   let count = 0;
   const per_question: Array<{ id: string; prompt: string; submitted: string; correct: string; got_right: boolean }> = [];
-  for (const q of payload.questions) {
+  for (const q of p.questions) {
     const submittedRaw = map.get(q.id) ?? "";
     const sub = submittedRaw.trim().toLowerCase();
     const expected = q.answer.trim().toLowerCase();
@@ -86,13 +183,256 @@ function gradeSpeedRound(payload: z.infer<typeof SpeedRoundPayloadSchema>, answe
   const ratio = count / total;
   return { is_correct: ratio >= 0.7, points_awarded: Math.floor(ratio * points), per_question };
 }
-
-function gradeJurisdiction(payload: z.infer<typeof JurisdictionPayloadSchema>, answer: z.infer<typeof JurisdictionAnswerSchema>, points: number) {
-  const correct = answer.selected_option_id === payload.correct_option_id;
-  return { is_correct: correct, points_awarded: correct ? points : 0 };
+function gradeJurisdiction(p: z.infer<typeof JurisdictionPayloadSchema>, a: z.infer<typeof JurisdictionAnswerSchema>, points: number) {
+  const ok = a.selected_option_id === p.correct_option_id;
+  return { is_correct: ok, points_awarded: ok ? points : 0 };
 }
 
-// ---------- Body schema ----------
+interface DocReviewBreakdown {
+  correct_hits: number;
+  missed: number;
+  false_flags: number;
+  total_correct: number;
+}
+function gradeDocumentReview(
+  p: z.infer<typeof DocumentReviewPayloadSchema>,
+  a: z.infer<typeof DocumentReviewAnswerSchema>,
+  points: number,
+): { is_correct: boolean; points_awarded: number; breakdown: DocReviewBreakdown } {
+  const correctMap = new Map<string, string>();
+  for (const f of p.correct_flags) correctMap.set(f.span_id, f.category_id);
+  let correctHits = 0;
+  let falseFlags = 0;
+  const seen = new Set<string>();
+  for (const f of a.flagged) {
+    if (seen.has(f.span_id)) continue;
+    seen.add(f.span_id);
+    const expected = correctMap.get(f.span_id);
+    if (expected && expected === f.category_id) correctHits++;
+    else if (!expected) falseFlags++;
+  }
+  const totalCorrect = p.correct_flags.length;
+  const missed = totalCorrect - correctHits;
+  const raw = correctHits - falseFlags;
+  const ratio = totalCorrect === 0 ? 0 : Math.max(0, raw) / totalCorrect;
+  const pointsAwarded = Math.max(0, Math.floor(ratio * points));
+  const isCorrect = correctHits === totalCorrect && falseFlags === 0;
+  return { is_correct: isCorrect, points_awarded: pointsAwarded, breakdown: { correct_hits: correctHits, missed, false_flags: falseFlags, total_correct: totalCorrect } };
+}
+
+interface BriefStepResult { step_index: number; is_correct: boolean; points_ratio: number }
+function orderingScore(submitted: string[], expected: string[]): number {
+  const n = expected.length;
+  if (n <= 1) return submitted.length === n ? 1 : 0;
+  const idx = new Map<string, number>();
+  expected.forEach((id, i) => idx.set(id, i));
+  const filtered = submitted.filter((id) => idx.has(id));
+  if (filtered.length === 0) return 0;
+  let inv = 0;
+  for (let i = 0; i < filtered.length; i++) {
+    for (let j = i + 1; j < filtered.length; j++) {
+      if (idx.get(filtered[i])! > idx.get(filtered[j])!) inv++;
+    }
+  }
+  const maxInv = (n * (n - 1)) / 2;
+  return Math.max(0, 1 - inv / maxInv);
+}
+function gradeBriefBuilder(
+  p: z.infer<typeof BriefBuilderPayloadSchema>,
+  a: z.infer<typeof BriefBuilderAnswerSchema>,
+  points: number,
+  config: { partial_order_credit?: boolean },
+): { is_correct: boolean; points_awarded: number; step_results: BriefStepResult[] } {
+  const stepCount = p.steps.length;
+  const perStep = points / stepCount;
+  const map = new Map(a.step_answers.map((x) => [x.step_index, x]));
+  const partial = !!config.partial_order_credit;
+  const results: BriefStepResult[] = [];
+  let total = 0;
+  let allOk = true;
+  p.steps.forEach((step, i) => {
+    const ans = map.get(i);
+    let ratio = 0;
+    let stepOk = false;
+    if (step.kind === "mcq") {
+      if (ans?.selected_option_id && ans.selected_option_id === step.correct_option_id) {
+        ratio = 1; stepOk = true;
+      }
+    } else if (step.kind === "order") {
+      const sub = ans?.ordered_block_ids ?? [];
+      const exp = step.correct_order ?? [];
+      const exact = sub.length === exp.length && sub.every((id, j) => id === exp[j]);
+      if (exact) { ratio = 1; stepOk = true; }
+      else if (partial) ratio = orderingScore(sub, exp);
+    }
+    if (!stepOk) allOk = false;
+    total += ratio * perStep;
+    results.push({ step_index: i, is_correct: stepOk, points_ratio: ratio });
+  });
+  return { is_correct: allOk, points_awarded: Math.max(0, Math.floor(total)), step_results: results };
+}
+
+function gradeEthics(p: z.infer<typeof EthicsPayloadSchema>, a: z.infer<typeof EthicsAnswerSchema>, points: number) {
+  const s1 = a.selected_decision_id === p.correct_decision_id;
+  const s2 = a.selected_followup_id === p.correct_followup_id;
+  const both = s1 && s2;
+  const pts = both ? points : s1 ? Math.floor(points * 0.5) : 0;
+  return { is_correct: both, points_awarded: pts, stage1_correct: s1, stage2_correct: s2 };
+}
+
+interface CounselingTurnResult { turn: number; is_correct: boolean }
+function gradeCounseling(
+  p: z.infer<typeof CounselingPayloadSchema>,
+  a: z.infer<typeof CounselingAnswerSchema>,
+  points: number,
+): { is_correct: boolean; points_awarded: number; per_turn: CounselingTurnResult[] } {
+  const correctByTurn = new Map<number, string>();
+  for (const t of p.decision_turns) correctByTurn.set(t.turn, t.correct_option_id);
+  const pickByTurn = new Map<number, string>();
+  for (const x of a.turn_picks) pickByTurn.set(x.turn, x.selected_option_id);
+  const per_turn: CounselingTurnResult[] = [];
+  let count = 0;
+  for (const t of p.decision_turns) {
+    const ok = pickByTurn.get(t.turn) === correctByTurn.get(t.turn);
+    if (ok) count++;
+    per_turn.push({ turn: t.turn, is_correct: ok });
+  }
+  const total = p.decision_turns.length;
+  const ratio = total === 0 ? 0 : count / total;
+  return { is_correct: ratio >= 0.8, points_awarded: Math.floor(ratio * points), per_turn };
+}
+
+// =============================================================================
+// AI RUBRIC (Ethics + Client Counseling)
+// =============================================================================
+
+interface RubricResult {
+  rubric_score: number | null;
+  strengths: string;
+  weaknesses: string;
+  per_turn_feedback?: { turn: number; note: string; ok: boolean }[];
+  notice?: string;
+}
+
+async function callAiRubric(
+  qtype: "ethics" | "client_counseling",
+  challenge: any,
+  answer: any,
+  deterministic: any,
+): Promise<RubricResult> {
+  const apiKey = Deno.env.get("LOVABLE_API_KEY");
+  if (!apiKey) {
+    return { rubric_score: null, strengths: "", weaknesses: "", notice: "AI rubric unavailable." };
+  }
+
+  const systemPrompt = qtype === "ethics"
+    ? "You are a senior Indian-law ethics examiner. Score the student's reasoning quality on a 0-100 rubric where 0=incoherent, 60=passing, 100=expert. Use the Indian Bar Council's professional-conduct rules as your anchor. Be terse."
+    : "You are a senior client-counseling examiner. Score the student's interview judgment 0-100 (60=passing, 100=expert). Anchor to the Indian advocate-client framework. Be terse.";
+
+  const userPrompt = JSON.stringify({
+    challenge: {
+      title: challenge.title,
+      area: challenge.area_of_law,
+      prompt: challenge.prompt,
+      payload: challenge.payload,
+      explanation: challenge.explanation,
+    },
+    submitted_answer: answer,
+    deterministic_result: deterministic,
+  });
+
+  const tool = qtype === "ethics"
+    ? {
+        type: "function",
+        function: {
+          name: "score_ethics_attempt",
+          description: "Score an ethics attempt with a numeric rubric and qualitative feedback.",
+          parameters: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              rubric_score: { type: "integer", minimum: 0, maximum: 100 },
+              strengths: { type: "string" },
+              weaknesses: { type: "string" },
+            },
+            required: ["rubric_score", "strengths", "weaknesses"],
+          },
+        },
+      }
+    : {
+        type: "function",
+        function: {
+          name: "score_counseling_attempt",
+          description: "Score a multi-turn counseling attempt with a numeric rubric and per-turn feedback.",
+          parameters: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              rubric_score: { type: "integer", minimum: 0, maximum: 100 },
+              strengths: { type: "string" },
+              weaknesses: { type: "string" },
+              per_turn_feedback: {
+                type: "array",
+                items: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    turn: { type: "integer", minimum: 1 },
+                    note: { type: "string" },
+                    ok: { type: "boolean" },
+                  },
+                  required: ["turn", "note", "ok"],
+                },
+              },
+            },
+            required: ["rubric_score", "strengths", "weaknesses", "per_turn_feedback"],
+          },
+        },
+      };
+
+  try {
+    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        tools: [tool],
+        tool_choice: { type: "function", function: { name: tool.function.name } },
+      }),
+    });
+
+    if (!resp.ok) {
+      if (resp.status === 429) return { rubric_score: null, strengths: "", weaknesses: "", notice: "AI rubric rate-limited; deterministic score used." };
+      if (resp.status === 402) return { rubric_score: null, strengths: "", weaknesses: "", notice: "AI rubric out of credits; deterministic score used." };
+      console.error("AI rubric failed", resp.status);
+      return { rubric_score: null, strengths: "", weaknesses: "", notice: "AI rubric unavailable." };
+    }
+    const data = await resp.json();
+    const call = data?.choices?.[0]?.message?.tool_calls?.[0];
+    if (!call?.function?.arguments) {
+      return { rubric_score: null, strengths: "", weaknesses: "", notice: "AI rubric returned no tool call." };
+    }
+    const parsed = JSON.parse(call.function.arguments);
+    return {
+      rubric_score: typeof parsed.rubric_score === "number" ? parsed.rubric_score : null,
+      strengths: parsed.strengths ?? "",
+      weaknesses: parsed.weaknesses ?? "",
+      per_turn_feedback: parsed.per_turn_feedback,
+    };
+  } catch (e) {
+    console.error("AI rubric error", e);
+    return { rubric_score: null, strengths: "", weaknesses: "", notice: "AI rubric error; deterministic score used." };
+  }
+}
+
+// =============================================================================
+// HANDLER
+// =============================================================================
+
 const BodySchema = z.object({
   challenge_id: z.string().uuid(),
   submitted_answer: z.unknown(),
@@ -110,13 +450,11 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    // Parse body
     const raw = await req.json().catch(() => null);
     const parsed = BodySchema.safeParse(raw);
     if (!parsed.success) return jsonResponse(400, { error: "invalid_body", details: parsed.error.flatten() });
     const { challenge_id, submitted_answer, time_taken_seconds } = parsed.data;
 
-    // Auth
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) return jsonResponse(401, { error: "unauthenticated" });
 
@@ -124,7 +462,6 @@ serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    // Caller identity client (uses caller JWT)
     const userClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -132,22 +469,19 @@ serve(async (req) => {
     if (userErr || !userData?.user) return jsonResponse(401, { error: "unauthenticated" });
     const userId = userData.user.id;
 
-    // Service-role client for trusted reads/writes
     const admin = createClient(supabaseUrl, serviceKey, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
 
-    // Fetch challenge with full payload
     const { data: challenge, error: chErr } = await admin
       .from("bar_challenges")
-      .select("id, status, question_type, payload, points_base, explanation")
+      .select("id, status, question_type, payload, points_base, explanation, grading_config, title, area_of_law, prompt")
       .eq("id", challenge_id)
       .maybeSingle();
     if (chErr) return jsonResponse(500, { error: "db_error", retryable: true });
     if (!challenge) return jsonResponse(404, { error: "challenge_not_found" });
     if (challenge.status !== "approved") return jsonResponse(403, { error: "challenge_not_approved" });
 
-    // Pre-check: already attempted?
     const { data: prior } = await admin
       .from("bar_attempts")
       .select("id")
@@ -156,11 +490,23 @@ serve(async (req) => {
       .maybeSingle();
     if (prior) return jsonResponse(409, { error: "already_attempted" });
 
-    // Grade
-    const type = challenge.question_type as V1Type;
+    const type = challenge.question_type as QType;
+    const config = (challenge.grading_config ?? {}) as { reasoning_threshold?: number; partial_order_credit?: boolean };
+    const reasoningThreshold = typeof config.reasoning_threshold === "number" ? config.reasoning_threshold : 60;
+
     let is_correct = false;
     let points_awarded = 0;
     let per_question: Array<{ id: string; prompt: string; submitted: string; correct: string; got_right: boolean }> | undefined;
+    let breakdown: DocReviewBreakdown | undefined;
+    let step_results: BriefStepResult[] | undefined;
+    let correct_order: { step_index: number; ordered_block_ids: string[] }[] | undefined;
+    let correct_flags: { span_id: string; category_id: string }[] | undefined;
+    let stage1_correct: boolean | undefined;
+    let stage2_correct: boolean | undefined;
+    let counseling_per_turn: CounselingTurnResult[] | undefined;
+    let rubric_score: number | null | undefined;
+    let rubric_feedback: { strengths: string; weaknesses: string; notice?: string } | undefined;
+    let per_turn_feedback: { turn: number; note: string; ok: boolean }[] | undefined;
     let correct_answer_summary = "";
 
     try {
@@ -172,8 +518,8 @@ serve(async (req) => {
           if (!a.success) throw new GradingError("invalid mcq answer");
           const r = gradeMcq(p.data, a.data, challenge.points_base);
           is_correct = r.is_correct; points_awarded = r.points_awarded;
-          const correctOpt = p.data.options.find((o) => o.id === p.data.correct_option_id);
-          correct_answer_summary = `The correct answer was: ${correctOpt?.text ?? p.data.correct_option_id}`;
+          const opt = p.data.options.find((o) => o.id === p.data.correct_option_id);
+          correct_answer_summary = `The correct answer was: ${opt?.text ?? p.data.correct_option_id}`;
           break;
         }
         case "issue_spotter": {
@@ -183,9 +529,7 @@ serve(async (req) => {
           if (!a.success) throw new GradingError("invalid issue_spotter answer");
           const r = gradeIssueSpotter(p.data, a.data, challenge.points_base);
           is_correct = r.is_correct; points_awarded = r.points_awarded;
-          const correctTexts = p.data.issue_options
-            .filter((o) => p.data.correct_issue_ids.includes(o.id))
-            .map((o) => o.text);
+          const correctTexts = p.data.issue_options.filter((o) => p.data.correct_issue_ids.includes(o.id)).map((o) => o.text);
           correct_answer_summary = `Correct issues: ${correctTexts.join(", ")}`;
           break;
         }
@@ -207,10 +551,82 @@ serve(async (req) => {
           if (!a.success) throw new GradingError("invalid jurisdiction answer");
           const r = gradeJurisdiction(p.data, a.data, challenge.points_base);
           is_correct = r.is_correct; points_awarded = r.points_awarded;
-          const correctOpt = p.data.options.find((o) => o.id === p.data.correct_option_id);
-          correct_answer_summary = correctOpt
-            ? `The correct jurisdiction was: ${correctOpt.jurisdiction} — ${correctOpt.reasoning}`
+          const opt = p.data.options.find((o) => o.id === p.data.correct_option_id);
+          correct_answer_summary = opt
+            ? `The correct jurisdiction was: ${opt.jurisdiction} — ${opt.reasoning}`
             : "Correct option could not be resolved.";
+          break;
+        }
+        case "document_review": {
+          const p = DocumentReviewPayloadSchema.safeParse(challenge.payload);
+          const a = DocumentReviewAnswerSchema.safeParse(submitted_answer);
+          if (!p.success) throw new GradingError("invalid document_review payload");
+          if (!a.success) throw new GradingError("invalid document_review answer");
+          const r = gradeDocumentReview(p.data, a.data, challenge.points_base);
+          is_correct = r.is_correct; points_awarded = r.points_awarded; breakdown = r.breakdown;
+          correct_flags = p.data.correct_flags;
+          correct_answer_summary = `${r.breakdown.correct_hits} of ${r.breakdown.total_correct} clauses flagged correctly. ${r.breakdown.false_flags} false flag${r.breakdown.false_flags === 1 ? "" : "s"}.`;
+          break;
+        }
+        case "brief_builder": {
+          const p = BriefBuilderPayloadSchema.safeParse(challenge.payload);
+          const a = BriefBuilderAnswerSchema.safeParse(submitted_answer);
+          if (!p.success) throw new GradingError("invalid brief_builder payload");
+          if (!a.success) throw new GradingError("invalid brief_builder answer");
+          const r = gradeBriefBuilder(p.data, a.data, challenge.points_base, config);
+          is_correct = r.is_correct; points_awarded = r.points_awarded; step_results = r.step_results;
+          correct_order = p.data.steps
+            .map((s, i) => s.kind === "order" && s.correct_order ? { step_index: i, ordered_block_ids: s.correct_order } : null)
+            .filter((x): x is { step_index: number; ordered_block_ids: string[] } => !!x);
+          const okSteps = step_results.filter((s) => s.is_correct).length;
+          correct_answer_summary = `${okSteps} of ${p.data.steps.length} brief steps correct.`;
+          break;
+        }
+        case "ethics": {
+          const p = EthicsPayloadSchema.safeParse(challenge.payload);
+          const a = EthicsAnswerSchema.safeParse(submitted_answer);
+          if (!p.success) throw new GradingError("invalid ethics payload");
+          if (!a.success) throw new GradingError("invalid ethics answer");
+          const r = gradeEthics(p.data, a.data, challenge.points_base);
+          stage1_correct = r.stage1_correct; stage2_correct = r.stage2_correct;
+          const detRatio = r.points_awarded / Math.max(1, challenge.points_base);
+
+          // AI rubric
+          const rubric = await callAiRubric("ethics", challenge, a.data, r);
+          rubric_score = rubric.rubric_score;
+          rubric_feedback = { strengths: rubric.strengths, weaknesses: rubric.weaknesses, notice: rubric.notice };
+
+          const rubricRatio = rubric.rubric_score == null ? detRatio : rubric.rubric_score / 100;
+          const rubricPass = rubric.rubric_score == null ? true : rubric.rubric_score >= reasoningThreshold;
+          is_correct = r.is_correct && rubricPass;
+          points_awarded = Math.max(0, Math.floor(challenge.points_base * (0.5 * detRatio + 0.5 * rubricRatio)));
+
+          const cd = p.data.decision_options.find((o) => o.id === p.data.correct_decision_id);
+          const cf = p.data.followup_options.find((o) => o.id === p.data.correct_followup_id);
+          correct_answer_summary = `Stage 1 → ${cd?.letter}. ${cd?.text}. Stage 2 → ${cf?.letter}. ${cf?.text}.`;
+          break;
+        }
+        case "client_counseling": {
+          const p = CounselingPayloadSchema.safeParse(challenge.payload);
+          const a = CounselingAnswerSchema.safeParse(submitted_answer);
+          if (!p.success) throw new GradingError("invalid client_counseling payload");
+          if (!a.success) throw new GradingError("invalid client_counseling answer");
+          const r = gradeCounseling(p.data, a.data, challenge.points_base);
+          counseling_per_turn = r.per_turn;
+          const detRatio = r.points_awarded / Math.max(1, challenge.points_base);
+
+          const rubric = await callAiRubric("client_counseling", challenge, a.data, r);
+          rubric_score = rubric.rubric_score;
+          rubric_feedback = { strengths: rubric.strengths, weaknesses: rubric.weaknesses, notice: rubric.notice };
+          per_turn_feedback = rubric.per_turn_feedback;
+
+          const rubricRatio = rubric.rubric_score == null ? detRatio : rubric.rubric_score / 100;
+          const rubricPass = rubric.rubric_score == null ? true : rubric.rubric_score >= reasoningThreshold;
+          is_correct = r.is_correct && rubricPass;
+          points_awarded = Math.max(0, Math.floor(challenge.points_base * (0.5 * detRatio + 0.5 * rubricRatio)));
+
+          const okTurns = r.per_turn.filter((t) => t.is_correct).length;
+          correct_answer_summary = `${okTurns} of ${p.data.decision_turns.length} counseling turns judged correct.`;
           break;
         }
         default:
@@ -221,7 +637,6 @@ serve(async (req) => {
       throw e;
     }
 
-    // Capture previous designation BEFORE insert
     const { data: priorStats } = await admin
       .from("bar_user_stats")
       .select("designation")
@@ -229,7 +644,6 @@ serve(async (req) => {
       .maybeSingle();
     const previous_designation = (priorStats?.designation ?? "trainee") as string;
 
-    // Insert attempt — triggers handle stats/streak/designation/daily cap
     const insertPayload: Record<string, unknown> = {
       user_id: userId,
       challenge_id,
@@ -255,7 +669,6 @@ serve(async (req) => {
       return jsonResponse(500, { error: "db_error", retryable: true });
     }
 
-    // Re-fetch updated stats
     const { data: newStats } = await admin
       .from("bar_user_stats")
       .select("total_points, accuracy_pct, current_streak, longest_streak, designation")
@@ -271,6 +684,16 @@ serve(async (req) => {
       explanation: challenge.explanation ?? null,
       correct_answer_summary,
       per_question,
+      breakdown,
+      step_results,
+      correct_order,
+      correct_flags,
+      stage1_correct,
+      stage2_correct,
+      counseling_per_turn,
+      rubric_score,
+      rubric_feedback,
+      per_turn_feedback,
       new_stats: {
         total_points: newStats?.total_points ?? 0,
         accuracy_pct: Number(newStats?.accuracy_pct ?? 0),
