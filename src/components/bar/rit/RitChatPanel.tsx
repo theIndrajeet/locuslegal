@@ -259,9 +259,10 @@ export function RitChatPanel({ attemptId, challenge, greeting, defaultOpen = fal
               <button
                 type="button"
                 onClick={() => setHiddenCleared(true)}
+                title="Hides messages locally only — your conversation is still saved and counts toward the limit."
                 className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
               >
-                <Trash2 size={11} /> Clear conversation
+                <EyeOff size={11} /> Hide history
               </button>
             )}
           </div>
