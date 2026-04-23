@@ -143,7 +143,7 @@ export default function ChallengesTable() {
                     </Button>
                   )}
                   {c.status === "pending_review" && (
-                    <Button size="sm" variant="destructive" onClick={() => setRejectTarget(c)}>
+                    <Button size="sm" variant="neutral" className="text-destructive" onClick={() => setRejectTarget(c)}>
                       <XCircle className="w-3 h-3 mr-1" /> Reject
                     </Button>
                   )}
