@@ -99,7 +99,7 @@ export function RitChatPanel({ attemptId, challenge, greeting, defaultOpen = fal
   }, [messages, sending, open]);
 
   const visibleMessages = hiddenCleared ? [] : messages;
-  const messageCount = visibleMessages.length;
+  const messageCount = messages.length;
   const capReached = messageCount >= MAX_MESSAGES;
 
   const send = async (text: string) => {
