@@ -4,7 +4,7 @@ import { MessageSquare, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function TheBar() {
-  usePageMeta({ title: "The Bar — Community Q&A", description: "Ask questions, share insights, and connect with India's legal community on The Bar.", path: "/the-bar" });
+  usePageMeta({ title: "The Bar — Legal Skill Arena", description: "Prove you can lawyer. Take on real legal challenges, earn points, and climb the ranks from Trainee to Silk.", path: "/the-bar" });
   return (
     <section className="min-h-screen pt-24 pb-16 bg-background">
       <div className="container mx-auto px-4 max-w-2xl flex flex-col items-center justify-center min-h-[60vh] text-center">
@@ -21,7 +21,7 @@ export default function TheBar() {
           The Bar
         </h1>
         <p className="text-lg text-muted-foreground mb-2 max-w-md">
-          A community Q&A forum for law students, firms & institutions.
+          prove you can lawyer. rank up. get seen.
         </p>
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent/10 border border-accent/20 mb-8">
           <span className="relative flex h-2 w-2">
@@ -31,7 +31,7 @@ export default function TheBar() {
           <span className="text-sm font-semibold text-accent">Coming Soon</span>
         </div>
         <p className="text-sm text-muted-foreground max-w-sm mb-8">
-          We're building something special. The Bar will be your go-to place to ask questions, share insights, and connect with the legal community.
+          The Bar is a legal skill arena for law students. Take on real legal challenges — issue spotting, brief building, document review, ethics dilemmas — earn points, climb the ranks from Trainee to Silk, and build a credential firms can actually measure.
         </p>
 
         <Link to="/">
