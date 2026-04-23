@@ -42,7 +42,57 @@ const JurisdictionPayloadSchema = z.object({
   correct_option_id: z.string().min(1),
 }).refine((p) => p.options.some((o) => o.id === p.correct_option_id), { message: "correct_option_id mismatch" });
 
-const V1_TYPES = ["mcq", "issue_spotter", "speed_round", "jurisdiction"] as const;
+const DocumentReviewPayloadSchema = z.object({
+  document_html: z.string().min(1),
+  spans: z.array(z.object({ id: z.string().min(1), text: z.string().min(1) })).min(2).max(20),
+  categories: z.array(z.object({ id: z.string().min(1), label: z.string().min(1) })).min(1).max(8),
+  correct_flags: z.array(z.object({ span_id: z.string().min(1), category_id: z.string().min(1) })).min(1),
+});
+
+const BriefBuilderPayloadSchema = z.object({
+  fact_pattern: z.string().min(1),
+  citation: z.string().optional().default(""),
+  steps: z.array(z.object({
+    kind: z.enum(["mcq", "order"]),
+    label: z.string().min(1),
+    prompt: z.string().min(1),
+    options: z.array(z.object({
+      id: z.string().min(1), letter: z.string().min(1).max(2),
+      title: z.string().min(1), desc: z.string().optional().default(""), meta: z.string().optional().default(""),
+    })).optional(),
+    correct_option_id: z.string().optional(),
+    blocks: z.array(z.object({ id: z.string().min(1), text: z.string().min(1) })).optional(),
+    correct_order: z.array(z.string().min(1)).optional(),
+  })).min(2).max(6),
+});
+
+const EthicsPayloadSchema = z.object({
+  scenario: z.string().min(1),
+  decision_options: z.array(z.object({ id: z.string().min(1), letter: z.string().min(1).max(2), text: z.string().min(1) })).min(2).max(6),
+  correct_decision_id: z.string().min(1),
+  consequence_text: z.string().min(1),
+  followup_options: z.array(z.object({ id: z.string().min(1), letter: z.string().min(1).max(2), text: z.string().min(1) })).min(2).max(6),
+  correct_followup_id: z.string().min(1),
+  model_reasoning: z.string().min(1),
+});
+
+const ClientCounselingPayloadSchema = z.object({
+  matter: z.string().min(1),
+  transcript: z.array(z.object({
+    turn: z.number().int().min(1), role: z.enum(["client", "lawyer"]), text: z.string().min(1),
+  })).min(1).max(20),
+  decision_turns: z.array(z.object({
+    turn: z.number().int().min(1), prompt: z.string().min(1),
+    options: z.array(z.object({ id: z.string().min(1), letter: z.string().min(1).max(2), text: z.string().min(1) })).min(2).max(6),
+    correct_option_id: z.string().min(1),
+    model_followup: z.string().optional().default(""),
+  })).min(1).max(10),
+});
+
+const V1_TYPES = [
+  "mcq", "issue_spotter", "speed_round", "jurisdiction",
+  "document_review", "brief_builder", "ethics", "client_counseling",
+] as const;
 type V1Type = typeof V1_TYPES[number];
 
 const AREAS = [
