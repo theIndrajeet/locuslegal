@@ -1,99 +1,71 @@
 
 
-# The Bar — Leaderboards & Profile Integration (Prompt 4)
+# The Bar — Open Preview, Gate Submission
 
-Closes the flywheel: rank becomes visible publicly, leaderboards create competitive pressure, firms get a discovery hook. Final prompt of the Bar build.
+Currently anyone hitting `/the-bar`, `/the-bar/browse`, or `/the-bar/challenge/:id` while logged out gets bounced to `/auth`. Change this to: **everything is browsable; only the act of answering requires login**.
 
-## Schema migration
+## `src/pages/TheBar.tsx`
 
-One migration:
+Replace the logged-out short-circuit with a full dashboard preview:
 
-- **`profiles`**: add `bar_leaderboard_opt_out boolean NOT NULL DEFAULT false`.
-- **New table `bar_user_colleges`**: `user_id uuid PK REFERENCES profiles ON DELETE CASCADE`, `college_normalized text NOT NULL`, `college_display text NOT NULL`, `updated_at timestamptz`. Index on `college_normalized`. RLS: public SELECT, no user writes.
-- **Trigger `profiles_sync_college`** on AFTER INSERT/UPDATE OF college on `profiles`: normalize (lowercase, trim, collapse whitespace via `regexp_replace(trim(lower(...)), '\s+', ' ', 'g')`); if non-empty → upsert `bar_user_colleges`; if null/empty → delete row. SECURITY DEFINER, search_path=public.
-- **Backfill**: insert one row per existing profile with non-empty college.
-- **View `bar_weekly_stats`**: aggregates `bar_attempts` since `date_trunc('week', now() AT TIME ZONE 'UTC')` (Postgres week starts Monday) → `weekly_points`, `weekly_attempts`, `weekly_correct`, `weekly_accuracy_pct`. GRANT SELECT to authenticated.
+- Always render hero + stats strip + recent attempts section.
+- For logged-out viewers:
+  - StatsStrip shows a generic "Trainee · 0 pts · 0% · 0 streak" placeholder (no data fetch).
+  - Recent attempts section shows an inline "Sign in to track your attempts" empty card with a "Sign in" button → `/auth`.
+  - "Take a Challenge" CTA stays visible and links to `/the-bar/browse` (also public).
+  - Hide the "You're #N overall" rank pill (no user → no rank).
+- For logged-in viewers: existing behaviour unchanged.
+- Drop the early `return` block that blocks the page; keep the small "sign in" hint as a subtle banner above the quick-action row instead of a full-screen takeover.
 
-## Leaderboard page
+## `src/pages/TheBarBrowse.tsx`
 
-**`src/pages/TheBarLeaderboard.tsx`** (new) — public, no auth required.
+- Remove the `if (!userId) navigate("/auth")` redirect.
+- When logged out: skip the `bar_attempts` and `bar_daily_attempts` queries; just fetch `bar_challenges_student` and render every approved challenge (none filtered out as "attempted").
+- Hide the daily-cap banner for logged-out viewers.
+- Cards remain clickable → navigate to `/the-bar/challenge/:id` (which now also accepts logged-out viewers).
+- Add a small banner at the top for logged-out viewers: "Browsing as guest — sign in to take a challenge" with a "Sign in" button.
 
-- Hero "Leaderboard" / "Who's lawyering hardest right now."
-- Shadcn Tabs (4): All-Time, This Week, By Area, By College. Tab + filters URL-backed via `useSearchParams` (`?tab=`, `?area=`, `?college=`).
-- Per-tab queries exactly as specified in the PRD, all filtered with `bar_leaderboard_opt_out = false` and `total_attempts > 0`, capped at 500 rows, paginated 50/page.
-- Dropdowns:
-  - By Area: shadcn Select of all 17 areas (from existing constants).
-  - By College: query distinct `bar_user_colleges` grouped + counted, top 100, label `"NLSIU Bangalore (12)"`.
-- Empty states per spec for each tab.
-- "You are here" logic: if logged-in user is in the result set, highlight row with accent border + "You" chip. If outside current page, sticky footer "You're ranked #N — jump to your row" → paginates + scrolls. If user has zero attempts, show pinned banner at top "You: unranked — take your first challenge" with CTA.
-- `usePageMeta` title `"Leaderboard · Locus"`.
+## `src/pages/TheBarChallenge.tsx`
 
-**`src/components/bar/LeaderboardTable.tsx`** (new): shared table shell. Columns: Rank, Student, Designation, Points, Accuracy, Streak. Top 3 ranks get gold/silver/bronze accent on the rank cell (within b/w/yellow palette — yellow for #1, white-on-darker for #2/#3). Mobile: collapses to a card stack (rank chip + avatar + designation + points; accuracy/streak demoted to a small row).
+- Remove the `if (!userId) navigate("/auth")` redirect; allow page to render the question for logged-out viewers.
+- Skip the `bar_attempts` "already attempted" pre-check when logged out.
+- Render the question, options, and all renderers normally — the `bar_challenges_student` view already strips correct answers, so no leak.
+- The Submit button (and SpeedRound auto-submit) for a logged-out viewer instead opens a small inline "Sign in to submit your answer" modal/card with a CTA to `/auth?next=/the-bar/challenge/:id` so they bounce back here after auth. Disable any actual `submit-bar-attempt` invocation while `userId` is null.
+- Add a thin top banner: "Previewing as guest — sign in to submit and earn points."
 
-**`src/components/bar/LeaderboardRow.tsx`** (new): single row/card. Avatar + display_name + `@username` link → `/u/:username`. Designation badge (outline). Points bold right-aligned. Accuracy `xx.x%`. Streak with Lucide `Flame` if ≥7. "You" chip if `userId === currentUserId`. Pagination via shadcn `Pagination`.
+## `src/pages/TheBarHistory.tsx`
 
-## Public profile rank badge
+History is intrinsically per-user; for logged-out viewers show a centered card "Sign in to see your attempt history" with a CTA, instead of redirecting. Keep the route accessible.
 
-**`src/components/bar/RankBadgeBlock.tsx`** (new): compact card (~140–180px), `border-2 border-border`. Lucide `Scale` + "The Bar" header. Designation bold; points; accuracy. Conditional rank line: `"Ranked #N overall"` linked to `/the-bar/leaderboard?tab=all-time` with anchor; hidden if subject opted out AND viewer ≠ subject. Streak line with Lucide `Flame` if `current_streak >= 3`. Bottom "View attempts" link (currently to leaderboard with anchor).
+## `Auth.tsx` redirect handling (light touch)
 
-**`src/pages/PublicProfile.tsx`** (modify): add isolated parallel fetch for `bar_user_stats` for profile id; if exists AND `total_attempts > 0`, also run rank query `SELECT count(*) + 1 FROM bar_user_stats WHERE total_points > $points AND bar_leaderboard_opt_out = false` (skip rank query when subject opted out and viewer ≠ subject). Render `<RankBadgeBlock />` between academic block and subjects of interest. Wrap in try/catch — failure must not block profile render. Hide entirely if no row or zero attempts.
+`/auth` already redirects to `/` after login. Read an optional `?next=` query param and, if present and starts with `/the-bar`, redirect there post-login so the "Sign in to submit" flow returns the user to the same challenge.
 
-## Profile edit opt-out
+## RLS / data access sanity check
 
-**`src/components/profile/BarPrivacySection.tsx`** (new): Card "The Bar". Single shadcn Checkbox "Show me on Bar leaderboards" (inverted: checked → `opt_out=false`). Helper text per PRD. Save button writes `profiles.bar_leaderboard_opt_out` via `.upsert`. Loads current value on mount.
+All four queries used by these pages are already public-readable for anon:
+- `bar_user_stats` — public SELECT (used only when logged in, but safe either way)
+- `bar_challenges_student` — must be readable by `anon`. **Verify in implementation**: if the view's grants are `authenticated`-only, the migration step adds `GRANT SELECT ON public.bar_challenges_student TO anon` so logged-out browsing works. If it already includes `anon`, no change needed.
+- `bar_attempts` / `bar_daily_attempts` — never queried for anon viewers (code paths skipped).
+- `submit-bar-attempt` edge function — already requires JWT; it stays that way as the real security boundary.
 
-**`src/pages/ProfileEdit.tsx`** (modify): include `bar_leaderboard_opt_out` in initial fetch; render `<BarPrivacySection />` below CV section, above any password change area.
-
-## Dashboard updates
-
-**`src/pages/TheBar.tsx`** (modify):
-- Quick-action block: add third button "View Leaderboard" → `/the-bar/leaderboard` (Lucide `Trophy`, outline variant — primary stays "Take a Challenge").
-- Stats strip: when `total_attempts > 0`, render below the streak card a small "You're #N overall" pill linking to leaderboard. Computed via `SELECT count(*) + 1 FROM bar_user_stats WHERE total_points > $myPoints AND bar_leaderboard_opt_out = false`. If user is opted out, show "You're #N overall (hidden from public)" so they still see their position.
-
-## Directory stub
-
-**`src/pages/Directory.tsx`** (modify): add a small callout card (sidebar or beneath the firm grid, whichever fits the existing layout cleanly): "Looking for students? Check out the Bar leaderboard →" + one-line "Students ranked by legal skill, not just college." Links to `/the-bar/leaderboard`.
-
-## Routing
-
-**`src/App.tsx`** (modify): add `/the-bar/leaderboard → TheBarLeaderboard` inside existing `<Layout>` block.
-
-## Security checklist
-
-- All 4 leaderboard queries explicitly filter `p.bar_leaderboard_opt_out = false`.
-- Profile rank number hidden from other viewers if subject opted out; always visible to the subject themselves (`auth.uid() === profile.id` check).
-- `bar_user_colleges` contains no data not already in `profiles`; public SELECT is safe.
-- All queries `LIMIT`-capped (500 / 100). No new edge functions = no new attack surface.
-- Trigger is SECURITY DEFINER with `search_path=public`.
-- Defensive: rank-badge fetch wrapped so its failure cannot break `/u/:username`.
-
-## Performance notes
-
-- Add btree index on `bar_user_stats(total_points DESC, last_attempt_at ASC)` if not already present (verify in migration; only create when missing).
-- Add btree index on `bar_user_stats_by_area(area_of_law, total_points DESC)` if not already present.
-- `bar_user_colleges.college_normalized` indexed.
-- Weekly view scans `bar_attempts` within 7 days; acceptable at v1 scale; flagged for materialization later.
+If `bar_challenges_student` lacks `anon` SELECT, a one-line SQL migration grants it. The view already filters to `status='approved'` and strips correct answers, so this is safe.
 
 ## Files
 
-**New**
-- `supabase/migrations/<ts>_bar_leaderboards.sql`
-- `src/pages/TheBarLeaderboard.tsx`
-- `src/components/bar/LeaderboardTable.tsx`
-- `src/components/bar/LeaderboardRow.tsx`
-- `src/components/bar/RankBadgeBlock.tsx`
-- `src/components/profile/BarPrivacySection.tsx`
-
 **Modified**
-- `src/pages/PublicProfile.tsx`
-- `src/pages/ProfileEdit.tsx`
 - `src/pages/TheBar.tsx`
-- `src/pages/Directory.tsx`
-- `src/App.tsx`
+- `src/pages/TheBarBrowse.tsx`
+- `src/pages/TheBarChallenge.tsx`
+- `src/pages/TheBarHistory.tsx`
+- `src/pages/Auth.tsx` (small `?next=` handling)
+
+**Possible new (only if grants check fails)**
+- `supabase/migrations/<ts>_grant_bar_view_anon.sql` — single `GRANT SELECT ON public.bar_challenges_student TO anon;`
 
 ## Out of scope
-Student directory, firm accounts, notifications, historical rank graphs, monthly leaderboards, achievement badges beyond designations, CSV export, admin moderation tools.
+Leaderboard page (already public). Admin pages (stay admin-only). No changes to scoring, RLS on attempts, or the edge function — login is still required to actually submit.
 
 ## Definition of Done
-Migration applied (opt-out column + colleges table + trigger + backfill + weekly view). Leaderboard page live with 4 functional tabs, pagination, "You are here" indicator. Opt-out toggle on /profile/edit removes user from all 4 leaderboards. RankBadgeBlock shows on /u/:username for users with attempts (with rank-number visibility honoring opt-out). Dashboard has "View Leaderboard" + "Your rank" pill. Directory shows callout. Trigger keeps `bar_user_colleges` in sync with `profiles.college` edits. Weekly tab respects Monday 00:00 UTC reset. All mobile + dark-mode clean.
+Logged-out user can hit `/the-bar`, `/the-bar/browse`, and `/the-bar/challenge/:id` without being bounced. They can read every approved challenge and its options. The moment they try to submit, they get an inline sign-in prompt that returns them to the same challenge after auth. History remains gated with a friendly empty state. Logged-in flows unchanged.
 
