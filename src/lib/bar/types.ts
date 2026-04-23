@@ -132,19 +132,175 @@ export const JurisdictionAnswerSchema = z.object({
 export type JurisdictionPayload = z.infer<typeof JurisdictionPayloadSchema>;
 export type JurisdictionAnswer = z.infer<typeof JurisdictionAnswerSchema>;
 
-// ============= Reserved (post-v1) — schemas reject ALL submissions =============
-const RejectAlways = z
-  .never()
-  .or(z.any().refine(() => false, { message: "question type not implemented in v1" }));
+// ============= Document Review =============
+export const DocReviewSpanSchema = z.object({
+  id: z.string().min(1),
+  text: z.string().min(1),
+});
+export const DocReviewCategorySchema = z.object({
+  id: z.string().min(1),
+  label: z.string().min(1),
+});
+export const DocReviewCorrectFlagSchema = z.object({
+  span_id: z.string().min(1),
+  category_id: z.string().min(1),
+});
+export const DocumentReviewPayloadSchema = z
+  .object({
+    document_html: z.string().min(1),
+    spans: z.array(DocReviewSpanSchema).min(2).max(20),
+    categories: z.array(DocReviewCategorySchema).min(1).max(8),
+    correct_flags: z.array(DocReviewCorrectFlagSchema).min(1),
+  })
+  .refine(
+    (p) => {
+      const sIds = new Set(p.spans.map((s) => s.id));
+      const cIds = new Set(p.categories.map((c) => c.id));
+      return p.correct_flags.every(
+        (f) => sIds.has(f.span_id) && cIds.has(f.category_id),
+      );
+    },
+    { message: "correct_flags must reference real spans + categories" },
+  );
+export const DocumentReviewAnswerSchema = z.object({
+  flagged: z.array(
+    z.object({
+      span_id: z.string().min(1),
+      category_id: z.string().min(1),
+    }),
+  ),
+});
+export type DocumentReviewPayload = z.infer<typeof DocumentReviewPayloadSchema>;
+export type DocumentReviewAnswer = z.infer<typeof DocumentReviewAnswerSchema>;
 
-export const DocumentReviewPayloadSchema = RejectAlways;
-export const DocumentReviewAnswerSchema = RejectAlways;
-export const BriefBuilderPayloadSchema = RejectAlways;
-export const BriefBuilderAnswerSchema = RejectAlways;
-export const EthicsPayloadSchema = RejectAlways;
-export const EthicsAnswerSchema = RejectAlways;
-export const ClientCounselingPayloadSchema = RejectAlways;
-export const ClientCounselingAnswerSchema = RejectAlways;
+// ============= Brief Builder =============
+export const BriefMcqOptionSchema = z.object({
+  id: z.string().min(1),
+  letter: z.string().min(1).max(2),
+  title: z.string().min(1),
+  desc: z.string().optional().default(""),
+  meta: z.string().optional().default(""),
+});
+export const BriefBlockSchema = z.object({
+  id: z.string().min(1),
+  text: z.string().min(1),
+});
+export const BriefStepSchema = z
+  .object({
+    kind: z.enum(["mcq", "order"]),
+    label: z.string().min(1),
+    prompt: z.string().min(1),
+    options: z.array(BriefMcqOptionSchema).optional(),
+    correct_option_id: z.string().optional(),
+    blocks: z.array(BriefBlockSchema).optional(),
+    correct_order: z.array(z.string().min(1)).optional(),
+  })
+  .refine(
+    (s) => {
+      if (s.kind === "mcq") {
+        if (!s.options || s.options.length < 2 || !s.correct_option_id) return false;
+        return s.options.some((o) => o.id === s.correct_option_id);
+      }
+      if (s.kind === "order") {
+        if (!s.blocks || s.blocks.length < 2 || !s.correct_order) return false;
+        const ids = new Set(s.blocks.map((b) => b.id));
+        return (
+          s.correct_order.length === s.blocks.length &&
+          s.correct_order.every((id) => ids.has(id))
+        );
+      }
+      return false;
+    },
+    { message: "step shape invalid for its kind" },
+  );
+export const BriefBuilderPayloadSchema = z.object({
+  fact_pattern: z.string().min(1),
+  citation: z.string().optional().default(""),
+  steps: z.array(BriefStepSchema).min(2).max(6),
+});
+export const BriefStepAnswerSchema = z.object({
+  step_index: z.number().int().min(0),
+  selected_option_id: z.string().optional(),
+  ordered_block_ids: z.array(z.string().min(1)).optional(),
+});
+export const BriefBuilderAnswerSchema = z.object({
+  step_answers: z.array(BriefStepAnswerSchema),
+});
+export type BriefBuilderPayload = z.infer<typeof BriefBuilderPayloadSchema>;
+export type BriefBuilderAnswer = z.infer<typeof BriefBuilderAnswerSchema>;
+
+// ============= Ethics (2-stage MCQ) =============
+export const EthicsOptionSchema = z.object({
+  id: z.string().min(1),
+  letter: z.string().min(1).max(2),
+  text: z.string().min(1),
+});
+export const EthicsPayloadSchema = z
+  .object({
+    scenario: z.string().min(1),
+    decision_options: z.array(EthicsOptionSchema).min(2).max(6),
+    correct_decision_id: z.string().min(1),
+    consequence_text: z.string().min(1),
+    followup_options: z.array(EthicsOptionSchema).min(2).max(6),
+    correct_followup_id: z.string().min(1),
+    model_reasoning: z.string().min(1),
+  })
+  .refine(
+    (p) =>
+      p.decision_options.some((o) => o.id === p.correct_decision_id) &&
+      p.followup_options.some((o) => o.id === p.correct_followup_id),
+    { message: "correct ids must match options" },
+  );
+export const EthicsAnswerSchema = z.object({
+  selected_decision_id: z.string().min(1),
+  selected_followup_id: z.string().min(1),
+});
+export type EthicsPayload = z.infer<typeof EthicsPayloadSchema>;
+export type EthicsAnswer = z.infer<typeof EthicsAnswerSchema>;
+
+// ============= Client Counseling (multi-turn) =============
+export const CounselingTranscriptTurnSchema = z.object({
+  turn: z.number().int().min(1),
+  role: z.enum(["client", "lawyer"]),
+  text: z.string().min(1),
+});
+export const CounselingDecisionTurnSchema = z
+  .object({
+    turn: z.number().int().min(1),
+    prompt: z.string().min(1),
+    options: z.array(EthicsOptionSchema).min(2).max(6),
+    correct_option_id: z.string().min(1),
+    model_followup: z.string().optional().default(""),
+  })
+  .refine(
+    (t) => t.options.some((o) => o.id === t.correct_option_id),
+    { message: "correct_option_id must match an option id" },
+  );
+export const ClientCounselingPayloadSchema = z.object({
+  matter: z.string().min(1),
+  transcript: z.array(CounselingTranscriptTurnSchema).min(1).max(20),
+  decision_turns: z.array(CounselingDecisionTurnSchema).min(1).max(10),
+});
+export const ClientCounselingAnswerSchema = z.object({
+  turn_picks: z.array(
+    z.object({
+      turn: z.number().int().min(1),
+      selected_option_id: z.string().min(1),
+      followup_text: z.string().optional().default(""),
+    }),
+  ),
+});
+export type ClientCounselingPayload = z.infer<typeof ClientCounselingPayloadSchema>;
+export type ClientCounselingAnswer = z.infer<typeof ClientCounselingAnswerSchema>;
+
+// ============= Grading config (per-challenge) =============
+export const GradingConfigSchema = z
+  .object({
+    reasoning_threshold: z.number().int().min(0).max(100).optional(),
+    partial_order_credit: z.boolean().optional(),
+  })
+  .partial();
+export type GradingConfig = z.infer<typeof GradingConfigSchema>;
 
 export class GradingError extends Error {
   constructor(message: string) {

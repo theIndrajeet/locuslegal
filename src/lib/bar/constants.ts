@@ -47,12 +47,20 @@ export const QUESTION_TYPE_LABELS: Record<QuestionType, string> = {
   client_counseling: "Client Counseling",
 };
 
-export const V1_QUESTION_TYPES: QuestionType[] = [
+// All 8 types are now authorable + playable end-to-end.
+export const ENABLED_QUESTION_TYPES: QuestionType[] = [
   "mcq",
   "issue_spotter",
   "speed_round",
   "jurisdiction",
+  "document_review",
+  "brief_builder",
+  "ethics",
+  "client_counseling",
 ];
+
+// Backwards-compat alias — prefer ENABLED_QUESTION_TYPES going forward.
+export const V1_QUESTION_TYPES = ENABLED_QUESTION_TYPES;
 
 export const AREA_OF_LAW_LABELS: Record<AreaOfLaw, string> = {
   constitutional: "Constitutional",
@@ -104,4 +112,19 @@ export const DIFFICULTY_LABELS: Record<Difficulty, string> = {
   easy: "Easy",
   medium: "Medium",
   hard: "Hard",
+};
+
+// Default grading config per type — applied when challenge.grading_config is empty.
+export const DEFAULT_GRADING_CONFIG: Record<
+  QuestionType,
+  { reasoning_threshold?: number; partial_order_credit?: boolean }
+> = {
+  mcq: {},
+  issue_spotter: {},
+  jurisdiction: {},
+  speed_round: {},
+  document_review: {},
+  brief_builder: { partial_order_credit: false },
+  ethics: { reasoning_threshold: 60 },
+  client_counseling: { reasoning_threshold: 60 },
 };
