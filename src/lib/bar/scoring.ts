@@ -1,4 +1,12 @@
 import {
+  BriefBuilderAnswerSchema,
+  BriefBuilderPayloadSchema,
+  ClientCounselingAnswerSchema,
+  ClientCounselingPayloadSchema,
+  DocumentReviewAnswerSchema,
+  DocumentReviewPayloadSchema,
+  EthicsAnswerSchema,
+  EthicsPayloadSchema,
   GradingError,
   IssueSpotterAnswerSchema,
   IssueSpotterPayloadSchema,
@@ -9,7 +17,16 @@ import {
   SpeedRoundAnswerSchema,
   SpeedRoundPayloadSchema,
   type BarDesignation,
+  type BriefBuilderAnswer,
+  type BriefBuilderPayload,
+  type ClientCounselingAnswer,
+  type ClientCounselingPayload,
   type Difficulty,
+  type DocumentReviewAnswer,
+  type DocumentReviewPayload,
+  type EthicsAnswer,
+  type EthicsPayload,
+  type GradingConfig,
   type IssueSpotterAnswer,
   type IssueSpotterPayload,
   type JurisdictionAnswer,
@@ -51,7 +68,6 @@ export function computeDesignation(
   totalPoints: number,
   accuracyPct: number,
 ): BarDesignation {
-  // Walk thresholds high → low; first one whose BOTH gates pass wins.
   for (let i = RANK_THRESHOLDS.length - 1; i >= 0; i--) {
     const t = RANK_THRESHOLDS[i];
     if (totalPoints >= t.minPoints && accuracyPct >= t.minAccuracy) {
@@ -123,11 +139,184 @@ export function gradeJurisdiction(
   return { is_correct: correct, points_awarded: correct ? pointsBase : 0 };
 }
 
+// ============= Document Review =============
+export interface DocReviewBreakdown {
+  correct_hits: number;
+  missed: number;
+  false_flags: number;
+  total_correct: number;
+}
+
+export function gradeDocumentReview(
+  payload: DocumentReviewPayload,
+  answer: DocumentReviewAnswer,
+  pointsBase: number,
+): GradeResult & { breakdown: DocReviewBreakdown } {
+  const correctMap = new Map<string, string>();
+  for (const f of payload.correct_flags) correctMap.set(f.span_id, f.category_id);
+
+  let correctHits = 0;
+  let falseFlags = 0;
+  const seenSpans = new Set<string>();
+  for (const f of answer.flagged) {
+    if (seenSpans.has(f.span_id)) continue; // ignore duplicate flag of same span
+    seenSpans.add(f.span_id);
+    const expected = correctMap.get(f.span_id);
+    if (expected && expected === f.category_id) correctHits++;
+    else if (!expected) falseFlags++;
+    // wrong category on a true-flag span = 0 (neither hit nor false flag)
+  }
+  const totalCorrect = payload.correct_flags.length;
+  const missed = totalCorrect - correctHits;
+
+  const rawScore = correctHits - falseFlags;
+  const clamped = Math.max(0, rawScore);
+  const ratio = totalCorrect === 0 ? 0 : clamped / totalCorrect;
+  const points = Math.max(0, Math.floor(ratio * pointsBase));
+  const isCorrect = correctHits === totalCorrect && falseFlags === 0;
+
+  return {
+    is_correct: isCorrect,
+    points_awarded: points,
+    breakdown: { correct_hits: correctHits, missed, false_flags: falseFlags, total_correct: totalCorrect },
+  };
+}
+
+// ============= Brief Builder =============
+export interface BriefStepResult {
+  step_index: number;
+  is_correct: boolean;
+  points_ratio: number; // 0..1 of this step's share
+}
+
+// Kendall-tau distance based partial order credit:
+// 1 - inversions / max_inversions
+function orderingScore(submitted: string[], expected: string[]): number {
+  const n = expected.length;
+  if (n <= 1) return submitted.length === n ? 1 : 0;
+  const indexOf = new Map<string, number>();
+  expected.forEach((id, i) => indexOf.set(id, i));
+  // Filter submitted to same set; if missing/extra ids, partial fallback
+  const filtered = submitted.filter((id) => indexOf.has(id));
+  if (filtered.length === 0) return 0;
+  let inversions = 0;
+  for (let i = 0; i < filtered.length; i++) {
+    for (let j = i + 1; j < filtered.length; j++) {
+      const a = indexOf.get(filtered[i])!;
+      const b = indexOf.get(filtered[j])!;
+      if (a > b) inversions++;
+    }
+  }
+  const maxInv = (n * (n - 1)) / 2;
+  return Math.max(0, 1 - inversions / maxInv);
+}
+
+export function gradeBriefBuilder(
+  payload: BriefBuilderPayload,
+  answer: BriefBuilderAnswer,
+  pointsBase: number,
+  config: GradingConfig = {},
+): GradeResult & { step_results: BriefStepResult[] } {
+  const stepCount = payload.steps.length;
+  const perStep = pointsBase / stepCount;
+  const answerByIdx = new Map(answer.step_answers.map((a) => [a.step_index, a]));
+  const partial = !!config.partial_order_credit;
+
+  const results: BriefStepResult[] = [];
+  let totalPoints = 0;
+  let allCorrect = true;
+
+  payload.steps.forEach((step, i) => {
+    const a = answerByIdx.get(i);
+    let stepRatio = 0;
+    let stepCorrect = false;
+    if (step.kind === "mcq") {
+      if (a?.selected_option_id && a.selected_option_id === step.correct_option_id) {
+        stepRatio = 1;
+        stepCorrect = true;
+      }
+    } else if (step.kind === "order") {
+      const submitted = a?.ordered_block_ids ?? [];
+      const expected = step.correct_order ?? [];
+      const exact =
+        submitted.length === expected.length &&
+        submitted.every((id, idx) => id === expected[idx]);
+      if (exact) {
+        stepRatio = 1;
+        stepCorrect = true;
+      } else if (partial) {
+        stepRatio = orderingScore(submitted, expected);
+      }
+    }
+    if (!stepCorrect) allCorrect = false;
+    totalPoints += stepRatio * perStep;
+    results.push({ step_index: i, is_correct: stepCorrect, points_ratio: stepRatio });
+  });
+
+  return {
+    is_correct: allCorrect,
+    points_awarded: Math.max(0, Math.floor(totalPoints)),
+    step_results: results,
+  };
+}
+
+// ============= Ethics =============
+export function gradeEthics(
+  payload: EthicsPayload,
+  answer: EthicsAnswer,
+  pointsBase: number,
+): GradeResult & { stage1_correct: boolean; stage2_correct: boolean } {
+  const stage1 = answer.selected_decision_id === payload.correct_decision_id;
+  const stage2 = answer.selected_followup_id === payload.correct_followup_id;
+  const both = stage1 && stage2;
+  const points = both
+    ? pointsBase
+    : stage1
+    ? Math.floor(pointsBase * 0.5)
+    : 0;
+  return { is_correct: both, points_awarded: points, stage1_correct: stage1, stage2_correct: stage2 };
+}
+
+// ============= Client Counseling =============
+export interface CounselingTurnResult {
+  turn: number;
+  is_correct: boolean;
+}
+
+export function gradeClientCounseling(
+  payload: ClientCounselingPayload,
+  answer: ClientCounselingAnswer,
+  pointsBase: number,
+): GradeResult & { per_turn: CounselingTurnResult[] } {
+  const correctByTurn = new Map<number, string>();
+  for (const t of payload.decision_turns) correctByTurn.set(t.turn, t.correct_option_id);
+
+  const pickByTurn = new Map<number, string>();
+  for (const p of answer.turn_picks) pickByTurn.set(p.turn, p.selected_option_id);
+
+  const per_turn: CounselingTurnResult[] = [];
+  let correctCount = 0;
+  for (const t of payload.decision_turns) {
+    const pick = pickByTurn.get(t.turn);
+    const ok = pick === correctByTurn.get(t.turn);
+    if (ok) correctCount++;
+    per_turn.push({ turn: t.turn, is_correct: ok });
+  }
+  const total = payload.decision_turns.length;
+  const ratio = total === 0 ? 0 : correctCount / total;
+  return {
+    is_correct: ratio >= 0.8,
+    points_awarded: Math.floor(ratio * pointsBase),
+    per_turn,
+  };
+}
+
 export function gradeAttempt(
   type: QuestionType,
   payload: unknown,
   answer: unknown,
   pointsBase: number,
+  config: GradingConfig = {},
 ): GradeResult {
   switch (type) {
     case "mcq": {
@@ -158,7 +347,39 @@ export function gradeAttempt(
       if (!a.success) throw new GradingError("invalid jurisdiction answer");
       return gradeJurisdiction(p.data, a.data, pointsBase);
     }
+    case "document_review": {
+      const p = DocumentReviewPayloadSchema.safeParse(payload);
+      const a = DocumentReviewAnswerSchema.safeParse(answer);
+      if (!p.success) throw new GradingError("invalid document_review payload");
+      if (!a.success) throw new GradingError("invalid document_review answer");
+      const r = gradeDocumentReview(p.data, a.data, pointsBase);
+      return { is_correct: r.is_correct, points_awarded: r.points_awarded };
+    }
+    case "brief_builder": {
+      const p = BriefBuilderPayloadSchema.safeParse(payload);
+      const a = BriefBuilderAnswerSchema.safeParse(answer);
+      if (!p.success) throw new GradingError("invalid brief_builder payload");
+      if (!a.success) throw new GradingError("invalid brief_builder answer");
+      const r = gradeBriefBuilder(p.data, a.data, pointsBase, config);
+      return { is_correct: r.is_correct, points_awarded: r.points_awarded };
+    }
+    case "ethics": {
+      const p = EthicsPayloadSchema.safeParse(payload);
+      const a = EthicsAnswerSchema.safeParse(answer);
+      if (!p.success) throw new GradingError("invalid ethics payload");
+      if (!a.success) throw new GradingError("invalid ethics answer");
+      const r = gradeEthics(p.data, a.data, pointsBase);
+      return { is_correct: r.is_correct, points_awarded: r.points_awarded };
+    }
+    case "client_counseling": {
+      const p = ClientCounselingPayloadSchema.safeParse(payload);
+      const a = ClientCounselingAnswerSchema.safeParse(answer);
+      if (!p.success) throw new GradingError("invalid client_counseling payload");
+      if (!a.success) throw new GradingError("invalid client_counseling answer");
+      const r = gradeClientCounseling(p.data, a.data, pointsBase);
+      return { is_correct: r.is_correct, points_awarded: r.points_awarded };
+    }
     default:
-      throw new GradingError(`question type ${type} not implemented in v1`);
+      throw new GradingError(`question type ${type} not implemented`);
   }
 }
