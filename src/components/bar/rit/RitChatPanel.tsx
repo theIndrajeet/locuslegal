@@ -113,7 +113,7 @@ export function RitChatPanel({ attemptId, challenge, greeting, defaultOpen = fal
 
     setSending(true);
     setInput("");
-    setHiddenCleared(false);
+    // Keep hidden state — newly added messages will still be visible via slice(hideBeforeIndex)
     // optimistic user bubble
     setMessages((prev) => [...prev, { role: "user", content: trimmed }]);
 
