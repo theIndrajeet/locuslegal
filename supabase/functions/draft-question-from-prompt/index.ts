@@ -185,6 +185,10 @@ function validatePayload(qt: V1Type, payload: unknown): boolean {
     case "issue_spotter": return IssueSpotterPayloadSchema.safeParse(payload).success;
     case "speed_round": return SpeedRoundPayloadSchema.safeParse(payload).success;
     case "jurisdiction": return JurisdictionPayloadSchema.safeParse(payload).success;
+    case "document_review": return DocumentReviewPayloadSchema.safeParse(payload).success;
+    case "brief_builder": return BriefBuilderPayloadSchema.safeParse(payload).success;
+    case "ethics": return EthicsPayloadSchema.safeParse(payload).success;
+    case "client_counseling": return ClientCounselingPayloadSchema.safeParse(payload).success;
   }
 }
 
