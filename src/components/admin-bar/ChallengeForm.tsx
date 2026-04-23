@@ -122,7 +122,7 @@ export default function ChallengeForm({ open, onOpenChange, onCreated, sources }
   const submit = async () => {
     if (!title.trim() || !prompt.trim()) { toast.error("Title and prompt required"); return; }
     const built = buildPayload();
-    if (!built.ok) { toast.error(built.msg); return; }
+    if (built.ok === false) { toast.error(built.msg); return; }
     const points = computeBasePoints(type, diff, built.questionCount);
 
     setBusy(true);

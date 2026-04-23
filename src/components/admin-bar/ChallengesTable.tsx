@@ -87,8 +87,8 @@ export default function ChallengesTable() {
   };
 
   const statusBadge = (s: ChallengeStatus) => {
-    const variant: Record<ChallengeStatus, "default" | "secondary" | "outline" | "destructive"> = {
-      draft: "outline", pending_review: "secondary", approved: "default", rejected: "destructive", archived: "outline",
+    const variant: Record<ChallengeStatus, "default" | "neutral" | "outline"> = {
+      draft: "outline", pending_review: "neutral", approved: "default", rejected: "outline", archived: "outline",
     };
     return <Badge variant={variant[s]}>{s.replace("_", " ")}</Badge>;
   };
