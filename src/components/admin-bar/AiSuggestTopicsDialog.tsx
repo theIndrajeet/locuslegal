@@ -69,7 +69,18 @@ export default function AiSuggestTopicsDialog({ open, onOpenChange, onCreated }:
     const { data, error } = await supabase.functions.invoke("suggest-topics", { body });
     setBusy(false);
 
-    if (error) { toast.error((error as any)?.message ?? "Topic suggestion failed"); return; }
+    if (error) {
+      let msg = (error as any)?.message ?? "Topic suggestion failed";
+      try {
+        const ctxBody = (error as any)?.context?.body;
+        if (ctxBody) {
+          const parsed = typeof ctxBody === "string" ? JSON.parse(ctxBody) : ctxBody;
+          if (parsed?.error) msg = parsed.error;
+        }
+      } catch { /* ignore */ }
+      toast.error(msg);
+      return;
+    }
     if (data?.error) { toast.error(data.error); return; }
 
     const n = data?.sources_created ?? 0;
