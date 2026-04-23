@@ -146,6 +146,69 @@ export default function PublicProfile() {
     return () => { mounted = false; };
   }, [username]);
 
+  // Isolated bar-stats fetch — failure must not block profile render
+  useEffect(() => {
+    if (!profile?.id) { setBarStats(null); return; }
+    let mounted = true;
+    (async () => {
+      try {
+        const [statsRes, sessionRes, profileExtra] = await Promise.all([
+          supabase
+            .from("bar_user_stats")
+            .select("designation, total_points, accuracy_pct, current_streak, total_attempts")
+            .eq("user_id", profile.id)
+            .maybeSingle(),
+          supabase.auth.getSession(),
+          supabase
+            .from("profiles")
+            .select("bar_leaderboard_opt_out")
+            .eq("id", profile.id)
+            .maybeSingle(),
+        ]);
+
+        if (!mounted) return;
+        const stats = statsRes.data as {
+          designation: BarDesignation;
+          total_points: number;
+          accuracy_pct: number;
+          current_streak: number;
+          total_attempts: number;
+        } | null;
+        if (!stats || stats.total_attempts <= 0) { setBarStats(null); return; }
+
+        const viewerId = sessionRes.data.session?.user?.id ?? null;
+        const isOwner = viewerId === profile.id;
+        const optedOut = !!(profileExtra.data as { bar_leaderboard_opt_out?: boolean } | null)?.bar_leaderboard_opt_out;
+
+        let rankPosition: number | null = null;
+        // Skip rank query when subject opted out and viewer is not the owner
+        if (!optedOut || isOwner) {
+          const { count } = await supabase
+            .from("bar_user_stats")
+            .select("user_id", { count: "exact", head: true })
+            .gt("total_points", stats.total_points);
+          if (mounted) rankPosition = (count ?? 0) + 1;
+        }
+
+        if (mounted) {
+          setBarStats({
+            designation: stats.designation,
+            total_points: stats.total_points,
+            accuracy_pct: Number(stats.accuracy_pct),
+            current_streak: stats.current_streak,
+            rank_position: rankPosition,
+            is_owner: isOwner,
+            opted_out: optedOut,
+          });
+        }
+      } catch (e) {
+        console.error("[PublicProfile] bar stats fetch failed:", e);
+        if (mounted) setBarStats(null);
+      }
+    })();
+    return () => { mounted = false; };
+  }, [profile?.id]);
+
   useEffect(() => {
     if (loading || hasAutoSelected.current || !profile) return;
     hasAutoSelected.current = true;
