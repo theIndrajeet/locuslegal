@@ -73,8 +73,6 @@ function buildSystemPrompt(challenge: any, attempt: any): string {
     `Type: ${challenge.question_type}`,
     `Prompt: ${challenge.prompt}`,
     "",
-    `Payload: ${JSON.stringify(challenge.payload)}`,
-    "",
     `${correctSummary}`,
     "",
     `Official explanation: ${challenge.explanation ?? "(none provided)"}`,
@@ -177,7 +175,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "google/gemini-2.5-flash",
         messages,
       }),
     });

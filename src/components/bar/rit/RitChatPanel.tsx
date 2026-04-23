@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
-import { ChevronDown, Sparkles, Send, Loader2, Trash2 } from "lucide-react";
+import { ChevronDown, Sparkles, Send, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { RitMessage } from "./RitMessage";
@@ -57,6 +57,7 @@ export function RitChatPanel({ attemptId, challenge, greeting, defaultOpen = fal
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [hiddenCleared, setHiddenCleared] = useState(false);
+  const [hideBeforeIndex, setHideBeforeIndex] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const computedGreeting = useMemo(() => {
@@ -98,8 +99,8 @@ export function RitChatPanel({ attemptId, challenge, greeting, defaultOpen = fal
     scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages, sending, open]);
 
-  const visibleMessages = hiddenCleared ? [] : messages;
-  const messageCount = visibleMessages.length;
+  const visibleMessages = hiddenCleared ? messages.slice(hideBeforeIndex) : messages;
+  const messageCount = messages.length;
   const capReached = messageCount >= MAX_MESSAGES;
 
   const send = async (text: string) => {
@@ -112,7 +113,7 @@ export function RitChatPanel({ attemptId, challenge, greeting, defaultOpen = fal
 
     setSending(true);
     setInput("");
-    setHiddenCleared(false);
+    // Keep hidden state — newly added messages will still be visible via slice(hideBeforeIndex)
     // optimistic user bubble
     setMessages((prev) => [...prev, { role: "user", content: trimmed }]);
 
@@ -255,13 +256,14 @@ export function RitChatPanel({ attemptId, challenge, greeting, defaultOpen = fal
         <div className="border-t-2 border-border">
           <div className="flex items-center justify-between px-4 py-2 bg-muted/20 border-b border-border text-[11px] text-muted-foreground">
             <span>{messageCount} / {MAX_MESSAGES} messages</span>
-            {messageCount > 0 && (
+            {visibleMessages.length > 0 && (
               <button
                 type="button"
-                onClick={() => setHiddenCleared(true)}
+                onClick={() => { setHideBeforeIndex(messages.length); setHiddenCleared(true); }}
+                title="Hides messages locally only — your conversation is still saved and counts toward the limit."
                 className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
               >
-                <Trash2 size={11} /> Clear conversation
+                <EyeOff size={11} /> Hide history
               </button>
             )}
           </div>
@@ -332,7 +334,7 @@ export function RitChatPanel({ attemptId, challenge, greeting, defaultOpen = fal
                       "focus-visible:shadow-[0_0_0_3px_hsl(var(--accent)/0.45)]",
                     )}
                   >
-                    {sending ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
+                    <Send size={12} />
                     Send
                   </Button>
                 </div>
