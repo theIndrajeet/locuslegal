@@ -3,6 +3,8 @@ import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
 import { AREA_OF_LAW_LABELS, QUESTION_TYPE_LABELS } from "@/lib/bar/constants";
 import type { AreaOfLaw, Difficulty, QuestionType } from "@/lib/bar/types";
+import { isPremiumType } from "@/lib/bar/premium";
+import { PremiumBadge } from "@/components/bar/premium/PremiumBadge";
 
 interface ChallengeCardProps {
   id: string;
