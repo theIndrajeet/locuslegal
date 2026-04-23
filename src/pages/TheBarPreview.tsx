@@ -13,6 +13,13 @@ import { JurisdictionRenderer } from "@/components/bar/renderers/JurisdictionRen
 import { SpeedRoundRenderer } from "@/components/bar/renderers/SpeedRoundRenderer";
 import { QUESTION_TYPE_LABELS } from "@/lib/bar/constants";
 import { usePageMeta } from "@/hooks/usePageMeta";
+import { RitChatPanel } from "@/components/bar/rit/RitChatPanel";
+
+const STARTERS = {
+  why: "Why isn't my answer correct?",
+  cite: "Cite the leading case",
+  hypo: "Give me a similar hypothetical",
+} as const;
 
 const SAMPLES = {
   mcq: {
