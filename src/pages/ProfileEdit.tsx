@@ -24,6 +24,7 @@ export default function ProfileEdit() {
 
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
+  const [refreshTick, setRefreshTick] = useState(0);
 
   // Identity
   const [displayName, setDisplayName] = useState("");
@@ -110,7 +111,7 @@ export default function ProfileEdit() {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [navigate]);
+  }, [navigate, refreshTick]);
 
   const handleChangePassword = async () => {
     if (newPassword.length < 6) { toast.error("Password must be at least 6 characters"); return; }
@@ -164,7 +165,24 @@ export default function ProfileEdit() {
         <InternshipsSection userId={userId} internships={internships} setInternships={setInternships} />
         <MootsSection userId={userId} moots={moots} setMoots={setMoots} />
         <PublicationsSection userId={userId} publications={publications} setPublications={setPublications} />
-        <CvSection userId={userId} cvUrl={cvUrl} cvUploadedAt={cvUploadedAt} setCvUrl={setCvUrl} setCvUploadedAt={setCvUploadedAt} />
+        <CvSection
+          userId={userId}
+          cvUrl={cvUrl}
+          cvUploadedAt={cvUploadedAt}
+          setCvUrl={setCvUrl}
+          setCvUploadedAt={setCvUploadedAt}
+          current={{
+            bio,
+            college,
+            degree,
+            graduationYear,
+            subjects,
+            internships,
+            moots,
+            publications,
+          }}
+          onParsedApplied={() => setRefreshTick((t) => t + 1)}
+        />
 
         {hasPassword && (
           <Card>
