@@ -61,9 +61,12 @@ export function AttemptReviewDialog({ attemptId, open, onOpenChange }: Props) {
     return () => { active = false; };
   }, [attemptId, open]);
 
+  const premium = data ? isPremiumType(data.challenge.question_type) : false;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent
+        className={`max-w-3xl max-h-[90vh] overflow-y-auto ${premium ? "locus-plus bg-[hsl(var(--premium-bg))]" : ""}`}
+      >
         {loading || !data ? (
           <div className="space-y-3">
             <Skeleton className="h-8 w-2/3" />
