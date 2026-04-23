@@ -634,8 +634,22 @@ export default function CvReviewModal({ open, onOpenChange, userId, parsed, curr
                 <Input value={row.publisher} onChange={(e) => updatePub(row._id, { publisher: e.target.value })} />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Date</Label>
-                <Input type="date" value={row.publication_date || ""} onChange={(e) => updatePub(row._id, { publication_date: e.target.value || null })} />
+                <Label className="text-xs">Date <span className="text-destructive">*</span></Label>
+                {(() => {
+                  const invalid = row._checked && !(row.publication_date && /^\d{4}-\d{2}-\d{2}$/.test(row.publication_date));
+                  return (
+                    <>
+                      <Input
+                        type="date"
+                        value={row.publication_date || ""}
+                        onChange={(e) => updatePub(row._id, { publication_date: e.target.value || null })}
+                        aria-invalid={invalid}
+                        className={invalid ? "border-destructive focus-visible:ring-destructive" : ""}
+                      />
+                      {invalid && <p className="text-xs text-destructive">Publication date is required to save this entry.</p>}
+                    </>
+                  );
+                })()}
               </div>
               <div className="space-y-1 sm:col-span-2">
                 <Label className="text-xs">URL (optional)</Label>
