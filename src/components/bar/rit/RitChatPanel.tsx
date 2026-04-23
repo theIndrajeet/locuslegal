@@ -57,6 +57,7 @@ export function RitChatPanel({ attemptId, challenge, greeting, defaultOpen = fal
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [hiddenCleared, setHiddenCleared] = useState(false);
+  const [hideBeforeIndex, setHideBeforeIndex] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const computedGreeting = useMemo(() => {
