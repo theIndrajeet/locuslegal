@@ -73,8 +73,6 @@ function buildSystemPrompt(challenge: any, attempt: any): string {
     `Type: ${challenge.question_type}`,
     `Prompt: ${challenge.prompt}`,
     "",
-    `Payload: ${JSON.stringify(challenge.payload)}`,
-    "",
     `${correctSummary}`,
     "",
     `Official explanation: ${challenge.explanation ?? "(none provided)"}`,
