@@ -1,6 +1,6 @@
 // DocumentReviewRenderer — clickable spans → category popover → flag store.
 // Review mode shows hit/miss/false-flag overlay + WHY YOU LOST POINTS block.
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Check, X, AlertTriangle, Flag } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
@@ -65,7 +65,6 @@ export function DocumentReviewRenderer(props: AnswerProps | ReviewProps) {
   // Render document_html, replacing {{span_id}} with interactive marks.
   const segments = useMemo(() => {
     const re = /\{\{(.+?)\}\}/g;
-    const parts: { kind: "text"; text: string }[] | { kind: "span"; id: string }[] = [] as any;
     const result: Array<{ kind: "text" | "span"; text?: string; id?: string }> = [];
     let lastIndex = 0;
     let m: RegExpExecArray | null;

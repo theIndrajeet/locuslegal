@@ -247,13 +247,13 @@ function OrderBlock({
   order: string[];
   onChange?: (next: string[]) => void;
 }) {
-  const blocks = step.blocks ?? [];
+  const blocks = useMemo(() => step.blocks ?? [], [step.blocks]);
   const blockMap = useMemo(() => {
     const m = new Map<string, string>();
     for (const b of blocks) m.set(b.id, b.text);
     return m;
   }, [blocks]);
-  const correctOrder = step.correct_order ?? [];
+  const correctOrder = useMemo(() => step.correct_order ?? [], [step.correct_order]);
   const correctIndex = useMemo(() => {
     const m = new Map<string, number>();
     correctOrder.forEach((id, i) => m.set(id, i));
