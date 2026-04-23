@@ -129,7 +129,7 @@ export default function CvSection({ userId, cvUrl, cvUploadedAt, setCvUrl, setCv
                   {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
                   <span className="ml-2">Replace</span>
                 </Button>
-                <Button size="sm" variant="outline" onClick={runParse} disabled={parsing || uploading}>
+                <Button size="sm" variant="outline" onClick={() => runParse(true)} disabled={parsing || uploading}>
                   {parsing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                   <span className="ml-2">{parsing ? "Parsing…" : "Parse again"}</span>
                 </Button>
