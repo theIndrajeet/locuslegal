@@ -49,6 +49,49 @@ function buildSystemPrompt(challenge: any, attempt: any): string {
         const items = (p.questions ?? []).map((q: any) => `Q: ${q.prompt} → A: ${q.answer}`);
         return `Speed-round answer key:\n${items.join("\n")}`;
       }
+      case "document_review": {
+        const cats = new Map<string, string>();
+        for (const c of (p.categories ?? [])) cats.set(c.id, c.label);
+        const spans = new Map<string, string>();
+        for (const s of (p.spans ?? [])) spans.set(s.id, s.text);
+        const lines = (p.correct_flags ?? []).map((f: any) =>
+          `- "${spans.get(f.span_id) ?? f.span_id}" → ${cats.get(f.category_id) ?? f.category_id}`,
+        );
+        return `Correct flags:\n${lines.join("\n")}`;
+      }
+      case "brief_builder": {
+        const lines = (p.steps ?? []).map((s: any, i: number) => {
+          if (s.kind === "mcq") {
+            const opt = (s.options ?? []).find((o: any) => o.id === s.correct_option_id);
+            return `Step ${i + 1} (${s.label}) [MCQ]: ${opt?.letter ?? "?"}. ${opt?.title ?? s.correct_option_id}`;
+          }
+          if (s.kind === "order") {
+            const map = new Map<string, string>();
+            for (const b of (s.blocks ?? [])) map.set(b.id, b.text);
+            const ord = (s.correct_order ?? []).map((id: string, j: number) => `${j + 1}. ${map.get(id) ?? id}`);
+            return `Step ${i + 1} (${s.label}) [ORDER]:\n${ord.join("\n")}`;
+          }
+          return `Step ${i + 1}: ?`;
+        });
+        return `Brief-builder answer key:\n${lines.join("\n\n")}`;
+      }
+      case "ethics": {
+        const dec = (p.decision_options ?? []).find((o: any) => o.id === p.correct_decision_id);
+        const fol = (p.followup_options ?? []).find((o: any) => o.id === p.correct_followup_id);
+        return [
+          `Stage 1 (Decision) → ${dec?.letter ?? "?"}. ${dec?.text ?? p.correct_decision_id}`,
+          `Consequence: ${p.consequence_text ?? ""}`,
+          `Stage 2 (Follow-up) → ${fol?.letter ?? "?"}. ${fol?.text ?? p.correct_followup_id}`,
+          `Model reasoning: ${p.model_reasoning ?? ""}`,
+        ].join("\n");
+      }
+      case "client_counseling": {
+        const lines = (p.decision_turns ?? []).map((dt: any) => {
+          const opt = (dt.options ?? []).find((o: any) => o.id === dt.correct_option_id);
+          return `Turn ${dt.turn} → ${opt?.letter ?? "?"}. ${opt?.text ?? dt.correct_option_id}${dt.model_followup ? ` (coach: ${dt.model_followup})` : ""}`;
+        });
+        return `Counseling answer key for matter "${p.matter ?? ""}":\n${lines.join("\n")}`;
+      }
       default:
         return "";
     }
