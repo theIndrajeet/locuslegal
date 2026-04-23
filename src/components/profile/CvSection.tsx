@@ -38,10 +38,10 @@ export default function CvSection({ userId, cvUrl, cvUploadedAt, setCvUrl, setCv
     (p.moots?.length ?? 0) === 0 &&
     (p.publications?.length ?? 0) === 0;
 
-  const runParse = async () => {
+  const runParse = async (fromReparse: boolean = false) => {
     if (!userId || reviewOpen) return; // ignore if a review session is in progress
     setParsing(true);
-    toast.info("Parsing CV with AI (this may take 10-30 seconds)");
+    if (fromReparse) toast.info("Parsing CV with AI (this may take 10-30 seconds)");
     try {
       const { data, error } = await supabase.functions.invoke("parse-cv", {
         body: { cv_storage_path: `${userId}/cv.pdf` },
