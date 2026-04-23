@@ -1,113 +1,93 @@
-# The Bar — Foundation (Prompt 1)
 
-Building the schema, scoring engine, and admin CRUD for The Bar. No AI generation, no student UI, no leaderboards yet — those are prompts 2/3/4.
 
-## What ships
+# The Bar — AI Question Authoring (Prompt 2)
 
-**Database (one migration):** 7 enums, 6 tables (`bar_sources`, `bar_challenges`, `bar_attempts`, `bar_user_stats`, `bar_user_stats_by_area`, `bar_daily_attempts`), 4 triggers, 1 storage bucket (`bar-sources`, private, 50MB, PDF-only), full RLS per spec.
+Adds the AI authoring layer on top of prompt 1's foundation. Two edge functions, one schema migration, five UI changes. Zero AI output reaches students without admin approval.
 
-**Scoring engine (pure, tested):** `src/lib/bar/scoring.ts` with `computeBasePoints`, `computeDesignation`, `computeNewStreak`, `gradeMcq`, `gradeIssueSpotter`, `gradeSpeedRound`, `gradeJurisdiction`, `gradeAttempt` dispatcher. Zero DB calls. 20+ Vitest cases in `scoring.test.ts`.
+## Schema migration
 
-**Admin UI at `/admin/bar`:** admin-gated tabbed page with Sources, Challenges, Stats tabs. Replaces the existing "Coming Soon" `/the-bar` placeholder behavior only by adding a new admin route — `/the-bar` stays as-is for students until prompt 3.
+One migration file:
 
-## Schema details
+- **New table `bar_ai_generations`**: provenance log per spec (id, source_id FK→bar_sources CASCADE, generation_type CHECK, requested_by FK→profiles RESTRICT, hint columns, model, token counts, outcome CHECK, error_message, challenges_created, duration_ms, created_at). Indexes on source_id, requested_by, created_at DESC, outcome.
+- **RLS on `bar_ai_generations`**: admin-only SELECT/UPDATE/DELETE via `is_admin(auth.uid())`. No INSERT policy — only the service role (edge function) writes.
+- **`bar_challenges` add column** `ai_generation_id uuid NULL REFERENCES bar_ai_generations(id) ON DELETE SET NULL` + index.
 
-**Enums:** `bar_question_type` (8 values, only first 4 wired), `bar_difficulty`, `bar_area_of_law` (17 values), `bar_challenge_status`, `bar_source_type`, `bar_source_license`, `bar_designation`.
+## Edge function: `extract-questions-from-pdf`
 
-**Tables:** All columns/constraints/indexes per PRD. `bar_attempts` has `UNIQUE(user_id, challenge_id)`. `bar_daily_attempts` has `UNIQUE(user_id, attempt_date)`. `bar_challenges.points_base` constrained 1–100. `bar_sources` uses CHECK constraints for the source_type → field requirements (these are immutable, so CHECK is safe here, not a trigger).
+`supabase/functions/extract-questions-from-pdf/index.ts` — `verify_jwt = true` (default); JWT is also revalidated in code.
 
-**Triggers:**
+Flow:
+1. CORS preflight + parse + Zod-validate body (`source_id`, `mode`, optional `batch_size` 1–20 default 10, optional hints).
+2. Extract caller from `Authorization` header → reject 401 if missing. Use service-role client to query `user_roles` for admin role → 403 if not admin.
+3. Fetch source row. Verify exists (404) and `source_type='pdf_extraction'` (400 otherwise).
+4. INSERT `bar_ai_generations` row (outcome temporarily `'ai_error'` placeholder, updated at end). Capture `generation_id`.
+5. Download PDF from `bar-sources` bucket via service-role storage client (`download(storage_path)`). On failure → update log `outcome='ai_error'`, return 404.
+6. Convert PDF bytes to base64 data URL (`data:application/pdf;base64,...`) and send via Lovable AI Gateway as a multimodal message (image_url-style attachment, same pattern as parse-cv).
+7. Build system prompt per PRD with conditional hint blocks. For `mode=single`, instruct "Return exactly 1 item." For `mode=batch`, substitute `{BATCH_SIZE}`.
+8. POST to `https://ai.gateway.lovable.dev/v1/chat/completions` with `model: google/gemini-3-flash-preview`. Capture `usage.prompt_tokens`/`completion_tokens`. Handle 429 → log `rate_limit`, return 429. Handle 402 → log `quota_exceeded`, return 402.
+9. Strip ```json fences, parse. On parse fail → log `parse_fail`, return 500 retryable.
+10. Filter to v1 question types only. For each, validate `payload` against the question-type-specific Zod schema (schemas inlined in the function file — edge functions can't import from `src/`).
+11. If 0 valid → log `validation_fail`, return 422. Otherwise insert each as `bar_challenges` with status=`draft`, `source_id`, `source_page` from AI, `source_citation` = `"Adapted from {source.title}, page X"` (or without page if null), `ai_generation_id`, `created_by` = caller, `points_base` computed via inlined `computeBasePoints` (constants duplicated).
+12. UPDATE log row with `outcome='success'`, `challenges_created`, token counts, `duration_ms`.
+13. Return `{ generation_id, challenges_created, challenge_ids }`.
 
-- `set_updated_at()` reusable function + triggers on `bar_challenges` and stats tables.
-- `bar_attempts_before_insert`: enforces daily cap (≥20 → raise `daily_cap_exceeded`) and verifies the challenge is `approved`.
-- `bar_attempts_after_insert`: upserts `bar_user_stats`, `bar_user_stats_by_area`, `bar_daily_attempts`. Recomputes designation inline; if computed tier is `silk`, runs the top-50 check (`SELECT count(*) FROM bar_user_stats WHERE total_points > NEW.total_points`) and caps at `senior_partner` if outside top 50.
-- `handle_new_user_bar_stats`: AFTER INSERT on `profiles` → creates `bar_user_stats` row. Also backfill existing profiles in the migration.
+Manual test cases listed in a top-of-file comment block per PRD.
 
-**RPC:** `is_admin(uid uuid)` — thin wrapper over existing `has_role(uid, 'admin')` for clarity in policies.
+## Edge function: `draft-question-from-prompt`
 
-## RLS (exactly per spec)
+`supabase/functions/draft-question-from-prompt/index.ts` — same auth/CORS pattern.
 
-- `bar_sources`: admin-only on all ops.
-- `bar_challenges`: SELECT allows `is_admin(auth.uid()) OR status='approved'`; insert/update/delete admin-only.
-- `bar_attempts`: SELECT own + admin; INSERT authenticated WITH CHECK `auth.uid()=user_id` (challenge-approved + daily cap enforced by trigger); no UPDATE; admin DELETE.
-- `bar_user_stats`, `bar_user_stats_by_area`: public SELECT, no user writes.
-- `bar_daily_attempts`: SELECT own + admin, no user writes.
-- Storage `bar-sources`: admin-only via `is_admin(auth.uid())` on `storage.objects`.
+Flow: validate body (`source_id`, `question_type`, `area_of_law`, `difficulty`); admin check; verify source is `topic_prompt` type; INSERT log row with `generation_type='topic_draft'`; build prompt substituting topic text + parameters; call gateway (no PDF attachment); parse JSON object; if `{ refused: true, reason }` → log `validation_fail` with reason, return 422 with that reason; else Zod-validate against the requested type's schema; INSERT one `bar_challenges` row with `source_citation = "Drafted from topic: {source.title}"`, `source_page=null`; update log; return `{ generation_id, challenge_id }`.
 
-## Scoring engine (`src/lib/bar/`)
+## Frontend
 
-- `**types.ts`:** TS types + Zod schemas for each payload + answer pair. Reserved types export schemas that always reject.
-- `**constants.ts`:** `BASE_POINTS_BY_TYPE`, `DIFFICULTY_MULTIPLIER`, `RANK_THRESHOLDS` (array of `{designation, minPoints, minAccuracy}`), `DAILY_CAP=20`, `AREA_OF_LAW_LABELS`, `QUESTION_TYPE_LABELS`.
-- `**scoring.ts`:** all pure functions per PRD. `gradeAttempt` validates with Zod, throws `GradingError` on bad shapes. Speed round: `floor((correct/total)*pointsBase)`, `is_correct = correct/total ≥ 0.7`. Issue spotter: exact set match only.
-- `**scoring.test.ts`:** ≥20 Vitest cases covering each function, threshold edges, accuracy floor, invalid payloads.
+**`src/components/admin-bar/AiExtractDialog.tsx`** (new): single component handling both `mode='single'` and `mode='batch'` via prop. Form: optional type/area/difficulty selects; for batch, `batch_size` number input (1–20). Submits via `supabase.functions.invoke('extract-questions-from-pdf', { body })`. Shows sonner toast `"AI is working… this may take 10–45s"`. On success: toast with "Review drafts" action that navigates to `/admin/bar?tab=challenges&generation_id=...`. On error: surface message; show "Try again" if status >= 500 or 429.
 
-## Admin UI
+**`src/components/admin-bar/AiDraftDialog.tsx`** (new): required selects for question_type (4 v1 types), area_of_law, difficulty. Same toast/navigation pattern; calls `draft-question-from-prompt`.
 
-**Route:** `/admin/bar` added to `<Layout/>` group in `src/App.tsx`. On mount, queries `user_roles` for `auth.uid()`. Non-admin → renders an "Access denied" card with Back-to-Home (no redirect, so the URL stays inspectable).
+**`src/components/admin-bar/AiGenerationsLog.tsx`** (new): paginated table reading `bar_ai_generations` with join on `bar_sources(title)` and `profiles(username)`. Columns per PRD; outcome badge color-coded; error_message in tooltip on hover. Sort created_at desc.
 
-**Navbar:** add a conditional `Admin` NavLink visible only when role check resolves to admin (reusing the same role query, cached via React Query).
+**`src/components/admin-bar/SourceLibrary.tsx`** (modify): per-row action buttons. PDF rows get "Extract 1" + "Extract Batch" (Lucide `Sparkles` icon, no emoji per project memory). Topic-prompt rows get "Draft". Local `generatingSourceId` state disables buttons during invocation.
 
-**Page (`AdminBar.tsx`):** shadcn `Tabs` — Sources / Challenges / Stats. Top-of-file README comment: *"To grant admin: INSERT into user_roles (user_id, role) VALUES ('*&nbsp;*', 'admin'). Do not hardcode."*
+**`src/components/admin-bar/ChallengesTable.tsx`** (modify): new "Origin" column rendering Manual / AI PDF / AI Topic outline badges (derived via join to `bar_sources.source_type` through `ai_generation_id → source_id`, fetched in the same query). Origin filter dropdown. Read `?generation_id=` from `useSearchParams` and pre-filter. AI-drafted rows show a small `Sparkles` icon next to the title with a tooltip "AI-generated from {source.title} · {date}". View/Edit dialog gains a read-only "Source trail" block with source title, page, citation, generation date, model, outcome.
 
-**Sources tab (`SourceLibrary.tsx`):**
+**`src/components/admin-bar/ChallengeForm.tsx`** (modify): add optional `existingChallenge` prop. When provided, pre-fill all fields and submit calls UPDATE instead of INSERT. Manual create path untouched.
 
-- Table of sources + Upload PDF / Add Topic Prompt buttons (Dialogs).
-- PDF upload: client-side validation (PDF + ≤50MB), uploads to `bar-sources/{source_id}/{filename}`, then inserts `bar_sources` row.
-- Topic prompt: title + prompt textarea + license, no file.
-- View dialog generates 60s signed URL for PDF download. Delete via AlertDialog.
+**`src/pages/AdminBar.tsx`** (modify): add fourth `TabsTrigger` "AI Log" rendering `<AiGenerationsLog />`. Tabs become controlled to honor `?tab=` query param.
 
-**Challenges tab (`ChallengesTable.tsx` + `ChallengeForm.tsx`):**
+## Soft rate limit
 
-- Table with status/type/area/difficulty filters.
-- Create button opens `Sheet` with `react-hook-form` + Zod resolvers using the shared payload schemas.
-- Type select shows only the 4 v1 types (others hidden).
-- Dynamic payload sub-form per type (option list with add/remove for MCQ/Jurisdiction; checkbox-multi for Issue Spotter; sub-question repeater + time limit for Speed Round).
-- On submit: compute `points_base` via `computeBasePoints`, insert with `status='draft'`. Saved drafts get Submit-for-Review / Approve / Reject (with reason via AlertDialog) / Archive / Edit actions per current status.
+Both dialogs, before invoking the function: query `bar_ai_generations` count where `requested_by = current user` AND `created_at > now() - 60min`. If >= 20, show info toast and block. Defense in depth only; not a security boundary.
 
-**Stats tab (`BarStats.tsx`):** four count cards (challenges by status, total attempts, distinct active users, pending review count). Plain numbers, no charts.
+## Security checklist
+
+- Both functions revalidate the JWT and the admin role server-side; do not trust client.
+- Source ownership/type check before any AI call.
+- `LOVABLE_API_KEY` only used inside functions; never sent in responses.
+- PDF bytes fetched via service-role storage client; no signed URLs handed to the browser.
+- Logs store metadata only (token counts, outcome, error message) — never the PDF content or full AI output.
+- New table RLS: admin SELECT/UPDATE/DELETE only; service role inserts via the function (RLS bypass).
+- Every AI item passes Zod before insert; failed items skipped.
 
 ## File map
 
-New:
+**New**
+- `supabase/functions/extract-questions-from-pdf/index.ts`
+- `supabase/functions/draft-question-from-prompt/index.ts`
+- `supabase/migrations/<timestamp>_bar_ai_generations.sql`
+- `src/components/admin-bar/AiExtractDialog.tsx`
+- `src/components/admin-bar/AiDraftDialog.tsx`
+- `src/components/admin-bar/AiGenerationsLog.tsx`
 
-- `supabase/migrations/<timestamp>_bar_foundation.sql`
-- `src/lib/bar/types.ts`
-- `src/lib/bar/constants.ts`
-- `src/lib/bar/scoring.ts`
-- `src/lib/bar/scoring.test.ts`
-- `src/pages/AdminBar.tsx`
+**Modified**
 - `src/components/admin-bar/SourceLibrary.tsx`
 - `src/components/admin-bar/ChallengesTable.tsx`
 - `src/components/admin-bar/ChallengeForm.tsx`
-- `src/components/admin-bar/BarStats.tsx`
+- `src/pages/AdminBar.tsx`
 
-Modified:
-
-- `src/App.tsx` (route)
-- `src/components/Navbar.tsx` (admin link)
-
-## Out of scope (later prompts)
-
-AI extraction, student-facing question UI, leaderboards, profile rank badge, types 5–8, the existing `/the-bar` placeholder page (untouched).
+## Out of scope
+Student UI, attempt submission, leaderboards, profile rank badge, types 5–8, bulk approval, AI-assisted grading, email notifications.
 
 ## Definition of Done
+Migration applied; both functions deployed and admin-gated; Sources tab exposes Extract/Draft buttons that successfully create draft challenges from a real PDF and a topic prompt; Challenges tab shows Origin column/filter, AI badge, generation_id pre-filter, edit mode; AI Log tab renders rows with token counts and outcome badges; soft 20/hr cap blocks excessive calls; approved drafts visible to public query, drafts/rejected not.
 
-Schema + triggers + RLS deployed; storage bucket live; ≥20 scoring tests green; admin can upload a source, create + approve all 4 question types; non-admins blocked from `/admin/bar` and from reading non-approved rows; an authenticated user `INSERT` into `bar_attempts` for an approved challenge succeeds and updates stats; the 21st attempt in a UTC day is rejected; Stats tab shows real counts.  
-  
-Plan looks good. Two adjustments before you run:
-
-1. Fix the silk top-50 check:
-
-   - Query only against users who ALREADY meet silk's point threshold (50,000 points), not the entire user base. A silk seat is "top 50 AMONG those who've qualified on points".
-
-   - Add tiebreaker: if multiple users are tied at the boundary, rank by earliest `last_attempt_at` first (stable, deterministic).
-
-   - Only run this check in the trigger when the user is newly crossing into silk eligibility — skip it on every attempt if they're still below 50k points OR already marked silk and their stats haven't changed rank tier. Save the wasted query.
-
-2. Verify two things in your output that you didn't explicitly mention:
-
-   - The reserved Zod schemas (for document_review, brief_builder, ethics, client_counseling) MUST reject all submissions. Confirm this in the code.
-
-   - The updated_at trigger fires on BOTH bar_user_stats AND bar_user_stats_by_area, not just one.
-
-Everything else looks right. Proceed.
