@@ -117,6 +117,18 @@ export default function ProfileMenu() {
 
             <Divider />
 
+            {isAdmin && (
+              <>
+                <button
+                  onClick={() => { setOpen(false); navigate("/admin/bar"); }}
+                  className="flex items-center gap-2 w-full px-3 py-2 text-sm font-semibold text-accent rounded-md hover:bg-accent/10 transition-colors"
+                >
+                  <Shield size={16} /> Admin Console
+                </button>
+                <Divider />
+              </>
+            )}
+
             <button
               onClick={handleSignOut}
               className="flex items-center gap-2 w-full px-3 py-2 text-sm text-destructive rounded-md hover:bg-destructive/10 transition-colors"
