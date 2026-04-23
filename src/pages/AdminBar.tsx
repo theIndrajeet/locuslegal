@@ -4,16 +4,20 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { ShieldOff, Loader2 } from "lucide-react";
 import { useAdminRole } from "@/hooks/useAdminRole";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import SourceLibrary from "@/components/admin-bar/SourceLibrary";
 import ChallengesTable from "@/components/admin-bar/ChallengesTable";
 import BarStats from "@/components/admin-bar/BarStats";
+import AiGenerationsLog from "@/components/admin-bar/AiGenerationsLog";
 
 export default function AdminBar() {
   const isAdmin = useAdminRole();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tab = searchParams.get("tab") ?? "sources";
+
   usePageMeta({
     title: "Admin · The Bar — Locus",
     description: "Admin console for The Bar foundation.",
@@ -42,22 +46,31 @@ export default function AdminBar() {
     );
   }
 
+  const onTabChange = (v: string) => {
+    const next = new URLSearchParams(searchParams);
+    next.set("tab", v);
+    if (v !== "challenges") next.delete("generation_id");
+    setSearchParams(next, { replace: true });
+  };
+
   return (
     <div className="min-h-screen pt-24 pb-16 px-4 md:px-8 container mx-auto">
       <header className="mb-8">
         <h1 className="text-4xl font-bold">The Bar — Admin</h1>
-        <p className="text-muted-foreground mt-1">Foundation tools: sources, challenges, stats.</p>
+        <p className="text-muted-foreground mt-1">Foundation tools: sources, challenges, stats, AI log.</p>
       </header>
 
-      <Tabs defaultValue="sources" className="w-full">
+      <Tabs value={tab} onValueChange={onTabChange} className="w-full">
         <TabsList>
           <TabsTrigger value="sources">Sources</TabsTrigger>
           <TabsTrigger value="challenges">Challenges</TabsTrigger>
           <TabsTrigger value="stats">Stats</TabsTrigger>
+          <TabsTrigger value="ai-log">AI Log</TabsTrigger>
         </TabsList>
         <TabsContent value="sources" className="mt-6"><SourceLibrary /></TabsContent>
         <TabsContent value="challenges" className="mt-6"><ChallengesTable /></TabsContent>
         <TabsContent value="stats" className="mt-6"><BarStats /></TabsContent>
+        <TabsContent value="ai-log" className="mt-6"><AiGenerationsLog /></TabsContent>
       </Tabs>
     </div>
   );
