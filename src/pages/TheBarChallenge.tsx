@@ -1,7 +1,7 @@
 // TheBarChallenge — student attempt flow.
 //
 // MANUAL TEST CASES:
-// 1. Logged-out user → redirected to /auth.
+// 1. Logged-out user → can preview, submit opens sign-in dialog.
 // 2. Challenge not found / not approved → 404 state.
 // 3. Already-attempted challenge → redirect to dashboard with toast.
 // 4. MCQ flow: select option → submit → result screen.
@@ -14,7 +14,7 @@
 // `correct_option_id`, `correct_issue_ids`, and speed_round answers from the
 // payload at the database layer). The raw correct answer NEVER crosses the wire.
 // Underlying `bar_challenges` table is RLS-locked: only admins, the creator, or
-// users who have already attempted may read it.
+// users who have already attempted may read it. Guests can read the view (anon GRANT).
 
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
@@ -24,6 +24,10 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { McqRenderer } from "@/components/bar/renderers/McqRenderer";
@@ -69,6 +73,7 @@ export default function TheBarChallenge() {
   const [submitting, setSubmitting] = useState(false);
   const [startedAt] = useState(() => Date.now());
   const [result, setResult] = useState<ResultScreenProps | null>(null);
+  const [showSignInDialog, setShowSignInDialog] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -136,8 +141,8 @@ export default function TheBarChallenge() {
   const submit = async (override?: unknown) => {
     if (!challenge) return;
     if (!userId) {
-      // Guest tried to submit — bounce to /auth with a return path
-      navigate(`/auth?next=/the-bar/challenge/${challenge.id}`);
+      // Guest tried to submit — show inline sign-in dialog instead of redirect
+      setShowSignInDialog(true);
       return;
     }
     const answer = override ?? buildAnswer();
@@ -248,6 +253,18 @@ export default function TheBarChallenge() {
             <ArrowLeft size={16} /> Back
           </Button>
         </div>
+
+        {!userId && (
+          <Card className="border-2 border-accent/40 bg-accent/5 p-3 flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="flex-1 text-sm text-foreground">
+              <span className="font-semibold">Previewing as guest.</span>{" "}
+              <span className="text-muted-foreground">Sign in to submit and earn points.</span>
+            </div>
+            <Link to={`/auth?next=/the-bar/challenge/${challenge.id}`}>
+              <Button size="sm" className="w-full sm:w-auto">Sign in</Button>
+            </Link>
+          </Card>
+        )}
 
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="outline">{QUESTION_TYPE_LABELS[challenge.question_type]}</Badge>
