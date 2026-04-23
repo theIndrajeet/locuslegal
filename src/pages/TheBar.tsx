@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowRight, History, LogIn, Sparkles } from "lucide-react";
+import { ArrowRight, History, LogIn, Sparkles, Trophy } from "lucide-react";
 import { StatsStrip } from "@/components/bar/StatsStrip";
 import { AttemptListItem } from "@/components/bar/AttemptListItem";
 import { AttemptReviewDialog } from "@/components/bar/AttemptReviewDialog";
@@ -38,6 +38,8 @@ export default function TheBar() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [recent, setRecent] = useState<RecentAttempt[]>([]);
   const [reviewId, setReviewId] = useState<string | null>(null);
+  const [overallRank, setOverallRank] = useState<number | null>(null);
+  const [optedOut, setOptedOut] = useState(false);
 
   const designationLabel = stats ? formatDesignation(stats.designation) : "Trainee";
   usePageMeta({
@@ -65,7 +67,7 @@ export default function TheBar() {
     let active = true;
     (async () => {
       setLoading(true);
-      const [statsRes, recentRes] = await Promise.all([
+      const [statsRes, recentRes, profileRes] = await Promise.all([
         supabase.from("bar_user_stats").select("*").eq("user_id", userId).maybeSingle(),
         supabase
           .from("bar_attempts")
@@ -73,18 +75,31 @@ export default function TheBar() {
           .eq("user_id", userId)
           .order("attempted_at", { ascending: false })
           .limit(10),
+        supabase.from("profiles").select("bar_leaderboard_opt_out").eq("id", userId).maybeSingle(),
       ]);
       if (!active) return;
-      setStats(
-        (statsRes.data as Stats | null) ?? {
-          total_points: 0,
-          accuracy_pct: 0,
-          current_streak: 0,
-          longest_streak: 0,
-          designation: "trainee",
-        },
-      );
+      const resolvedStats = (statsRes.data as Stats | null) ?? {
+        total_points: 0,
+        accuracy_pct: 0,
+        current_streak: 0,
+        longest_streak: 0,
+        designation: "trainee",
+      };
+      setStats(resolvedStats);
       setRecent((recentRes.data ?? []) as RecentAttempt[]);
+      setOptedOut(((profileRes.data as { bar_leaderboard_opt_out?: boolean } | null)?.bar_leaderboard_opt_out) ?? false);
+
+      // Compute overall rank only if user has attempts
+      if (resolvedStats.total_points > 0) {
+        const { count } = await supabase
+          .from("bar_user_stats")
+          .select("user_id", { count: "exact", head: true })
+          .gt("total_points", resolvedStats.total_points);
+        if (active) setOverallRank((count ?? 0) + 1);
+      } else {
+        setOverallRank(null);
+      }
+
       setLoading(false);
     })();
     return () => { active = false; };
