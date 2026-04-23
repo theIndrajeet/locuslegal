@@ -47,10 +47,17 @@ export default function CvSection({ userId, cvUrl, cvUploadedAt, setCvUrl, setCv
         body: { cv_storage_path: `${userId}/cv.pdf` },
       });
       if (error) {
-        // supabase wraps non-2xx as FunctionsHttpError; data may still hold our error JSON
-        const msg = (data as { error?: string } | null)?.error || error.message || "CV parsing failed — please fill manually";
-        const retryable = (data as { retryable?: boolean } | null)?.retryable;
-        if (retryable) toast.error(msg);
+        // supabase wraps non-2xx as FunctionsHttpError; the JSON error body lives on error.context.response
+        let body: { error?: string; retryable?: boolean } | null = null;
+        try {
+          const resp = (error as unknown as { context?: { response?: Response } })?.context?.response;
+          if (resp) body = await resp.clone().json();
+        } catch {
+          // ignore parse failure, fall back below
+        }
+        if (!body) body = data as { error?: string; retryable?: boolean } | null;
+        const msg = body?.error || error.message || "CV parsing failed — please fill manually";
+        if (body?.retryable) toast.error(msg);
         else toast.error("CV parsing failed — please fill manually");
         return;
       }
