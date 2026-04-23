@@ -10,6 +10,18 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Share2, ExternalLink, ArrowLeft } from "lucide-react";
+import { RankBadgeBlock } from "@/components/bar/RankBadgeBlock";
+import type { BarDesignation } from "@/lib/bar/types";
+
+interface BarStats {
+  designation: BarDesignation;
+  total_points: number;
+  accuracy_pct: number;
+  current_streak: number;
+  rank_position: number | null;
+  is_owner: boolean;
+  opted_out: boolean;
+}
 
 interface Profile {
   id: string;
@@ -80,6 +92,7 @@ export default function PublicProfile() {
   const [moots, setMoots] = useState<Moot[]>([]);
   const [publications, setPublications] = useState<Publication[]>([]);
   const [activeTab, setActiveTab] = useState<string>("experience");
+  const [barStats, setBarStats] = useState<BarStats | null>(null);
   const hasAutoSelected = useRef(false);
 
   const metaTitle = profile
