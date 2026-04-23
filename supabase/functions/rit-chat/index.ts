@@ -104,11 +104,11 @@ serve(async (req) => {
       global: { headers: { Authorization: authHeader } },
     });
     const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsErr } = await userClient.auth.getClaims(token);
-    if (claimsErr || !claimsData?.claims?.sub) {
+    const { data: userData, error: userErr } = await userClient.auth.getUser(token);
+    if (userErr || !userData?.user?.id) {
       return jsonResponse(401, { error: "unauthenticated" });
     }
-    const userId = claimsData.claims.sub as string;
+    const userId = userData.user.id;
 
     // Validate body
     const raw = await req.json().catch(() => null);
