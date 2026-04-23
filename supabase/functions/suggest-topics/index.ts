@@ -102,7 +102,6 @@ serve(async (req) => {
 
   const adminClient = createClient(SUPABASE_URL, SERVICE_ROLE);
   let generationId: string | null = null;
-  let placeholderSourceId: string | null = null;
 
   const finalizeLog = async (patch: Record<string, unknown>) => {
     if (!generationId) return;
@@ -132,21 +131,8 @@ serve(async (req) => {
     const body = parsed.data;
     const count = body.mode === "surprise" ? (body.count ?? 5) : 1;
 
-    // bar_ai_generations.source_id is NOT NULL — create a transient placeholder source we can later remove if log fails.
-    // Instead, we create a real "AI batch" placeholder source we delete only on total failure.
-    const { data: ph, error: phErr } = await adminClient.from("bar_sources").insert({
-      title: `[AI batch ${new Date().toISOString().slice(0, 19)}]`,
-      description: body.mode === "expand" ? `seed: ${body.seed}` : `surprise count=${count}`,
-      source_type: "topic_prompt",
-      topic_prompt: body.mode === "expand" ? body.seed! : "AI topic batch placeholder",
-      license: body.license,
-      uploaded_by: userId,
-    }).select("id").single();
-    if (phErr || !ph) return json(500, { error: "Failed to create batch placeholder", details: phErr?.message });
-    placeholderSourceId = ph.id;
-
     const { data: logRow, error: logErr } = await adminClient.from("bar_ai_generations").insert({
-      source_id: placeholderSourceId,
+      source_id: null,
       generation_type: "topic_suggest",
       requested_by: userId,
       area_of_law_hint: body.areas?.[0] ?? null,
@@ -155,8 +141,7 @@ serve(async (req) => {
       outcome: "ai_error",
     }).select("id").single();
     if (logErr || !logRow) {
-      await adminClient.from("bar_sources").delete().eq("id", placeholderSourceId);
-      return json(500, { error: "Failed to create log row" });
+      return json(500, { error: "Failed to create log row", details: logErr?.message });
     }
     generationId = logRow.id;
 
@@ -178,18 +163,15 @@ serve(async (req) => {
 
     if (aiResp.status === 429) {
       await finalizeLog({ outcome: "rate_limit", error_message: "AI rate limited" });
-      await adminClient.from("bar_sources").delete().eq("id", placeholderSourceId);
       return json(429, { error: "Rate limited — try again shortly." });
     }
     if (aiResp.status === 402) {
       await finalizeLog({ outcome: "quota_exceeded", error_message: "AI credits exhausted" });
-      await adminClient.from("bar_sources").delete().eq("id", placeholderSourceId);
       return json(402, { error: "AI credits exhausted." });
     }
     if (!aiResp.ok) {
       const t = await aiResp.text();
       await finalizeLog({ outcome: "ai_error", error_message: `Gateway ${aiResp.status}: ${t.slice(0, 500)}` });
-      await adminClient.from("bar_sources").delete().eq("id", placeholderSourceId);
       return json(500, { error: "AI gateway error" });
     }
 
@@ -202,14 +184,12 @@ serve(async (req) => {
     try { parsedAi = JSON.parse(stripFencesObj(text)); }
     catch {
       await finalizeLog({ outcome: "parse_fail", error_message: "JSON parse failed", prompt_tokens: promptTokens, completion_tokens: completionTokens });
-      await adminClient.from("bar_sources").delete().eq("id", placeholderSourceId);
       return json(500, { error: "AI returned malformed JSON" });
     }
 
     if (parsedAi?.refused === true) {
       const reason = typeof parsedAi.reason === "string" ? parsedAi.reason : "AI declined";
       await finalizeLog({ outcome: "validation_fail", error_message: reason, prompt_tokens: promptTokens, completion_tokens: completionTokens });
-      await adminClient.from("bar_sources").delete().eq("id", placeholderSourceId);
       return json(422, { error: `AI declined: ${reason}` });
     }
 
@@ -221,7 +201,6 @@ serve(async (req) => {
 
     if (validTopics.length === 0) {
       await finalizeLog({ outcome: "validation_fail", error_message: "no valid topics", prompt_tokens: promptTokens, completion_tokens: completionTokens });
-      await adminClient.from("bar_sources").delete().eq("id", placeholderSourceId);
       return json(422, { error: "AI returned no valid topics" });
     }
 
@@ -237,16 +216,12 @@ serve(async (req) => {
     const { data: inserted, error: insErr } = await adminClient.from("bar_sources").insert(rows).select("id");
     if (insErr || !inserted) {
       await finalizeLog({ outcome: "ai_error", error_message: insErr?.message ?? "insert failed", prompt_tokens: promptTokens, completion_tokens: completionTokens });
-      await adminClient.from("bar_sources").delete().eq("id", placeholderSourceId);
-      return json(500, { error: "Failed to insert topic sources" });
+      return json(500, { error: "Failed to insert topic sources", details: insErr?.message });
     }
-
-    // Replace placeholder with real first source ref by deleting placeholder.
-    await adminClient.from("bar_sources").delete().eq("id", placeholderSourceId);
 
     await finalizeLog({
       outcome: "success",
-      challenges_created: 0, // these are sources, not challenges
+      challenges_created: 0,
       prompt_tokens: promptTokens,
       completion_tokens: completionTokens,
     });
@@ -258,9 +233,6 @@ serve(async (req) => {
     });
   } catch (e) {
     console.error("suggest-topics error:", e);
-    if (placeholderSourceId) {
-      await adminClient.from("bar_sources").delete().eq("id", placeholderSourceId);
-    }
     await finalizeLog({ outcome: "ai_error", error_message: e instanceof Error ? e.message : "Unknown" });
     return json(500, { error: e instanceof Error ? e.message : "Unknown" });
   }
