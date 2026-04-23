@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { Button } from "@/components/ui/button";
@@ -39,7 +39,6 @@ export default function TheBarBrowse() {
     description: "Pick a legal challenge and earn points.",
     path: "/the-bar/browse",
   });
-  const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
 
   const [authReady, setAuthReady] = useState(false);

@@ -62,7 +62,7 @@ export default function TheBarHistory() {
 
   useEffect(() => {
     if (!authReady) return;
-    if (!userId) { navigate("/auth"); return; }
+    if (!userId) { setLoading(false); setRows([]); return; }
     let active = true;
     (async () => {
       setLoading(true);
@@ -77,7 +77,7 @@ export default function TheBarHistory() {
       setLoading(false);
     })();
     return () => { active = false; };
-  }, [authReady, userId, navigate]);
+  }, [authReady, userId]);
 
   const filtered = useMemo(() => {
     let out = rows;
@@ -122,7 +122,16 @@ export default function TheBarHistory() {
           </Select>
         </div>
 
-        {loading ? (
+        {!userId && authReady ? (
+          <Card className="border-2 border-dashed border-border p-12 text-center">
+            <p className="text-muted-foreground mb-4">
+              Sign in to see your attempt history.
+            </p>
+            <Link to="/auth">
+              <Button className="gap-2"><LogIn size={16} /> Sign in</Button>
+            </Link>
+          </Card>
+        ) : loading ? (
           <div className="space-y-2">
             {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}
           </div>

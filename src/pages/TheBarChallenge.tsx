@@ -24,7 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Loader2, LogIn, Sparkles } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { McqRenderer } from "@/components/bar/renderers/McqRenderer";
 import { IssueSpotterRenderer } from "@/components/bar/renderers/IssueSpotterRenderer";
