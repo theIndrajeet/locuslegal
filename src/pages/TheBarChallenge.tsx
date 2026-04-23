@@ -25,6 +25,13 @@ import { DocumentReviewRenderer, type DocReviewAnswerState } from "@/components/
 import { BriefBuilderRenderer, type BriefAnswerState } from "@/components/bar/renderers/BriefBuilderRenderer";
 import { EthicsRenderer, type EthicsAnswerState, type EthicsStage } from "@/components/bar/renderers/EthicsRenderer";
 import { ClientCounselingRenderer, type CounselingAnswerState } from "@/components/bar/renderers/ClientCounselingRenderer";
+import { PremiumDocumentReview } from "@/components/bar/premium/PremiumDocumentReview";
+import { PremiumBriefBuilder } from "@/components/bar/premium/PremiumBriefBuilder";
+import { PremiumEthics } from "@/components/bar/premium/PremiumEthics";
+import { PremiumClientCounseling } from "@/components/bar/premium/PremiumClientCounseling";
+import { PremiumShell } from "@/components/bar/premium/PremiumShell";
+import { PremiumButton } from "@/components/bar/premium/PremiumPrimitives";
+import { isPremiumType } from "@/lib/bar/premium";
 import { ResultScreen, type ResultScreenProps } from "@/components/bar/ResultScreen";
 import { AREA_OF_LAW_LABELS, QUESTION_TYPE_LABELS } from "@/lib/bar/constants";
 import type { AreaOfLaw, Difficulty, QuestionType } from "@/lib/bar/types";
@@ -285,6 +292,111 @@ export default function TheBarChallenge() {
     }
   })();
 
+  // ===== Locus+ premium track =====
+  if (isPremiumType(challenge.question_type)) {
+    const ctaDisabled = submitting || !canSubmitDirect;
+    let primaryCta: React.ReactNode = null;
+    if (challenge.question_type === "brief_builder" && !briefAtLast) {
+      primaryCta = (
+        <PremiumButton
+          onClick={() => setBriefStep((s) => Math.min(s + 1, briefSteps.length - 1))}
+          disabled={!briefCurrentDone}
+        >
+          Next step <ArrowRight size={14} />
+        </PremiumButton>
+      );
+    } else if (challenge.question_type === "ethics" && ethicsStage === "decision") {
+      primaryCta = (
+        <PremiumButton onClick={() => setEthicsStage("consequence")} disabled={!ethicsCanAdvance}>
+          Continue <ArrowRight size={14} />
+        </PremiumButton>
+      );
+    } else if (challenge.question_type === "client_counseling" && !counselingAtLast) {
+      primaryCta = (
+        <PremiumButton onClick={() => setCounselingTurn((t) => t + 1)} disabled={!counselingHasPick}>
+          Send response <ArrowRight size={14} />
+        </PremiumButton>
+      );
+    } else {
+      primaryCta = (
+        <PremiumButton onClick={() => submit()} disabled={ctaDisabled}>
+          {submitting ? <><Loader2 size={14} className="animate-spin" /> Grading…</> : "Submit"}
+        </PremiumButton>
+      );
+    }
+
+    return (
+      <>
+        <PremiumShell
+          formatLabel={QUESTION_TYPE_LABELS[challenge.question_type]}
+          areaLabel={AREA_OF_LAW_LABELS[challenge.area_of_law]}
+          difficulty={challenge.difficulty}
+          pointsLabel={`${challenge.points_base} pts`}
+          title={challenge.title}
+          prompt={challenge.prompt}
+          sourceLine={challenge.source_citation ?? undefined}
+          autosaveLabel={userId ? "Saved · just now" : undefined}
+          matterContext={!userId ? "Previewing as guest · sign in to submit" : undefined}
+          cta={primaryCta}
+        >
+          {challenge.question_type === "document_review" && (
+            <PremiumDocumentReview
+              mode="answer"
+              payload={challenge.payload}
+              value={docReview}
+              onChange={setDocReview}
+            />
+          )}
+          {challenge.question_type === "brief_builder" && (
+            <PremiumBriefBuilder
+              mode="answer"
+              payload={challenge.payload}
+              currentStep={briefStep}
+              value={brief}
+              onChange={setBrief}
+              onAdvance={() => setBriefStep((s) => Math.min(s + 1, briefSteps.length - 1))}
+            />
+          )}
+          {challenge.question_type === "ethics" && (
+            <PremiumEthics
+              mode="answer"
+              payload={challenge.payload}
+              stage={ethicsStage}
+              value={ethics}
+              onChange={setEthics}
+            />
+          )}
+          {challenge.question_type === "client_counseling" && (
+            <PremiumClientCounseling
+              mode="answer"
+              payload={challenge.payload}
+              currentTurn={counselingTurn}
+              value={counseling}
+              onChange={setCounseling}
+            />
+          )}
+        </PremiumShell>
+
+        <AlertDialog open={showSignInDialog} onOpenChange={setShowSignInDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Sign in to submit your answer</AlertDialogTitle>
+              <AlertDialogDescription>
+                You're previewing this challenge as a guest. Sign in to submit, earn points, and climb the leaderboard.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={() => navigate(`/auth?next=/the-bar/challenge/${challenge.id}`)}>
+                Sign in
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </>
+    );
+  }
+
   return (
     <section className="min-h-screen pt-24 pb-16 bg-background">
       <div className="container mx-auto px-4 max-w-4xl space-y-6">
@@ -360,95 +472,19 @@ export default function TheBarChallenge() {
               onComplete={(answer: SpeedRoundAnswerState) => submit(answer)}
             />
           )}
-          {challenge.question_type === "document_review" && (
-            <DocumentReviewRenderer
-              mode="answer"
-              payload={challenge.payload}
-              value={docReview}
-              onChange={setDocReview}
-            />
-          )}
-          {challenge.question_type === "brief_builder" && (
-            <BriefBuilderRenderer
-              mode="answer"
-              payload={challenge.payload}
-              currentStep={briefStep}
-              value={brief}
-              onChange={setBrief}
-              onAdvance={() => setBriefStep((s) => Math.min(s + 1, briefSteps.length - 1))}
-            />
-          )}
-          {challenge.question_type === "ethics" && (
-            <EthicsRenderer
-              mode="answer"
-              payload={challenge.payload}
-              stage={ethicsStage}
-              value={ethics}
-              onChange={setEthics}
-            />
-          )}
-          {challenge.question_type === "client_counseling" && (
-            <ClientCounselingRenderer
-              mode="answer"
-              payload={challenge.payload}
-              currentTurn={counselingTurn}
-              value={counseling}
-              onChange={setCounseling}
-            />
-          )}
         </div>
 
         {/* Per-type advance / submit row */}
         {challenge.question_type !== "speed_round" && (
           <div className="flex justify-end gap-2">
-            {challenge.question_type === "brief_builder" && !briefAtLast && (
-              <Button
-                size="lg"
-                onClick={() => setBriefStep((s) => Math.min(s + 1, briefSteps.length - 1))}
-                disabled={!briefCurrentDone}
-                className="gap-2"
-              >
-                Next step <ArrowRight size={16} />
-              </Button>
-            )}
-            {challenge.question_type === "ethics" && ethicsStage === "decision" && (
-              <Button
-                size="lg"
-                onClick={() => setEthicsStage("consequence")}
-                disabled={!ethicsCanAdvance}
-                className="gap-2"
-              >
-                Continue <ArrowRight size={16} />
-              </Button>
-            )}
-            {challenge.question_type === "client_counseling" && !counselingAtLast && (
-              <Button
-                size="lg"
-                onClick={() => setCounselingTurn((t) => t + 1)}
-                disabled={!counselingHasPick}
-                className="gap-2"
-              >
-                Send response <ArrowRight size={16} />
-              </Button>
-            )}
-
-            {/* Submit appears once the format is complete */}
-            {(
-              challenge.question_type !== "brief_builder" || briefAtLast
-            ) && (
-              challenge.question_type !== "ethics" || ethicsStage === "consequence"
-            ) && (
-              challenge.question_type !== "client_counseling" || counselingAtLast
-            ) && (
-              <Button
-                size="lg"
-                onClick={() => submit()}
-                disabled={submitting || !canSubmitDirect}
-                className="gap-2 min-w-[160px]"
-              >
-                {submitting ? <><Loader2 size={16} className="animate-spin" /> Grading…</> : "Submit"}
-              </Button>
-            )}
+            <Button
+              size="lg"
+              onClick={() => submit()}
+              disabled={submitting || !canSubmitDirect}
+              className="gap-2 min-w-[160px]"
+            >
+              {submitting ? <><Loader2 size={16} className="animate-spin" /> Grading…</> : "Submit"}
+            </Button>
           </div>
         )}
       </div>
