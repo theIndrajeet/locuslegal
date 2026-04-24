@@ -87,10 +87,10 @@ export function PremiumShell({
   const ptsSuffix = ptsParts.length > 1 ? ptsParts.slice(1).join(" ") : "PTS";
 
   return (
-    <div className="locus-plus min-h-screen">
-      <div className="grid lg:grid-cols-[220px_1fr] min-h-screen">
+    <div className="locus-plus min-h-screen pt-16">
+      <div className="grid lg:grid-cols-[220px_1fr] min-h-[calc(100vh-4rem)]">
         {/* ─────────── Sidebar ─────────── */}
-        <aside className="hidden lg:flex flex-col gap-7 sticky top-0 h-screen border-r-2 border-[hsl(var(--lp-line))] bg-[hsl(var(--lp-bg))] px-[18px] py-6">
+        <aside className="hidden lg:flex flex-col gap-7 sticky top-16 h-[calc(100vh-4rem)] border-r-2 border-[hsl(var(--lp-line))] bg-[hsl(var(--lp-bg))] px-[18px] py-6">
           <Link to="/" className="flex items-baseline gap-1.5 group">
             <span
               className="text-[22px] font-extrabold tracking-[-0.04em] leading-none text-[hsl(var(--lp-text))]"
