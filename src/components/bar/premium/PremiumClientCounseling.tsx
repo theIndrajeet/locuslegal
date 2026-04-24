@@ -162,10 +162,19 @@ export function PremiumClientCounseling(props: AnswerProps | ReviewProps) {
   }
 
   // ───────── ANSWER MODE ─────────
-  const currentDt = payload.decision_turns.find((d) => d.turn === props.currentTurn);
-  const currentPick = props.value.turn_picks.find((p) => p.turn === props.currentTurn);
-  const visibleTranscript = payload.transcript.filter((t) => t.turn <= props.currentTurn);
-  const handledDecisions = payload.decision_turns.filter((d) => d.turn < props.currentTurn);
+  // `currentTurn` from the host is a 1-based position into decision_turns,
+  // not the absolute `turn` field on each decision (which often continues the
+  // transcript numbering, e.g. 4,5,6). Resolve by position to stay robust.
+  const currentIdx = props.currentTurn - 1;
+  const currentDt = payload.decision_turns[currentIdx];
+  const currentDtTurn = currentDt?.turn;
+  const currentPick = currentDtTurn != null
+    ? props.value.turn_picks.find((p) => p.turn === currentDtTurn)
+    : undefined;
+  // Show all transcript entries up to (and including) the current decision's turn.
+  const transcriptCutoff = currentDtTurn ?? Number.POSITIVE_INFINITY;
+  const visibleTranscript = payload.transcript.filter((t) => t.turn <= transcriptCutoff);
+  const handledDecisions = payload.decision_turns.slice(0, currentIdx);
 
   const setPick = (id: string) => {
     if (props.mode !== "answer" || !currentDt) return;
