@@ -200,6 +200,24 @@ export default function ProfileEdit() {
           <Button variant="outline" size="sm" onClick={() => navigate(-1)}>Back</Button>
         </div>
 
+        <button
+          type="button"
+          onClick={() => navigate("/applications")}
+          className="group flex w-full items-center justify-between gap-3 border-2 border-border bg-card px-4 py-3 text-left shadow-[3px_3px_0_0_hsl(var(--border))] transition-all hover:border-accent hover:shadow-[5px_5px_0_0_hsl(var(--accent))]"
+        >
+          <div>
+            <div className="font-heading text-sm font-extrabold uppercase tracking-wider text-foreground">
+              Track applications
+            </div>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Log every firm you apply to. Private to you. Get nudges to follow up.
+            </p>
+          </div>
+          <span className="font-mono text-xs font-bold text-accent group-hover:translate-x-0.5 transition-transform">
+            OPEN →
+          </span>
+        </button>
+
         <IdentitySection
           userId={userId}
           displayName={displayName} setDisplayName={setDisplayName}
