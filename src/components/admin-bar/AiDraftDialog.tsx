@@ -47,7 +47,7 @@ export default function AiDraftDialog({ open, onOpenChange, sourceId, sourceTitl
     toast("AI is working… this may take 10–45s", { icon: <Sparkles className="w-4 h-4" /> });
 
     const { data, error } = await supabase.functions.invoke("draft-question-from-prompt", {
-      body: { source_id: sourceId, question_type: type, area_of_law: area, difficulty: diff },
+      body: { source_id: sourceId, question_type: type, difficulty: diff },
     });
     setBusy(false);
 
