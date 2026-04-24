@@ -1,4 +1,4 @@
-import HomeHero from "@/components/home/HomeHero";
+import ManifestoHero from "@/components/home/ManifestoHero";
 import StatsBar from "@/components/StatsBar";
 import FeatureBento from "@/components/home/FeatureBento";
 import LocusPlusStrip from "@/components/home/LocusPlusStrip";
@@ -15,7 +15,7 @@ const Index = () => {
 
   return (
     <>
-      <HomeHero />
+      <ManifestoHero />
       <StatsBar />
       <FeatureBento />
       <LocusPlusStrip />

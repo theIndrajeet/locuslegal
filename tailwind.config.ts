@@ -16,6 +16,7 @@ export default {
       fontFamily: {
         heading: ['Sora', 'sans-serif'],
         body: ['Inter', 'sans-serif'],
+        mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'monospace'],
       },
       colors: {
         main: 'var(--main)',
