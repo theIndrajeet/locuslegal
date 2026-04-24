@@ -1,49 +1,38 @@
-## Locus+ Premium Hardening — Round 2
+## Plan
 
-### 1. State reset on challenge change (`src/pages/TheBarChallenge.tsx`)
-Add a `useEffect([challenge?.id])` that resets ALL premium navigation state to defaults whenever a new challenge loads:
-- `briefStep` → 0
-- `counselingTurn` → 0
-- `ethicsStage` → 'decide'
-- `docReviewFlagged` → []
-- any per-type local answer state
+The database does have content: there are 4 approved challenges.
 
-This prevents `payload.steps[briefStep]` style crashes when navigating from a 5-step brief to a 3-step brief.
+The current failure is frontend-side: the live preview is still sending this request:
 
-### 2. Brief Builder review correctness tint (`src/components/bar/AttemptReviewDialog.tsx`)
-In `BriefBuilderReview`, when the payload contains an answer key (admin review), compare `submitted.step_answers[i]` against `payload.steps[i].correct_*` and tint the stepper button:
-- match → emerald border/text
-- mismatch → rose border/text
-- no key available (student-stripped payload) → neutral (current behaviour)
-
-### 3. Document Review min height (`src/components/bar/premium/PremiumDocumentReview.tsx`)
-Add `min-h-[60vh]` to the root grid container so short documents don't collapse and overlap the footer.
-
-### 4. Delete obsolete legacy renderers
-The four premium types now route exclusively through `Premium*` components. The legacy renderers are dead code that still references stripped `correct_*` keys in their TS interfaces — a future regression risk.
-
-Delete:
-- `src/components/bar/renderers/EthicsRenderer.tsx`
-- `src/components/bar/renderers/ClientCounselingRenderer.tsx`
-- `src/components/bar/renderers/BriefBuilderRenderer.tsx`
-- `src/components/bar/renderers/DocumentReviewRenderer.tsx`
-
-Remove their imports from `AttemptReviewDialog.tsx` and `TheBarChallenge.tsx`.
-
-### 5. Guest access RLS policy (new migration)
-Currently `bar_challenges_student` runs with `security_invoker = true`, so `anon` needs base-table SELECT to read approved challenges in guest preview. Add:
-
-```sql
-CREATE POLICY "Anon can read approved bar_challenges"
-  ON public.bar_challenges
-  FOR SELECT
-  TO anon
-  USING (status = 'approved');
+```text
+GET /bar_challenges_student?select=...,approved_at&order=approved_at.desc
 ```
 
-The view itself strips all `correct_*` keys, so anon still cannot see answers. Authenticated paths are unchanged.
+But the student-safe view does not expose `approved_at`, so the backend returns:
 
-### Out of scope
-- No payload schema changes
-- No edge function changes
-- No new tables
+```text
+column bar_challenges_student.approved_at does not exist
+```
+
+That is why the page falls into the empty state even though questions exist.
+
+### What I’ll do
+
+1. Update the browse page query to use only columns that exist on `bar_challenges_student`:
+   - select `created_at` instead of `approved_at`
+   - order by `created_at desc`
+2. Verify the `Challenge` type matches the safe view schema so there is no mismatch.
+3. Rebuild/save the app so the preview is actually running the corrected code, then confirm the browse page shows the approved questions for guests and signed-in users.
+
+### Technical details
+
+Relevant view schema already shows:
+- `created_at` exists
+- `approved_at` does not exist
+
+Relevant file:
+- `src/pages/TheBarBrowse.tsx`
+
+No new database migration is needed for this fix. The RLS/view access work is already in place; this is now a query/schema mismatch in the client.
+
+Approve and I’ll apply the code fix and verify it in the preview.

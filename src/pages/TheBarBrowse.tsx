@@ -70,6 +70,7 @@ export default function TheBarBrowse() {
       setLoading(true);
       const today = new Date();
       const todayStr = today.toISOString().slice(0, 10);
+      // Browse uses the safe student view; order by created_at (approved_at is not exposed).
 
       if (userId) {
         const [attemptedRes, dailyRes, challengeRes] = await Promise.all([
