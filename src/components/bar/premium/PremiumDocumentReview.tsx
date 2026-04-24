@@ -1,9 +1,11 @@
-// Locus+ Document Review — paper document with click-to-flag + side rail.
+// Locus+ Document Review — cream paper card with click-to-flag dotted-underline phrases.
 import { useMemo } from "react";
-import { Check, X, AlertTriangle, Flag, Plus } from "lucide-react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { PremiumCard, PremiumLabel } from "./PremiumPrimitives";
 
 interface Span { id: string; text: string }
 interface Category { id: string; label: string }
@@ -14,6 +16,11 @@ interface Payload {
   spans: Span[];
   categories: Category[];
   correct_flags: CorrectFlag[];
+  /** Optional cosmetic header (defaults below). */
+  doc_id?: string;
+  doc_title?: string;
+  doc_subtitle?: string;
+  doc_date?: string;
 }
 
 export interface DocReviewAnswerState {
@@ -25,12 +32,25 @@ interface AnswerProps {
   payload: Payload;
   value: DocReviewAnswerState;
   onChange: (next: DocReviewAnswerState) => void;
+  /** When true, render a "Grading your review…" overlay over the paper. */
+  grading?: boolean;
+  /** When provided (review/result), render score banner above the paper. */
+  resultBanner?: ResultBannerProps;
 }
 interface ReviewProps {
   mode: "review";
   payload: Payload;
   submitted: DocReviewAnswerState;
   correct_flags: CorrectFlag[];
+  resultBanner?: ResultBannerProps;
+}
+
+export interface ResultBannerProps {
+  found: number;
+  total: number;
+  falseFlags: number;
+  pointsAwarded: number;
+  pointsBase: number;
 }
 
 export function PremiumDocumentReview(props: AnswerProps | ReviewProps) {
@@ -84,20 +104,46 @@ export function PremiumDocumentReview(props: AnswerProps | ReviewProps) {
     return m;
   }, [payload.spans]);
 
-  const catLabel = (id?: string | null) =>
-    id ? payload.categories.find((c) => c.id === id)?.label ?? id : "";
-
-  const flaggedList = props.mode === "answer" ? props.value.flagged : props.submitted.flagged;
+  const grading = props.mode === "answer" && (props as AnswerProps).grading;
+  const resultBanner = props.resultBanner;
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_300px] gap-6">
-      {/* Document */}
-      <article className="premium-paper p-7 md:p-9">
-        <div className="flex items-center justify-between mb-5 pb-4 border-b border-[hsl(var(--premium-border))]">
-          <PremiumLabel>Document · For Review</PremiumLabel>
-          <span className="text-[11px] text-[hsl(var(--premium-subtle))]">CONFIDENTIAL</span>
+    <div className="space-y-5">
+      {resultBanner && <ResultBanner {...resultBanner} />}
+
+      <article className="lp-paper relative max-w-[860px] mx-auto px-6 sm:px-10 md:px-20 py-12 md:py-16">
+        {/* meta header */}
+        <div
+          className="flex justify-between items-baseline border-b border-[hsl(var(--lp-paper-ink)/0.25)] pb-2.5 mb-7 uppercase tracking-[0.12em] text-[10.5px]"
+          style={{
+            fontFamily: "'JetBrains Mono', monospace",
+            color: "hsl(var(--lp-paper-ink) / 0.55)",
+          }}
+        >
+          <span>{payload.doc_id ?? "DOC-NDA-001"} · CONFIDENTIAL</span>
+          <span>{payload.doc_date ?? "April 2024"}</span>
         </div>
-        <div className="font-serif-display text-[17px] leading-[1.8] whitespace-pre-wrap text-[hsl(var(--premium-ink))]">
+        <h1
+          className="m-0 mb-1 text-[26px] sm:text-[30px] font-semibold tracking-[-0.01em] text-[hsl(var(--lp-paper-ink))]"
+          style={{ fontFamily: "'Cormorant Garamond', serif" }}
+        >
+          {payload.doc_title ?? "Mutual Non-Disclosure Agreement"}
+        </h1>
+        <p
+          className="italic mb-8 text-[15px]"
+          style={{
+            fontFamily: "'Cormorant Garamond', serif",
+            color: "hsl(var(--lp-paper-ink) / 0.6)",
+          }}
+        >
+          {payload.doc_subtitle ?? "Excerpt for review — flag every clause that is unconscionable, overbroad, or contrary to law."}
+        </p>
+
+        {/* body */}
+        <div
+          className="whitespace-pre-wrap text-[17px] sm:text-[18px] leading-[1.65] text-[hsl(var(--lp-paper-ink))]"
+          style={{ fontFamily: "'Cormorant Garamond', serif" }}
+        >
           {segments.map((seg, i) => {
             if (seg.kind === "text") return <span key={i}>{seg.text}</span>;
             const id = seg.id!;
@@ -106,31 +152,20 @@ export function PremiumDocumentReview(props: AnswerProps | ReviewProps) {
             if (props.mode === "review") {
               const submitted = submittedMap.get(id);
               const correct = correctMap.get(id);
-              const isCorrectHit = !!submitted && submitted === correct;
+              const isCorrectHit = !!submitted && !!correct;
               const isMissed = !submitted && !!correct;
               const isFalseFlag = !!submitted && !correct;
-              const isWrongCat = !!submitted && !!correct && submitted !== correct;
               return (
                 <span
                   key={i}
                   className={cn(
-                    "px-0.5 -mx-0.5 rounded transition-colors inline",
-                    isCorrectHit && "bg-[hsl(152_55%_36%/0.14)] underline decoration-[hsl(var(--premium-success))] decoration-2 underline-offset-4",
-                    isMissed && "bg-[hsl(4_65%_48%/0.10)] underline decoration-[hsl(var(--premium-danger))] decoration-2 underline-offset-4 decoration-dashed",
-                    isFalseFlag && "bg-[hsl(45_100%_51%/0.20)] underline decoration-[hsl(var(--premium-accent))] decoration-2 underline-offset-4",
-                    isWrongCat && "bg-[hsl(4_65%_48%/0.10)] underline decoration-[hsl(var(--premium-danger))] decoration-2 underline-offset-4",
+                    "px-[2px] py-[1px] rounded-[2px] border-b-[1.5px]",
+                    isCorrectHit && "bg-[hsl(152_55%_53%/0.55)] border-b-[2px] border-[hsl(152_55%_27%)]",
+                    isMissed && "border-b-[2px] border-[hsl(var(--lp-bad))]",
+                    isFalseFlag && "border-b-[2px] border-dashed border-[hsl(45_100%_63%/0.9)]",
+                    !isCorrectHit && !isMissed && !isFalseFlag &&
+                      "border-dotted border-[hsl(var(--lp-paper-ink)/0.35)]",
                   )}
-                  title={
-                    isCorrectHit
-                      ? `Correct: ${catLabel(correct)}`
-                      : isMissed
-                        ? `Missed: ${catLabel(correct)}`
-                        : isFalseFlag
-                          ? `False flag: ${catLabel(submitted)}`
-                          : isWrongCat
-                            ? `Wrong category — ${catLabel(submitted)} vs ${catLabel(correct)}`
-                            : ""
-                  }
                 >
                   {text}
                 </span>
@@ -143,11 +178,12 @@ export function PremiumDocumentReview(props: AnswerProps | ReviewProps) {
                 <PopoverTrigger asChild>
                   <button
                     type="button"
+                    disabled={grading}
                     className={cn(
-                      "px-0.5 -mx-0.5 rounded inline cursor-pointer transition-all",
+                      "px-[2px] py-[1px] rounded-[2px] border-b-[1.5px] cursor-pointer transition-colors",
                       chosen
-                        ? "bg-[hsl(45_100%_51%/0.22)] underline decoration-[hsl(var(--premium-accent))] decoration-2 underline-offset-4"
-                        : "underline decoration-dotted decoration-[hsl(var(--premium-border-strong))] underline-offset-4 hover:bg-[hsl(45_100%_51%/0.10)]",
+                        ? "bg-[hsl(var(--lp-accent))] border-b-2 border-[hsl(38_70%_43%)]"
+                        : "border-dotted border-[hsl(var(--lp-paper-ink)/0.35)] hover:bg-[hsl(var(--lp-paper-ink)/0.08)]",
                     )}
                   >
                     {text}
@@ -155,9 +191,12 @@ export function PremiumDocumentReview(props: AnswerProps | ReviewProps) {
                 </PopoverTrigger>
                 <PopoverContent
                   align="start"
-                  className="w-72 border-[hsl(var(--premium-border))] bg-white p-2 rounded-xl shadow-[var(--premium-shadow)]"
+                  className="locus-plus w-72 border-2 border-[hsl(var(--lp-line))] bg-[hsl(var(--lp-bg-1))] p-2 rounded-[6px] shadow-none"
                 >
-                  <div className="px-2 pt-1 pb-2 text-[10px] uppercase tracking-[0.18em] text-[hsl(var(--premium-muted))]">
+                  <div
+                    className="px-2 pt-1 pb-2 text-[10px] uppercase tracking-[0.18em] text-[hsl(var(--lp-text-3))]"
+                    style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                  >
                     Flag this clause
                   </div>
                   <div className="space-y-0.5">
@@ -167,13 +206,12 @@ export function PremiumDocumentReview(props: AnswerProps | ReviewProps) {
                         type="button"
                         onClick={() => setFlag(id, c.id)}
                         className={cn(
-                          "w-full text-left px-2.5 py-2 text-[13px] rounded-lg transition-colors flex items-center gap-2",
+                          "w-full text-left px-2.5 py-2 text-[13px] rounded-[4px] transition-colors",
                           chosen === c.id
-                            ? "bg-[hsl(45_100%_51%/0.15)] text-[hsl(var(--premium-ink))]"
-                            : "text-[hsl(var(--premium-ink))] hover:bg-[hsl(40_25%_94%)]",
+                            ? "bg-[hsl(45_100%_63%/0.15)] text-[hsl(var(--lp-accent))]"
+                            : "text-[hsl(var(--lp-text))] hover:bg-[hsl(var(--lp-bg-2))]",
                         )}
                       >
-                        <Flag size={12} className="text-[hsl(var(--premium-muted))]" />
                         {c.label}
                       </button>
                     ))}
@@ -181,9 +219,9 @@ export function PremiumDocumentReview(props: AnswerProps | ReviewProps) {
                       <button
                         type="button"
                         onClick={() => setFlag(id, null)}
-                        className="w-full text-left px-2.5 py-2 text-[12px] rounded-lg transition-colors text-[hsl(var(--premium-muted))] hover:bg-[hsl(40_25%_94%)] flex items-center gap-2"
+                        className="w-full text-left px-2.5 py-2 text-[12px] rounded-[4px] transition-colors text-[hsl(var(--lp-text-3))] hover:bg-[hsl(var(--lp-bg-2))]"
                       >
-                        <X size={11} /> Clear flag
+                        Clear flag
                       </button>
                     )}
                   </div>
@@ -192,163 +230,52 @@ export function PremiumDocumentReview(props: AnswerProps | ReviewProps) {
             );
           })}
         </div>
+
+        {/* Grading overlay */}
+        {grading && (
+          <div className="absolute inset-0 grid place-items-center bg-[hsl(var(--lp-paper)/0.7)] rounded-[6px] backdrop-blur-[1px]">
+            <div
+              className="flex items-center gap-3.5 px-6 py-5 bg-[hsl(var(--lp-bg))] border-2 border-[hsl(var(--lp-line))] rounded-[6px] uppercase tracking-[0.08em] text-[12px] text-[hsl(var(--lp-text))]"
+              style={{ fontFamily: "'JetBrains Mono', monospace" }}
+            >
+              <span className="lp-spinner" />
+              Grading your review…
+            </div>
+          </div>
+        )}
       </article>
-
-      {/* Side rail */}
-      <aside className="space-y-5">
-        <PremiumCard>
-          <PremiumLabel className="mb-3">Categories</PremiumLabel>
-          <div className="flex flex-wrap gap-1.5">
-            {payload.categories.map((c) => (
-              <span
-                key={c.id}
-                className="inline-flex items-center gap-1.5 rounded-full border border-[hsl(var(--premium-border))] bg-[hsl(var(--premium-bg))] px-2.5 py-1 text-[11px] text-[hsl(var(--premium-ink))]"
-              >
-                <span className="inline-block h-1.5 w-1.5 rounded-full bg-[hsl(var(--premium-accent))]" />
-                {c.label}
-              </span>
-            ))}
-          </div>
-        </PremiumCard>
-
-        <PremiumCard>
-          <div className="flex items-center justify-between mb-3">
-            <PremiumLabel>Flags</PremiumLabel>
-            <span className="text-[11px] text-[hsl(var(--premium-muted))]">{flaggedList.length}</span>
-          </div>
-          {flaggedList.length === 0 ? (
-            <p className="text-[12px] italic text-[hsl(var(--premium-subtle))]">
-              Click any underlined phrase to flag it.
-            </p>
-          ) : (
-            <ul className="space-y-2">
-              {flaggedList.map((f) => (
-                <li key={f.span_id} className="text-[12px] leading-snug">
-                  <div className="flex items-start gap-1.5">
-                    <Plus size={11} className="mt-0.5 text-[hsl(var(--premium-muted))]" />
-                    <div>
-                      <div className="text-[hsl(var(--premium-ink))] font-medium">
-                        {catLabel(f.category_id)}
-                      </div>
-                      <div className="text-[hsl(var(--premium-muted))] italic">
-                        "{(spanText.get(f.span_id) ?? "").slice(0, 70)}…"
-                      </div>
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </PremiumCard>
-
-        {props.mode === "review" && (
-          <ReviewBreakdown
-            payload={payload}
-            submitted={props.submitted}
-            correct_flags={props.correct_flags}
-          />
-        )}
-      </aside>
     </div>
   );
 }
 
-function ReviewBreakdown({
-  payload,
-  submitted,
-  correct_flags,
-}: {
-  payload: Payload;
-  submitted: DocReviewAnswerState;
-  correct_flags: CorrectFlag[];
-}) {
-  const correctSet = new Map(correct_flags.map((f) => [f.span_id, f.category_id]));
-  const submittedMap = new Map(submitted.flagged.map((f) => [f.span_id, f.category_id]));
-  const spanText = new Map(payload.spans.map((s) => [s.id, s.text]));
-  const catLabel = (id: string) => payload.categories.find((c) => c.id === id)?.label ?? id;
-
-  const missed = correct_flags.filter((f) => !submittedMap.has(f.span_id));
-  const falseFlags = submitted.flagged.filter((f) => !correctSet.has(f.span_id));
-  const wrongCats = submitted.flagged.filter(
-    (f) => correctSet.has(f.span_id) && correctSet.get(f.span_id) !== f.category_id,
-  );
-
-  if (missed.length === 0 && falseFlags.length === 0 && wrongCats.length === 0) {
-    return (
-      <div className="premium-paper p-4 flex items-start gap-3 border-l-2 border-l-[hsl(var(--premium-success))]">
-        <Check size={16} className="text-[hsl(var(--premium-success))] mt-0.5" />
-        <div>
-          <div className="text-[11px] uppercase tracking-[0.18em] text-[hsl(var(--premium-success))] mb-0.5 font-medium">
-            Clean Pass
-          </div>
-          <p className="text-[13px] text-[hsl(var(--premium-ink))]">
-            Every flag landed correctly.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
+function ResultBanner({ found, total, falseFlags, pointsAwarded, pointsBase }: ResultBannerProps) {
   return (
-    <PremiumCard className="space-y-3">
-      <div className="flex items-center gap-2">
-        <AlertTriangle size={13} className="text-[hsl(var(--premium-accent))]" />
-        <PremiumLabel>Where points were lost</PremiumLabel>
-      </div>
-      {missed.length > 0 && (
-        <Section label={`Missed (${missed.length})`} tone="danger">
-          {missed.map((f) => (
-            <li key={f.span_id}>
-              <span className="italic">"{(spanText.get(f.span_id) ?? "").slice(0, 60)}…"</span> —{" "}
-              <strong className="font-medium">{catLabel(f.category_id)}</strong>.
-            </li>
-          ))}
-        </Section>
-      )}
-      {falseFlags.length > 0 && (
-        <Section label={`False flags (${falseFlags.length})`} tone="warn">
-          {falseFlags.map((f) => (
-            <li key={f.span_id}>
-              <span className="italic">"{(spanText.get(f.span_id) ?? "").slice(0, 60)}…"</span> —
-              this clause is fine.
-            </li>
-          ))}
-        </Section>
-      )}
-      {wrongCats.length > 0 && (
-        <Section label={`Wrong category (${wrongCats.length})`} tone="danger">
-          {wrongCats.map((f) => (
-            <li key={f.span_id}>
-              You chose <strong className="font-medium">{catLabel(f.category_id)}</strong>, was{" "}
-              <strong className="font-medium">{catLabel(correctSet.get(f.span_id)!)}</strong>.
-            </li>
-          ))}
-        </Section>
-      )}
-    </PremiumCard>
-  );
-}
-
-function Section({
-  label,
-  tone,
-  children,
-}: {
-  label: string;
-  tone: "danger" | "warn";
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
+    <div className="max-w-[860px] mx-auto px-5 sm:px-6 py-4 border-2 border-[hsl(var(--lp-line))] rounded-[6px] bg-[hsl(var(--lp-bg-1))] flex items-center justify-between gap-5 flex-wrap">
       <div
-        className={cn(
-          "text-[10px] uppercase tracking-[0.18em] mb-1 font-medium",
-          tone === "danger" ? "text-[hsl(var(--premium-danger))]" : "text-[hsl(35_85%_42%)]",
-        )}
+        className="text-[28px] font-bold tracking-[-0.02em] text-[hsl(var(--lp-text))]"
+        style={{ fontFamily: "'Sora', sans-serif" }}
       >
-        {label}
+        {pointsAwarded}
+        <span className="text-[hsl(var(--lp-text-3))] font-medium"> / {pointsBase}</span>
       </div>
-      <ul className="space-y-1 text-[12px] text-[hsl(var(--premium-ink))]">{children}</ul>
+      <div className="flex gap-3.5 flex-wrap">
+        <BdItem dot="g">{found} / {total} Found</BdItem>
+        <BdItem dot="r">{Math.max(0, total - found)} Missed</BdItem>
+        <BdItem dot="y">{falseFlags} False flag{falseFlags === 1 ? "" : "s"}</BdItem>
+      </div>
     </div>
+  );
+}
+
+function BdItem({ dot, children }: { dot: "g" | "r" | "y"; children: React.ReactNode }) {
+  const color = dot === "g" ? "var(--lp-good)" : dot === "r" ? "var(--lp-bad)" : "var(--lp-accent)";
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 uppercase tracking-[0.08em] text-[11px] text-[hsl(var(--lp-text-2))]"
+      style={{ fontFamily: "'JetBrains Mono', monospace" }}
+    >
+      <span className="w-2 h-2 rounded-[2px] inline-block" style={{ background: `hsl(${color})` }} />
+      {children}
+    </span>
   );
 }

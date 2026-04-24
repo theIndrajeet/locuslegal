@@ -296,6 +296,26 @@ export default function TheBarChallenge() {
   if (isPremiumType(challenge.question_type)) {
     const ctaDisabled = submitting || !canSubmitDirect;
     let primaryCta: React.ReactNode = null;
+    let counter: string | undefined;
+    let metaLeft: React.ReactNode | undefined;
+
+    if (challenge.question_type === "document_review") {
+      counter = `${docReview.flagged.length} FLAGGED`;
+      metaLeft = `${docReview.flagged.length} clause${docReview.flagged.length === 1 ? "" : "s"} flagged`;
+    }
+    if (challenge.question_type === "brief_builder") {
+      counter = `STEP ${briefStep + 1}/${briefSteps.length}`;
+      metaLeft = `Step ${briefStep + 1} of ${briefSteps.length}`;
+    }
+    if (challenge.question_type === "ethics") {
+      counter = ethicsStage === "decision" ? "STAGE 1/2" : "STAGE 2/2";
+      metaLeft = ethicsStage === "decision" ? "Your decision" : "The consequence";
+    }
+    if (challenge.question_type === "client_counseling") {
+      counter = `TURN ${counselingTurn}/${counselingTurnsCount}`;
+      metaLeft = `Turn ${counselingTurn} of ${counselingTurnsCount}`;
+    }
+
     if (challenge.question_type === "brief_builder" && !briefAtLast) {
       primaryCta = (
         <PremiumButton
@@ -318,9 +338,17 @@ export default function TheBarChallenge() {
         </PremiumButton>
       );
     } else {
+      const label =
+        challenge.question_type === "document_review"
+          ? "Submit Review"
+          : challenge.question_type === "brief_builder"
+            ? "File Brief"
+            : challenge.question_type === "ethics"
+              ? "Submit Decision"
+              : "Finish Consult";
       primaryCta = (
         <PremiumButton onClick={() => submit()} disabled={ctaDisabled}>
-          {submitting ? <><Loader2 size={14} className="animate-spin" /> Grading…</> : "Submit"}
+          {submitting ? <><Loader2 size={14} className="animate-spin" /> Grading…</> : label}
         </PremiumButton>
       );
     }
@@ -328,15 +356,16 @@ export default function TheBarChallenge() {
     return (
       <>
         <PremiumShell
+          activeKey={challenge.question_type as any}
           formatLabel={QUESTION_TYPE_LABELS[challenge.question_type]}
           areaLabel={AREA_OF_LAW_LABELS[challenge.area_of_law]}
           difficulty={challenge.difficulty}
-          pointsLabel={`${challenge.points_base} pts`}
+          pointsLabel={`${challenge.points_base} PTS`}
           title={challenge.title}
           prompt={challenge.prompt}
           sourceLine={challenge.source_citation ?? undefined}
-          autosaveLabel={userId ? "Saved · just now" : undefined}
-          matterContext={!userId ? "Previewing as guest · sign in to submit" : undefined}
+          counter={counter}
+          metaLeft={!userId ? "Previewing as guest · sign in to submit" : metaLeft}
           cta={primaryCta}
         >
           {challenge.question_type === "document_review" && (
@@ -345,6 +374,7 @@ export default function TheBarChallenge() {
               payload={challenge.payload}
               value={docReview}
               onChange={setDocReview}
+              grading={submitting}
             />
           )}
           {challenge.question_type === "brief_builder" && (

@@ -198,56 +198,89 @@ html {
   animation: slide-up-dock 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
-/* ---------- Locus+ Premium scope ---------- */
+/* ============================================================
+   Locus+ — Dark Neobrutalist scope
+   2px borders, 6px radius, NO shadows, NO gradients on dark.
+   Cormorant Garamond reserved for legal/document/scenario content.
+   ============================================================ */
 .locus-plus {
-  --premium-bg: 40 33% 97%;            /* #faf8f3 */
-  --premium-surface: 0 0% 100%;
-  --premium-ink: 0 0% 10%;             /* #1a1a1a */
-  --premium-muted: 0 0% 35%;           /* #5a5a5a */
-  --premium-subtle: 0 0% 55%;
-  --premium-border: 39 22% 87%;        /* #e6e1d6 */
-  --premium-border-strong: 39 18% 75%;
-  --premium-accent: 45 100% 51%;       /* Locus yellow */
-  --premium-accent-tint: 45 100% 96%;
-  --premium-success: 152 55% 36%;
-  --premium-danger: 4 65% 48%;
-  --premium-shadow: 0 1px 2px rgba(20, 18, 14, 0.04), 0 8px 24px -12px rgba(20, 18, 14, 0.18);
-  --premium-shadow-sm: 0 1px 2px rgba(20, 18, 14, 0.05);
+  --lp-bg: 0 0% 0%;            /* #000 */
+  --lp-bg-1: 0 0% 4%;          /* #0a0a0a */
+  --lp-bg-2: 0 0% 7%;          /* #121212 */
+  --lp-bg-3: 0 0% 10%;         /* #1a1a1a */
+  --lp-line: 0 0% 15%;         /* #262626 */
+  --lp-line-2: 0 0% 23%;       /* #3a3a3a */
+  --lp-text: 0 0% 100%;
+  --lp-text-2: 0 0% 71%;       /* #b4b4b4 */
+  --lp-text-3: 0 0% 43%;       /* #6e6e6e */
+  --lp-accent: 45 100% 63%;    /* #FFC940 */
+  --lp-accent-ink: 0 0% 7%;
+  --lp-accent-soft: 45 100% 63% / 0.12;
+  --lp-accent-soft-2: 45 100% 63% / 0.22;
+  --lp-good: 152 55% 53%;      /* #3ecf8e */
+  --lp-good-soft: 152 55% 53% / 0.14;
+  --lp-bad: 358 100% 67%;      /* #ff5a5f */
+  --lp-bad-soft: 358 100% 67% / 0.14;
+  --lp-paper: 39 39% 93%;      /* #f5f1e8 */
+  --lp-paper-ink: 36 22% 9%;   /* #1a1712 */
 
-  background-color: hsl(var(--premium-bg));
-  color: hsl(var(--premium-ink));
-  font-family: 'Inter', sans-serif;
+  background-color: hsl(var(--lp-bg));
+  color: hsl(var(--lp-text));
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
 }
-.locus-plus h1, .locus-plus h2, .locus-plus h3, .locus-plus .font-serif-display {
-  font-family: 'Instrument Serif', 'Cormorant Garamond', Georgia, serif;
-  font-weight: 400;
-  letter-spacing: -0.01em;
+/* Display text uses Sora — set headings to display family */
+.locus-plus h1, .locus-plus h2, .locus-plus h3, .locus-plus h4, .locus-plus .lp-display {
+  font-family: 'Sora', ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
-.locus-plus .premium-paper {
-  background: hsl(var(--premium-surface));
-  border: 1px solid hsl(var(--premium-border));
-  border-radius: 14px;
-  box-shadow: var(--premium-shadow);
+.locus-plus .lp-serif {
+  font-family: 'Cormorant Garamond', 'Iowan Old Style', Georgia, serif;
 }
-.locus-plus .premium-paper-flat {
-  background: hsl(var(--premium-surface));
-  border: 1px solid hsl(var(--premium-border));
-  border-radius: 12px;
+.locus-plus .lp-mono {
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-feature-settings: "zero", "ss02";
 }
-.locus-plus .premium-divider {
-  border-color: hsl(var(--premium-border));
+.locus-plus .lp-up {
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 11px;
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 }
-@keyframes premium-fade-in {
-  from { opacity: 0; transform: translateY(4px); }
-  to   { opacity: 1; transform: translateY(0); }
+
+/* paper (cream surface for legal docs only) */
+.locus-plus .lp-paper {
+  background: hsl(var(--lp-paper));
+  color: hsl(var(--lp-paper-ink));
+  border: 2px solid hsl(var(--lp-line));
+  border-radius: 6px;
 }
-.locus-plus .premium-fade-in {
-  animation: premium-fade-in 220ms ease-out both;
+
+/* spinner */
+.locus-plus .lp-spinner {
+  width: 16px; height: 16px;
+  border: 2px solid hsl(var(--lp-line));
+  border-top-color: hsl(var(--lp-accent));
+  border-radius: 50%;
+  animation: lp-spin 800ms linear infinite;
 }
-@keyframes premium-pulse-dot {
-  0%, 100% { opacity: 0.45; }
-  50%      { opacity: 1; }
+@keyframes lp-spin { to { transform: rotate(360deg); } }
+
+/* Typing dots */
+.locus-plus .lp-dot {
+  width: 5px; height: 5px;
+  background: hsl(var(--lp-accent));
+  border-radius: 50%;
+  animation: lp-pulse 1.2s ease-in-out infinite;
 }
-.locus-plus .premium-pulse-dot {
-  animation: premium-pulse-dot 1.6s ease-in-out infinite;
-}
+.locus-plus .lp-dot:nth-child(2) { animation-delay: 0.2s; }
+.locus-plus .lp-dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes lp-pulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+
+/* Custom dark scrollbars inside premium scope */
+.locus-plus .lp-scroll::-webkit-scrollbar { width: 10px; height: 10px; }
+.locus-plus .lp-scroll::-webkit-scrollbar-thumb { background: hsl(var(--lp-line)); border-radius: 4px; }
+.locus-plus .lp-scroll::-webkit-scrollbar-track { background: transparent; }
