@@ -334,3 +334,25 @@ function ReviewBreakdown({
     </div>
   );
 }
+
+function Pedagogy({ spanId, payload }: { spanId: string; payload: Payload }) {
+  const why = payload.rationale?.[spanId];
+  const fix = payload.suggested_redline?.[spanId];
+  if (!why && !fix) return null;
+  return (
+    <div className="mt-1.5 ml-3 pl-3 border-l-2 border-accent/40 space-y-1">
+      {why && (
+        <div className="text-[11px] leading-relaxed text-muted-foreground">
+          <span className="font-bold uppercase tracking-wider text-accent text-[9px] mr-1.5">Why</span>
+          {why}
+        </div>
+      )}
+      {fix && (
+        <div className="text-[11px] leading-relaxed text-muted-foreground">
+          <span className="font-bold uppercase tracking-wider text-emerald-500 text-[9px] mr-1.5">Redline</span>
+          {fix}
+        </div>
+      )}
+    </div>
+  );
+}
