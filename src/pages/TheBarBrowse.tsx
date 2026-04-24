@@ -258,6 +258,18 @@ export default function TheBarBrowse() {
           })}
         </div>
 
+        {/* Format explainer */}
+        <p className="text-sm text-muted-foreground -mt-2 px-1 flex items-center gap-2 flex-wrap">
+          {typeFilter !== "all" && isPremiumType(typeFilter as QuestionType) && (
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded border border-accent/50 text-accent text-[10px] font-black tracking-wide leading-none">
+              LOCUS+
+            </span>
+          )}
+          <span>
+            {QUESTION_TYPE_BLURB[(typeFilter as QuestionType | "all") in QUESTION_TYPE_BLURB ? (typeFilter as QuestionType | "all") : "all"]}
+          </span>
+        </p>
+
         {/* Filters */}
         <div className="flex flex-wrap gap-3">
           <Select value={areaFilter} onValueChange={(v) => updateParam("area", v)}>
