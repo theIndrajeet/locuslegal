@@ -193,6 +193,7 @@ RULES:
 7. Jurisdiction reasoning must reference real Indian statutes or case law if possible.
 8. Explanation: 1-3 sentences (rule + why correct answer follows).
 9. area_of_law MUST be one of the allowed enum values exactly (lowercase, snake-style as listed).
+10. document_review is the AGREEMENT REVIEW TRAINER. The draft MUST be a realistic excerpt from a commercial agreement (NDA, SOW, MSA, Employment, SaaS, Licensing, Distribution, Consultancy, Shareholder, etc.) — NOT a statute extract, board resolution, or memo. Pick categories ONLY from the fixed taxonomy in the payload shape. Each span.text MUST be a verbatim substring of document_html (the marker {{sN}} is what gets replaced; spans.text is the underlying phrase). Always include reviewer_brief, rationale (one entry per correct_flag span_id), and suggested_redline (one entry per correct_flag span_id). For India-flavour drafts, use Indian Contract Act, DPDP Act, POSH Act, Section 27 non-compete unenforceability, GST/TDS, gratuity/PF where relevant.
 
 Return the JSON object. Nothing else.`;
 }
