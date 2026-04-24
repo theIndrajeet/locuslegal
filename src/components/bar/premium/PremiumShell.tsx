@@ -60,7 +60,13 @@ export function PremiumShell({
   backHref = "/the-bar",
   children,
 }: PremiumShellProps) {
+  const navigate = useNavigate();
   const [displayName, setDisplayName] = useState<string | null>(null);
+
+  const handleBack = () => {
+    if (window.history.length > 1) navigate(-1);
+    else navigate(backHref);
+  };
 
   useEffect(() => {
     let active = true;
