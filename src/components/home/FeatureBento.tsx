@@ -9,6 +9,7 @@ import {
   UserCircle2,
   ArrowUpRight,
   Plus,
+  Scale,
 } from "lucide-react";
 import { TimelineContent, textVariants } from "@/components/ui/timeline-animation";
 
