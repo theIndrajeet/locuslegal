@@ -51,7 +51,17 @@ const DocumentReviewPayloadSchema = z.object({
   spans: z.array(z.object({ id: z.string().min(1), text: z.string().min(1) })).min(2).max(20),
   categories: z.array(z.object({ id: z.string().min(1), label: z.string().min(1) })).min(1).max(8),
   correct_flags: z.array(z.object({ span_id: z.string().min(1), category_id: z.string().min(1) })).min(1),
-});
+}).refine((p) => {
+  const sIds = new Set(p.spans.map((s) => s.id));
+  const cIds = new Set(p.categories.map((c) => c.id));
+  if (!p.correct_flags.every((f) => sIds.has(f.span_id) && cIds.has(f.category_id))) return false;
+  const re = /\{\{(.+?)\}\}/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(p.document_html)) !== null) {
+    if (!sIds.has(m[1])) return false;
+  }
+  return true;
+}, { message: "document_html markers / correct_flags must reference real spans + categories" });
 
 const BriefBuilderPayloadSchema = z.object({
   fact_pattern: z.string().min(1),
@@ -67,7 +77,15 @@ const BriefBuilderPayloadSchema = z.object({
     correct_option_id: z.string().optional(),
     blocks: z.array(z.object({ id: z.string().min(1), text: z.string().min(1) })).optional(),
     correct_order: z.array(z.string().min(1)).optional(),
-  })).min(2).max(6),
+  }).refine((s) => {
+    if (s.kind === "mcq") {
+      if (!s.options || s.options.length < 2 || !s.correct_option_id) return false;
+      return s.options.some((o) => o.id === s.correct_option_id);
+    }
+    if (!s.blocks || s.blocks.length < 2 || !s.correct_order) return false;
+    const ids = new Set(s.blocks.map((b) => b.id));
+    return s.correct_order.length === s.blocks.length && s.correct_order.every((id) => ids.has(id));
+  }, { message: "step shape invalid for its kind" })).min(2).max(6),
 });
 
 const EthicsPayloadSchema = z.object({
@@ -78,7 +96,10 @@ const EthicsPayloadSchema = z.object({
   followup_options: z.array(z.object({ id: z.string().min(1), letter: z.string().min(1).max(2), text: z.string().min(1) })).min(2).max(6),
   correct_followup_id: z.string().min(1),
   model_reasoning: z.string().min(1),
-});
+}).refine((p) =>
+  p.decision_options.some((o) => o.id === p.correct_decision_id) &&
+  p.followup_options.some((o) => o.id === p.correct_followup_id),
+  { message: "correct ids must match options" });
 
 const ClientCounselingPayloadSchema = z.object({
   matter: z.string().min(1),
@@ -90,6 +111,8 @@ const ClientCounselingPayloadSchema = z.object({
     options: z.array(z.object({ id: z.string().min(1), letter: z.string().min(1).max(2), text: z.string().min(1) })).min(2).max(6),
     correct_option_id: z.string().min(1),
     model_followup: z.string().optional().default(""),
+  }).refine((t) => t.options.some((o) => o.id === t.correct_option_id), {
+    message: "decision_turn correct_option_id must match an option id",
   })).min(1).max(10),
 });
 

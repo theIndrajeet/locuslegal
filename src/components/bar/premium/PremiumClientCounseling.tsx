@@ -13,7 +13,7 @@ export interface CounselingDecisionTurn {
   turn: number;
   prompt: string;
   options: CounselingOption[];
-  correct_option_id: string;
+  correct_option_id?: string;
   model_followup?: string;
 }
 export interface CounselingPayload {
@@ -59,7 +59,7 @@ export function PremiumClientCounseling(props: AnswerProps | ReviewProps) {
   if (props.mode === "review") {
     const correctCount = payload.decision_turns.filter((dt) => {
       const pick = props.submitted.turn_picks.find((p) => p.turn === dt.turn);
-      return pick?.selected_option_id === dt.correct_option_id;
+      return !!dt.correct_option_id && pick?.selected_option_id === dt.correct_option_id;
     }).length;
     return (
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] gap-5 max-w-[1220px] mx-auto">
@@ -75,14 +75,14 @@ export function PremiumClientCounseling(props: AnswerProps | ReviewProps) {
           {payload.decision_turns.map((dt) => {
             const pick = props.submitted.turn_picks.find((p) => p.turn === dt.turn);
             const chosen = dt.options.find((o) => o.id === pick?.selected_option_id);
-            const ok = pick?.selected_option_id === dt.correct_option_id;
+            const ok = !!dt.correct_option_id && pick?.selected_option_id === dt.correct_option_id;
             return (
               <div key={`dt-${dt.turn}`} className="contents">
                 <Bubble role="client" text={dt.prompt} meta={`CLIENT · TURN ${dt.turn}`} />
                 <Bubble
                   role="lawyer"
                   text={chosen ? `${chosen.letter}. ${chosen.text}` : "—"}
-                  evaluation={ok ? "ok" : "miss"}
+                  evaluation={dt.correct_option_id ? (ok ? "ok" : "miss") : undefined}
                   meta={`YOU · TURN ${dt.turn}`}
                 />
               </div>
@@ -107,23 +107,34 @@ export function PremiumClientCounseling(props: AnswerProps | ReviewProps) {
             {payload.decision_turns.map((dt) => {
               const pick = props.submitted.turn_picks.find((p) => p.turn === dt.turn);
               const chosen = dt.options.find((o) => o.id === pick?.selected_option_id);
-              const correct = dt.options.find((o) => o.id === dt.correct_option_id);
-              const ok = pick?.selected_option_id === dt.correct_option_id;
+              const correct = dt.correct_option_id
+                ? dt.options.find((o) => o.id === dt.correct_option_id)
+                : undefined;
+              const graded = !!dt.correct_option_id;
+              const ok = graded && pick?.selected_option_id === dt.correct_option_id;
               return (
                 <li
                   key={dt.turn}
                   className={cn(
                     "flex items-start gap-3 px-3 py-2.5 border-2 rounded-[4px] tracking-[0.04em] bg-[hsl(var(--lp-bg-1))]",
-                    ok ? "border-[hsl(152_55%_53%/0.55)] bg-[hsl(var(--lp-good-soft))]" : "border-[hsl(358_100%_67%/0.5)] bg-[hsl(var(--lp-bad-soft))]",
+                    graded
+                      ? (ok
+                          ? "border-[hsl(152_55%_53%/0.55)] bg-[hsl(var(--lp-good-soft))]"
+                          : "border-[hsl(358_100%_67%/0.5)] bg-[hsl(var(--lp-bad-soft))]")
+                      : "border-[hsl(var(--lp-line))]",
                   )}
                 >
                   <span
                     className={cn(
                       "grid place-items-center w-[18px] h-[18px] rounded-[3px] text-[11px] font-bold shrink-0 mt-0.5",
-                      ok ? "bg-[hsl(var(--lp-good))] text-[hsl(150_30%_8%)]" : "bg-[hsl(var(--lp-bad))] text-[hsl(0_0%_5%)]",
+                      graded
+                        ? (ok
+                            ? "bg-[hsl(var(--lp-good))] text-[hsl(150_30%_8%)]"
+                            : "bg-[hsl(var(--lp-bad))] text-[hsl(0_0%_5%)]")
+                        : "bg-[hsl(var(--lp-bg-3))] text-[hsl(var(--lp-text-3))]",
                     )}
                   >
-                    {ok ? <Check size={11} /> : <X size={11} />}
+                    {graded ? (ok ? <Check size={11} /> : <X size={11} />) : "·"}
                   </span>
                   <div className="text-[13px] text-[hsl(var(--lp-text-2))]">
                     <div
@@ -135,7 +146,7 @@ export function PremiumClientCounseling(props: AnswerProps | ReviewProps) {
                     <div className="text-[hsl(var(--lp-text))]">
                       {chosen ? `${chosen.letter}. ${chosen.text}` : "—"}
                     </div>
-                    {!ok && correct && (
+                    {graded && !ok && correct && (
                       <div className="mt-1 italic text-[hsl(var(--lp-text-3))]" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
                         Better: {correct.letter}. {correct.text}
                       </div>

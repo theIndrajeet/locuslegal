@@ -15,7 +15,7 @@ interface Payload {
   document_html: string;
   spans: Span[];
   categories: Category[];
-  correct_flags: CorrectFlag[];
+  correct_flags?: CorrectFlag[];
   /** Optional cosmetic header (defaults below). */
   doc_id?: string;
   doc_title?: string;
@@ -58,7 +58,7 @@ export function PremiumDocumentReview(props: AnswerProps | ReviewProps) {
 
   const correctMap = useMemo(() => {
     const m = new Map<string, string>();
-    const list = props.mode === "review" ? props.correct_flags : payload.correct_flags;
+    const list = props.mode === "review" ? props.correct_flags : (payload.correct_flags ?? []);
     for (const f of list) m.set(f.span_id, f.category_id);
     return m;
   }, [props, payload]);

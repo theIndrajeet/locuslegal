@@ -7,11 +7,11 @@ export interface EthicsOption { id: string; letter: string; text: string }
 export interface EthicsPayload {
   scenario: string;
   decision_options: EthicsOption[];
-  correct_decision_id: string;
+  correct_decision_id?: string;
   consequence_text: string;
   followup_options: EthicsOption[];
-  correct_followup_id: string;
-  model_reasoning: string;
+  correct_followup_id?: string;
+  model_reasoning?: string;
 }
 export interface EthicsAnswerState {
   selected_decision_id: string;
@@ -229,29 +229,35 @@ function RevealPane({
 }) {
   const dec = payload.decision_options.find((o) => o.id === submitted.selected_decision_id);
   const fol = payload.followup_options.find((o) => o.id === submitted.selected_followup_id);
-  const correctDec = payload.decision_options.find((o) => o.id === payload.correct_decision_id);
-  const correctFol = payload.followup_options.find((o) => o.id === payload.correct_followup_id);
-  const decOk = submitted.selected_decision_id === payload.correct_decision_id;
-  const folOk = submitted.selected_followup_id === payload.correct_followup_id;
+  const correctDec = payload.correct_decision_id
+    ? payload.decision_options.find((o) => o.id === payload.correct_decision_id)
+    : undefined;
+  const correctFol = payload.correct_followup_id
+    ? payload.followup_options.find((o) => o.id === payload.correct_followup_id)
+    : undefined;
+  const decOk = !!payload.correct_decision_id && submitted.selected_decision_id === payload.correct_decision_id;
+  const folOk = !!payload.correct_followup_id && submitted.selected_followup_id === payload.correct_followup_id;
 
   return (
     <div className="space-y-4">
       <RevealRow stage="Stage 1 · Decision" chose={fmt(dec)} correct={fmt(correctDec)} ok={decOk} />
       <RevealRow stage="Stage 2 · Follow-up" chose={fmt(fol)} correct={fmt(correctFol)} ok={folOk} />
-      <div className="border-2 border-[hsl(45_100%_63%/0.35)] bg-[hsl(45_100%_63%/0.12)] rounded-[6px] px-5 py-4">
-        <h4
-          className="m-0 mb-2 text-[14px] tracking-[0.02em] text-[hsl(var(--lp-accent))]"
-          style={{ fontFamily: "'Sora', sans-serif", fontWeight: 700 }}
-        >
-          Why this was the right call
-        </h4>
-        <p
-          className="m-0 text-[15.5px] leading-[1.55] text-[hsl(var(--lp-text))]"
-          style={{ fontFamily: "'Cormorant Garamond', serif" }}
-        >
-          {payload.model_reasoning}
-        </p>
-      </div>
+      {payload.model_reasoning && (
+        <div className="border-2 border-[hsl(45_100%_63%/0.35)] bg-[hsl(45_100%_63%/0.12)] rounded-[6px] px-5 py-4">
+          <h4
+            className="m-0 mb-2 text-[14px] tracking-[0.02em] text-[hsl(var(--lp-accent))]"
+            style={{ fontFamily: "'Sora', sans-serif", fontWeight: 700 }}
+          >
+            Why this was the right call
+          </h4>
+          <p
+            className="m-0 text-[15.5px] leading-[1.55] text-[hsl(var(--lp-text))]"
+            style={{ fontFamily: "'Cormorant Garamond', serif" }}
+          >
+            {payload.model_reasoning}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
