@@ -7,8 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sparkles } from "lucide-react";
 import { toast } from "sonner";
-import { AREA_OF_LAW_LABELS, QUESTION_TYPE_LABELS, V1_QUESTION_TYPES } from "@/lib/bar/constants";
-import type { AreaOfLaw, Difficulty, QuestionType } from "@/lib/bar/types";
+import { QUESTION_TYPE_LABELS, V1_QUESTION_TYPES } from "@/lib/bar/constants";
+import type { Difficulty, QuestionType } from "@/lib/bar/types";
 
 const DIFFS: Difficulty[] = ["easy", "medium", "hard"];
 
