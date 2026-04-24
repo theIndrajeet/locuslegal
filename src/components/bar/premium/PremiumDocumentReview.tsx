@@ -108,7 +108,7 @@ export function PremiumDocumentReview(props: AnswerProps | ReviewProps) {
   const resultBanner = props.resultBanner;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 min-h-[60vh]">
       {resultBanner && <ResultBanner {...resultBanner} />}
 
       <article className="lp-paper relative max-w-[860px] mx-auto px-6 sm:px-10 md:px-20 py-12 md:py-16">
