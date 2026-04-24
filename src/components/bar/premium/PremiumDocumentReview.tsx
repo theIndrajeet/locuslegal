@@ -255,9 +255,13 @@ export function PremiumDocumentReview(props: AnswerProps | ReviewProps) {
                   </div>
                 </PopoverContent>
               </Popover>
-            );
-          })}
+                  );
+                })}
+              </p>
+            ));
+          })()}
         </div>
+
 
         {/* Grading overlay */}
         {grading && (
