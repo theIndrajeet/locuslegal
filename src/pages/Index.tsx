@@ -15,7 +15,7 @@ const Index = () => {
 
   return (
     <>
-      <HomeHero />
+      <ManifestoHero />
       <StatsBar />
       <FeatureBento />
       <LocusPlusStrip />
