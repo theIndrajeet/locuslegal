@@ -22,7 +22,6 @@ type Props = {
 export default function AiDraftDialog({ open, onOpenChange, sourceId, sourceTitle }: Props) {
   const navigate = useNavigate();
   const [type, setType] = useState<QuestionType>("mcq");
-  const [area, setArea] = useState<AreaOfLaw>("constitutional");
   const [diff, setDiff] = useState<Difficulty>("easy");
   const [busy, setBusy] = useState(false);
 
