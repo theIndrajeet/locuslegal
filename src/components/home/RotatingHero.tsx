@@ -15,7 +15,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import BackgroundPathsAnimation from "@/components/ui/background-paths";
+import { FallingPattern } from "@/components/ui/falling-pattern";
 import HeroAngle, { type HeroAngleData } from "./HeroAngle";
 
 const DWELL_MS = 7000;
