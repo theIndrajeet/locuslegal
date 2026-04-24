@@ -15,7 +15,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import BackgroundPathsAnimation from "@/components/ui/background-paths";
+import { FallingPattern } from "@/components/ui/falling-pattern";
 import HeroAngle, { type HeroAngleData } from "./HeroAngle";
 
 const DWELL_MS = 7000;
@@ -137,8 +137,8 @@ export default function RotatingHero() {
       onMouseEnter={pauseNow}
       onMouseLeave={scheduleResume}
     >
-      <BackgroundPathsAnimation />
-      <div className="absolute inset-0 bg-background/55 z-[1]" />
+      <FallingPattern className="z-0" />
+      <div className="absolute inset-0 bg-background/40 z-[1]" />
       {/* Subtle yellow radial glow behind headline */}
       <div
         aria-hidden
