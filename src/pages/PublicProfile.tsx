@@ -9,9 +9,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Share2, ExternalLink, ArrowLeft } from "lucide-react";
+import { Share2, ExternalLink, ArrowLeft, Briefcase, Pencil } from "lucide-react";
 import { RankBadgeBlock } from "@/components/bar/RankBadgeBlock";
 import type { BarDesignation } from "@/lib/bar/types";
+import ActivityHeatmap from "@/components/profile/ActivityHeatmap";
+import { useNavigate } from "react-router-dom";
 
 interface BarStats {
   designation: BarDesignation;
@@ -85,6 +87,7 @@ const initials = (name: string | null, username: string) => {
 export default function PublicProfile() {
   const { username: rawUsername } = useParams<{ username: string }>();
   const username = (rawUsername || "").toLowerCase();
+  const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -93,7 +96,18 @@ export default function PublicProfile() {
   const [publications, setPublications] = useState<Publication[]>([]);
   const [activeTab, setActiveTab] = useState<string>("experience");
   const [barStats, setBarStats] = useState<BarStats | null>(null);
+  const [viewerId, setViewerId] = useState<string | null>(null);
   const hasAutoSelected = useRef(false);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setViewerId(session?.user?.id ?? null);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
+      setViewerId(session?.user?.id ?? null);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
   const metaTitle = profile
     ? `${profile.display_name || profile.username} (@${profile.username}) — Locus`
