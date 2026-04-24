@@ -1,7 +1,7 @@
-// Locus+ Client Counseling — printed-deposition transcript with inline MCQ.
+// Locus+ Client Counseling — 2-col chat | decision panel.
+import { useEffect, useRef } from "react";
 import { Check, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { PremiumCard, PremiumLabel } from "./PremiumPrimitives";
 
 export interface CounselingTranscriptTurn {
   turn: number;
@@ -18,6 +18,8 @@ export interface CounselingDecisionTurn {
 }
 export interface CounselingPayload {
   matter: string;
+  /** Optional client display name (defaults to matter title). */
+  client_name?: string;
   transcript: CounselingTranscriptTurn[];
   decision_turns: CounselingDecisionTurn[];
 }
@@ -41,52 +43,113 @@ interface ReviewProps {
 export function PremiumClientCounseling(props: AnswerProps | ReviewProps) {
   const { payload } = props;
   const totalTurns = payload.decision_turns.length;
+  const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Auto-scroll to bottom on state change
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [props.mode === "answer" ? props.currentTurn : 0, props]);
+
+  const clientName = payload.client_name ?? payload.matter;
+  const initial = clientName.trim().charAt(0).toUpperCase() || "C";
+
+  // ───────── REVIEW MODE ─────────
   if (props.mode === "review") {
+    const correctCount = payload.decision_turns.filter((dt) => {
+      const pick = props.submitted.turn_picks.find((p) => p.turn === dt.turn);
+      return pick?.selected_option_id === dt.correct_option_id;
+    }).length;
     return (
-      <div className="space-y-4">
-        <MatterHeader matter={payload.matter} subtitle={`Transcript · ${totalTurns} decision turns`} />
-        <PremiumCard className="space-y-4">
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] gap-5 max-w-[1220px] mx-auto">
+        <ChatPanel
+          clientName={clientName}
+          initial={initial}
+          subtitle={`${totalTurns} TURNS · COMPLETE`}
+          scrollRef={scrollRef}
+        >
           {payload.transcript.map((t) => (
-            <Turn key={`tr-${t.turn}-${t.role}`} role={t.role} text={t.text} />
+            <Bubble key={`tr-${t.turn}-${t.role}`} role={t.role} text={t.text} />
           ))}
           {payload.decision_turns.map((dt) => {
             const pick = props.submitted.turn_picks.find((p) => p.turn === dt.turn);
             const chosen = dt.options.find((o) => o.id === pick?.selected_option_id);
-            const correct = dt.options.find((o) => o.id === dt.correct_option_id);
             const ok = pick?.selected_option_id === dt.correct_option_id;
             return (
-              <div key={`dt-${dt.turn}`} className="space-y-2">
-                <Turn role="client" text={dt.prompt} />
-                <Turn
+              <div key={`dt-${dt.turn}`} className="contents">
+                <Bubble role="client" text={dt.prompt} meta={`CLIENT · TURN ${dt.turn}`} />
+                <Bubble
                   role="lawyer"
                   text={chosen ? `${chosen.letter}. ${chosen.text}` : "—"}
                   evaluation={ok ? "ok" : "miss"}
+                  meta={`YOU · TURN ${dt.turn}`}
                 />
-                {!ok && correct && (
-                  <div className="ml-auto max-w-[78%] text-[12px] rounded-lg bg-[hsl(152_55%_36%/0.07)] border border-[hsl(var(--premium-success))] px-3 py-2">
-                    <div className="text-[10px] uppercase tracking-[0.18em] text-[hsl(var(--premium-success))] mb-0.5 font-medium">
-                      Better
-                    </div>
-                    <div className="text-[hsl(var(--premium-ink))]">
-                      {correct.letter}. {correct.text}
-                    </div>
-                  </div>
-                )}
-                {dt.model_followup && (
-                  <div className="text-[11px] italic text-[hsl(var(--premium-muted))] pl-3 border-l border-[hsl(var(--premium-border))]">
-                    Coach note: {dt.model_followup}
-                  </div>
-                )}
               </div>
             );
           })}
-        </PremiumCard>
+        </ChatPanel>
+
+        <div className="border-2 border-[hsl(var(--lp-line))] rounded-[6px] bg-[hsl(var(--lp-bg-1))] p-5 flex flex-col min-h-0">
+          <h3
+            className="m-0 mb-1 text-[17px] font-bold tracking-[-0.01em] text-[hsl(var(--lp-text))]"
+            style={{ fontFamily: "'Sora', sans-serif" }}
+          >
+            Session Review
+          </h3>
+          <div
+            className="uppercase tracking-[0.14em] text-[10.5px] text-[hsl(var(--lp-text-3))] mb-4"
+            style={{ fontFamily: "'JetBrains Mono', monospace" }}
+          >
+            {correctCount} / {totalTurns} CORRECT
+          </div>
+          <ul className="flex flex-col gap-2 m-0 p-0 list-none overflow-y-auto lp-scroll">
+            {payload.decision_turns.map((dt) => {
+              const pick = props.submitted.turn_picks.find((p) => p.turn === dt.turn);
+              const chosen = dt.options.find((o) => o.id === pick?.selected_option_id);
+              const correct = dt.options.find((o) => o.id === dt.correct_option_id);
+              const ok = pick?.selected_option_id === dt.correct_option_id;
+              return (
+                <li
+                  key={dt.turn}
+                  className={cn(
+                    "flex items-start gap-3 px-3 py-2.5 border-2 rounded-[4px] tracking-[0.04em] bg-[hsl(var(--lp-bg-1))]",
+                    ok ? "border-[hsl(152_55%_53%/0.55)] bg-[hsl(var(--lp-good-soft))]" : "border-[hsl(358_100%_67%/0.5)] bg-[hsl(var(--lp-bad-soft))]",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "grid place-items-center w-[18px] h-[18px] rounded-[3px] text-[11px] font-bold shrink-0 mt-0.5",
+                      ok ? "bg-[hsl(var(--lp-good))] text-[hsl(150_30%_8%)]" : "bg-[hsl(var(--lp-bad))] text-[hsl(0_0%_5%)]",
+                    )}
+                  >
+                    {ok ? <Check size={11} /> : <X size={11} />}
+                  </span>
+                  <div className="text-[13px] text-[hsl(var(--lp-text-2))]">
+                    <div
+                      className="uppercase text-[10.5px] tracking-[0.1em] text-[hsl(var(--lp-text-3))] mb-0.5"
+                      style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                    >
+                      Turn {dt.turn}
+                    </div>
+                    <div className="text-[hsl(var(--lp-text))]">
+                      {chosen ? `${chosen.letter}. ${chosen.text}` : "—"}
+                    </div>
+                    {!ok && correct && (
+                      <div className="mt-1 italic text-[hsl(var(--lp-text-3))]" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+                        Better: {correct.letter}. {correct.text}
+                      </div>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
       </div>
     );
   }
 
-  // Answer mode
+  // ───────── ANSWER MODE ─────────
   const currentDt = payload.decision_turns.find((d) => d.turn === props.currentTurn);
   const currentPick = props.value.turn_picks.find((p) => p.turn === props.currentTurn);
   const visibleTranscript = payload.transcript.filter((t) => t.turn <= props.currentTurn);
@@ -100,121 +163,186 @@ export function PremiumClientCounseling(props: AnswerProps | ReviewProps) {
   };
 
   return (
-    <div className="space-y-4">
-      <MatterHeader
-        matter={payload.matter}
-        subtitle={`Turn ${props.currentTurn} of ${totalTurns}`}
-      />
-
-      <PremiumCard className="space-y-4 max-h-[560px] overflow-y-auto">
+    <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] gap-5 max-w-[1220px] mx-auto lg:h-[calc(100vh-260px)] min-h-[520px]">
+      {/* CHAT */}
+      <ChatPanel
+        clientName={clientName}
+        initial={initial}
+        subtitle={`TURN ${props.currentTurn} OF ${totalTurns}`}
+        scrollRef={scrollRef}
+      >
         {visibleTranscript.map((t) => (
-          <Turn key={`tr-${t.turn}-${t.role}`} role={t.role} text={t.text} />
+          <Bubble key={`tr-${t.turn}-${t.role}`} role={t.role} text={t.text} />
         ))}
         {handledDecisions.map((dt) => {
           const pick = props.value.turn_picks.find((p) => p.turn === dt.turn);
           const chosen = dt.options.find((o) => o.id === pick?.selected_option_id);
           return (
-            <div key={`hist-${dt.turn}`} className="space-y-2">
-              <Turn role="client" text={dt.prompt} />
-              <Turn role="lawyer" text={chosen ? `${chosen.letter}. ${chosen.text}` : "—"} />
+            <div key={`hist-${dt.turn}`} className="contents">
+              <Bubble role="client" text={dt.prompt} meta={`CLIENT · TURN ${dt.turn}`} />
+              <Bubble role="lawyer" text={chosen ? `${chosen.letter}. ${chosen.text}` : "—"} meta={`YOU · TURN ${dt.turn}`} />
             </div>
           );
         })}
-
         {currentDt && (
-          <div className="space-y-3 premium-fade-in">
-            <Turn role="client" text={currentDt.prompt} />
-
-            <div className="ml-auto max-w-[88%] rounded-xl border border-[hsl(var(--premium-border))] bg-[hsl(var(--premium-accent-tint))] p-3 space-y-2">
-              <PremiumLabel>How do you respond?</PremiumLabel>
-              <div className="space-y-1.5">
-                {currentDt.options.map((o) => {
-                  const isSel = currentPick?.selected_option_id === o.id;
-                  return (
-                    <button
-                      key={o.id}
-                      type="button"
-                      onClick={() => setPick(o.id)}
-                      className={cn(
-                        "w-full text-left p-3 rounded-lg border bg-white transition-all flex gap-3 items-start",
-                        isSel
-                          ? "border-[hsl(var(--premium-ink))] shadow-[var(--premium-shadow-sm)]"
-                          : "border-[hsl(var(--premium-border))] hover:border-[hsl(var(--premium-border-strong))]",
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          "flex items-center justify-center w-6 h-6 shrink-0 rounded-full text-[11px] font-medium",
-                          isSel
-                            ? "bg-[hsl(var(--premium-ink))] text-[hsl(var(--premium-bg))]"
-                            : "border border-[hsl(var(--premium-border))] text-[hsl(var(--premium-ink))]",
-                        )}
-                      >
-                        {o.letter}
-                      </span>
-                      <span className="flex-1 text-[13px] leading-relaxed text-[hsl(var(--premium-ink))]">
-                        {o.text}
-                      </span>
-                    </button>
-                  );
-                })}
+          <>
+            <Bubble role="client" text={currentDt.prompt} meta={`CLIENT · TURN ${currentDt.turn}`} />
+            {/* Typing indicator while user hasn't picked yet */}
+            {!currentPick && (
+              <div className="flex justify-end">
+                <div
+                  className="inline-flex gap-1 items-center px-3.5 py-2.5 border-2 border-dashed border-[hsl(var(--lp-line-2))] rounded-[6px] uppercase tracking-[0.08em] text-[11px] text-[hsl(var(--lp-text-3))]"
+                  style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                >
+                  <span className="lp-dot" />
+                  <span className="lp-dot" />
+                  <span className="lp-dot" />
+                  <span className="ml-2">AWAITING INPUT</span>
+                </div>
               </div>
-            </div>
-          </div>
+            )}
+          </>
         )}
-
         {!currentDt && (
-          <div className="text-center text-[13px] italic text-[hsl(var(--premium-muted))] py-4">
+          <div className="text-center text-[13px] italic text-[hsl(var(--lp-text-3))] py-4" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
             Consult complete.
           </div>
         )}
-      </PremiumCard>
-    </div>
-  );
-}
+      </ChatPanel>
 
-function MatterHeader({ matter, subtitle }: { matter: string; subtitle: string }) {
-  return (
-    <div className="flex items-end justify-between gap-3 px-1">
-      <div>
-        <PremiumLabel>Matter</PremiumLabel>
-        <h2 className="font-serif-display text-[22px] leading-tight text-[hsl(var(--premium-ink))] mt-0.5">
-          {matter}
-        </h2>
+      {/* DECISION PANEL */}
+      <div className="border-2 border-[hsl(var(--lp-line))] rounded-[6px] bg-[hsl(var(--lp-bg-1))] p-5 flex flex-col min-h-0">
+        <h3
+          className="m-0 mb-1 text-[17px] font-bold tracking-[-0.01em] text-[hsl(var(--lp-text))]"
+          style={{ fontFamily: "'Sora', sans-serif" }}
+        >
+          {currentDt ? "How do you respond?" : "Consultation complete"}
+        </h3>
+        <div
+          className="uppercase tracking-[0.14em] text-[10.5px] text-[hsl(var(--lp-text-3))] mb-4"
+          style={{ fontFamily: "'JetBrains Mono', monospace" }}
+        >
+          TURN {props.currentTurn} OF {totalTurns}
+        </div>
+        <div className="flex flex-col gap-2.5 overflow-y-auto pr-1 flex-1 lp-scroll">
+          {currentDt?.options.map((o) => {
+            const isSel = currentPick?.selected_option_id === o.id;
+            return (
+              <button
+                key={o.id}
+                type="button"
+                onClick={() => setPick(o.id)}
+                className={cn(
+                  "border-2 rounded-[6px] px-3.5 py-3 text-left w-full transition-colors text-[15.5px] leading-[1.5] text-[hsl(var(--lp-text))]",
+                  "bg-[hsl(var(--lp-bg-2))] border-[hsl(var(--lp-line))]",
+                  "hover:border-[hsl(var(--lp-line-2))] hover:bg-[hsl(var(--lp-bg-3))]",
+                  isSel && "border-[hsl(var(--lp-accent))] bg-[hsl(45_100%_63%/0.12)]",
+                )}
+                style={{ fontFamily: "'Cormorant Garamond', serif" }}
+              >
+                <span
+                  className={cn(
+                    "mr-2.5 uppercase tracking-[0.12em] text-[10.5px]",
+                    isSel ? "text-[hsl(var(--lp-accent))]" : "text-[hsl(var(--lp-text-3))]",
+                  )}
+                  style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                >
+                  {o.letter}
+                </span>
+                {o.text}
+              </button>
+            );
+          })}
+        </div>
+        <div className="pt-3.5 mt-3.5 border-t-2 border-[hsl(var(--lp-line))] flex items-center justify-between gap-3 shrink-0">
+          <span className="italic text-[13px] text-[hsl(var(--lp-text-3))]" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+            Read the room before you read the law.
+          </span>
+        </div>
       </div>
-      <span className="text-[11px] text-[hsl(var(--premium-muted))]">{subtitle}</span>
     </div>
   );
 }
 
-function Turn({
+function ChatPanel({
+  clientName,
+  initial,
+  subtitle,
+  children,
+  scrollRef,
+}: {
+  clientName: string;
+  initial: string;
+  subtitle: string;
+  children: React.ReactNode;
+  scrollRef: React.RefObject<HTMLDivElement>;
+}) {
+  return (
+    <div className="flex flex-col border-2 border-[hsl(var(--lp-line))] rounded-[6px] bg-[hsl(var(--lp-bg-1))] min-h-[480px] max-h-[calc(100vh-220px)] overflow-hidden">
+      <div className="flex items-center gap-3 px-5 py-3.5 border-b-2 border-[hsl(var(--lp-line))] bg-[hsl(var(--lp-bg-2))]">
+        <div
+          className="w-[34px] h-[34px] grid place-items-center text-[13px] font-bold border-2 border-[hsl(var(--lp-line))] rounded-[4px] bg-[hsl(var(--lp-bg-3))] text-[hsl(var(--lp-text))]"
+          style={{ fontFamily: "'Sora', sans-serif" }}
+        >
+          {initial}
+        </div>
+        <div className="min-w-0">
+          <div className="text-[14px] font-semibold text-[hsl(var(--lp-text))] truncate">{clientName}</div>
+          <div
+            className="uppercase tracking-[0.12em] text-[10.5px] text-[hsl(var(--lp-text-3))]"
+            style={{ fontFamily: "'JetBrains Mono', monospace" }}
+          >
+            {subtitle}
+          </div>
+        </div>
+      </div>
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-5 flex flex-col gap-4 lp-scroll">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function Bubble({
   role,
   text,
   evaluation,
+  meta,
 }: {
   role: "client" | "lawyer";
   text: string;
   evaluation?: "ok" | "miss";
+  meta?: string;
 }) {
-  const isLawyer = role === "lawyer";
+  const isYou = role === "lawyer";
   return (
-    <div className={cn("flex", isLawyer ? "justify-end" : "justify-start")}>
-      <div
-        className={cn(
-          "max-w-[78%] rounded-xl px-3.5 py-2.5 text-[13px] leading-[1.55]",
-          isLawyer
-            ? "bg-[hsl(var(--premium-accent-tint))] border border-[hsl(45_85%_82%)] text-[hsl(var(--premium-ink))]"
-            : "bg-white border border-[hsl(var(--premium-border))] text-[hsl(var(--premium-ink))]",
-          evaluation === "miss" && "border-[hsl(var(--premium-danger))]",
-          evaluation === "ok" && "border-[hsl(var(--premium-success))]",
+    <div className={cn("flex", isYou ? "justify-end" : "justify-start")}>
+      <div className={cn("max-w-[88%]", isYou ? "items-end" : "items-start", "flex flex-col gap-1")}>
+        {meta && (
+          <div
+            className={cn(
+              "uppercase text-[10px] tracking-[0.08em] text-[hsl(var(--lp-text-3))]",
+              isYou ? "text-right" : "text-left",
+            )}
+            style={{ fontFamily: "'JetBrains Mono', monospace" }}
+          >
+            {meta}
+            {evaluation === "ok" && <span className="ml-2 text-[hsl(var(--lp-good))]">✓</span>}
+            {evaluation === "miss" && <span className="ml-2 text-[hsl(var(--lp-bad))]">✗</span>}
+          </div>
         )}
-      >
-        <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.18em] text-[hsl(var(--premium-muted))] mb-1 font-medium">
-          {role}
-          {evaluation === "ok" && <Check size={10} className="text-[hsl(var(--premium-success))]" />}
-          {evaluation === "miss" && <X size={10} className="text-[hsl(var(--premium-danger))]" />}
+        <div
+          className={cn(
+            "border-2 rounded-[6px] px-3.5 py-3 text-[14px] leading-[1.55]",
+            isYou
+              ? "bg-[hsl(45_100%_63%/0.12)] border-[hsl(45_100%_63%/0.3)] text-[hsl(var(--lp-text))]"
+              : "bg-[hsl(var(--lp-bg-2))] border-[hsl(var(--lp-line))] text-[hsl(var(--lp-text))]",
+            evaluation === "miss" && "border-[hsl(358_100%_67%/0.5)]",
+            evaluation === "ok" && "border-[hsl(152_55%_53%/0.55)]",
+          )}
+        >
+          {text}
         </div>
-        <div className="whitespace-pre-wrap font-serif-display text-[15px] leading-[1.55]">{text}</div>
       </div>
     </div>
   );

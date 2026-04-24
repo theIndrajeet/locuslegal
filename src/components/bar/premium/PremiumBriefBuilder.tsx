@@ -1,4 +1,4 @@
-// Locus+ Brief Builder — 4-step rail, focused step pane, paper aesthetic.
+// Locus+ Brief Builder — sticky cream fact card + dark wizard with 4-step stepper.
 import { useMemo } from "react";
 import {
   DndContext,
@@ -15,9 +15,9 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Check, GripVertical, X, ArrowUp, ArrowDown } from "lucide-react";
+import { Check, GripVertical, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { PremiumCard, PremiumLabel } from "./PremiumPrimitives";
+import { LetterBadge } from "./PremiumPrimitives";
 
 export interface BriefMcqOption {
   id: string;
@@ -39,6 +39,8 @@ export interface BriefStep {
 export interface BriefPayload {
   fact_pattern: string;
   citation?: string;
+  /** Optional matter tag (e.g. "Priya v. QuickMart (2024)"). */
+  matter_tag?: string;
   steps: BriefStep[];
 }
 export interface BriefStepAnswer {
@@ -68,115 +70,159 @@ interface ReviewProps extends CommonProps {
 export function PremiumBriefBuilder(props: AnswerProps | ReviewProps) {
   const { payload, currentStep } = props;
   const step = payload.steps[currentStep];
+  if (!step) return null;
 
   return (
-    <div className="space-y-5">
-      <StepRail steps={payload.steps} current={currentStep} />
-
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)] gap-5">
-        <PremiumCard className="space-y-3">
-          <PremiumLabel>The Brief · Fact Pattern</PremiumLabel>
-          <p className="font-serif-display text-[16px] leading-[1.7] text-[hsl(var(--premium-ink))] whitespace-pre-wrap">
-            {payload.fact_pattern}
-          </p>
-          {payload.citation && (
-            <div className="pt-3 border-t border-[hsl(var(--premium-border))] text-[11px] italic text-[hsl(var(--premium-muted))]">
-              {payload.citation}
-            </div>
-          )}
-        </PremiumCard>
-
-        <PremiumCard className="space-y-4">
-          <div>
-            <PremiumLabel>
-              Step {currentStep + 1} of {payload.steps.length} · {step.label}
-            </PremiumLabel>
-            <h2 className="mt-2 font-serif-display text-[22px] leading-snug text-[hsl(var(--premium-ink))]">
-              {step.prompt}
-            </h2>
+    <div className="max-w-[1080px] mx-auto grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-7">
+      {/* Sticky cream fact card */}
+      <aside className="lg:sticky lg:top-[110px] self-start lp-paper p-6 sm:p-7">
+        <div
+          className="uppercase tracking-[0.18em] text-[10.5px] mb-2.5"
+          style={{
+            fontFamily: "'JetBrains Mono', monospace",
+            color: "hsl(var(--lp-paper-ink) / 0.55)",
+          }}
+        >
+          The Brief · Fact Pattern
+        </div>
+        <p
+          className="text-[16.5px] leading-[1.6] text-[hsl(var(--lp-paper-ink))] whitespace-pre-wrap m-0"
+          style={{ fontFamily: "'Cormorant Garamond', serif" }}
+        >
+          {payload.fact_pattern}
+        </p>
+        {(payload.matter_tag || payload.citation) && (
+          <div className="mt-4 space-y-2">
+            {payload.matter_tag && (
+              <span
+                className="inline-block px-2 py-1 text-[10px] uppercase tracking-[0.18em] bg-[hsl(var(--lp-paper-ink))] text-[hsl(var(--lp-paper))] rounded-[3px]"
+                style={{ fontFamily: "'JetBrains Mono', monospace" }}
+              >
+                {payload.matter_tag}
+              </span>
+            )}
+            {payload.citation && (
+              <div
+                className="text-[11.5px] italic"
+                style={{
+                  fontFamily: "'Cormorant Garamond', serif",
+                  color: "hsl(var(--lp-paper-ink) / 0.6)",
+                }}
+              >
+                {payload.citation}
+              </div>
+            )}
           </div>
+        )}
+      </aside>
 
-          {step.kind === "mcq" && (
-            <McqBlock
-              step={step}
-              mode={props.mode}
-              selected={
-                props.mode === "answer"
-                  ? props.value.step_answers.find((a) => a.step_index === currentStep)?.selected_option_id ?? null
-                  : props.submitted.step_answers.find((a) => a.step_index === currentStep)?.selected_option_id ?? null
-              }
-              onSelect={
-                props.mode === "answer"
-                  ? (id) => {
-                      const next = (props as AnswerProps).value.step_answers.filter(
-                        (a) => a.step_index !== currentStep,
-                      );
-                      next.push({ step_index: currentStep, selected_option_id: id });
-                      (props as AnswerProps).onChange({ step_answers: next });
-                    }
-                  : undefined
-              }
-            />
-          )}
-          {step.kind === "order" && (
-            <OrderBlock
-              step={step}
-              mode={props.mode}
-              order={
-                props.mode === "answer"
-                  ? props.value.step_answers.find((a) => a.step_index === currentStep)?.ordered_block_ids ??
-                    (step.blocks?.map((b) => b.id) ?? [])
-                  : props.submitted.step_answers.find((a) => a.step_index === currentStep)?.ordered_block_ids ?? []
-              }
-              onChange={
-                props.mode === "answer"
-                  ? (order) => {
-                      const next = (props as AnswerProps).value.step_answers.filter(
-                        (a) => a.step_index !== currentStep,
-                      );
-                      next.push({ step_index: currentStep, ordered_block_ids: order });
-                      (props as AnswerProps).onChange({ step_answers: next });
-                    }
-                  : undefined
-              }
-            />
-          )}
-        </PremiumCard>
+      {/* Dark wizard */}
+      <div className="space-y-5 min-w-0">
+        <Stepper steps={payload.steps} current={currentStep} />
+
+        <div className="flex items-baseline justify-between gap-4 flex-wrap">
+          <h2
+            className="text-[20px] sm:text-[22px] font-bold tracking-[-0.02em] text-[hsl(var(--lp-text))] m-0"
+            style={{ fontFamily: "'Sora', sans-serif" }}
+          >
+            {step.prompt}
+          </h2>
+          <span
+            className="uppercase tracking-[0.1em] text-[11px] text-[hsl(var(--lp-text-3))]"
+            style={{ fontFamily: "'JetBrains Mono', monospace" }}
+          >
+            Step {currentStep + 1} / {payload.steps.length} · {step.label}
+          </span>
+        </div>
+
+        {step.kind === "mcq" && (
+          <McqBlock
+            step={step}
+            mode={props.mode}
+            selected={
+              props.mode === "answer"
+                ? props.value.step_answers.find((a) => a.step_index === currentStep)?.selected_option_id ?? null
+                : props.submitted.step_answers.find((a) => a.step_index === currentStep)?.selected_option_id ?? null
+            }
+            onSelect={
+              props.mode === "answer"
+                ? (id) => {
+                    const next = (props as AnswerProps).value.step_answers.filter(
+                      (a) => a.step_index !== currentStep,
+                    );
+                    next.push({ step_index: currentStep, selected_option_id: id });
+                    (props as AnswerProps).onChange({ step_answers: next });
+                  }
+                : undefined
+            }
+          />
+        )}
+        {step.kind === "order" && (
+          <OrderBlock
+            step={step}
+            mode={props.mode}
+            order={
+              props.mode === "answer"
+                ? props.value.step_answers.find((a) => a.step_index === currentStep)?.ordered_block_ids ??
+                  (step.blocks?.map((b) => b.id) ?? [])
+                : props.submitted.step_answers.find((a) => a.step_index === currentStep)?.ordered_block_ids ?? []
+            }
+            onChange={
+              props.mode === "answer"
+                ? (order) => {
+                    const next = (props as AnswerProps).value.step_answers.filter(
+                      (a) => a.step_index !== currentStep,
+                    );
+                    next.push({ step_index: currentStep, ordered_block_ids: order });
+                    (props as AnswerProps).onChange({ step_answers: next });
+                  }
+                : undefined
+            }
+          />
+        )}
       </div>
     </div>
   );
 }
 
-function StepRail({ steps, current }: { steps: BriefStep[]; current: number }) {
+function Stepper({ steps, current }: { steps: BriefStep[]; current: number }) {
   return (
-    <div className="flex items-center gap-2 overflow-x-auto">
+    <div
+      className="grid border-2 border-[hsl(var(--lp-line))] rounded-[6px] overflow-hidden"
+      style={{ gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` }}
+    >
       {steps.map((s, i) => {
         const state = i === current ? "active" : i < current ? "done" : "todo";
         return (
-          <div key={i} className="flex items-center gap-2 shrink-0">
-            <div className="flex items-center gap-2">
-              <span
-                className={cn(
-                  "inline-flex items-center justify-center h-6 w-6 rounded-full text-[11px] font-medium transition-colors",
-                  state === "active" && "bg-[hsl(var(--premium-ink))] text-[hsl(var(--premium-bg))]",
-                  state === "done" && "bg-[hsl(var(--premium-accent))] text-[hsl(var(--premium-ink))]",
-                  state === "todo" && "border border-[hsl(var(--premium-border))] text-[hsl(var(--premium-muted))] bg-white",
-                )}
-              >
-                {state === "done" ? <Check size={12} /> : i + 1}
-              </span>
-              <span
-                className={cn(
-                  "text-[12px] font-medium tracking-wide",
-                  state === "active" ? "text-[hsl(var(--premium-ink))]" : "text-[hsl(var(--premium-muted))]",
-                )}
-              >
-                {s.label}
-              </span>
-            </div>
-            {i < steps.length - 1 && (
-              <span className="h-px w-8 bg-[hsl(var(--premium-border))]" />
+          <div
+            key={i}
+            className={cn(
+              "px-3 py-3 flex items-center gap-2.5 border-r-2 last:border-r-0 border-[hsl(var(--lp-line))]",
+              state === "active" && "bg-[hsl(var(--lp-bg-2))]",
+              state !== "active" && "bg-[hsl(var(--lp-bg-1))]",
             )}
+          >
+            <span
+              className={cn(
+                "inline-grid place-items-center w-[22px] h-[22px] rounded-[3px] border-[1.5px] text-[11px] shrink-0",
+                state === "todo" && "border-[hsl(var(--lp-line-2))] text-[hsl(var(--lp-text-3))]",
+                state === "active" && "border-[hsl(var(--lp-accent))] text-[hsl(var(--lp-accent))]",
+                state === "done" && "border-[hsl(var(--lp-accent))] bg-[hsl(var(--lp-accent))] text-[hsl(var(--lp-accent-ink))]",
+              )}
+              style={{ fontFamily: "'JetBrains Mono', monospace" }}
+            >
+              {state === "done" ? <Check size={11} /> : i + 1}
+            </span>
+            <span
+              className={cn(
+                "text-[12.5px] truncate",
+                state === "active" && "text-[hsl(var(--lp-text))] font-semibold",
+                state === "done" && "text-[hsl(var(--lp-text))] font-medium",
+                state === "todo" && "text-[hsl(var(--lp-text-3))] font-medium",
+              )}
+            >
+              {s.label}
+            </span>
           </div>
         );
       })}
@@ -196,7 +242,7 @@ function McqBlock({
   onSelect?: (id: string) => void;
 }) {
   return (
-    <div className="space-y-2">
+    <div className="flex flex-col gap-2.5">
       {(step.options ?? []).map((o) => {
         const isSelected = selected === o.id;
         const isCorrect = mode === "review" && o.id === step.correct_option_id;
@@ -208,44 +254,45 @@ function McqBlock({
             disabled={mode === "review"}
             onClick={() => onSelect?.(o.id)}
             className={cn(
-              "w-full text-left p-4 rounded-xl border transition-all flex gap-3 items-start",
-              mode === "review"
-                ? isCorrect
-                  ? "border-[hsl(var(--premium-success))] bg-[hsl(152_55%_36%/0.08)]"
-                  : isWrong
-                    ? "border-[hsl(var(--premium-danger))] bg-[hsl(4_65%_48%/0.06)]"
-                    : "border-[hsl(var(--premium-border))] bg-white opacity-60"
-                : isSelected
-                  ? "border-[hsl(var(--premium-ink))] bg-white shadow-[var(--premium-shadow-sm)]"
-                  : "border-[hsl(var(--premium-border))] bg-white hover:border-[hsl(var(--premium-border-strong))]",
+              "grid grid-cols-[28px_1fr_auto] gap-3.5 items-start text-left",
+              "p-4 border-2 rounded-[6px] transition-colors bg-[hsl(var(--lp-bg-1))]",
+              "border-[hsl(var(--lp-line))]",
+              !isCorrect && !isWrong && "hover:border-[hsl(var(--lp-line-2))] hover:bg-[hsl(var(--lp-bg-2))]",
+              isSelected && !isCorrect && !isWrong &&
+                "border-[hsl(var(--lp-accent))] bg-[hsl(45_100%_63%/0.12)]",
+              isCorrect && "border-[hsl(152_55%_53%/0.55)] bg-[hsl(var(--lp-good-soft))]",
+              isWrong && "border-[hsl(358_100%_67%/0.5)] bg-[hsl(var(--lp-bad-soft))]",
             )}
           >
-            <span
-              className={cn(
-                "flex items-center justify-center w-7 h-7 shrink-0 rounded-full text-[12px] font-medium transition-colors",
-                isCorrect && mode === "review"
-                  ? "bg-[hsl(var(--premium-success))] text-white"
-                  : isWrong
-                    ? "bg-[hsl(var(--premium-danger))] text-white"
-                    : isSelected
-                      ? "bg-[hsl(var(--premium-ink))] text-[hsl(var(--premium-bg))]"
-                      : "border border-[hsl(var(--premium-border))] text-[hsl(var(--premium-ink))] bg-white",
-              )}
-            >
-              {o.letter}
-            </span>
-            <div className="flex-1 min-w-0">
-              <div className="text-[14px] font-medium text-[hsl(var(--premium-ink))]">{o.title}</div>
-              {o.desc && <div className="text-[12px] text-[hsl(var(--premium-muted))] mt-0.5">{o.desc}</div>}
+            <LetterBadge
+              letter={o.letter}
+              selected={isSelected && !isCorrect && !isWrong}
+              state={isCorrect ? "correct" : isWrong ? "wrong" : undefined}
+            />
+            <div className="min-w-0">
+              <div className="font-semibold text-[14.5px] text-[hsl(var(--lp-text))] mb-1">
+                {o.title}
+              </div>
+              {o.desc && <div className="text-[13px] text-[hsl(var(--lp-text-2))] leading-[1.5]">{o.desc}</div>}
               {o.meta && (
-                <div className="text-[11px] italic text-[hsl(var(--premium-subtle))] mt-1">{o.meta}</div>
+                <div
+                  className="mt-1.5 text-[10.5px] text-[hsl(var(--lp-text-3))] tracking-[0.05em]"
+                  style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                >
+                  {o.meta}
+                </div>
               )}
             </div>
-            {mode === "review" && isCorrect && (
-              <Check size={15} className="text-[hsl(var(--premium-success))] mt-1" />
-            )}
-            {mode === "review" && isWrong && (
-              <X size={15} className="text-[hsl(var(--premium-danger))] mt-1" />
+            {mode === "review" && (isCorrect || isWrong) && (
+              <span
+                className={cn(
+                  "px-1.5 py-[3px] rounded-[3px] uppercase tracking-[0.1em] text-[10px] font-bold self-start",
+                  isCorrect ? "bg-[hsl(var(--lp-good))] text-[hsl(150_30%_8%)]" : "bg-[hsl(var(--lp-bad))] text-[hsl(0_0%_5%)]",
+                )}
+                style={{ fontFamily: "'JetBrains Mono', monospace" }}
+              >
+                {isCorrect ? "Correct" : "Wrong"}
+              </span>
             )}
           </button>
         );
@@ -290,16 +337,9 @@ function OrderBlock({
     onChange(arrayMove(order, oldIdx, newIdx));
   };
 
-  const move = (i: number, dir: -1 | 1) => {
-    if (!onChange) return;
-    const j = i + dir;
-    if (j < 0 || j >= order.length) return;
-    onChange(arrayMove(order, i, j));
-  };
-
   if (mode === "review") {
     return (
-      <div className="space-y-2">
+      <div className="flex flex-col gap-2.5">
         {(order.length ? order : blocks.map((b) => b.id)).map((id, i) => {
           const expectedAt = correctIndex.get(id);
           const correct = expectedAt === i;
@@ -307,22 +347,28 @@ function OrderBlock({
             <div
               key={id}
               className={cn(
-                "flex items-center gap-3 p-3.5 rounded-xl border bg-white",
+                "grid grid-cols-[24px_1fr_auto] gap-3.5 items-center p-3.5 border-2 rounded-[6px] bg-[hsl(var(--lp-bg-1))]",
                 correct
-                  ? "border-[hsl(var(--premium-success))] bg-[hsl(152_55%_36%/0.06)]"
-                  : "border-[hsl(var(--premium-danger))] bg-[hsl(4_65%_48%/0.05)]",
+                  ? "border-[hsl(152_55%_53%/0.55)] bg-[hsl(var(--lp-good-soft))]"
+                  : "border-[hsl(358_100%_67%/0.5)] bg-[hsl(var(--lp-bad-soft))]",
               )}
             >
-              <span className="font-serif-display text-[18px] text-[hsl(var(--premium-muted))] w-7">
-                {i + 1}
+              <span
+                className="text-[11px] text-[hsl(var(--lp-text-3))]"
+                style={{ fontFamily: "'JetBrains Mono', monospace" }}
+              >
+                {String(i + 1).padStart(2, "0")}
               </span>
-              <span className="flex-1 text-[13px] text-[hsl(var(--premium-ink))] leading-relaxed">
+              <span className="text-[13.5px] text-[hsl(var(--lp-text))] leading-relaxed">
                 {blockMap.get(id) ?? id}
               </span>
               {correct ? (
-                <Check size={14} className="text-[hsl(var(--premium-success))]" />
+                <Check size={14} className="text-[hsl(var(--lp-good))]" />
               ) : (
-                <span className="text-[10px] uppercase tracking-wider text-[hsl(var(--premium-danger))]">
+                <span
+                  className="text-[10px] uppercase tracking-[0.1em] text-[hsl(var(--lp-bad))]"
+                  style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                >
                   was #{(expectedAt ?? 0) + 1}
                 </span>
               )}
@@ -336,17 +382,9 @@ function OrderBlock({
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
       <SortableContext items={order} strategy={verticalListSortingStrategy}>
-        <div className="space-y-2">
+        <div className="flex flex-col gap-2.5">
           {order.map((id, i) => (
-            <SortableRow
-              key={id}
-              id={id}
-              index={i}
-              total={order.length}
-              text={blockMap.get(id) ?? id}
-              onUp={() => move(i, -1)}
-              onDown={() => move(i, 1)}
-            />
+            <SortableRow key={id} id={id} index={i} text={blockMap.get(id) ?? id} />
           ))}
         </div>
       </SortableContext>
@@ -354,66 +392,29 @@ function OrderBlock({
   );
 }
 
-function SortableRow({
-  id,
-  index,
-  total,
-  text,
-  onUp,
-  onDown,
-}: {
-  id: string;
-  index: number;
-  total: number;
-  text: string;
-  onUp: () => void;
-  onDown: () => void;
-}) {
+function SortableRow({ id, index, text }: { id: string; index: number; text: string }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
   return (
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={cn(
-        "flex items-center gap-3 p-3.5 rounded-xl border bg-white transition-shadow",
+        "grid grid-cols-[18px_24px_1fr] gap-3.5 items-center p-3.5 border-2 rounded-[6px] cursor-grab active:cursor-grabbing select-none transition-colors bg-[hsl(var(--lp-bg-1))]",
         isDragging
-          ? "border-[hsl(var(--premium-ink))] shadow-[var(--premium-shadow)] z-10"
-          : "border-[hsl(var(--premium-border))] hover:border-[hsl(var(--premium-border-strong))]",
+          ? "border-[hsl(var(--lp-accent))] bg-[hsl(45_100%_63%/0.12)] z-10"
+          : "border-[hsl(var(--lp-line))] hover:border-[hsl(var(--lp-line-2))] hover:bg-[hsl(var(--lp-bg-2))]",
       )}
+      {...attributes}
+      {...listeners}
     >
-      <button
-        type="button"
-        className="cursor-grab active:cursor-grabbing text-[hsl(var(--premium-subtle))] hover:text-[hsl(var(--premium-ink))]"
-        {...attributes}
-        {...listeners}
-        aria-label="Drag to reorder"
+      <GripVertical size={14} className="text-[hsl(var(--lp-text-3))]" />
+      <span
+        className="text-[11px] text-[hsl(var(--lp-text-3))]"
+        style={{ fontFamily: "'JetBrains Mono', monospace" }}
       >
-        <GripVertical size={16} />
-      </button>
-      <span className="font-serif-display text-[18px] text-[hsl(var(--premium-muted))] w-7">
-        {index + 1}
+        {String(index + 1).padStart(2, "0")}
       </span>
-      <span className="flex-1 text-[13px] text-[hsl(var(--premium-ink))] leading-relaxed">{text}</span>
-      <div className="flex flex-col gap-0.5">
-        <button
-          type="button"
-          onClick={onUp}
-          disabled={index === 0}
-          className="p-0.5 rounded text-[hsl(var(--premium-muted))] hover:text-[hsl(var(--premium-ink))] disabled:opacity-30"
-          aria-label="Move up"
-        >
-          <ArrowUp size={12} />
-        </button>
-        <button
-          type="button"
-          onClick={onDown}
-          disabled={index === total - 1}
-          className="p-0.5 rounded text-[hsl(var(--premium-muted))] hover:text-[hsl(var(--premium-ink))] disabled:opacity-30"
-          aria-label="Move down"
-        >
-          <ArrowDown size={12} />
-        </button>
-      </div>
+      <span className="text-[13.5px] text-[hsl(var(--lp-text))] leading-relaxed">{text}</span>
     </div>
   );
 }
