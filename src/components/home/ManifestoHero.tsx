@@ -84,18 +84,7 @@ export default function ManifestoHero() {
           <div className="grid lg:grid-cols-[1.4fr_1fr] gap-12 lg:gap-8 items-center">
             {/* LEFT: Copy */}
             <div className="max-w-2xl">
-              {/* Section marker */}
-              <TimelineContent
-                index={1}
-                variants={textVariants}
-                className="flex items-center gap-3 mb-8 md:mb-12"
-              >
-                <span className="font-mono text-xs text-accent font-semibold tracking-[0.2em]">001</span>
-                <span className="h-px w-10 bg-accent/60" />
-                <span className="font-mono text-[10px] md:text-xs tracking-[0.25em] text-white/50 uppercase">
-                  The Operating System
-                </span>
-              </TimelineContent>
+
 
               {/* Headline — static, no entrance animation */}
               <h1 className="font-heading font-black uppercase leading-[0.92] tracking-[-0.035em] text-[44px] sm:text-6xl lg:text-7xl xl:text-[88px] mb-8 md:mb-10">
