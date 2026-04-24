@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 export type HeroAngleData = {
   id: "indictment" | "promise" | "alternative";
   eyebrow: string;
-  /** Each entry is one line of the headline. Optional `accent` paints the line in yellow. */
-  headlineLines: { text: string; accent?: boolean }[];
+  /** Single-line punchline that morphs via GooeyText in the parent. */
+  morphLine: string;
   subheadline?: string;
   primaryCta: { label: string; href?: string; scrollTo?: string };
   secondaryCta: { label: string; href: string };
@@ -17,6 +17,10 @@ type Props = {
   onCtaFocusChange?: (focused: boolean) => void;
 };
 
+/**
+ * Renders the per-angle bits that crossfade: eyebrow, subheadline, CTAs.
+ * The fixed anchor headline + the morphing punchline live in RotatingHero.
+ */
 export default function HeroAngle({ angle, onCtaFocusChange }: Props) {
   const handlePrimaryClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     if (angle.primaryCta.scrollTo) {
@@ -27,32 +31,24 @@ export default function HeroAngle({ angle, onCtaFocusChange }: Props) {
   };
 
   return (
-    <div className="text-center flex flex-col items-center">
-      <p className="font-mono text-xs sm:text-sm uppercase tracking-[0.2em] text-accent mb-6">
+    <div className="flex flex-col items-start text-left">
+      <p className="font-mono text-[11px] sm:text-xs uppercase tracking-[0.22em] text-accent mb-5">
         {angle.eyebrow}
       </p>
 
-      <h1 className="font-heading text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold leading-[1.05] tracking-tight mb-6 text-foreground">
-        {angle.headlineLines.map((line, i) => (
-          <span key={i} className="block">
-            <span className={line.accent ? "text-accent" : undefined}>{line.text}</span>
-          </span>
-        ))}
-      </h1>
-
       {angle.subheadline ? (
-        <p className="text-lg md:text-xl text-foreground/70 max-w-2xl mx-auto mb-10 leading-relaxed">
+        <p className="text-base md:text-lg text-foreground/70 max-w-xl mb-8 leading-relaxed">
           {angle.subheadline}
         </p>
       ) : (
-        <div className="mb-10" aria-hidden />
+        <div className="mb-8" aria-hidden />
       )}
 
-      <div className="flex flex-col sm:flex-row gap-4 justify-center items-stretch sm:items-center w-full sm:w-auto">
+      <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center w-full sm:w-auto">
         <Button
           asChild
           size="lg"
-          className="font-heading text-base px-8 h-12 group"
+          className="font-heading text-base px-7 h-12 group bg-accent text-accent-foreground border-2 border-foreground hover:bg-accent/90 shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
         >
           <Link
             to={angle.primaryCta.href ?? "#"}
@@ -67,9 +63,9 @@ export default function HeroAngle({ angle, onCtaFocusChange }: Props) {
 
         <Button
           asChild
-          variant="neutral"
+          variant="outline"
           size="lg"
-          className="font-heading text-base px-8 h-12 bg-transparent text-foreground hover:bg-transparent hover:border-accent transition-colors"
+          className="font-heading text-base px-7 h-12 bg-transparent text-foreground border-2 border-foreground/40 hover:border-accent hover:text-accent hover:bg-transparent transition-colors"
         >
           <Link
             to={angle.secondaryCta.href}
