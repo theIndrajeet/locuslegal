@@ -95,6 +95,16 @@ export function DocumentReviewRenderer(props: AnswerProps | ReviewProps) {
 
   return (
     <div className="space-y-4">
+      {/* Reviewer brief — partner's instruction, only when supplied */}
+      {payload.reviewer_brief && (
+        <div className="border-2 border-accent bg-accent/10 p-4 rounded-md">
+          <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-accent mb-1.5">
+            Brief from Partner{payload.agreement_type ? ` · ${payload.agreement_type}` : ""}
+          </div>
+          <p className="text-sm text-foreground leading-relaxed">{payload.reviewer_brief}</p>
+        </div>
+      )}
+
       {/* Document card — light surface for legal-text legibility */}
       <article
         className={cn(
@@ -103,7 +113,7 @@ export function DocumentReviewRenderer(props: AnswerProps | ReviewProps) {
         )}
       >
         <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-3">
-          Clause · For Review
+          {payload.agreement_type ? `${payload.agreement_type} · For Review` : "Clause · For Review"}
         </div>
         <div className="font-serif text-[15px] leading-7 whitespace-pre-wrap">
           {segments.map((seg, i) => {
