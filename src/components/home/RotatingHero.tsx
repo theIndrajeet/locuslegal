@@ -151,20 +151,43 @@ export default function RotatingHero() {
 
       <div className="container mx-auto px-4 md:px-8 relative z-10 py-28">
         <div className="max-w-4xl mx-auto">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={current.id}
-              initial={reduceMotion ? false : { opacity: 0, filter: "blur(12px)" }}
-              animate={{ opacity: 1, filter: "blur(0px)" }}
-              exit={reduceMotion ? undefined : { opacity: 0, filter: "blur(12px)" }}
-              transition={{ duration: 0.7, ease: [0.4, 0, 0.2, 1] }}
-            >
-              <HeroAngle
-                angle={current}
-                onCtaFocusChange={(focused) => (focused ? pauseNow() : scheduleResume())}
-              />
-            </motion.div>
-          </AnimatePresence>
+          {/* SVG goo threshold filter — merges blurred letters into liquid blobs */}
+          <svg className="absolute h-0 w-0" aria-hidden>
+            <defs>
+              <filter id="hero-goo">
+                <feColorMatrix
+                  in="SourceGraphic"
+                  type="matrix"
+                  values="1 0 0 0 0
+                          0 1 0 0 0
+                          0 0 1 0 0
+                          0 0 0 22 -10"
+                />
+              </filter>
+            </defs>
+          </svg>
+
+          <div
+            className="relative"
+            style={reduceMotion ? undefined : { filter: "url(#hero-goo)" }}
+          >
+            <AnimatePresence mode="sync" initial={false}>
+              <motion.div
+                key={current.id}
+                initial={reduceMotion ? false : { opacity: 0, filter: "blur(14px)" }}
+                animate={{ opacity: 1, filter: "blur(0px)" }}
+                exit={reduceMotion ? undefined : { opacity: 0, filter: "blur(14px)", position: "absolute" }}
+                transition={{ duration: 0.9, ease: [0.4, 0, 0.2, 1] }}
+                className="w-full"
+                style={{ top: 0, left: 0, right: 0 }}
+              >
+                <HeroAngle
+                  angle={current}
+                  onCtaFocusChange={(focused) => (focused ? pauseNow() : scheduleResume())}
+                />
+              </motion.div>
+            </AnimatePresence>
+          </div>
 
           {!reduceMotion && (
             <div
