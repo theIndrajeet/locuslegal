@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Layout from "./components/Layout";
 import Index from "./pages/Index";
+import Waitlist from "./pages/Waitlist";
 import Directory from "./pages/Directory";
 import Resources from "./pages/Resources";
 import Playbook from "./pages/Playbook";
@@ -63,6 +64,7 @@ const App = () => (
           <Routes>
             <Route element={<Layout />}>
               <Route path="/" element={<Index />} />
+              <Route path="/waitlist" element={<Waitlist />} />
               <Route path="/directory" element={<Directory />} />
               <Route path="/playbook" element={<Playbook />} />
               <Route path="/resources" element={<Resources />} />
