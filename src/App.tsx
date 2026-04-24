@@ -12,6 +12,7 @@ import Resources from "./pages/Resources";
 import Playbook from "./pages/Playbook";
 import Tools from "./pages/Tools";
 import TheBar from "./pages/TheBar";
+import AppHome from "./pages/AppHome";
 import TheBarPreview from "./pages/TheBarPreview";
 import TheBarBrowse from "./pages/TheBarBrowse";
 import TheBarChallenge from "./pages/TheBarChallenge";
@@ -64,6 +65,7 @@ const App = () => (
           <Routes>
             <Route element={<Layout />}>
               <Route path="/" element={<Index />} />
+              <Route path="/app" element={<AppHome />} />
               <Route path="/waitlist" element={<Waitlist />} />
               <Route path="/directory" element={<Directory />} />
               <Route path="/playbook" element={<Playbook />} />

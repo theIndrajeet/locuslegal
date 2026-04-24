@@ -205,6 +205,7 @@ export default function ProfileEdit() {
         </div>
 
         <ProfileStrengthMeter
+          variant="compact"
           avatarUrl={avatarUrl}
           bio={bio}
           college={college}
