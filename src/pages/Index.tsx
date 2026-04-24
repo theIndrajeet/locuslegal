@@ -1,27 +1,27 @@
-import Hero from "@/components/Hero";
+import HomeHero from "@/components/home/HomeHero";
 import StatsBar from "@/components/StatsBar";
-import ForStudents from "@/components/ForStudents";
-import ForFirms from "@/components/ForFirms";
-import ForUniversities from "@/components/ForUniversities";
-import WaitlistSection from "@/components/WaitlistSection";
+import FeatureBento from "@/components/home/FeatureBento";
+import LocusPlusStrip from "@/components/home/LocusPlusStrip";
+import AudienceMiniRow from "@/components/home/AudienceMiniRow";
+import FinalCTA from "@/components/home/FinalCTA";
 import { usePageMeta } from "@/hooks/usePageMeta";
 
 const Index = () => {
   usePageMeta({
-    title: "Locus — Merit-Based Legal Internships in India",
-    description: "India's legal internship platform that connects law students with firms based on merit, not college name. Your merit. Your internship.",
+    title: "Locus — Everything a Law Student in India Actually Needs",
+    description: "Directory of 3,890+ firms, daily skill challenges, templates, tools, and a tracker. The merit-first platform for India's law students.",
     path: "/",
   });
 
   return (
-  <>
-    <Hero />
-    <StatsBar />
-    <ForStudents />
-    <ForFirms />
-    <ForUniversities />
-    <WaitlistSection />
-  </>
+    <>
+      <HomeHero />
+      <StatsBar />
+      <FeatureBento />
+      <LocusPlusStrip />
+      <AudienceMiniRow />
+      <FinalCTA />
+    </>
   );
 };
 
