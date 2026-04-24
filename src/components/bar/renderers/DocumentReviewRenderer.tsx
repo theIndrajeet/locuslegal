@@ -14,6 +14,11 @@ interface Payload {
   spans: Span[];
   categories: Category[];
   correct_flags?: CorrectFlag[];
+  /** Optional pedagogical fields (Agreement Review Trainer). */
+  reviewer_brief?: string;
+  agreement_type?: string;
+  rationale?: Record<string, string>;
+  suggested_redline?: Record<string, string>;
 }
 
 export interface DocReviewAnswerState {
