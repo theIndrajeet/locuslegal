@@ -1,75 +1,49 @@
-# Locus+ audit fixes — execution plan
+## Locus+ Premium Hardening — Round 2
 
-Four targeted hardening passes. No new features, no UX regressions.
+### 1. State reset on challenge change (`src/pages/TheBarChallenge.tsx`)
+Add a `useEffect([challenge?.id])` that resets ALL premium navigation state to defaults whenever a new challenge loads:
+- `briefStep` → 0
+- `counselingTurn` → 0
+- `ethicsStage` → 'decide'
+- `docReviewFlagged` → []
+- any per-type local answer state
 
-## 1. Type safety: mark answer-key fields optional in payload types
+This prevents `payload.steps[briefStep]` style crashes when navigating from a 5-step brief to a 3-step brief.
 
-The student view strips all `correct_*` / `model_*` keys, so when these payloads are typed as **required** the TS types lie about what arrives at runtime. Fix the four interfaces so the answer-mode code paths compile honestly and any future use of these fields outside `review` mode is forced to null-check.
+### 2. Brief Builder review correctness tint (`src/components/bar/AttemptReviewDialog.tsx`)
+In `BriefBuilderReview`, when the payload contains an answer key (admin review), compare `submitted.step_answers[i]` against `payload.steps[i].correct_*` and tint the stepper button:
+- match → emerald border/text
+- mismatch → rose border/text
+- no key available (student-stripped payload) → neutral (current behaviour)
 
-**`src/components/bar/premium/PremiumEthics.tsx`** — `EthicsPayload`:
-- `correct_decision_id?: string`
-- `correct_followup_id?: string`
-- `model_reasoning?: string`
-- In `RevealPane` (review-only), guard `payload.model_reasoning` render with `&&` so it's hidden when missing.
-- In `RevealPane` correctness checks, fall back to `""` when the correct id is absent (treat as "no key → can't be correct"), so the row still renders rather than crashing.
+### 3. Document Review min height (`src/components/bar/premium/PremiumDocumentReview.tsx`)
+Add `min-h-[60vh]` to the root grid container so short documents don't collapse and overlap the footer.
 
-**`src/components/bar/premium/PremiumClientCounseling.tsx`** — `CounselingDecisionTurn`:
-- `correct_option_id?: string`
-- (`model_followup` already optional — leave as is)
-- Review block: when `dt.correct_option_id` is missing, treat the pick as "ungraded" (neutral border, no ✓/✗) instead of crashing.
+### 4. Delete obsolete legacy renderers
+The four premium types now route exclusively through `Premium*` components. The legacy renderers are dead code that still references stripped `correct_*` keys in their TS interfaces — a future regression risk.
 
-**`src/components/bar/premium/PremiumBriefBuilder.tsx`** — `BriefStep`:
-- Already has `correct_option_id?` and `correct_order?` optional. ✅ No change.
+Delete:
+- `src/components/bar/renderers/EthicsRenderer.tsx`
+- `src/components/bar/renderers/ClientCounselingRenderer.tsx`
+- `src/components/bar/renderers/BriefBuilderRenderer.tsx`
+- `src/components/bar/renderers/DocumentReviewRenderer.tsx`
 
-**`src/components/bar/renderers/DocumentReviewRenderer.tsx`** — `Payload`:
-- `correct_flags?: CorrectFlag[]` (optional)
-- In `correctMap` builder: `const list = props.mode === "review" ? props.correct_flags : (payload.correct_flags ?? []);` — this is the actual P0 line that would crash if a legacy renderer ever loaded a stripped payload in answer mode.
+Remove their imports from `AttemptReviewDialog.tsx` and `TheBarChallenge.tsx`.
 
-**`src/components/bar/premium/PremiumDocumentReview.tsx`** — `Payload`:
-- `correct_flags?: CorrectFlag[]` (optional)
-- Same `?? []` defense in `correctMap` builder.
+### 5. Guest access RLS policy (new migration)
+Currently `bar_challenges_student` runs with `security_invoker = true`, so `anon` needs base-table SELECT to read approved challenges in guest preview. Add:
 
-## 2. Brief Builder review duplicates the shell — render once
+```sql
+CREATE POLICY "Anon can read approved bar_challenges"
+  ON public.bar_challenges
+  FOR SELECT
+  TO anon
+  USING (status = 'approved');
+```
 
-In `src/components/bar/AttemptReviewDialog.tsx`, the `brief_builder` branch maps over every step and instantiates `<PremiumBriefBuilder>` once per step. Each instance re-renders the entire 2-column shell (sticky fact card + stepper), so a 4-step brief shows the fact card 4 times stacked vertically and looks broken.
+The view itself strips all `correct_*` keys, so anon still cannot see answers. Authenticated paths are unchanged.
 
-**Fix.** Render a single `<PremiumBriefBuilder mode="review" currentStep={0} ...>` and add a small reviewer-only step picker above it (lightweight buttons "Step 1 / Step 2 / …") that swaps `currentStep` via local `useState`. This keeps every other surface area (preview, live, admin) untouched.
-
-## 3. AI generation: validate `{{span_id}}` markers and id refs
-
-Both `extract-questions-from-pdf` and `draft-question-from-prompt` accept `document_review` / `brief_builder` / `ethics` / `client_counseling` payloads but only check shape, not referential integrity. So a hallucinated marker like `{{loud-clause}}` with no matching span silently slips through and renders a literal `loud-clause` string in the document.
-
-Add `.refine()` to the four schemas in **both** edge functions (identical code, copy-paste):
-
-**`DocumentReviewPayloadSchema`**
-- Every `{{id}}` marker in `document_html` must match a span id, and every `correct_flags[].span_id` / `category_id` must reference a real span / category.
-
-**`BriefBuilderPayloadSchema`**
-- Per step: if `kind="mcq"` then `options` ≥ 2, `correct_option_id` matches one option id.
-- Per step: if `kind="order"` then `blocks` ≥ 2, `correct_order.length === blocks.length`, every id in `correct_order` references a real block id.
-
-**`EthicsPayloadSchema`**
-- `correct_decision_id` exists in `decision_options`; `correct_followup_id` exists in `followup_options`.
-
-**`ClientCounselingPayloadSchema`**
-- For each `decision_turns[i]`: `correct_option_id` exists in that turn's `options`.
-
-`validatePayload` already calls `.safeParse(...).success`, so a failing refine simply rejects the AI-generated row before it lands as a draft. No further wiring needed.
-
-## 4. View hardening: `security_invoker` + `security_barrier`
-
-Recreate `public.bar_challenges_student` with the same body (the one we shipped this morning) but add `WITH (security_invoker = true, security_barrier = true)`. This makes the view honor the calling user's RLS on the underlying `bar_challenges` table (defense in depth — if a future RLS change ever permits broader read on the base table, the view inherits it correctly instead of bypassing as definer). Idempotent migration: `DROP VIEW IF EXISTS … CASCADE` + `CREATE VIEW …`.
-
-## Out of scope (explicitly skipped)
-
-- AttemptReviewDialog re-fetch / caching — trivial perf, not worth a refactor right now.
-- Adding `model_reasoning` / `model_followup` back to the student view — they're admin-only commentary, students should never see them pre-submission, and post-submission they'd be useful but they aren't currently wired into any post-grade UI; tracked as a future enhancement, not a bug.
-- Renderer-level fallback UI for missing `correct_*` in review mode — the new payload types and `?? []` defenses are enough; if an old malformed row sneaks through the misconfig guard in `TheBarChallenge.tsx` already covers it.
-
-## Acceptance
-
-- TS compiles after marking the four payload `correct_*` fields optional; no `as any` added.
-- Approving a `brief_builder` challenge and opening its attempt in the review dialog shows **one** sticky fact card with a step picker, not four stacked shells.
-- Generating a `document_review` via PDF extract or AI draft where the model invents an unmatched `{{marker}}` returns 0 challenges (rejected by refine), surfaced normally in the AI generations log.
-- `\d+ public.bar_challenges_student` shows `security_invoker = on, security_barrier = on`. Existing student fetches still return identical JSON.
-- All 4 existing types and admin/preview/live/review flows unchanged.
+### Out of scope
+- No payload schema changes
+- No edge function changes
+- No new tables
