@@ -374,7 +374,29 @@ export default function PublicProfile() {
         </aside>
 
         {/* Right column */}
-        <main>
+        <main className="space-y-6">
+          {/* Owner action bar */}
+          {viewerId === profile.id && (
+            <div className="flex flex-wrap items-center gap-2 border-2 border-border bg-card px-4 py-3 shadow-[3px_3px_0_0_hsl(var(--border))]">
+              <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground mr-1">
+                Your profile
+              </span>
+              <Button size="sm" variant="outline" className="gap-1.5" onClick={() => navigate("/profile/edit")}>
+                <Pencil className="h-3.5 w-3.5" /> Edit
+              </Button>
+              <Button size="sm" variant="outline" className="gap-1.5" onClick={() => navigate("/applications")}>
+                <Briefcase className="h-3.5 w-3.5" /> Track applications
+              </Button>
+            </div>
+          )}
+
+          {/* Activity heatmap */}
+          <Card>
+            <CardContent className="pt-5 pb-4">
+              <ActivityHeatmap userId={profile.id} />
+            </CardContent>
+          </Card>
+
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList>
               <TabsTrigger value="experience">Experience ({internships.length})</TabsTrigger>
