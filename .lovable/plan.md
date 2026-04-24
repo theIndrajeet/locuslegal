@@ -1,52 +1,51 @@
-## Plan: make the live site reliably pick up new frontend builds
+## Goal
 
-### What appears to be happening
-The issue does not look like normal browser cache anymore.
+Replace the rotating/morphing hero with a static, two-column hero that matches the bento tile language used elsewhere on the home page. No timers, no morphs, no progress bars, no flicker.
 
-Current evidence:
-- `https://locus.legal/version.json` returns a live build version: `1777051659055`
-- `https://locuslegal.lovable.app/version.json` returns the same version
-- There is no service worker in the codebase, so this is not offline-cache behavior
-- The app already polls `/version.json`, but that only helps an already-open tab detect a newer deployment
+## Layout
 
-That points to one of these causes:
-1. The newest frontend changes were not published yet, so the public domains are still serving the previous deployed build.
-2. The live deployment is published, but the cache-busting strategy is too weak for some HTML/CDN paths.
-3. The version-check logic is working only as an in-session refresh prompt, not as a true deployment freshness safeguard.
+- Left column (`lg:col-span-7`): pitch
+- Right column (`lg:col-span-5`): "Receipts" stat tile
+- Mobile: stacked, left content first, tile second
+- Background: keep `FallingPattern` + soft yellow radial glow (toned down, anchored mid-left)
 
-### Implementation
-1. Verify the public build path is the right one
-- Compare the current preview code against what is actually live on the published domain.
-- Confirm whether this is a publish gap or a cache invalidation gap.
+## Left column — pitch
 
-2. Harden build versioning
-- Replace the current timestamp-only approach with a stronger deployment fingerprint tied to the actual build output.
-- Ensure the version marker is emitted as part of the final production bundle in a way the host always serves.
+- **Eyebrow** (mono, tracking-widest, muted, text-xs): `FOR THE 5 LAKH LAW STUDENTS INDIA IGNORES`
+- **Headline** (Sora, font-semibold, text-4xl sm:text-5xl lg:text-6xl, leading-[1.05]): "Law school in India is a lottery. **We're the way out.**" — second sentence in `text-accent`
+- **Subheadline** (Inter, text-base sm:text-lg, text-foreground/70, max-w-[60ch]): "26 NLUs get the firms. The other 5,00,000 get a placement cell that doesn't have a plan. Locus is the plan."
+- **CTAs**:
+  - Primary: `Join the waitlist` → `/waitlist` — solid yellow, black text, 2px black border, neobrutalist hover-lift shadow
+  - Secondary: `Browse the directory` → `/directory` — transparent, white text, 2px white border, hover → border-accent
 
-3. Harden client refresh detection
-- Keep `/version.json` polling, but make the refresh check more robust for custom domains and first-load cases.
-- Add a stricter fetch strategy for the version file and guard against stale HTML holding old asset references.
+## Right column — "Receipts" tile (Exhibit A)
 
-4. Add a visible manual recovery path
-- Add a small recovery action for production users when a stale build is detected, so they can force-load the newest release without relying on browser cache behavior.
+Visually a sibling of the bento tiles below.
 
-5. Validate on all public entry points
-- Check the published subdomain and custom domain behavior separately.
-- Confirm that a fresh load shows the same build as the latest published version.
+- Container: `rounded-2xl border-2 border-foreground bg-accent text-accent-foreground p-8 shadow-[8px_8px_0_0_hsl(var(--foreground))]`
+- Top row: `Scale` Lucide icon in `bg-foreground text-accent rounded-md p-2` square + `EXHIBIT A` pill stamp on the right (`bg-foreground text-accent`, mono, tracking-widest — mirrors FLAGSHIP / LOCUS+ stamps in FeatureBento)
+- Hero stat: `5,00,000` — Sora, font-bold, text-6xl lg:text-7xl, leading-none, tabular-nums, black. One-shot count-up from 0 → 500000 over 1.2s on mount.
+- Caption (mono, text-xs, tracking-widest, black/70): `LAW STUDENTS · INDIA · 2025`
+- 2px black hairline divider
+- Three support rows (mono, tabular-nums, black): `26  NLUs in India` / `3,890  firms in the Locus directory` / `1  platform built for everyone else`
+- Bottom-right corner: `ArrowUpRight` link to `/directory`, black on yellow
 
-### Technical details
-Files likely involved:
-- `vite.config.ts` — build fingerprint generation
-- `src/hooks/useVersionCheck.ts` — runtime stale-build detection
-- `src/App.tsx` — refresh UX
+## Animation
 
-Possible code changes:
-- move version-file generation to a more reliable build hook
-- include build metadata that matches the final deployed bundle
-- strengthen the no-cache request path for version checks
-- optionally append a deploy/version query param to recovery reloads
+- Stagger fade-up on mount only (eyebrow → headline → subheadline → CTAs → tile, ~80ms steps)
+- One-shot count-up on the `5,00,000` stat (1.2s, ease-out)
+- Respect `prefers-reduced-motion` → static render, no count-up
+- Zero loops, zero rotation, zero morph
 
-### Expected result
-After this, opening the public site in Safari or Chrome should load the latest published frontend immediately, and already-open tabs should reliably prompt for refresh when a new deployment goes live.
+## Files
 
-Approve and I’ll implement the cache/deployment hardening and then tell you exactly whether the root cause was publish-state or stale asset delivery.
+- **Rewrite** `src/components/home/RotatingHero.tsx` — strip all rotation/morph/dot/progress/timer logic. Becomes a static section.
+- **Delete** `src/components/home/HeroAngle.tsx` — no longer used
+- **Keep filename** `RotatingHero.tsx` so `Index.tsx` import stays untouched
+- **No changes** anywhere else (StatsBar, FeatureBento, LocusPlusStrip, AudienceMiniRow, FinalCTA, Navbar, Footer, Index)
+
+## Out of scope
+
+- Anything below the hero
+- `/waitlist` or `/directory` pages
+- The falling background pattern itself
