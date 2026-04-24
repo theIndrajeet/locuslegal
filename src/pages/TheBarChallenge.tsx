@@ -125,6 +125,22 @@ export default function TheBarChallenge() {
     return () => { active = false; };
   }, [authReady, userId, id, navigate]);
 
+  // Reset all per-type navigation/answer state when the loaded challenge id
+  // changes. Defensive: prevents stale step indices from a previous challenge
+  // pointing past the new payload's arrays (e.g. 5-step brief → 3-step brief).
+  useEffect(() => {
+    setMcqValue("");
+    setIssueValues([]);
+    setJurValue("");
+    setDocReview({ flagged: [] });
+    setBrief({ step_answers: [] });
+    setBriefStep(0);
+    setEthics({});
+    setEthicsStage("decision");
+    setCounseling({ turn_picks: [] });
+    setCounselingTurn(1);
+  }, [challenge?.id]);
+
   // Counseling: bump current turn when the active turn is answered
   const counselingTurnsCount = useMemo(
     () => (challenge?.payload?.decision_turns?.length ?? 0) as number,
