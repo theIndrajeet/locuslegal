@@ -309,6 +309,12 @@ export default function PublicProfile() {
               {profile.display_name || profile.username}
             </h1>
             <p className="text-sm text-muted-foreground mt-1">@{profile.username}</p>
+            {profile.open_to_opportunities && (
+              <span className="mt-2 inline-flex items-center gap-1.5 border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 rounded-full">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Open to internships
+              </span>
+            )}
           </div>
 
           {profile.bio && (
