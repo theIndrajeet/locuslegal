@@ -46,10 +46,11 @@ export function PremiumClientCounseling(props: AnswerProps | ReviewProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom on state change
+  const scrollKey = props.mode === "answer" ? props.currentTurn : props.submitted.turn_picks.length;
   useEffect(() => {
     const el = scrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [props.mode === "answer" ? props.currentTurn : 0, props]);
+  }, [scrollKey]);
 
   const clientName = payload.client_name ?? payload.matter;
   const initial = clientName.trim().charAt(0).toUpperCase() || "C";

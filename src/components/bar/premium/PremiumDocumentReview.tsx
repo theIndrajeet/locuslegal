@@ -1,5 +1,5 @@
 // Locus+ Document Review — cream paper card with click-to-flag dotted-underline phrases.
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import {
   Popover,
   PopoverContent,

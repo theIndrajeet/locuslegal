@@ -15,7 +15,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Check, GripVertical, X } from "lucide-react";
+import { Check, GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LetterBadge } from "./PremiumPrimitives";
 
