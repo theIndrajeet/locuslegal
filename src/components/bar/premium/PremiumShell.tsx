@@ -2,7 +2,7 @@
 // Layout: 220px sidebar (numbered nav 01–04) | main column.
 // Main column: sticky top-bar (back + badges + points) → instr-strip → canvas → sticky submit.
 import { ReactNode, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ChevronLeft, FileText, FilePen, Scale, MessagesSquare, Flame } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PremiumBadge } from "./PremiumBadge";
