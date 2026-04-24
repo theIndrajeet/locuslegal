@@ -13,7 +13,7 @@ interface Payload {
   document_html: string; // text with {{span_id}} markers OR raw text + spans for highlight
   spans: Span[];
   categories: Category[];
-  correct_flags: CorrectFlag[];
+  correct_flags?: CorrectFlag[];
 }
 
 export interface DocReviewAnswerState {
@@ -38,7 +38,7 @@ export function DocumentReviewRenderer(props: AnswerProps | ReviewProps) {
   const { payload } = props;
   const correctMap = useMemo(() => {
     const m = new Map<string, string>();
-    const list = props.mode === "review" ? props.correct_flags : payload.correct_flags;
+    const list = props.mode === "review" ? props.correct_flags : (payload.correct_flags ?? []);
     for (const f of list) m.set(f.span_id, f.category_id);
     return m;
   }, [props, payload]);

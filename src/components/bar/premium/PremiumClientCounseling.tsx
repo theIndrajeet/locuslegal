@@ -13,7 +13,7 @@ export interface CounselingDecisionTurn {
   turn: number;
   prompt: string;
   options: CounselingOption[];
-  correct_option_id: string;
+  correct_option_id?: string;
   model_followup?: string;
 }
 export interface CounselingPayload {
