@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -179,17 +180,10 @@ function ReviewContent({ attempt, challenge }: { attempt: any; challenge: any })
           />
         )}
         {type === "brief_builder" && (
-          <div className="space-y-3">
-            {(challenge.payload.steps ?? []).map((_: any, i: number) => (
-              <PremiumBriefBuilder
-                key={i}
-                mode="review"
-                payload={challenge.payload}
-                currentStep={i}
-                submitted={(attempt.submitted_answer as any) ?? { step_answers: [] }}
-              />
-            ))}
-          </div>
+          <BriefBuilderReview
+            payload={challenge.payload}
+            submitted={(attempt.submitted_answer as any) ?? { step_answers: [] }}
+          />
         )}
         {type === "ethics" && (
           <PremiumEthics
