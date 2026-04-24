@@ -83,15 +83,6 @@ export default function AiDraftDialog({ open, onOpenChange, sourceId, sourceTitl
             </Select>
           </div>
           <div>
-            <Label>Area of law *</Label>
-            <Select value={area} onValueChange={(v) => setArea(v as AreaOfLaw)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {Object.entries(AREA_OF_LAW_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
             <Label>Difficulty *</Label>
             <Select value={diff} onValueChange={(v) => setDiff(v as Difficulty)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
