@@ -141,11 +141,15 @@ function computeBasePoints(type: V1Type, diff: typeof DIFFS[number], speedRoundC
 const BodySchema = z.object({
   source_id: z.string().uuid(),
   question_type: z.enum(V1_TYPES),
-  area_of_law: z.enum(AREAS),
+  area_of_law: z.enum(AREAS).optional(),
   difficulty: z.enum(DIFFS),
 });
 
-function buildPrompt(topic: string, qt: V1Type, area: string, diff: string): string {
+function buildPrompt(topic: string, qt: V1Type, area: string | undefined, diff: string): string {
+  const areaLine = area
+    ? `- Area of law: ${area}`
+    : `- Area of law: INFER the most appropriate from this exact list and put it in "area_of_law": ${AREAS.join(", ")}.`;
+  const areaOuterLine = area ? `"${area}"` : `<one of: ${AREAS.join(" | ")}>`;
   return `You are drafting a single legal question for an Indian law student platform.
 
 Topic prompt provided by admin:
@@ -155,7 +159,7 @@ ${topic}
 
 Required parameters:
 - Question type: ${qt}
-- Area of law: ${area}
+${areaLine}
 - Difficulty: ${diff}
 
 Return EXACTLY ONE question as a JSON object (not an array). Per-type payload shapes:
@@ -171,7 +175,7 @@ Return EXACTLY ONE question as a JSON object (not an array). Per-type payload sh
 Outer object shape:
 {
   "question_type": "${qt}",
-  "area_of_law": "${area}",
+  "area_of_law": ${areaOuterLine},
   "difficulty": "${diff}",
   "title": string (60 chars max),
   "prompt": string,
@@ -188,6 +192,7 @@ RULES:
 6. Speed round: 5-8 sub-questions, 60s time limit unless topic suggests otherwise.
 7. Jurisdiction reasoning must reference real Indian statutes or case law if possible.
 8. Explanation: 1-3 sentences (rule + why correct answer follows).
+9. area_of_law MUST be one of the allowed enum values exactly (lowercase, snake-style as listed).
 
 Return the JSON object. Nothing else.`;
 }
@@ -329,6 +334,10 @@ serve(async (req) => {
       return json(422, { error: "AI payload failed validation", retryable: true });
     }
 
+    // Resolve area_of_law: explicit hint wins, else trust AI's inference, else "other"
+    const resolvedArea: typeof AREAS[number] = area_of_law
+      ?? ((AREAS as readonly string[]).includes(parsed?.area_of_law) ? parsed.area_of_law : "other");
+
     const speedCount = question_type === "speed_round" ? parsed.payload.questions?.length : undefined;
     const points = computeBasePoints(question_type, difficulty, speedCount);
 
@@ -336,7 +345,7 @@ serve(async (req) => {
       title: String(parsed.title).slice(0, 200),
       prompt: parsed.prompt,
       explanation: typeof parsed.explanation === "string" ? parsed.explanation : null,
-      question_type, area_of_law, difficulty,
+      question_type, area_of_law: resolvedArea, difficulty,
       payload: parsed.payload,
       points_base: points,
       status: "draft",

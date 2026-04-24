@@ -7,8 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sparkles } from "lucide-react";
 import { toast } from "sonner";
-import { AREA_OF_LAW_LABELS, QUESTION_TYPE_LABELS, V1_QUESTION_TYPES } from "@/lib/bar/constants";
-import type { AreaOfLaw, Difficulty, QuestionType } from "@/lib/bar/types";
+import { QUESTION_TYPE_LABELS, V1_QUESTION_TYPES } from "@/lib/bar/constants";
+import type { Difficulty, QuestionType } from "@/lib/bar/types";
 
 const DIFFS: Difficulty[] = ["easy", "medium", "hard"];
 
@@ -22,7 +22,6 @@ type Props = {
 export default function AiDraftDialog({ open, onOpenChange, sourceId, sourceTitle }: Props) {
   const navigate = useNavigate();
   const [type, setType] = useState<QuestionType>("mcq");
-  const [area, setArea] = useState<AreaOfLaw>("constitutional");
   const [diff, setDiff] = useState<Difficulty>("easy");
   const [busy, setBusy] = useState(false);
 
@@ -48,7 +47,7 @@ export default function AiDraftDialog({ open, onOpenChange, sourceId, sourceTitl
     toast("AI is working… this may take 10–45s", { icon: <Sparkles className="w-4 h-4" /> });
 
     const { data, error } = await supabase.functions.invoke("draft-question-from-prompt", {
-      body: { source_id: sourceId, question_type: type, area_of_law: area, difficulty: diff },
+      body: { source_id: sourceId, question_type: type, difficulty: diff },
     });
     setBusy(false);
 
@@ -80,15 +79,6 @@ export default function AiDraftDialog({ open, onOpenChange, sourceId, sourceTitl
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 {V1_QUESTION_TYPES.map((t) => <SelectItem key={t} value={t}>{QUESTION_TYPE_LABELS[t]}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label>Area of law *</Label>
-            <Select value={area} onValueChange={(v) => setArea(v as AreaOfLaw)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {Object.entries(AREA_OF_LAW_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
