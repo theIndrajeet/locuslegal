@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Flame } from "lucide-react";
@@ -38,12 +38,26 @@ function initials(name: string | null, username: string) {
 
 export function LeaderboardRow({ entry, rank, isYou }: LeaderboardRowProps) {
   const badgeClass = rankAccent(rank);
+  const navigate = useNavigate();
+  const profilePath = `/u/${entry.username}`;
+
+  const handleRowClick = (e: React.MouseEvent<HTMLTableRowElement>) => {
+    // Don't hijack clicks on the inner Link (it handles its own nav, incl. modifier keys)
+    if ((e.target as HTMLElement).closest("a")) return;
+    // Respect modifier keys for new-tab/window
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) {
+      window.open(profilePath, "_blank", "noopener,noreferrer");
+      return;
+    }
+    navigate(profilePath);
+  };
 
   return (
     <tr
       data-row-id={entry.user_id}
+      onClick={handleRowClick}
       className={cn(
-        "border-b border-border last:border-b-0 transition-colors hover:bg-muted/40",
+        "border-b border-border last:border-b-0 transition-colors hover:bg-muted/40 cursor-pointer",
         isYou && "bg-accent/5 ring-1 ring-accent/40",
       )}
     >
