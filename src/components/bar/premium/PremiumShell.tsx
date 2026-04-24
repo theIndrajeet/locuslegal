@@ -3,7 +3,7 @@
 import { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
-import { cn } from "@/lib/utils";
+// cn no longer needed after sidebar removal
 import { PremiumBadge } from "./PremiumBadge";
 import { PremiumChip } from "./PremiumPrimitives";
 
