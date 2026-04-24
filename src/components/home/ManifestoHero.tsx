@@ -1,8 +1,8 @@
-import type { CSSProperties } from "react";
+import { useState, type CSSProperties } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, ArrowDown } from "lucide-react";
 import { TimelineContent, textVariants, revealVariants } from "@/components/ui/timeline-animation";
-import { DottedVitruvian } from "@/components/ui/dotted-vitruvian";
+import MeritEngineGraph from "@/components/home/MeritEngineGraph";
 
 /**
  * ManifestoHero — homepage flagship hero.
