@@ -97,17 +97,13 @@ export default function ManifestoHero() {
                 </span>
               </TimelineContent>
 
-              {/* Headline */}
+              {/* Headline — static, no entrance animation */}
               <h1 className="font-heading font-black uppercase leading-[0.92] tracking-[-0.035em] text-[44px] sm:text-6xl lg:text-7xl xl:text-[88px] mb-8 md:mb-10">
-                <TimelineContent as="span" index={2} variants={textVariants} className="block">
-                  Everything
-                </TimelineContent>
-                <TimelineContent as="span" index={3} variants={textVariants} className="block">
-                  A Law Student
-                </TimelineContent>
-                <TimelineContent as="span" index={4} variants={textVariants} className="block">
+                <span className="block">Everything</span>
+                <span className="block">A Law Student</span>
+                <span className="block">
                   Actually <span className="text-accent">Needs.</span>
-                </TimelineContent>
+                </span>
               </h1>
 
               {/* Sub */}
