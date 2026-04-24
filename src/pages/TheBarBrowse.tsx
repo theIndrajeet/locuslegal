@@ -32,6 +32,18 @@ const QUESTION_TYPE_SHORT: Record<QuestionType, string> = {
   client_counseling: "Counsel",
 };
 
+const QUESTION_TYPE_BLURB: Record<QuestionType | "all", string> = {
+  all: "Every challenge in the library — pick a format to focus your practice.",
+  mcq: "Single best-answer multiple choice. Test rules, doctrine, and quick recall.",
+  issue_spotter: "Read a fact pattern and flag every legal issue hiding inside.",
+  speed_round: "Rapid-fire prompts against the clock. Reward instinct and pace.",
+  jurisdiction: "Pick the right court, forum, or governing law for the dispute.",
+  document_review: "Mark up real clauses and contracts — find what a partner would catch.",
+  brief_builder: "Assemble argument structure: issue, rule, application, conclusion.",
+  ethics: "Navigate professional conduct dilemmas under the Bar Council rules.",
+  client_counseling: "Advise a client in plain English — balance law, risk, and outcome.",
+};
+
 const PAGE_SIZE = 30;
 const DIFF_RANK: Record<Difficulty, number> = { easy: 1, medium: 2, hard: 3 };
 
