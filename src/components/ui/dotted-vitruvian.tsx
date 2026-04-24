@@ -61,7 +61,6 @@ export function DottedVitruvian({ className }: { className?: string }) {
             ? { opacity: 0.9 }
             : {
                 opacity: [0.85, 1, 0.85],
-                WebkitMaskPosition: ["0px 0px", "2.5px 2.5px", "0px 0px"],
                 maskPosition: ["0px 0px", "2.5px 2.5px", "0px 0px"],
               }
         }
@@ -70,7 +69,6 @@ export function DottedVitruvian({ className }: { className?: string }) {
             ? undefined
             : {
                 opacity: { duration: 6, repeat: Infinity, ease: "easeInOut" },
-                WebkitMaskPosition: { duration: 4, repeat: Infinity, ease: "easeInOut" },
                 maskPosition: { duration: 4, repeat: Infinity, ease: "easeInOut" },
               }
         }
