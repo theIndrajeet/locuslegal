@@ -27,7 +27,7 @@ export default function HeroAngle({ angle, onCtaFocusChange }: Props) {
   };
 
   return (
-    <div className="text-center">
+    <div className="text-center flex flex-col items-center">
       <p className="font-mono text-xs sm:text-sm uppercase tracking-[0.2em] text-accent mb-6">
         {angle.eyebrow}
       </p>
@@ -40,40 +40,45 @@ export default function HeroAngle({ angle, onCtaFocusChange }: Props) {
         ))}
       </h1>
 
-      {angle.subheadline && (
+      {angle.subheadline ? (
         <p className="text-lg md:text-xl text-foreground/70 max-w-2xl mx-auto mb-10 leading-relaxed">
           {angle.subheadline}
         </p>
+      ) : (
+        <div className="mb-10" aria-hidden />
       )}
 
-      <div className={`flex flex-col sm:flex-row gap-4 justify-center ${angle.subheadline ? "" : "mt-10"}`}>
-        <Link
-          to={angle.primaryCta.href ?? "#"}
-          onClick={handlePrimaryClick}
-          onFocus={() => onCtaFocusChange?.(true)}
-          onBlur={() => onCtaFocusChange?.(false)}
+      <div className="flex flex-col sm:flex-row gap-4 justify-center items-stretch sm:items-center w-full sm:w-auto">
+        <Button
+          asChild
+          size="lg"
+          className="font-heading text-base px-8 h-12 group"
         >
-          <Button
-            size="lg"
-            className="font-heading text-base px-8 py-4 w-full sm:w-auto group"
+          <Link
+            to={angle.primaryCta.href ?? "#"}
+            onClick={handlePrimaryClick}
+            onFocus={() => onCtaFocusChange?.(true)}
+            onBlur={() => onCtaFocusChange?.(false)}
           >
             {angle.primaryCta.label.replace(/\s*→\s*$/, "")}
             <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-          </Button>
-        </Link>
-        <Link
-          to={angle.secondaryCta.href}
-          onFocus={() => onCtaFocusChange?.(true)}
-          onBlur={() => onCtaFocusChange?.(false)}
+          </Link>
+        </Button>
+
+        <Button
+          asChild
+          variant="neutral"
+          size="lg"
+          className="font-heading text-base px-8 h-12 bg-transparent text-foreground hover:bg-transparent hover:border-accent transition-colors"
         >
-          <Button
-            variant="neutral"
-            size="lg"
-            className="font-heading text-base px-8 py-4 w-full sm:w-auto border-2 hover:shadow-[0_0_0_2px_hsl(var(--accent)/0.4)] transition-shadow"
+          <Link
+            to={angle.secondaryCta.href}
+            onFocus={() => onCtaFocusChange?.(true)}
+            onBlur={() => onCtaFocusChange?.(false)}
           >
             {angle.secondaryCta.label}
-          </Button>
-        </Link>
+          </Link>
+        </Button>
       </div>
     </div>
   );
