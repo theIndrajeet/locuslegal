@@ -40,6 +40,7 @@ const Corner = ({ pos }: { pos: "tl" | "tr" | "bl" | "br" }) => {
 };
 
 export default function ManifestoHero() {
+  const [matchLabel, setMatchLabel] = useState("MATCH 0247 · NLU-D → JSA");
   return (
     <section className="relative min-h-screen w-full bg-black text-white overflow-hidden">
       {/* Faint dotted-grid background (mobile gets this as its texture) */}
