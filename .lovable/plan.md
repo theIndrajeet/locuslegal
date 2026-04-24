@@ -1,81 +1,52 @@
-## Plan
+## Plan: make the live site reliably pick up new frontend builds
 
-I found the real reason this keeps feeling “stuck”:
+### What appears to be happening
+The issue does not look like normal browser cache anymore.
 
-- The screen in your screenshots is **not using `ChallengeShell`**.
-- It is using **`PremiumShell`** via `src/pages/TheBarChallenge.tsx` for premium challenge types like **Brief Builder**.
-- `PremiumShell` already has its **own full-page UI chrome**:
-  - left rail
-  - sticky top bar with back + chips + points
-  - sticky bottom action bar
-- But `src/components/Layout.tsx` still wraps **every route** with the global **Navbar + Footer + MobileBottomDock**.
+Current evidence:
+- `https://locus.legal/version.json` returns a live build version: `1777051659055`
+- `https://locuslegal.lovable.app/version.json` returns the same version
+- There is no service worker in the codebase, so this is not offline-cache behavior
+- The app already polls `/version.json`, but that only helps an already-open tab detect a newer deployment
 
-So there are currently **two different layouts fighting each other** on `/the-bar/challenge/:id`:
+That points to one of these causes:
+1. The newest frontend changes were not published yet, so the public domains are still serving the previous deployed build.
+2. The live deployment is published, but the cache-busting strategy is too weak for some HTML/CDN paths.
+3. The version-check logic is working only as an in-session refresh prompt, not as a true deployment freshness safeguard.
 
-```text
-Global Layout
-  fixed Navbar
-  Footer
-  Mobile dock
+### Implementation
+1. Verify the public build path is the right one
+- Compare the current preview code against what is actually live on the published domain.
+- Confirm whether this is a publish gap or a cache invalidation gap.
 
-Challenge Page
-  PremiumShell
-    sticky sidebar
-    sticky top challenge bar
-    sticky bottom CTA
-```
+2. Harden build versioning
+- Replace the current timestamp-only approach with a stronger deployment fingerprint tied to the actual build output.
+- Ensure the version marker is emitted as part of the final production bundle in a way the host always serves.
 
-That is why padding tweaks kept failing: the problem is **layout ownership**, not spacing.
+3. Harden client refresh detection
+- Keep `/version.json` polling, but make the refresh check more robust for custom domains and first-load cases.
+- Add a stricter fetch strategy for the version file and guard against stale HTML holding old asset references.
 
-### What I’ll change
+4. Add a visible manual recovery path
+- Add a small recovery action for production users when a stale build is detected, so they can force-load the newest release without relying on browser cache behavior.
 
-1. **Make `/the-bar/challenge/:id` a standalone page shell**
-   - Remove the global Navbar/Footer/Mobile dock from that route.
-   - Let `PremiumShell` be the only header/sidebar system on challenge pages.
-
-2. **Keep the challenge-specific chrome intact**
-   - Preserve the PremiumShell top strip:
-     - back button
-     - brief builder / family / difficulty / Locus+ chips
-     - points in the top-right corner
-   - Preserve the left rail and sticky footer CTA.
-
-3. **Clean up challenge route behavior for both premium and non-premium types**
-   - Premium types will render correctly with no overlap.
-   - Non-premium challenge screens in `TheBarChallenge.tsx` will still work as standalone pages; if needed, I’ll slightly adjust their top spacing after removing the global navbar.
-
-4. **Verify the exact breakpoint that is breaking now**
-   - Check the current 1000px viewport behavior.
-   - Confirm the top challenge bar is fully visible.
-   - Confirm the left “The Bar · Research Preview” text is no longer clipped.
-   - Confirm points no longer collide with the profile/theme area because that global area will no longer exist on this route.
-
-### Files I expect to update
-
-- `src/components/Layout.tsx`
-- possibly `src/App.tsx` if route-level separation is cleaner there
-- possibly `src/pages/TheBarChallenge.tsx` for final standalone spacing polish
+5. Validate on all public entry points
+- Check the published subdomain and custom domain behavior separately.
+- Confirm that a fresh load shows the same build as the latest published version.
 
 ### Technical details
+Files likely involved:
+- `vite.config.ts` — build fingerprint generation
+- `src/hooks/useVersionCheck.ts` — runtime stale-build detection
+- `src/App.tsx` — refresh UX
 
-Current root cause in code:
-- `Layout.tsx` always renders:
-  - `<Navbar />`
-  - `<Outlet />`
-  - `<Footer />`
-  - `<MobileBottomDock />`
-- `TheBarChallenge.tsx` renders `<PremiumShell />` for premium question types.
-- `PremiumShell.tsx` uses:
-  - `aside className="... sticky top-0 h-screen ..."`
-  - `header className="sticky top-0 z-10 ..."`
+Possible code changes:
+- move version-file generation to a more reliable build hook
+- include build metadata that matches the final deployed bundle
+- strengthen the no-cache request path for version checks
+- optionally append a deploy/version query param to recovery reloads
 
-So the challenge page is behaving like a self-contained app **inside another app shell**.
+### Expected result
+After this, opening the public site in Safari or Chrome should load the latest published frontend immediately, and already-open tabs should reliably prompt for refresh when a new deployment goes live.
 
-No database or backend changes are needed.
-
-<lov-actions>
-  <lov-open-history>View History</lov-open-history>
-</lov-actions>
-<lov-actions>
-<lov-link url="https://docs.lovable.dev/tips-tricks/troubleshooting">Troubleshooting docs</lov-link>
-</lov-actions>
+Approve and I’ll implement the cache/deployment hardening and then tell you exactly whether the root cause was publish-state or stale asset delivery.
