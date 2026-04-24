@@ -9,7 +9,7 @@
  * 7. Weekly tab: attempts older than current week excluded.
  */
 import { useEffect, useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -21,7 +21,7 @@ import {
   PaginationNext, PaginationPrevious,
 } from "@/components/ui/pagination";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trophy, ArrowRight } from "lucide-react";
+import { Trophy, ArrowRight, ArrowLeft } from "lucide-react";
 import { LeaderboardTable } from "@/components/bar/LeaderboardTable";
 import type { LeaderboardEntry } from "@/components/bar/LeaderboardRow";
 import { AREA_OF_LAW_LABELS } from "@/lib/bar/constants";
@@ -52,6 +52,11 @@ export default function TheBarLeaderboard() {
     path: "/the-bar/leaderboard",
   });
 
+  const navigate = useNavigate();
+  const handleBack = () => {
+    if (window.history.length > 1) navigate(-1);
+    else navigate("/the-bar");
+  };
   const [searchParams, setSearchParams] = useSearchParams();
   const tab = (searchParams.get("tab") as TabKey) || "all-time";
   const area = (searchParams.get("area") as AreaOfLaw | null) || null;
@@ -322,6 +327,13 @@ export default function TheBarLeaderboard() {
       <div className="container mx-auto px-4 max-w-5xl space-y-6">
         {/* Hero */}
         <div className="text-center md:text-left">
+          <button
+            onClick={handleBack}
+            className="inline-flex items-center gap-2 text-sm font-bold text-muted-foreground hover:text-foreground transition-colors mb-4"
+          >
+            <ArrowLeft size={16} />
+            Back
+          </button>
           <div className="flex items-center gap-3 justify-center md:justify-start mb-2">
             <Trophy className="text-accent" size={28} />
             <h1 className="text-3xl md:text-4xl font-extrabold font-heading text-foreground">
