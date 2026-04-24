@@ -165,7 +165,7 @@ export function PremiumShell({
         {/* ─────────── Main column ─────────── */}
         <div className="flex flex-col min-w-0">
           {/* Top bar */}
-          <header className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b-2 border-[hsl(var(--lp-line))] bg-[hsl(var(--lp-bg))] px-5 md:px-8 py-[18px]">
+          <header className="sticky top-16 z-10 flex items-center justify-between gap-4 border-b-2 border-[hsl(var(--lp-line))] bg-[hsl(var(--lp-bg))] px-5 md:px-8 py-[18px]">
             <div className="flex items-center gap-3.5 min-w-0">
               <Link
                 to={backHref}
