@@ -21,10 +21,10 @@ import { McqRenderer } from "@/components/bar/renderers/McqRenderer";
 import { IssueSpotterRenderer } from "@/components/bar/renderers/IssueSpotterRenderer";
 import { JurisdictionRenderer } from "@/components/bar/renderers/JurisdictionRenderer";
 import { SpeedRoundRenderer, type SpeedRoundAnswerState } from "@/components/bar/renderers/SpeedRoundRenderer";
-import { DocumentReviewRenderer, type DocReviewAnswerState } from "@/components/bar/renderers/DocumentReviewRenderer";
-import { BriefBuilderRenderer, type BriefAnswerState } from "@/components/bar/renderers/BriefBuilderRenderer";
-import { EthicsRenderer, type EthicsAnswerState, type EthicsStage } from "@/components/bar/renderers/EthicsRenderer";
-import { ClientCounselingRenderer, type CounselingAnswerState } from "@/components/bar/renderers/ClientCounselingRenderer";
+import { type DocReviewAnswerState } from "@/components/bar/renderers/DocumentReviewRenderer";
+import { type BriefAnswerState } from "@/components/bar/renderers/BriefBuilderRenderer";
+import { type EthicsAnswerState, type EthicsStage } from "@/components/bar/renderers/EthicsRenderer";
+import { type CounselingAnswerState } from "@/components/bar/renderers/ClientCounselingRenderer";
 import { PremiumDocumentReview } from "@/components/bar/premium/PremiumDocumentReview";
 import { PremiumBriefBuilder } from "@/components/bar/premium/PremiumBriefBuilder";
 import { PremiumEthics } from "@/components/bar/premium/PremiumEthics";
@@ -124,6 +124,22 @@ export default function TheBarChallenge() {
     })();
     return () => { active = false; };
   }, [authReady, userId, id, navigate]);
+
+  // Reset all per-type navigation/answer state when the loaded challenge id
+  // changes. Defensive: prevents stale step indices from a previous challenge
+  // pointing past the new payload's arrays (e.g. 5-step brief → 3-step brief).
+  useEffect(() => {
+    setMcqValue("");
+    setIssueValues([]);
+    setJurValue("");
+    setDocReview({ flagged: [] });
+    setBrief({ step_answers: [] });
+    setBriefStep(0);
+    setEthics({});
+    setEthicsStage("decision");
+    setCounseling({ turn_picks: [] });
+    setCounselingTurn(1);
+  }, [challenge?.id]);
 
   // Counseling: bump current turn when the active turn is answered
   const counselingTurnsCount = useMemo(
