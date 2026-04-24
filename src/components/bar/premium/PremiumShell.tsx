@@ -1,26 +1,17 @@
 // PremiumShell — dark neobrutalist app shell for the four Locus+ formats.
-// Layout: 220px sidebar (numbered nav 01–04) | main column.
 // Main column: sticky top-bar (back + badges + points) → instr-strip → canvas → sticky submit.
-import { ReactNode, useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { ChevronLeft, FileText, FilePen, Scale, MessagesSquare, Flame } from "lucide-react";
+import { ReactNode } from "react";
+import { useNavigate } from "react-router-dom";
+import { ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PremiumBadge } from "./PremiumBadge";
 import { PremiumChip } from "./PremiumPrimitives";
-import { supabase } from "@/integrations/supabase/client";
 
 export type PremiumNavKey =
   | "document_review"
   | "brief_builder"
   | "ethics"
   | "client_counseling";
-
-const NAV_ORDER: { key: PremiumNavKey; label: string; icon: typeof FileText }[] = [
-  { key: "document_review", label: "Document Review", icon: FileText },
-  { key: "brief_builder", label: "Brief Builder", icon: FilePen },
-  { key: "ethics", label: "Ethics Dilemma", icon: Scale },
-  { key: "client_counseling", label: "Client Counseling", icon: MessagesSquare },
-];
 
 export interface PremiumShellProps {
   /** Active nav key (drives sidebar highlight). */
