@@ -97,12 +97,7 @@ export default function Navbar() {
 
         {/* Mobile theme toggle + profile */}
         <div className="flex md:hidden items-center gap-1">
-          <Link
-            to="/waitlist"
-            className="font-heading text-[10px] font-bold uppercase tracking-wider px-2.5 py-1.5 rounded-full bg-accent text-accent-foreground border-2 border-foreground"
-          >
-            Join
-          </Link>
+          
           <button
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
             className="p-2 rounded-full hover:bg-muted/50 transition-colors"
