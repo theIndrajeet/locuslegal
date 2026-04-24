@@ -502,6 +502,48 @@ export type Database = {
           },
         ]
       }
+      profile_applications: {
+        Row: {
+          applied_on: string
+          created_at: string
+          firm_name_snapshot: string
+          id: string
+          method: Database["public"]["Enums"]["application_method"]
+          notes: string | null
+          role: string
+          status: Database["public"]["Enums"]["application_status"]
+          status_updated_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          applied_on: string
+          created_at?: string
+          firm_name_snapshot: string
+          id?: string
+          method?: Database["public"]["Enums"]["application_method"]
+          notes?: string | null
+          role: string
+          status?: Database["public"]["Enums"]["application_status"]
+          status_updated_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          applied_on?: string
+          created_at?: string
+          firm_name_snapshot?: string
+          id?: string
+          method?: Database["public"]["Enums"]["application_method"]
+          notes?: string | null
+          role?: string
+          status?: Database["public"]["Enums"]["application_status"]
+          status_updated_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profile_internships: {
         Row: {
           created_at: string
@@ -621,6 +663,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          applications_count: number
           avatar_url: string | null
           bar_leaderboard_opt_out: boolean
           bio: string | null
@@ -637,6 +680,7 @@ export type Database = {
           username: string
         }
         Insert: {
+          applications_count?: number
           avatar_url?: string | null
           bar_leaderboard_opt_out?: boolean
           bio?: string | null
@@ -653,6 +697,7 @@ export type Database = {
           username: string
         }
         Update: {
+          applications_count?: number
           avatar_url?: string | null
           bar_leaderboard_opt_out?: boolean
           bio?: string | null
@@ -799,6 +844,48 @@ export type Database = {
           },
         ]
       }
+      profile_applications_needing_nudge: {
+        Row: {
+          applied_on: string | null
+          created_at: string | null
+          firm_name_snapshot: string | null
+          id: string | null
+          method: Database["public"]["Enums"]["application_method"] | null
+          notes: string | null
+          role: string | null
+          status: Database["public"]["Enums"]["application_status"] | null
+          status_updated_at: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          applied_on?: string | null
+          created_at?: string | null
+          firm_name_snapshot?: string | null
+          id?: string | null
+          method?: Database["public"]["Enums"]["application_method"] | null
+          notes?: string | null
+          role?: string | null
+          status?: Database["public"]["Enums"]["application_status"] | null
+          status_updated_at?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          applied_on?: string | null
+          created_at?: string | null
+          firm_name_snapshot?: string | null
+          id?: string | null
+          method?: Database["public"]["Enums"]["application_method"] | null
+          notes?: string | null
+          role?: string | null
+          status?: Database["public"]["Enums"]["application_status"] | null
+          status_updated_at?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       get_email_by_username: { Args: { p_username: string }; Returns: string }
@@ -821,6 +908,23 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
+      application_method:
+        | "email"
+        | "form"
+        | "referral"
+        | "in_person"
+        | "linkedin"
+        | "other"
+      application_status:
+        | "sent"
+        | "acknowledged"
+        | "interview_scheduled"
+        | "interviewed"
+        | "offer"
+        | "rejected"
+        | "accepted"
+        | "withdrawn"
+        | "no_response"
       bar_area_of_law:
         | "constitutional"
         | "criminal"
@@ -1013,6 +1117,25 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user"],
+      application_method: [
+        "email",
+        "form",
+        "referral",
+        "in_person",
+        "linkedin",
+        "other",
+      ],
+      application_status: [
+        "sent",
+        "acknowledged",
+        "interview_scheduled",
+        "interviewed",
+        "offer",
+        "rejected",
+        "accepted",
+        "withdrawn",
+        "no_response",
+      ],
       bar_area_of_law: [
         "constitutional",
         "criminal",
