@@ -91,7 +91,7 @@ export default function InsightsPanel({ apps }: Props) {
         <InsightCard
           label="Response rate"
           value={`${insights.responseRate}%`}
-          sub={`${insights.sent - insights.acked - apps.filter((a) => a.status === "rejected").length} pending`}
+          sub={`${apps.filter((a) => a.status === "sent").length} pending`}
         />
         <InsightCard
           label="Avg days to response"
