@@ -52,28 +52,11 @@ export function PremiumShell({
   children,
 }: PremiumShellProps) {
   const navigate = useNavigate();
-  const [displayName, setDisplayName] = useState<string | null>(null);
 
   const handleBack = () => {
     if (window.history.length > 1) navigate(-1);
     else navigate(backHref);
   };
-
-  useEffect(() => {
-    let active = true;
-    supabase.auth.getSession().then(async ({ data }) => {
-      const uid = data.session?.user?.id;
-      if (!uid) return;
-      const { data: prof } = await supabase
-        .from("profiles")
-        .select("display_name, username")
-        .eq("id", uid)
-        .maybeSingle();
-      if (!active) return;
-      setDisplayName(prof?.display_name ?? prof?.username ?? null);
-    });
-    return () => { active = false; };
-  }, []);
 
   const diffTone =
     difficulty === "easy" ? "good" : difficulty === "hard" ? "bad" : "accent";
