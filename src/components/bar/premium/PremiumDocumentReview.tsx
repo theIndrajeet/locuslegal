@@ -141,54 +141,82 @@ export function PremiumDocumentReview(props: AnswerProps | ReviewProps) {
 
         {/* body */}
         <div
-          className="whitespace-pre-wrap text-[17px] sm:text-[18px] leading-[1.65] text-[hsl(var(--lp-paper-ink))]"
+          className="text-[17px] sm:text-[18px] leading-[1.65] text-[hsl(var(--lp-paper-ink))] space-y-4"
           style={{ fontFamily: "'Cormorant Garamond', serif" }}
         >
-          {segments.map((seg, i) => {
-            if (seg.kind === "text") return <span key={i}>{seg.text}</span>;
-            const id = seg.id!;
-            const text = spanText.get(id) ?? id;
-
-            if (props.mode === "review") {
-              const submitted = submittedMap.get(id);
-              const correct = correctMap.get(id);
-              const isCorrectHit = !!submitted && !!correct;
-              const isMissed = !submitted && !!correct;
-              const isFalseFlag = !!submitted && !correct;
-              return (
-                <span
-                  key={i}
-                  className={cn(
-                    "px-[2px] py-[1px] rounded-[2px] border-b-[1.5px]",
-                    isCorrectHit && "bg-[hsl(152_55%_53%/0.55)] border-b-[2px] border-[hsl(152_55%_27%)]",
-                    isMissed && "border-b-[2px] border-[hsl(var(--lp-bad))]",
-                    isFalseFlag && "border-b-[2px] border-dashed border-[hsl(45_100%_63%/0.9)]",
-                    !isCorrectHit && !isMissed && !isFalseFlag &&
-                      "border-dotted border-[hsl(var(--lp-paper-ink)/0.35)]",
-                  )}
-                >
-                  {text}
-                </span>
-              );
+          {(() => {
+            // Group segments into paragraphs split by \n\n in text segments.
+            const paragraphs: Array<typeof segments> = [[]];
+            for (const seg of segments) {
+              if (seg.kind === "text" && seg.text) {
+                const parts = seg.text.split(/\n{2,}/);
+                parts.forEach((part, idx) => {
+                  if (idx > 0) paragraphs.push([]);
+                  if (part.length > 0) {
+                    paragraphs[paragraphs.length - 1].push({ kind: "text", text: part });
+                  }
+                });
+              } else {
+                paragraphs[paragraphs.length - 1].push(seg);
+              }
             }
 
-            const chosen = answerMap.get(id);
-            return (
-              <Popover key={i}>
-                <PopoverTrigger asChild>
-                  <button
-                    type="button"
-                    disabled={grading}
-                    className={cn(
-                      "px-[2px] py-[1px] rounded-[2px] border-b-[1.5px] cursor-pointer transition-colors",
-                      chosen
-                        ? "bg-[hsl(var(--lp-accent))] border-b-2 border-[hsl(38_70%_43%)]"
-                        : "border-dotted border-[hsl(var(--lp-paper-ink)/0.35)] hover:bg-[hsl(var(--lp-paper-ink)/0.08)]",
-                    )}
-                  >
-                    {text}
-                  </button>
-                </PopoverTrigger>
+            return paragraphs.map((para, pIdx) => (
+              <p key={pIdx} className="whitespace-pre-wrap m-0">
+                {para.map((seg, i) => {
+                  if (seg.kind === "text") return <span key={i}>{seg.text}</span>;
+                  const id = seg.id!;
+                  const text = spanText.get(id) ?? id;
+
+                  if (props.mode === "review") {
+                    const submitted = submittedMap.get(id);
+                    const correct = correctMap.get(id);
+                    const isCorrectHit = !!submitted && !!correct;
+                    const isMissed = !submitted && !!correct;
+                    const isFalseFlag = !!submitted && !correct;
+                    return (
+                      <span
+                        key={i}
+                        className={cn(
+                          "inline px-[2px] py-[1px] rounded-[2px] border-b-[1.5px] [box-decoration-break:clone] [-webkit-box-decoration-break:clone]",
+                          isCorrectHit && "bg-[hsl(152_55%_53%/0.55)] border-b-[2px] border-[hsl(152_55%_27%)]",
+                          isMissed && "border-b-[2px] border-[hsl(var(--lp-bad))]",
+                          isFalseFlag && "border-b-[2px] border-dashed border-[hsl(45_100%_63%/0.9)]",
+                          !isCorrectHit && !isMissed && !isFalseFlag &&
+                            "border-dotted border-[hsl(var(--lp-paper-ink)/0.35)]",
+                        )}
+                      >
+                        {text}
+                      </span>
+                    );
+                  }
+
+                  const chosen = answerMap.get(id);
+                  return (
+                    <Popover key={i}>
+                      <PopoverTrigger asChild>
+                        <span
+                          role="button"
+                          tabIndex={grading ? -1 : 0}
+                          aria-disabled={grading || undefined}
+                          onKeyDown={(e) => {
+                            if (grading) return;
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              (e.currentTarget as HTMLElement).click();
+                            }
+                          }}
+                          className={cn(
+                            "inline px-[2px] py-[1px] rounded-[2px] border-b-[1.5px] cursor-pointer transition-colors [box-decoration-break:clone] [-webkit-box-decoration-break:clone] outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--lp-accent))]",
+                            grading && "cursor-not-allowed opacity-70",
+                            chosen
+                              ? "bg-[hsl(var(--lp-accent))] border-b-2 border-[hsl(38_70%_43%)]"
+                              : "border-dotted border-[hsl(var(--lp-paper-ink)/0.35)] hover:bg-[hsl(var(--lp-paper-ink)/0.08)]",
+                          )}
+                        >
+                          {text}
+                        </span>
+                      </PopoverTrigger>
                 <PopoverContent
                   align="start"
                   className="locus-plus w-72 border-2 border-[hsl(var(--lp-line))] bg-[hsl(var(--lp-bg-1))] p-2 rounded-[6px] shadow-none"
@@ -227,9 +255,13 @@ export function PremiumDocumentReview(props: AnswerProps | ReviewProps) {
                   </div>
                 </PopoverContent>
               </Popover>
-            );
-          })}
+                  );
+                })}
+              </p>
+            ));
+          })()}
         </div>
+
 
         {/* Grading overlay */}
         {grading && (
