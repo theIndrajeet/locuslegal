@@ -298,6 +298,86 @@ export function PremiumDocumentReview(props: AnswerProps | ReviewProps) {
           </div>
         )}
       </article>
+
+      {props.mode === "review" && (
+        <PremiumPedagogy
+          payload={payload}
+          submitted={props.submitted}
+          correct_flags={props.correct_flags}
+        />
+      )}
+    </div>
+  );
+}
+
+function PremiumPedagogy({
+  payload,
+  submitted,
+  correct_flags,
+}: {
+  payload: Payload;
+  submitted: DocReviewAnswerState;
+  correct_flags: CorrectFlag[];
+}) {
+  const correctSet = new Map(correct_flags.map((f) => [f.span_id, f.category_id]));
+  const submittedMap = new Map(submitted.flagged.map((f) => [f.span_id, f.category_id]));
+  const spanText = new Map(payload.spans.map((s) => [s.id, s.text]));
+  const catLabel = (id: string) => payload.categories.find((c) => c.id === id)?.label ?? id;
+
+  const missed = correct_flags.filter((f) => !submittedMap.has(f.span_id));
+  const wrongCats = submitted.flagged.filter(
+    (f) => correctSet.has(f.span_id) && correctSet.get(f.span_id) !== f.category_id,
+  );
+  const items = [...missed, ...wrongCats];
+  const hasPedagogy = !!(payload.rationale || payload.suggested_redline);
+  if (items.length === 0 || !hasPedagogy) return null;
+
+  return (
+    <div className="max-w-[860px] mx-auto px-5 sm:px-6 py-5 border-2 border-[hsl(var(--lp-line))] rounded-[6px] bg-[hsl(var(--lp-bg-1))] space-y-4">
+      <div
+        className="text-[10.5px] uppercase tracking-[0.18em] text-[hsl(var(--lp-text-3))]"
+        style={{ fontFamily: "'JetBrains Mono', monospace" }}
+      >
+        Partner's Memo · What you missed and the redline
+      </div>
+      <ul className="space-y-4">
+        {items.map((f) => {
+          const why = payload.rationale?.[f.span_id];
+          const fix = payload.suggested_redline?.[f.span_id];
+          return (
+            <li key={f.span_id} className="space-y-1.5">
+              <div
+                className="text-[14px] italic text-[hsl(var(--lp-text-2))]"
+                style={{ fontFamily: "'Cormorant Garamond', serif" }}
+              >
+                "{spanText.get(f.span_id)}" — <strong className="not-italic">{catLabel(f.category_id)}</strong>
+              </div>
+              {why && (
+                <div className="text-[13px] leading-relaxed text-[hsl(var(--lp-text))]">
+                  <span
+                    className="text-[9.5px] uppercase tracking-[0.18em] text-[hsl(var(--lp-accent))] mr-2"
+                    style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                  >
+                    Why
+                  </span>
+                  {why}
+                </div>
+              )}
+              {fix && (
+                <div className="text-[13px] leading-relaxed text-[hsl(var(--lp-text))]">
+                  <span
+                    className="text-[9.5px] uppercase tracking-[0.18em] text-[hsl(var(--lp-good))] mr-2"
+                    style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                  >
+                    Redline
+                  </span>
+                  {fix}
+                </div>
+              )}
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }
