@@ -173,13 +173,14 @@ export function PremiumShell({
           {/* Top bar */}
           <header className="sticky top-16 z-10 flex items-center justify-between gap-4 border-b-2 border-[hsl(var(--lp-line))] bg-[hsl(var(--lp-bg))] px-5 md:px-8 py-[18px]">
             <div className="flex items-center gap-3.5 min-w-0">
-              <Link
-                to={backHref}
+              <button
+                type="button"
+                onClick={handleBack}
                 aria-label="Back"
                 className="grid place-items-center w-[34px] h-[34px] border-2 border-[hsl(var(--lp-line))] rounded-[4px] text-[hsl(var(--lp-text-2))] hover:text-[hsl(var(--lp-text))] hover:border-[hsl(var(--lp-line-2))] hover:bg-[hsl(var(--lp-bg-1))] transition-colors shrink-0"
               >
                 <ChevronLeft size={16} />
-              </Link>
+              </button>
               <div className="flex items-center gap-2 flex-wrap min-w-0">
                 <PremiumChip>{formatLabel}</PremiumChip>
                 <PremiumChip>{areaLabel}</PremiumChip>
