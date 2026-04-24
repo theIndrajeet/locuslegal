@@ -25,18 +25,14 @@ const Bracket = ({ className }: { className?: string }) => (
 );
 
 const Corner = ({ pos }: { pos: "tl" | "tr" | "bl" | "br" }) => {
-  const map = {
-    tl: { top: 16, left: 16, rotate: 0 },
-    tr: { top: 16, right: 16, rotate: 90 },
-    bl: { bottom: 16, left: 16, rotate: -90 },
-    br: { bottom: 16, right: 16, rotate: 180 },
-  } as const;
-  const s = map[pos];
+  const styleMap: Record<typeof pos, React.CSSProperties> = {
+    tl: { top: 16, left: 16, transform: "rotate(0deg)" },
+    tr: { top: 16, right: 16, transform: "rotate(90deg)" },
+    bl: { bottom: 16, left: 16, transform: "rotate(-90deg)" },
+    br: { bottom: 16, right: 16, transform: "rotate(180deg)" },
+  };
   return (
-    <div
-      className="absolute z-20 text-accent"
-      style={{ ...s, transform: `rotate(${s.rotate}deg)` }}
-    >
+    <div className="absolute z-20 text-accent" style={styleMap[pos]}>
       <Bracket className="w-5 h-5 md:w-6 md:h-6" />
     </div>
   );
