@@ -17,18 +17,19 @@ import { ChallengeCard } from "@/components/bar/ChallengeCard";
 import {
   AREA_OF_LAW_LABELS, QUESTION_TYPE_LABELS, V1_QUESTION_TYPES,
 } from "@/lib/bar/constants";
+import { isPremiumType } from "@/lib/bar/premium";
 import type { AreaOfLaw, Difficulty, QuestionType } from "@/lib/bar/types";
 import { cn } from "@/lib/utils";
 
 const QUESTION_TYPE_SHORT: Record<QuestionType, string> = {
-  mcq: "MCQ",
-  issue_spotter: "Issues",
-  speed_round: "Speed",
-  jurisdiction: "Jurisd.",
-  document_review: "Docs",
-  brief_builder: "Brief",
-  ethics: "Ethics",
-  client_counseling: "Counsel",
+  mcq: "Rapid",
+  issue_spotter: "Spot",
+  speed_round: "Blitz",
+  jurisdiction: "Forum",
+  document_review: "Redline",
+  brief_builder: "Draft",
+  ethics: "Conduct",
+  client_counseling: "Advise",
 };
 
 const PAGE_SIZE = 30;
