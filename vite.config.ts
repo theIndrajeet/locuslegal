@@ -1,7 +1,32 @@
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
+import { writeFileSync, mkdirSync } from "fs";
 import { componentTagger } from "lovable-tagger";
+
+const BUILD_VERSION = Date.now().toString();
+
+// Writes /version.json into the build output so the running app can poll it
+// to detect new deployments and prompt users to refresh.
+function writeVersionJsonPlugin(): Plugin {
+  return {
+    name: "write-version-json",
+    apply: "build",
+    closeBundle() {
+      try {
+        const outDir = path.resolve(__dirname, "dist");
+        mkdirSync(outDir, { recursive: true });
+        writeFileSync(
+          path.join(outDir, "version.json"),
+          JSON.stringify({ version: BUILD_VERSION }),
+          "utf-8"
+        );
+      } catch (e) {
+        console.warn("[write-version-json] failed:", e);
+      }
+    },
+  };
+}
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
@@ -12,7 +37,14 @@ export default defineConfig(({ mode }) => ({
       overlay: false,
     },
   },
-  plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
+  define: {
+    __BUILD_VERSION__: JSON.stringify(BUILD_VERSION),
+  },
+  plugins: [
+    react(),
+    mode === "development" && componentTagger(),
+    writeVersionJsonPlugin(),
+  ].filter(Boolean),
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
