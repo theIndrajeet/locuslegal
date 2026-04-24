@@ -91,12 +91,7 @@ export default function Navbar() {
           >
             {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
           </button>
-          <Link
-            to="/waitlist"
-            className="font-heading text-xs font-bold uppercase tracking-wider px-3 py-1.5 rounded-full bg-accent text-accent-foreground border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none transition-all"
-          >
-            Join Waitlist
-          </Link>
+          
           <ProfileMenu />
         </div>
 
