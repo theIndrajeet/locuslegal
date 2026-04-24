@@ -27,6 +27,7 @@ export default function Navbar() {
   }, []);
 
   const isActive = (href: string) => location.pathname === href;
+  const forceOpaque = location.pathname.startsWith("/the-bar/challenge");
 
   const renderChip = (l: typeof navLinks[number]) => {
     const active = isActive(l.href);
