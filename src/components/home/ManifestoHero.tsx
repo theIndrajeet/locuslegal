@@ -146,14 +146,10 @@ export default function ManifestoHero() {
               </TimelineContent>
             </div>
 
-            {/* RIGHT: Vitruvian (desktop only) */}
+            {/* RIGHT: Merit Engine graph (desktop only) */}
             <div className="hidden lg:flex items-center justify-center relative">
-              <div className="relative w-full max-w-[460px] aspect-[400/460] text-white">
-                <DottedVitruvian className="w-full h-full" />
-                {/* Tiny tech label */}
-                <div className="absolute -bottom-2 right-2 font-mono text-[10px] tracking-[0.25em] text-white/40 uppercase">
-                  FIG.001 · IDEAL FORM
-                </div>
+              <div className="relative w-full max-w-[520px] aspect-square text-white">
+                <MeritEngineGraph onMatch={setMatchLabel} />
               </div>
             </div>
           </div>
