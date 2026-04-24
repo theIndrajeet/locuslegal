@@ -15,6 +15,7 @@ interface Inputs {
   publicationsCount: number;
   cvUrl: string | null;
   applicationsCount: number;
+  variant?: "full" | "compact";
 }
 
 interface ChecklistItem {
