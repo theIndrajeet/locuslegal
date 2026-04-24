@@ -1,26 +1,19 @@
 /**
- * HomeHero — neobrutalist hero with pitch on the left and the
- * Locus product orbit on the right. No big "lottery" headline; the
- * 5,00,000 stat now lives in FeatureBento as Exhibit A.
+ * RotatingHero — homepage hero with the migrated Waitlist pitch
+ * (RainbowButton eyebrow + GooeyText morph headline + 3 audience CTAs)
+ * over the new floating ShapeLandingBg background.
  */
-import { Link } from "react-router-dom";
-import { motion, useReducedMotion } from "framer-motion";
-import { ArrowRight } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { GooeyText } from "@/components/ui/gooey-text-morphing";
+import { RainbowButton } from "@/components/ui/rainbow-button";
 import ShapeLandingBg from "@/components/ui/shape-landing-bg";
 
-
 export default function RotatingHero() {
-  const reduceMotion = useReducedMotion();
-
-  const fade = (i: number) =>
-    reduceMotion
-      ? { initial: false, animate: { opacity: 1, y: 0 } }
-      : {
-          initial: { opacity: 0, y: 12 },
-          animate: { opacity: 1, y: 0 },
-          transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] as const, delay: i * 0.08 },
-        };
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    setVisible(true);
+  }, []);
 
   return (
     <section
@@ -28,55 +21,67 @@ export default function RotatingHero() {
       className="relative min-h-[88vh] flex items-center overflow-hidden"
     >
       <ShapeLandingBg />
+
       <div className="container mx-auto px-4 md:px-8 relative z-10 py-24">
         <div className="max-w-3xl mx-auto text-center">
-          <motion.p
-            {...fade(0)}
-            className="font-mono text-[11px] sm:text-xs uppercase tracking-[0.22em] text-foreground/55 mb-6"
+          <RainbowButton
+            className={`mb-8 font-heading text-sm font-semibold tracking-widest uppercase transition-all duration-700 ${
+              visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+            }`}
           >
-            Locus · For India's law students
-          </motion.p>
+            Your merit. Your internship.
+          </RainbowButton>
 
-          <motion.h1
-            {...fade(1)}
-            className="font-heading font-semibold leading-[1.05] tracking-tight text-foreground text-4xl sm:text-5xl lg:text-6xl mb-6"
+          <h1
+            className={`font-heading text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold leading-[1.05] tracking-tight mb-8 text-foreground transition-all duration-700 delay-150 ${
+              visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
+            }`}
           >
-            Everything law school{" "}
-            <span className="text-accent">forgot to give you.</span>
-          </motion.h1>
+            Get the internship you deserve —{" "}
+            <GooeyText
+              texts={[
+                "not the one your college got you.",
+                "based on your skills, not your campus.",
+                "earned through merit, not connections.",
+              ]}
+              morphTime={2}
+              cooldownTime={1.5}
+              className="block mt-2 min-h-[120px] sm:min-h-[140px] md:min-h-[160px] lg:min-h-[200px]"
+              textClassName="text-accent font-heading font-extrabold text-4xl sm:text-5xl md:text-6xl lg:text-7xl"
+            />
+          </h1>
 
-          <motion.p
-            {...fade(2)}
-            className="text-base sm:text-lg text-foreground/70 leading-relaxed max-w-[60ch] mx-auto mb-9"
+          <p
+            className={`text-lg md:text-xl text-foreground/70 max-w-2xl mx-auto mb-12 leading-relaxed transition-all duration-700 delay-300 ${
+              visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
+            }`}
           >
-            A directory of 3,890 firms. Daily skill challenges. Templates,
-            tools, and a tracker. One platform — built on merit, not pedigree.
-          </motion.p>
+            India's first merit-based legal internship platform. We connect ambitious
+            law students with top firms — no matter which college they come from.
+            Sign up now — spots are limited.
+          </p>
 
-          <motion.div
-            {...fade(3)}
-            className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-center"
+          <div
+            className={`flex flex-col sm:flex-row gap-4 justify-center transition-all duration-700 delay-500 ${
+              visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
+            }`}
           >
-            <Button
-              asChild
-              size="lg"
-              className="font-heading text-base px-7 h-12 group bg-accent text-accent-foreground border-2 border-foreground hover:bg-accent shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
-            >
-              <Link to="/waitlist">
-                Join the waitlist
-                <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </Link>
-            </Button>
-
-            <Button
-              asChild
-              variant="outline"
-              size="lg"
-              className="font-heading text-base px-7 h-12 bg-transparent text-foreground border-2 border-foreground/40 hover:border-accent hover:text-accent hover:bg-transparent transition-colors"
-            >
-              <Link to="/directory">Browse the directory</Link>
-            </Button>
-          </motion.div>
+            <a href="/waitlist#waitlist">
+              <Button size="lg" className="font-heading text-base px-8 py-4">
+                I'm a Student
+              </Button>
+            </a>
+            <a href="/waitlist#waitlist">
+              <Button variant="neutral" size="lg" className="font-heading text-base px-8 py-4">
+                I'm a Firm / Chamber
+              </Button>
+            </a>
+            <a href="/waitlist#waitlist">
+              <Button variant="neutral" size="lg" className="font-heading text-base px-8 py-4">
+                I'm a School
+              </Button>
+            </a>
+          </div>
         </div>
       </div>
     </section>

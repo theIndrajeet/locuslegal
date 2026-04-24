@@ -1,4 +1,3 @@
-import Hero from "@/components/Hero";
 import StatsBar from "@/components/StatsBar";
 import ForStudents from "@/components/ForStudents";
 import ForFirms from "@/components/ForFirms";
@@ -15,7 +14,6 @@ const Waitlist = () => {
 
   return (
     <>
-      <Hero />
       <StatsBar />
       <ForStudents />
       <ForFirms />
