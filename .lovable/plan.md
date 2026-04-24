@@ -1,58 +1,110 @@
 
 
-# Locus+ Premium Track — pixel-faithful redesign for the 4 new formats
+# Locus+ v2 — pixel-faithful dark neobrutalist rebuild
 
-Goal: rebuild Document Review, Brief Builder, Ethics, and Client Counseling so they look and feel premium and distinct from the rest of The Bar. The other 4 formats (MCQ, Issue Spotter, Speed Round, Jurisdiction) stay neobrutalist. Backend grading, admin authoring, and Rit logic remain untouched.
+The current Locus+ track is on a light cream surface. The HTML prototype you shared is **dark neobrutalist** with cream `paper` reserved only for document/legal content. This plan replaces the existing premium look with a pixel-faithful port of that prototype, keeping all backend / grading / props contracts intact.
 
-## Visual system (Locus+)
+## 1. Design tokens (replace the current `.locus-plus` scope in `src/index.css`)
 
-- Palette: off-white paper `#faf8f3`, ink `#1a1a1a`, muted ink `#5a5a5a`, hairline border `#e6e1d6`, Locus yellow accent (existing token) for highlight/correct/focus only.
-- Typography: serif headings (Instrument Serif or Fraunces via Google Fonts), Inter for body and UI. No Sora inside Locus+ surfaces.
-- Surfaces: paper cards with 1px hairline border, soft layered shadow (`0 1px 2px rgba(0,0,0,.04), 0 8px 24px -12px rgba(0,0,0,.12)`), 12–14px radius. No hard 4px black box-shadow.
-- Motion: gentle fades and 200ms ease transitions. No glitch / shimmer effects inside Locus+.
-- Badge: small pill "Locus+" — ink text, hairline border, tiny yellow dot. Used on challenge cards, preview tiles, and the shell header.
+New scope `.locus-plus` becomes the dark shell:
 
-All of the above lives in a scoped `.locus-plus` wrapper so it never leaks into neobrutalist pages.
+- `--lp-bg: #000`, `--lp-bg-1: #0a0a0a`, `--lp-bg-2: #121212`, `--lp-bg-3: #1a1a1a`
+- `--lp-line: #262626`, `--lp-line-2: #3a3a3a`
+- `--lp-text: #fff`, `--lp-text-2: #b4b4b4`, `--lp-text-3: #6e6e6e`
+- `--lp-accent: #FFC940`, `--lp-accent-ink: #111`, `--lp-accent-soft: rgba(255,201,64,.12)`, `--lp-accent-soft-2: rgba(255,201,64,.22)`
+- `--lp-good: #3ecf8e`, `--lp-good-soft: rgba(62,207,142,.14)`, `--lp-bad: #ff5a5f`, `--lp-bad-soft: rgba(255,90,95,.14)`
+- `--lp-paper: #f5f1e8`, `--lp-paper-ink: #1a1712`
+- Border `2px`, radius `6px` / `4px`. **No shadows. No gradients.**
+- Fonts: import **Cormorant Garamond** + **JetBrains Mono** in `index.html` (Sora + Inter already loaded). Add `--lp-font-serif` and `--lp-font-mono`.
+- Utility classes scoped under `.locus-plus`: `.lp-display`, `.lp-serif`, `.lp-mono`, `.lp-up` (uppercase 11px tracked .14em).
 
-## Components to add
+The old `--premium-*` tokens, `.premium-paper`, fade-in keyframes, etc. are removed. All four renderers and the shell get rewritten against the new tokens.
 
-- `src/components/bar/premium/PremiumShell.tsx` — replaces `ChallengeShell` for the 4 types. Paper canvas, serif title, breadcrumb-style meta row (type · difficulty · points), Locus+ badge, footer with autosave indicator and primary action.
-- `src/components/bar/premium/PremiumBadge.tsx` — the Locus+ pill, reusable on cards/headers.
-- `src/components/bar/premium/PremiumCard.tsx`, `PremiumButton.tsx`, `PremiumChip.tsx` — small primitives so renderers stay clean.
-- `src/lib/bar/premium.ts` — `PREMIUM_TYPES = ['document_review','brief_builder','ethics','client_counseling']` + `isPremiumType()` helper.
+## 2. Shell — `PremiumShell.tsx` rewrite
 
-## Renderers — pixel-faithful rewrites
+Replaces today's centered light card with the prototype's app shell:
 
-Each rewritten against the approved mocks, keeping current props/contract so grading and review code don't change.
+```text
+┌──────────────┬──────────────────────────────────────────┐
+│ locus.•      │  ←  badges row              points · pts │   top-bar (sticky)
+│ THE BAR ·    │──────────────────────────────────────────│
+│ RESEARCH     │  Instruction strip · counter chip        │   instr-strip
+│              │──────────────────────────────────────────│
+│ 01 Document  │                                          │
+│ 02 Brief     │            <renderer slot>               │   canvas-wrap
+│ 03 Ethics    │                                          │
+│ 04 Counsel   │──────────────────────────────────────────│
+│              │  N flags         [ Submit Review ]       │   sticky-submit
+│ Student      │                                          │
+│ 7d streak    │                                          │
+└──────────────┴──────────────────────────────────────────┘
+```
 
-1. **DocumentReviewRenderer** — paper document column with serif body text, click-to-flag spans, right rail with category chips and a running flag list. Review state shows hit / miss / false-flag overlay with subtle color coding (green tick, red cross, yellow caret) on the same paper surface.
-2. **BriefBuilderRenderer** — 4-step progress rail (Statute → Precedent → Arguments → Rebuttal) at top, single focused step per screen, Arguments step uses drag handles + up/down arrows, autosave dot in footer ("Saved · just now").
-3. **EthicsRenderer** — Stage 1 decision presented as a serif scenario card with two large choice buttons; on submit, animated reveal of consequence text, then Stage 2 follow-up MCQ in the same paper frame. Rubric feedback rendered as an inline note, not a toast.
-4. **ClientCounselingRenderer** — chat transcript styled like a printed deposition: client turns left-aligned in muted ink, lawyer turns right-aligned on yellow-tinted paper, decision turns interrupt the scroll with an inline MCQ card. Model follow-up shown after submission.
+- 220px sidebar with `locus.` wordmark + accent dot, "THE BAR · RESEARCH PREVIEW" mono subtitle, 4 nav items numbered `01–04` (current type highlighted with amber number), session footer (student name from auth, streak, rank).
+- Sticky top bar: back arrow (2px bordered square button), badge row (format / area / difficulty colored easy/med/hard / Locus+ accent badge), points on the right (mono, amber number).
+- Instruction strip: prompt left, amber counter chip on the right (`N FLAGGED`, `STEP X/Y`, `TURN X/Y` — driven by a new `counter` prop).
+- Sticky submit bar at bottom: left mono meta, primary amber button. Disabled / grading / result states.
+- Sidebar collapses to a top horizontal nav strip below `lg`.
 
-## Wiring
+Props change (additive): `counter?: string`, `submitDisabled?: boolean`, `submitting?: boolean`, `onSubmit?: () => void`, `navItems` derived from `PREMIUM_TYPES`.
 
-- `TheBarChallenge.tsx`: route premium types through `PremiumShell` + premium renderer; everything else continues to use `ChallengeShell`.
-- `TheBarPreview.tsx`: the 4 demo tiles for premium formats get the Locus+ badge and open into the premium shell.
-- `ChallengeCard.tsx` (browse + history): show Locus+ badge when `isPremiumType(type)`.
-- `AttemptReviewDialog.tsx`: when reviewing a premium-type attempt, render inside a `.locus-plus` wrapper so the review matches the play experience.
+## 3. Renderer rewrites (pixel-faithful to prototype)
 
-## Tokens & fonts
+Backend payload contracts and submitted-answer shapes stay identical, so `submit-bar-attempt` and `AttemptReviewDialog` keep working.
 
-- `src/index.css`: add a `.locus-plus { … }` scope defining `--premium-bg`, `--premium-ink`, `--premium-muted`, `--premium-border`, `--premium-accent` (maps to existing yellow), `--premium-shadow`, and `font-family` overrides for headings/body. Import the chosen serif via Google Fonts in `index.html`.
-- `tailwind.config.ts`: add `fontFamily.serif` and `boxShadow.premium`, plus `colors.premium.*` mapped to the CSS vars so renderers can use `bg-premium-bg`, `text-premium-ink`, etc.
+**`PremiumDocumentReview`**
+- Cream `.lp-paper` card, max-width 860px, 64/80px padding, 2px border, `--lp-paper-ink` text.
+- Mono meta header (doc id · CONFIDENTIAL · date), serif `h1` doc title, italic serif sub.
+- Body in Cormorant Garamond 18px / 1.65; flaggable spans rendered with dotted underline; click toggles amber-highlight `.f.flagged`.
+- States — `empty / base / grading (overlay spinner "Grading your review…") / result (correct-found = green fill, missed = red underline, false-flag = dashed amber)`.
+- Right rail dropped — categories now live inside a small popover anchored to each flag, matching the prototype's tap-to-flag flow. (Existing answer-state shape unchanged.)
+- Result banner inside the paper: score + breakdown row (`Found 3/5 · 1 false flag · 14/20 pts`).
 
-## Out of scope (unchanged)
+**`PremiumBriefBuilder`**
+- 2-col layout: 360px sticky cream fact card (serif body, "Priya v. QuickMart (2024)" tag), main wizard on dark.
+- 4-step stepper across the top (Statute / Precedent / Arguments / Rebuttal). Done = amber check, active = white border, todo = muted.
+- Option cards: `bg-bg-1`, 2px line border, mono A/B/C/D letter badge, title + subtitle. Selected = amber border + `--lp-accent-soft` bg.
+- Step 3 (Arguments): drag-to-reorder list using existing dnd-kit, drag handle icon, mono position number, drop target highlights with amber border.
+- Step 4 result: per-step Correct/Wrong badge cards + amber-bordered explainer card.
 
-- `submit-bar-attempt`, `draft-question-from-prompt`, `rit-chat`, `extract-questions-from-pdf`, `suggest-topics`.
-- `ChallengeForm.tsx` admin authoring (already supports the 4 types).
-- All neobrutalist pages and the other 4 renderers.
+**`PremiumEthics`**
+- Single column, max-w 820px centered.
+- Stage rail at top (3 numbered boxes: Your decision → The consequence → Reveal).
+- Scenario card: `bg-bg-1`, 2px border, mono "THE SITUATION" label, Cormorant Garamond ~20px body, faint amber Scales watermark icon top-right (Lucide `Scale`, opacity .25).
+- Sora 700 24px question, full-width option button cards with mono letter badge.
+- Stage 2 echo banner: `bg-accent-soft`, "STAGE 1 · YOU CHOSE" + chosen text.
+- Result reveals both choices color-coded + explanation card (amber border).
 
-## Acceptance
+**`PremiumClientCounseling`**
+- 2-col split, full viewport height.
+- Left chat panel: header with avatar (initial letter A in amber square) + matter name + subtitle. Scrollable messages — client left in `bg-bg-2` bubble, lawyer right in `bg-accent-soft` amber bubble. Typing indicator = 3 pulsing amber dots + mono "AWAITING INPUT" while awaiting student response.
+- Right decision panel: question heading, mono "TURN N OF 5" label, scrollable option list (Cormorant Garamond text, mono letter prefix), footer with hint text + "Send Response" amber button.
+- Result view in decision panel: score, per-turn list with green ✓ / red ✗ + 1-line note.
+- Auto-scroll chat to bottom on every state change.
 
-- `/the-bar/preview` shows the 4 premium formats inside the Locus+ shell, visually matching the mocks (paper, serif, hairline borders, Locus+ badge); the other 4 remain neobrutalist.
-- Live `/the-bar/challenge/:id` uses the same shell when `isPremiumType(challenge.type)`.
-- Locus+ badge appears on premium challenge cards in browse/history and on the shell header.
-- Attempt review for premium types renders in the premium shell.
-- No regression to MCQ / Issue Spotter / Speed Round / Jurisdiction; no changes to grading, AI, or admin behavior.
+## 4. Wiring updates
+
+- **`TheBarChallenge.tsx`** — already routes premium types through `PremiumShell`; just plumb new `counter`, `submitDisabled`, `onSubmit` props, drop the centered light layout.
+- **`TheBarPreview.tsx`** — premium tabs already swap to premium renderers; wrap each in the new dark shell with sample sidebar/badges. Keep the existing 8-tab preview structure.
+- **`AttemptReviewDialog.tsx`** — keep `.locus-plus` wrapper; the new dark scope means premium reviews now render on the dark canvas, matching the play experience.
+- **`PremiumBadge.tsx`** — restyle to the prototype's amber `.badge.accent` (mono 10.5px, 2px amber border, accent-soft bg, "LOCUS+" text).
+- **`ChallengeCard.tsx`** — badge already wired via `isPremiumType`; only its visual restyles.
+- **`PremiumPrimitives.tsx`** — replace `PremiumCard` / `PremiumLabel` / `PremiumButton` / `PremiumChip` with neobrutalist equivalents (2px border, no shadow, mono labels). Drop the cream-paper variants.
+
+## 5. Out of scope (unchanged)
+
+- Edge functions (`submit-bar-attempt`, `draft-question-from-prompt`, `rit-chat`, etc.).
+- `ChallengeForm.tsx` admin authoring.
+- The neobrutalist non-premium pages and the other 4 renderers (MCQ, Issue Spotter, Speed Round, Jurisdiction).
+- Database schema and answer-state shapes.
+
+## 6. Acceptance
+
+- `/the-bar/preview` Document Review tab matches the prototype: dark shell, sidebar with `01–04`, instruction strip, cream NDA paper, dotted underlines, amber flag toggling, sticky submit bar, grading overlay → result banner with green/red/dashed-amber spans.
+- Brief Builder: sticky cream fact card + dark wizard, 4-step stepper, drag reorder on Step 3, per-step result cards.
+- Ethics: 3-stage rail, dark scenario card with watermark, amber echo banner on Stage 2, color-coded reveal.
+- Client Counseling: dark 2-col split, alternating bubbles, typing indicator, decision panel with mono turn label, result view.
+- Live `/the-bar/challenge/:id` and review dialog use the same shell+renderers when `isPremiumType()`.
+- Other 4 formats and the rest of the site remain untouched.
+- No emoji, no gradients on dark surfaces, no rounded-xl, no drop shadows on dark cards. Cormorant Garamond confined to paper/scenario/chat content.
 
