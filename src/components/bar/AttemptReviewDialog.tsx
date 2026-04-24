@@ -238,29 +238,57 @@ function ReviewContent({ attempt, challenge }: { attempt: any; challenge: any })
 
 function BriefBuilderReview({ payload, submitted }: { payload: any; submitted: any }) {
   const steps = (payload?.steps ?? []) as any[];
+  const stepAnswers = (submitted?.step_answers ?? []) as any[];
   const [step, setStep] = useState(0);
   if (steps.length === 0) return null;
+
+  const correctnessFor = (i: number): "correct" | "wrong" | "neutral" => {
+    const s = steps[i];
+    const a = stepAnswers.find((x) => x.step_index === i);
+    if (!s || !a) return "neutral";
+    if (s.kind === "mcq") {
+      if (!s.correct_option_id) return "neutral";
+      return a.selected_option_id === s.correct_option_id ? "correct" : "wrong";
+    }
+    if (s.kind === "order") {
+      if (!Array.isArray(s.correct_order)) return "neutral";
+      const sub = a.ordered_block_ids ?? [];
+      if (sub.length !== s.correct_order.length) return "wrong";
+      const ok = s.correct_order.every((id: string, idx: number) => sub[idx] === id);
+      return ok ? "correct" : "wrong";
+    }
+    return "neutral";
+  };
+
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-[10px] uppercase tracking-[0.18em] text-[hsl(var(--premium-muted))] font-medium mr-1">
           Step
         </span>
-        {steps.map((s, i) => (
-          <button
-            key={i}
-            type="button"
-            onClick={() => setStep(i)}
-            className={cn(
-              "px-2.5 py-1 text-[11px] uppercase tracking-[0.1em] border rounded-[3px] transition-colors",
-              i === step
-                ? "border-[hsl(var(--premium-ink))] bg-[hsl(var(--premium-ink))] text-white"
-                : "border-[hsl(var(--premium-border))] text-[hsl(var(--premium-ink))] hover:bg-[hsl(var(--premium-bg))]",
-            )}
-          >
-            {i + 1}. {s?.label ?? `Step ${i + 1}`}
-          </button>
-        ))}
+        {steps.map((s, i) => {
+          const c = correctnessFor(i);
+          const active = i === step;
+          return (
+            <button
+              key={i}
+              type="button"
+              onClick={() => setStep(i)}
+              className={cn(
+                "px-2.5 py-1 text-[11px] uppercase tracking-[0.1em] border rounded-[3px] transition-colors",
+                active
+                  ? "border-[hsl(var(--premium-ink))] bg-[hsl(var(--premium-ink))] text-white"
+                  : c === "correct"
+                    ? "border-emerald-500 text-emerald-600 hover:bg-emerald-50"
+                    : c === "wrong"
+                      ? "border-rose-500 text-rose-600 hover:bg-rose-50"
+                      : "border-[hsl(var(--premium-border))] text-[hsl(var(--premium-ink))] hover:bg-[hsl(var(--premium-bg))]",
+              )}
+            >
+              {i + 1}. {s?.label ?? `Step ${i + 1}`}
+            </button>
+          );
+        })}
       </div>
       <PremiumBriefBuilder
         mode="review"
