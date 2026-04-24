@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { FileSearch, Scale, Gavel, Users } from "lucide-react";
+import { TimelineContent, textVariants } from "@/components/ui/timeline-animation";
 
 const formats = [
   { icon: FileSearch, name: "Document Review", desc: "Spot the clause that matters." },
@@ -30,17 +31,16 @@ export default function LocusPlusStrip() {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {formats.map((f) => {
+          {formats.map((f, i) => {
             const Icon = f.icon;
             return (
-              <div
-                key={f.name}
-                className="p-5 bg-background border-2 border-border rounded-xl hover:border-accent transition-colors"
-              >
-                <Icon className="h-5 w-5 text-accent mb-3" />
-                <p className="font-heading font-extrabold text-foreground mb-1">{f.name}</p>
-                <p className="text-xs text-foreground/60 leading-relaxed">{f.desc}</p>
-              </div>
+              <TimelineContent key={f.name} index={i}>
+                <div className="p-5 bg-background border-2 border-border rounded-xl hover:border-accent transition-colors h-full">
+                  <Icon className="h-5 w-5 text-accent mb-3" />
+                  <p className="font-heading font-extrabold text-foreground mb-1">{f.name}</p>
+                  <p className="text-xs text-foreground/60 leading-relaxed">{f.desc}</p>
+                </div>
+              </TimelineContent>
             );
           })}
         </div>
