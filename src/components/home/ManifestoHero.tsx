@@ -178,13 +178,11 @@ export default function ManifestoHero() {
                 />
               ))}
             </div>
-            <span className="hidden md:inline">V1.0.0</span>
+            <span className="hidden md:inline">MERIT.ENGINE</span>
           </div>
-          <div className="flex items-center gap-2 md:gap-3 shrink-0">
-            <span className="text-accent">●</span>
-            <span className="hidden sm:inline">RENDERING</span>
-            <span className="hidden md:inline text-white/30">·</span>
-            <span>FRAME: ∞</span>
+          <div className="flex items-center gap-2 md:gap-3 shrink-0 min-w-0">
+            <span className="text-accent shrink-0">●</span>
+            <span className="truncate max-w-[60vw] sm:max-w-none">{matchLabel}</span>
           </div>
         </div>
       </TimelineContent>
