@@ -288,11 +288,12 @@ function ReviewBreakdown({
           <div className="text-[10px] font-bold uppercase tracking-wider text-rose-500 mb-1">
             Missed ({missed.length})
           </div>
-          <ul className="space-y-1 text-xs">
+          <ul className="space-y-2 text-xs">
             {missed.map((f) => (
               <li key={f.span_id} className="text-foreground">
                 <span className="italic">"{spanText.get(f.span_id)}"</span> — should have been
                 flagged as <strong>{catLabel(f.category_id)}</strong>.
+                <Pedagogy spanId={f.span_id} payload={payload} />
               </li>
             ))}
           </ul>
@@ -303,7 +304,7 @@ function ReviewBreakdown({
           <div className="text-[10px] font-bold uppercase tracking-wider text-amber-500 mb-1">
             False Flags ({falseFlags.length})
           </div>
-          <ul className="space-y-1 text-xs">
+          <ul className="space-y-2 text-xs">
             {falseFlags.map((f) => (
               <li key={f.span_id} className="text-foreground">
                 <span className="italic">"{spanText.get(f.span_id)}"</span> — flagged as{" "}
@@ -318,12 +319,13 @@ function ReviewBreakdown({
           <div className="text-[10px] font-bold uppercase tracking-wider text-rose-500 mb-1">
             Wrong Category ({wrongCats.length})
           </div>
-          <ul className="space-y-1 text-xs">
+          <ul className="space-y-2 text-xs">
             {wrongCats.map((f) => (
               <li key={f.span_id} className="text-foreground">
                 <span className="italic">"{spanText.get(f.span_id)}"</span> — you flagged{" "}
                 <strong>{catLabel(f.category_id)}</strong>, was{" "}
                 <strong>{catLabel(correctSet.get(f.span_id)!)}</strong>.
+                <Pedagogy spanId={f.span_id} payload={payload} />
               </li>
             ))}
           </ul>
