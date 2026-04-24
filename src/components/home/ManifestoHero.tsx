@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, ArrowDown } from "lucide-react";
 import { TimelineContent, textVariants, revealVariants } from "@/components/ui/timeline-animation";
