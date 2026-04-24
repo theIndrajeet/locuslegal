@@ -29,31 +29,7 @@ export default function Navbar() {
   const isActive = (href: string) => location.pathname === href;
   const forceOpaque = location.pathname.startsWith("/the-bar/challenge");
 
-  const renderChip = (l: typeof navLinks[number]) => {
-    const active = isActive(l.href);
-    const base =
-      "relative whitespace-nowrap rounded-full border border-border/60 px-3.5 py-1 text-[11px] font-semibold tracking-wide transition-all duration-200 snap-center shrink-0";
-    const activeClass =
-      "bg-accent text-accent-foreground border-accent shadow-[0_0_12px_hsl(var(--accent)/0.35)]";
-    const inactiveClass =
-      "bg-muted/30 text-muted-foreground hover:text-foreground hover:bg-muted/60 active:scale-95";
 
-    return (
-      <Link
-        key={l.href}
-        to={l.href}
-        className={`${base} ${active ? activeClass : inactiveClass}`}
-        {...(l.glitch ? { "data-text": l.label } : {})}
-      >
-        <span className={`inline-flex items-center gap-1 ${l.glitch ? "glitch-link" : ""}`}>
-          {l.pulse && (
-            <span className="inline-block w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
-          )}
-          {l.label}
-        </span>
-      </Link>
-    );
-  };
 
   return (
     <nav
@@ -73,21 +49,7 @@ export default function Navbar() {
         {/* Desktop nav */}
         <div className="hidden md:flex items-center gap-8">
           {navLinks.map((l) =>
-            l.pulse ? (
-              <Link
-                key={l.href}
-                to={l.href}
-                className={`relative text-sm font-bold transition-all duration-300 group ${
-                  isActive(l.href) ? "text-accent" : "text-muted-foreground hover:text-accent"
-                }`}
-              >
-                <span className="relative z-10 inline-flex items-center gap-1">
-                  <span className="inline-block animate-[pulse_2s_cubic-bezier(0.4,0,0.6,1)_infinite] w-1.5 h-1.5 rounded-full bg-accent" />
-                  {l.label}
-                </span>
-                <span className="absolute -bottom-1 left-0 w-full h-[2px] bg-accent scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
-              </Link>
-            ) : l.glitch ? (
+            l.glitch ? (
               <Link
                 key={l.href}
                 to={l.href}

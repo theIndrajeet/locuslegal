@@ -34,7 +34,7 @@ export default function MobileBottomDock() {
   return (
     <nav className={`fixed bottom-5 left-1/2 -translate-x-1/2 z-50 md:hidden transition-all duration-700 ease-in-out ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"}`}>
       <div className="flex items-center gap-4 px-6 py-3 rounded-full bg-background/60 backdrop-blur-xl border border-border/40 shadow-xl shadow-black/10">
-        {NAV_ITEMS.map(({ to, icon: Icon, label, pulse }) => {
+        {NAV_ITEMS.map(({ to, icon: Icon, label }) => {
           const isActive = to === "/" ? pathname === "/" : pathname.startsWith(to);
           return (
             <Link
@@ -54,9 +54,6 @@ export default function MobileBottomDock() {
               />
               {isActive && (
                 <span className="absolute -bottom-1.5 w-1 h-1 rounded-full bg-accent" />
-              )}
-              {pulse && (
-                <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
               )}
             </Link>
           );
