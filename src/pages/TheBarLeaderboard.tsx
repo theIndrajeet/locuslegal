@@ -52,6 +52,11 @@ export default function TheBarLeaderboard() {
     path: "/the-bar/leaderboard",
   });
 
+  const navigate = useNavigate();
+  const handleBack = () => {
+    if (window.history.length > 1) navigate(-1);
+    else navigate("/the-bar");
+  };
   const [searchParams, setSearchParams] = useSearchParams();
   const tab = (searchParams.get("tab") as TabKey) || "all-time";
   const area = (searchParams.get("area") as AreaOfLaw | null) || null;
