@@ -230,7 +230,7 @@ export default function RotatingHero() {
                       onClick={() => jumpTo(i)}
                       aria-label={`Show angle ${i + 1}`}
                       aria-current={active ? "true" : undefined}
-                      className={`h-2 rounded-full transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+                      className={`h-2 rounded-full outline-none focus:outline-none transition-[width,background-color] duration-300 ease-out ${
                         active
                           ? "w-8 bg-accent"
                           : "w-2 bg-foreground/25 hover:bg-foreground/50"
