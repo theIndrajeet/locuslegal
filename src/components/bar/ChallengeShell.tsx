@@ -6,7 +6,7 @@
 //  - Footer status strip.
 //  - CTA slot bottom-right (passed via `cta` prop).
 import { ReactNode } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 
