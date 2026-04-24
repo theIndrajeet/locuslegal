@@ -22,14 +22,14 @@ import type { AreaOfLaw, Difficulty, QuestionType } from "@/lib/bar/types";
 import { cn } from "@/lib/utils";
 
 const QUESTION_TYPE_SHORT: Record<QuestionType, string> = {
-  mcq: "Rapid",
-  issue_spotter: "Spot",
-  speed_round: "Blitz",
-  jurisdiction: "Forum",
-  document_review: "Redline",
-  brief_builder: "Draft",
-  ethics: "Conduct",
-  client_counseling: "Advise",
+  mcq: "MCQ",
+  issue_spotter: "Issues",
+  speed_round: "Speed",
+  jurisdiction: "Jurisd.",
+  document_review: "Doc Rev.",
+  brief_builder: "Brief",
+  ethics: "Ethics",
+  client_counseling: "Counsel",
 };
 
 const PAGE_SIZE = 30;
