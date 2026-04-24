@@ -58,8 +58,8 @@ export default function Navbar() {
   return (
     <nav
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-        scrolled
-          ? "bg-background/70 backdrop-blur-xl shadow-lg shadow-black/5 border-b border-border/50"
+        scrolled || forceOpaque
+          ? "bg-background/90 backdrop-blur-xl shadow-lg shadow-black/5 border-b border-border/50"
           : "bg-transparent"
       }`}
     >
