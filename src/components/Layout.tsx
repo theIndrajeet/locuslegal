@@ -41,12 +41,17 @@ export default function Layout() {
     return () => subscription.unsubscribe();
   }, [navigate, location.pathname]);
 
+  // Challenge attempt pages own their full layout (PremiumShell has its own
+  // sidebar, sticky top bar, and sticky footer CTA). Rendering the global
+  // Navbar/Footer/Mobile dock on top of that creates overlapping chrome.
+  const isChallengeRoute = location.pathname.startsWith("/the-bar/challenge/");
+
   return (
     <div className="min-h-screen">
-      <Navbar />
+      {!isChallengeRoute && <Navbar />}
       <Outlet />
-      <Footer />
-      <MobileBottomDock />
+      {!isChallengeRoute && <Footer />}
+      {!isChallengeRoute && <MobileBottomDock />}
     </div>
   );
 }
