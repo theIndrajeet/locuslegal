@@ -19,7 +19,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-type Node = {
+type ProductNode = {
   id: string;
   label: string;
   icon: LucideIcon;
@@ -30,7 +30,7 @@ type Node = {
   cta: string;
 };
 
-const NODES: Node[] = [
+const NODES: ProductNode[] = [
   {
     id: "directory",
     label: "Directory",
