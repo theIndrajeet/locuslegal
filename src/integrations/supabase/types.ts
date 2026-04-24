@@ -854,6 +854,15 @@ export type Database = {
           vote_count: number
         }[]
       }
+      get_profile_activity: {
+        Args: { p_user_id: string }
+        Returns: {
+          activity_date: string
+          application_count: number
+          bar_count: number
+          total_count: number
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
