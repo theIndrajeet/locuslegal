@@ -60,36 +60,40 @@ export default function RotatingHero() {
             />
           </h1>
 
-          <p
-            className={`text-lg md:text-xl text-foreground/70 max-w-2xl mx-auto mb-12 leading-relaxed transition-all duration-700 delay-300 ${
+          <div
+            className={`grid grid-cols-2 md:grid-cols-4 gap-3 max-w-3xl mx-auto mb-12 transition-all duration-700 delay-300 ${
               visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
             }`}
           >
-            India's first merit-based legal internship platform. We connect ambitious
-            law students with top firms — no matter which college they come from.
-            Sign up now — spots are limited.
-          </p>
+            {FEATURES.map(({ icon: Icon, label }) => (
+              <div
+                key={label}
+                className="flex items-center gap-2 border-2 border-border bg-card/60 backdrop-blur-sm rounded-xl px-4 py-3 text-left"
+              >
+                <Icon className="h-5 w-5 text-accent shrink-0" />
+                <span className="font-heading text-xs sm:text-sm font-semibold text-foreground leading-tight">
+                  {label}
+                </span>
+              </div>
+            ))}
+          </div>
 
           <div
             className={`flex flex-col sm:flex-row gap-4 justify-center transition-all duration-700 delay-500 ${
               visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
             }`}
           >
-            <a href="/waitlist#waitlist">
+            <Link to="/waitlist">
               <Button size="lg" className="font-heading text-base px-8 py-4">
-                I'm a Student
+                Join the Waitlist
+                <ArrowRight className="ml-1 h-4 w-4" />
               </Button>
-            </a>
-            <a href="/waitlist#waitlist">
+            </Link>
+            <Link to="/directory">
               <Button variant="neutral" size="lg" className="font-heading text-base px-8 py-4">
-                I'm a Firm / Chamber
+                Explore Locus
               </Button>
-            </a>
-            <a href="/waitlist#waitlist">
-              <Button variant="neutral" size="lg" className="font-heading text-base px-8 py-4">
-                I'm a School
-              </Button>
-            </a>
+            </Link>
           </div>
         </div>
       </div>
