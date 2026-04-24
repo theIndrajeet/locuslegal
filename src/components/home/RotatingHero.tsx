@@ -154,10 +154,10 @@ export default function RotatingHero() {
           <AnimatePresence mode="wait">
             <motion.div
               key={current.id}
-              initial={reduceMotion ? false : { opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={reduceMotion ? undefined : { opacity: 0, y: -8 }}
-              transition={{ duration: TRANSITION_MS, ease: [0.22, 1, 0.36, 1] }}
+              initial={reduceMotion ? false : { opacity: 0, filter: "blur(12px)" }}
+              animate={{ opacity: 1, filter: "blur(0px)" }}
+              exit={reduceMotion ? undefined : { opacity: 0, filter: "blur(12px)" }}
+              transition={{ duration: 0.7, ease: [0.4, 0, 0.2, 1] }}
             >
               <HeroAngle
                 angle={current}
