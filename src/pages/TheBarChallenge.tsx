@@ -254,6 +254,34 @@ export default function TheBarChallenge() {
     );
   }
 
+  // Sanity guard: premium types require specific payload keys. If a malformed
+  // row slips through (e.g. older approved challenges), show a friendly state
+  // instead of crashing the renderer.
+  const p = challenge.payload ?? {};
+  const malformed =
+    (challenge.question_type === "document_review" && (!Array.isArray(p.spans) || p.spans.length === 0 || !Array.isArray(p.categories) || p.categories.length === 0)) ||
+    (challenge.question_type === "brief_builder" && (!Array.isArray(p.steps) || p.steps.length === 0)) ||
+    (challenge.question_type === "ethics" && (!Array.isArray(p.decision_options) || !Array.isArray(p.followup_options))) ||
+    (challenge.question_type === "client_counseling" && (!Array.isArray(p.decision_turns) || p.decision_turns.length === 0));
+
+  if (malformed) {
+    return (
+      <section className="min-h-screen pt-24 pb-16 bg-background">
+        <div className="container mx-auto px-4 max-w-2xl text-center">
+          <h1 className="text-2xl font-extrabold font-heading text-foreground mb-3">
+            This challenge is misconfigured
+          </h1>
+          <p className="text-muted-foreground mb-6">
+            The question data is incomplete. Please contact an admin so they can fix or re-approve it.
+          </p>
+          <Link to="/the-bar/browse">
+            <Button>Back to The Bar</Button>
+          </Link>
+        </div>
+      </section>
+    );
+  }
+
   if (result) {
     return (
       <section className="min-h-screen pt-24 pb-16 bg-background">
