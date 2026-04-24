@@ -23,6 +23,7 @@ import ProfileEdit from "./pages/ProfileEdit";
 import PublicProfile from "./pages/PublicProfile";
 import AdminWaitlist from "./pages/AdminWaitlist";
 import AdminBar from "./pages/AdminBar";
+import ApplicationTracker from "./pages/ApplicationTracker";
 import NotFound from "./pages/NotFound";
 import { useVersionCheck } from "@/hooks/useVersionCheck";
 
@@ -63,6 +64,7 @@ const App = () => (
               <Route path="/the-bar/challenge/:id" element={<TheBarChallenge />} />
               <Route path="/the-bar/history" element={<TheBarHistory />} />
               <Route path="/the-bar/leaderboard" element={<TheBarLeaderboard />} />
+              <Route path="/applications" element={<ApplicationTracker />} />
               <Route path="/profile/edit" element={<ProfileEdit />} />
               <Route path="/u/:username" element={<PublicProfile />} />
               <Route path="/admin/waitlist" element={<AdminWaitlist />} />

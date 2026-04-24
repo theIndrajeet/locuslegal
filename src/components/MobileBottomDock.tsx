@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Home, Building2, BookOpen, Library, Wrench, Gavel } from "lucide-react";
+import { Home, Building2, BookOpen, Library, Briefcase, Gavel } from "lucide-react";
 
 const NAV_ITEMS = [
   { to: "/", icon: Home, label: "Home" },
   { to: "/directory", icon: Building2, label: "Directory" },
   { to: "/playbook", icon: BookOpen, label: "Playbook" },
   { to: "/resources", icon: Library, label: "Resources" },
-  { to: "/tools", icon: Wrench, label: "Tools", pulse: true },
+  { to: "/applications", icon: Briefcase, label: "Applications", pulse: true },
   { to: "/the-bar", icon: Gavel, label: "The Bar" },
 ];
 
