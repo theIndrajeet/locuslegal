@@ -198,12 +198,12 @@ export default function TheBarBrowse() {
         )}
 
         {/* Type tab bar */}
-        <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+        <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-9 gap-2 w-full">
           <button
             type="button"
             onClick={() => updateParam("type", "all")}
             className={cn(
-              "px-4 py-2 rounded-md border-2 text-sm font-bold whitespace-nowrap transition-all",
+              "px-2 py-2 rounded-md border-2 text-sm font-bold whitespace-nowrap transition-all w-full",
               typeFilter === "all"
                 ? "bg-foreground text-background border-foreground shadow-[2px_2px_0_0_hsl(var(--accent))]"
                 : "bg-background text-foreground border-border hover:border-foreground"
@@ -218,7 +218,7 @@ export default function TheBarBrowse() {
               onClick={() => updateParam("type", t)}
               title={QUESTION_TYPE_LABELS[t]}
               className={cn(
-                "px-4 py-2 rounded-md border-2 text-sm font-bold whitespace-nowrap transition-all",
+                "px-2 py-2 rounded-md border-2 text-sm font-bold whitespace-nowrap transition-all w-full",
                 typeFilter === t
                   ? "bg-foreground text-background border-foreground shadow-[2px_2px_0_0_hsl(var(--accent))]"
                   : "bg-background text-foreground border-border hover:border-foreground"
