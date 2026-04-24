@@ -26,7 +26,7 @@ interface ChecklistItem {
   cta?: string;
 }
 
-function buildChecklist(i: Inputs): ChecklistItem[] {
+export function buildChecklist(i: Omit<Inputs, "variant">): ChecklistItem[] {
   return [
     { key: "avatar", label: "Profile photo", weight: 10, done: !!i.avatarUrl, cta: "Upload a photo" },
     { key: "bio", label: "Short bio (40+ chars)", weight: 10, done: i.bio.trim().length >= 40, cta: "Write a short bio" },
@@ -56,6 +56,12 @@ function buildChecklist(i: Inputs): ChecklistItem[] {
       cta: "Log applications you've sent",
     },
   ];
+}
+
+export function computeStrength(i: Omit<Inputs, "variant">) {
+  const items = buildChecklist(i);
+  const score = items.reduce((acc, it) => acc + (it.done ? it.weight : 0), 0);
+  return { items, score };
 }
 
 function tier(score: number): { label: string; tone: string } {
