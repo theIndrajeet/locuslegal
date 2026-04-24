@@ -334,6 +334,10 @@ serve(async (req) => {
       return json(422, { error: "AI payload failed validation", retryable: true });
     }
 
+    // Resolve area_of_law: explicit hint wins, else trust AI's inference, else "other"
+    const resolvedArea: typeof AREAS[number] = area_of_law
+      ?? ((AREAS as readonly string[]).includes(parsed?.area_of_law) ? parsed.area_of_law : "other");
+
     const speedCount = question_type === "speed_round" ? parsed.payload.questions?.length : undefined;
     const points = computeBasePoints(question_type, difficulty, speedCount);
 
@@ -341,7 +345,7 @@ serve(async (req) => {
       title: String(parsed.title).slice(0, 200),
       prompt: parsed.prompt,
       explanation: typeof parsed.explanation === "string" ? parsed.explanation : null,
-      question_type, area_of_law, difficulty,
+      question_type, area_of_law: resolvedArea, difficulty,
       payload: parsed.payload,
       points_base: points,
       status: "draft",
