@@ -194,27 +194,50 @@ export default function TheBarLeaderboard() {
             }))
             .filter((r: any) => !r._opt_out);
         } else if (tab === "weekly") {
-          const { data, error } = await (supabase as any)
+          const { data: weeklyRows, error: wErr } = await (supabase as any)
             .from("bar_weekly_stats")
-            .select(
-              "user_id, weekly_points, weekly_accuracy_pct, profiles!inner(username, display_name, avatar_url, bar_leaderboard_opt_out), bar_user_stats!inner(designation, current_streak)",
-            )
+            .select("user_id, weekly_points, weekly_accuracy_pct")
             .order("weekly_points", { ascending: false })
             .limit(MAX_ROWS);
-          if (error) throw error;
-          result = (data ?? [])
-            .map((r: any) => ({
-              user_id: r.user_id,
-              username: r.profiles.username,
-              display_name: r.profiles.display_name,
-              avatar_url: r.profiles.avatar_url,
-              designation: r.bar_user_stats.designation as BarDesignation,
-              points: Number(r.weekly_points),
-              accuracy_pct: Number(r.weekly_accuracy_pct),
-              current_streak: Number(r.bar_user_stats.current_streak),
-              _opt_out: r.profiles.bar_leaderboard_opt_out,
-            }))
-            .filter((r: any) => !r._opt_out);
+          if (wErr) throw wErr;
+          const weekly = (weeklyRows ?? []) as { user_id: string; weekly_points: number; weekly_accuracy_pct: number }[];
+          const userIds = weekly.map((r) => r.user_id).filter(Boolean);
+          if (userIds.length === 0) {
+            result = [];
+          } else {
+            const [profilesRes, statsRes] = await Promise.all([
+              supabase
+                .from("profiles")
+                .select("id, username, display_name, avatar_url, bar_leaderboard_opt_out")
+                .in("id", userIds),
+              supabase
+                .from("bar_user_stats")
+                .select("user_id, designation, current_streak")
+                .in("user_id", userIds),
+            ]);
+            if (profilesRes.error) throw profilesRes.error;
+            if (statsRes.error) throw statsRes.error;
+            const pMap = new Map((profilesRes.data ?? []).map((p: any) => [p.id, p]));
+            const sMap = new Map((statsRes.data ?? []).map((s: any) => [s.user_id, s]));
+            result = weekly
+              .map((r) => {
+                const p = pMap.get(r.user_id);
+                const s = sMap.get(r.user_id);
+                if (!p) return null;
+                return {
+                  user_id: r.user_id,
+                  username: p.username,
+                  display_name: p.display_name,
+                  avatar_url: p.avatar_url,
+                  designation: (s?.designation ?? "trainee") as BarDesignation,
+                  points: Number(r.weekly_points),
+                  accuracy_pct: Number(r.weekly_accuracy_pct),
+                  current_streak: Number(s?.current_streak ?? 0),
+                  _opt_out: p.bar_leaderboard_opt_out,
+                };
+              })
+              .filter((r: any) => r && !r._opt_out) as LeaderboardEntry[];
+          }
         } else if (tab === "area") {
           if (!area) { result = []; }
           else {
