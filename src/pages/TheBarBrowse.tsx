@@ -30,7 +30,7 @@ interface Challenge {
   prompt: string;
   points_base: number;
   source_citation: string | null;
-  approved_at: string | null;
+  created_at: string | null;
 }
 
 export default function TheBarBrowse() {
@@ -78,8 +78,8 @@ export default function TheBarBrowse() {
           // Read from the safe view — correct answers stripped server-side
           supabase
             .from("bar_challenges_student" as any)
-            .select("id, question_type, area_of_law, difficulty, prompt, points_base, source_citation, approved_at")
-            .order("approved_at", { ascending: false })
+            .select("id, question_type, area_of_law, difficulty, prompt, points_base, source_citation, created_at")
+            .order("created_at", { ascending: false })
             .limit(500),
         ]);
         if (!active) return;
@@ -91,8 +91,8 @@ export default function TheBarBrowse() {
         // Guest: just list every approved challenge — no attempt filtering, no daily cap
         const { data: challengeData } = await supabase
           .from("bar_challenges_student" as any)
-          .select("id, question_type, area_of_law, difficulty, prompt, points_base, source_citation, approved_at")
-          .order("approved_at", { ascending: false })
+          .select("id, question_type, area_of_law, difficulty, prompt, points_base, source_citation, created_at")
+          .order("created_at", { ascending: false })
           .limit(500);
         if (!active) return;
         setChallenges(((challengeData ?? []) as unknown) as Challenge[]);
