@@ -31,12 +31,21 @@ const queryClient = new QueryClient();
 
 const VersionWatcher = () => {
   useVersionCheck(() => {
+    const hardReload = () => {
+      try {
+        const url = new URL(window.location.href);
+        url.searchParams.set("v", Date.now().toString());
+        window.location.replace(url.toString());
+      } catch {
+        window.location.reload();
+      }
+    };
     toast("New version of Locus available", {
       description: "Refresh to get the latest updates.",
       duration: Infinity,
       action: {
         label: "Refresh",
-        onClick: () => window.location.reload(),
+        onClick: hardReload,
       },
     });
   });

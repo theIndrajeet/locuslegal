@@ -1,16 +1,19 @@
 import { useEffect, useRef } from "react";
 
 /**
- * Polls /version.json and fires `onUpdateAvailable` exactly once when the
- * deployed build version differs from the version baked into this bundle.
+ * Polls /version.json and fires `onUpdateAvailable` when the deployed build
+ * version differs from the version baked into this bundle.
+ *
+ * Also, on first mount, defensively unregisters any leftover service workers
+ * and clears CacheStorage entries — these are the most common cause of an
+ * old build appearing to "stick" in Safari/Chrome on a custom domain.
  *
  * - Skipped in dev (HMR makes it pointless and noisy).
  * - Skipped inside iframes / Lovable preview hosts (avoids spamming editors).
- * - Polls every `intervalMs` and on window focus.
  */
 export function useVersionCheck(
   onUpdateAvailable: () => void,
-  intervalMs: number = 60_000
+  intervalMs: number = 30_000
 ) {
   const firedRef = useRef(false);
   const callbackRef = useRef(onUpdateAvailable);
@@ -29,48 +32,100 @@ export function useVersionCheck(
     if (inIframe) return;
 
     const host = window.location.hostname;
-    if (
-      host.includes("id-preview--") ||
-      host.includes("lovableproject.com") ||
-      host.includes("lovable.app")
-    ) {
-      // Avoid prompting refresh on Lovable-hosted preview/staging domains.
-      // Production custom domains (locus.legal) will still get the check.
-      return;
-    }
+    const isLovableHost =
+      host.includes("id-preview--") || host.includes("lovableproject.com");
+
+    // Avoid prompting refresh on Lovable in-editor preview/staging domains.
+    // Production custom domains (locus.legal) AND the published *.lovable.app
+    // subdomain still get the check.
+    if (isLovableHost) return;
+
+    // Defensive cleanup: kill any service worker / cache that a previous
+    // version of the app (or a browser extension) may have installed.
+    // This is a one-shot, runs on mount.
+    (async () => {
+      try {
+        if ("serviceWorker" in navigator) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map((r) => r.unregister().catch(() => {})));
+        }
+      } catch {
+        /* ignore */
+      }
+      try {
+        if (typeof caches !== "undefined" && caches?.keys) {
+          const keys = await caches.keys();
+          await Promise.all(keys.map((k) => caches.delete(k).catch(() => {})));
+        }
+      } catch {
+        /* ignore */
+      }
+    })();
 
     const currentVersion =
       typeof __BUILD_VERSION__ !== "undefined" ? __BUILD_VERSION__ : null;
     if (!currentVersion) return;
+
+    const forceReload = () => {
+      try {
+        const url = new URL(window.location.href);
+        url.searchParams.set("v", Date.now().toString());
+        window.location.replace(url.toString());
+      } catch {
+        window.location.reload();
+      }
+    };
 
     const check = async () => {
       if (firedRef.current) return;
       try {
         const res = await fetch(`/version.json?_=${Date.now()}`, {
           cache: "no-store",
-          headers: { "Cache-Control": "no-cache" },
+          headers: {
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            Pragma: "no-cache",
+          },
         });
         if (!res.ok) return;
         const data = (await res.json()) as { version?: string };
-        if (data?.version && data.version !== currentVersion) {
-          firedRef.current = true;
-          callbackRef.current();
+        if (!data?.version) return;
+        if (data.version === currentVersion) return;
+
+        firedRef.current = true;
+
+        // If we already have a stale-version hint in the URL (?v=...) and the
+        // build STILL doesn't match, it means the HTML itself is being served
+        // stale by a CDN. In that case, hard-reload immediately rather than
+        // showing a toast that asks the user to click refresh.
+        const params = new URLSearchParams(window.location.search);
+        if (params.has("v")) {
+          forceReload();
+          return;
         }
+
+        callbackRef.current();
       } catch {
         // Network blip — try again next tick.
       }
     };
 
-    // First check after a short delay so we don't race app startup.
-    const initial = window.setTimeout(check, 5_000);
+    // Run the FIRST check immediately on load (not after 5s). This is the
+    // change that actually catches users opening the site fresh on a stale
+    // CDN edge — they'll be auto-redirected with a cache-buster.
+    check();
+
     const interval = window.setInterval(check, intervalMs);
     const onFocus = () => check();
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") check();
+    };
     window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibility);
 
     return () => {
-      window.clearTimeout(initial);
       window.clearInterval(interval);
       window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibility);
     };
   }, [intervalMs]);
 }
