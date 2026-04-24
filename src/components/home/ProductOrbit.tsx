@@ -264,10 +264,10 @@ export default function ProductOrbit() {
             exit={{ opacity: 0, scale: 0.9 }}
             transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
             className="absolute left-1/2 top-1/2 z-30 -translate-x-1/2 -translate-y-1/2
-                       w-[min(340px,82%)]
+                       w-[min(280px,78%)]
                        rounded-md border-2 border-foreground bg-background
                        shadow-[6px_6px_0_0_hsl(var(--accent))]
-                       p-5"
+                       p-4"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-label={`${activeNode.label} details`}
@@ -294,7 +294,7 @@ export default function ProductOrbit() {
             </span>
 
             {/* Title */}
-            <h3 className="mt-2 font-heading text-2xl font-bold tracking-tight text-foreground">
+            <h3 className="mt-2 font-heading text-xl font-bold tracking-tight text-foreground">
               {activeNode.label}
             </h3>
 
