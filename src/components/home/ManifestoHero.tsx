@@ -61,7 +61,7 @@ export default function ManifestoHero() {
       <TimelineContent
         index={0}
         variants={textVariants}
-        className="absolute top-0 left-0 right-0 z-10 pt-6 md:pt-8 px-6 md:px-12"
+        className="absolute top-0 left-0 right-0 z-10 pt-20 md:pt-24 px-6 md:px-12"
       >
         <div className="flex items-center justify-between font-mono text-[10px] md:text-xs tracking-[0.2em] text-white/60 uppercase">
           <div className="flex items-center gap-2 md:gap-4">
@@ -163,7 +163,7 @@ export default function ManifestoHero() {
       <TimelineContent
         index={7}
         variants={textVariants}
-        className="absolute bottom-0 left-0 right-0 z-10 pb-6 md:pb-8 px-6 md:px-12"
+        className="absolute bottom-0 left-0 right-0 z-10 pb-20 md:pb-8 px-6 md:px-12"
       >
         <div className="flex items-center justify-between font-mono text-[10px] md:text-xs tracking-[0.2em] text-white/60 uppercase gap-4">
           <div className="flex items-center gap-3 md:gap-4 min-w-0">
