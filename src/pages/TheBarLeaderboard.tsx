@@ -327,6 +327,13 @@ export default function TheBarLeaderboard() {
       <div className="container mx-auto px-4 max-w-5xl space-y-6">
         {/* Hero */}
         <div className="text-center md:text-left">
+          <button
+            onClick={handleBack}
+            className="inline-flex items-center gap-2 text-sm font-bold text-muted-foreground hover:text-foreground transition-colors mb-4"
+          >
+            <ArrowLeft size={16} />
+            Back
+          </button>
           <div className="flex items-center gap-3 justify-center md:justify-start mb-2">
             <Trophy className="text-accent" size={28} />
             <h1 className="text-3xl md:text-4xl font-extrabold font-heading text-foreground">
