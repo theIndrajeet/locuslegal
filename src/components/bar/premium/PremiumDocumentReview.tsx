@@ -116,6 +116,23 @@ export function PremiumDocumentReview(props: AnswerProps | ReviewProps) {
     <div className="space-y-5 min-h-[60vh]">
       {resultBanner && <ResultBanner {...resultBanner} />}
 
+      {payload.reviewer_brief && (
+        <div className="max-w-[860px] mx-auto px-5 sm:px-6 py-4 border-2 border-[hsl(var(--lp-line))] rounded-[6px] bg-[hsl(var(--lp-bg-1))]">
+          <div
+            className="text-[10.5px] uppercase tracking-[0.18em] text-[hsl(var(--lp-text-3))] mb-1.5"
+            style={{ fontFamily: "'JetBrains Mono', monospace" }}
+          >
+            Brief from Partner{payload.agreement_type ? ` · ${payload.agreement_type}` : ""}
+          </div>
+          <p
+            className="text-[15px] leading-relaxed text-[hsl(var(--lp-text))] m-0"
+            style={{ fontFamily: "'Cormorant Garamond', serif" }}
+          >
+            {payload.reviewer_brief}
+          </p>
+        </div>
+      )}
+
       <article className="lp-paper relative max-w-[860px] mx-auto px-6 sm:px-10 md:px-20 py-12 md:py-16">
         {/* meta header */}
         <div
