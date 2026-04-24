@@ -204,6 +204,21 @@ export default function ProfileEdit() {
           <Button variant="outline" size="sm" onClick={() => navigate(-1)}>Back</Button>
         </div>
 
+        <ProfileStrengthMeter
+          avatarUrl={avatarUrl}
+          bio={bio}
+          college={college}
+          degree={degree}
+          graduationYear={graduationYear}
+          cgpa={cgpa}
+          subjectsCount={subjects.length}
+          internshipsCount={internships.length}
+          mootsCount={moots.length}
+          publicationsCount={publications.length}
+          cvUrl={cvUrl}
+          applicationsCount={applicationsCount}
+        />
+
         <button
           type="button"
           onClick={() => navigate("/applications")}
@@ -261,6 +276,7 @@ export default function ProfileEdit() {
           onParsedApplied={() => setRefreshTick((t) => t + 1)}
         />
 
+        <OpenToOpportunitiesSection userId={userId} />
         <BarPrivacySection userId={userId} />
 
         {hasPassword && (
