@@ -37,6 +37,7 @@ interface Profile {
   cgpa: number | null;
   subjects_of_interest: string[] | null;
   created_at: string;
+  open_to_opportunities: boolean;
 }
 
 interface Internship {
@@ -126,7 +127,7 @@ export default function PublicProfile() {
       setLoading(true);
       const { data: profileData } = await supabase
         .from("profiles")
-        .select("id, username, display_name, avatar_url, bio, college, degree, graduation_year, cgpa, subjects_of_interest, created_at")
+        .select("id, username, display_name, avatar_url, bio, college, degree, graduation_year, cgpa, subjects_of_interest, created_at, open_to_opportunities")
         .eq("username", username)
         .maybeSingle();
 
