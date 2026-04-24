@@ -1,6 +1,6 @@
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
+import { Toaster as Sonner, toast } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
@@ -24,8 +24,23 @@ import PublicProfile from "./pages/PublicProfile";
 import AdminWaitlist from "./pages/AdminWaitlist";
 import AdminBar from "./pages/AdminBar";
 import NotFound from "./pages/NotFound";
+import { useVersionCheck } from "@/hooks/useVersionCheck";
 
 const queryClient = new QueryClient();
+
+const VersionWatcher = () => {
+  useVersionCheck(() => {
+    toast("New version of Locus available", {
+      description: "Refresh to get the latest updates.",
+      duration: Infinity,
+      action: {
+        label: "Refresh",
+        onClick: () => window.location.reload(),
+      },
+    });
+  });
+  return null;
+};
 
 const App = () => (
   <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
@@ -33,6 +48,7 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
+        <VersionWatcher />
         <BrowserRouter>
           <Routes>
             <Route element={<Layout />}>
