@@ -1,7 +1,5 @@
 import RotatingHero from "@/components/home/RotatingHero";
-import StatsBar from "@/components/StatsBar";
 import FeatureBento from "@/components/home/FeatureBento";
-import LocusPlusStrip from "@/components/home/LocusPlusStrip";
 import AudienceMiniRow from "@/components/home/AudienceMiniRow";
 import FinalCTA from "@/components/home/FinalCTA";
 import { usePageMeta } from "@/hooks/usePageMeta";
@@ -16,9 +14,7 @@ const Index = () => {
   return (
     <>
       <RotatingHero />
-      <StatsBar />
       <FeatureBento />
-      <LocusPlusStrip />
       <AudienceMiniRow />
       <FinalCTA />
     </>

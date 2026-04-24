@@ -9,6 +9,7 @@ import {
   UserCircle2,
   ArrowUpRight,
   Plus,
+  Scale,
 } from "lucide-react";
 import { TimelineContent, textVariants } from "@/components/ui/timeline-animation";
 
@@ -339,6 +340,44 @@ function ProfileTile({ index }: { index: number }) {
   );
 }
 
+/* ---------- Exhibit A — the 5,00,000 stat ---------- */
+function ExhibitATile({ index }: { index: number }) {
+  return (
+    <TileShell to="/directory" bg="yellow" index={index} className="md:col-span-2 md:row-span-2">
+      <TileHeader
+        Icon={Scale}
+        badge="Exhibit A"
+        iconClass="bg-black/10 border-black/30 text-black"
+        badgeClass="bg-black text-accent"
+        arrowClass="text-black/60 group-hover:text-black"
+      />
+      <div className="my-2">
+        <div className="font-heading text-[64px] md:text-[88px] font-black leading-none tracking-tight tabular-nums text-black">
+          5,00,000
+        </div>
+        <div className="mt-2 font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-black/70">
+          Law students · India · 2025
+        </div>
+      </div>
+      <div className="my-4 h-[2px] w-full bg-black/80" />
+      <ul className="space-y-2.5 font-mono text-sm text-black">
+        <li className="flex items-baseline gap-4">
+          <span className="font-heading text-2xl font-black tabular-nums w-20">26</span>
+          <span className="opacity-80">NLUs in India</span>
+        </li>
+        <li className="flex items-baseline gap-4">
+          <span className="font-heading text-2xl font-black tabular-nums w-20">3,890</span>
+          <span className="opacity-80">firms in our directory</span>
+        </li>
+        <li className="flex items-baseline gap-4">
+          <span className="font-heading text-2xl font-black tabular-nums w-20">1</span>
+          <span className="opacity-80">platform for everyone else</span>
+        </li>
+      </ul>
+    </TileShell>
+  );
+}
+
 /* ---------- section ---------- */
 export default function FeatureBento() {
   return (
@@ -366,11 +405,12 @@ export default function FeatureBento() {
         <div className="grid grid-cols-1 gap-4 md:auto-rows-[180px] md:grid-cols-4">
           <DirectoryTile index={0} />
           <TheBarTile index={1} />
-          <PlaybookTile index={2} />
-          <ResourcesTile index={3} />
-          <ToolsTile index={4} />
-          <TrackerTile index={5} />
-          <ProfileTile index={6} />
+          <ExhibitATile index={2} />
+          <PlaybookTile index={3} />
+          <ResourcesTile index={4} />
+          <ToolsTile index={5} />
+          <TrackerTile index={6} />
+          <ProfileTile index={7} />
         </div>
       </div>
     </section>
