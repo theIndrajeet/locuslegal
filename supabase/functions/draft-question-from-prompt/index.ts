@@ -141,7 +141,7 @@ function computeBasePoints(type: V1Type, diff: typeof DIFFS[number], speedRoundC
 const BodySchema = z.object({
   source_id: z.string().uuid(),
   question_type: z.enum(V1_TYPES),
-  area_of_law: z.enum(AREAS),
+  area_of_law: z.enum(AREAS).optional(),
   difficulty: z.enum(DIFFS),
 });
 
