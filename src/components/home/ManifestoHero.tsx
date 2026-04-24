@@ -26,7 +26,7 @@ const Bracket = ({ className }: { className?: string }) => (
 );
 
 const Corner = ({ pos }: { pos: "tl" | "tr" | "bl" | "br" }) => {
-  const styleMap: Record<typeof pos, React.CSSProperties> = {
+  const styleMap: Record<typeof pos, CSSProperties> = {
     tl: { top: 16, left: 16, transform: "rotate(0deg)" },
     tr: { top: 16, right: 16, transform: "rotate(90deg)" },
     bl: { bottom: 16, left: 16, transform: "rotate(-90deg)" },
