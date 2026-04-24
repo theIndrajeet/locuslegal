@@ -1,8 +1,8 @@
-import type { CSSProperties } from "react";
+import { useState, type CSSProperties } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, ArrowDown } from "lucide-react";
 import { TimelineContent, textVariants, revealVariants } from "@/components/ui/timeline-animation";
-import { DottedVitruvian } from "@/components/ui/dotted-vitruvian";
+import MeritEngineGraph from "@/components/home/MeritEngineGraph";
 
 /**
  * ManifestoHero — homepage flagship hero.
@@ -40,6 +40,7 @@ const Corner = ({ pos }: { pos: "tl" | "tr" | "bl" | "br" }) => {
 };
 
 export default function ManifestoHero() {
+  const [matchLabel, setMatchLabel] = useState("MATCH 0247 · NLU-D → JSA");
   return (
     <section className="relative min-h-screen w-full bg-black text-white overflow-hidden">
       {/* Faint dotted-grid background (mobile gets this as its texture) */}
@@ -145,14 +146,10 @@ export default function ManifestoHero() {
               </TimelineContent>
             </div>
 
-            {/* RIGHT: Vitruvian (desktop only) */}
+            {/* RIGHT: Merit Engine graph (desktop only) */}
             <div className="hidden lg:flex items-center justify-center relative">
-              <div className="relative w-full max-w-[460px] aspect-[400/460] text-white">
-                <DottedVitruvian className="w-full h-full" />
-                {/* Tiny tech label */}
-                <div className="absolute -bottom-2 right-2 font-mono text-[10px] tracking-[0.25em] text-white/40 uppercase">
-                  FIG.001 · IDEAL FORM
-                </div>
+              <div className="relative w-full max-w-[520px] aspect-square text-white">
+                <MeritEngineGraph onMatch={setMatchLabel} />
               </div>
             </div>
           </div>
@@ -181,13 +178,11 @@ export default function ManifestoHero() {
                 />
               ))}
             </div>
-            <span className="hidden md:inline">V1.0.0</span>
+            <span className="hidden md:inline">MERIT.ENGINE</span>
           </div>
-          <div className="flex items-center gap-2 md:gap-3 shrink-0">
-            <span className="text-accent">●</span>
-            <span className="hidden sm:inline">RENDERING</span>
-            <span className="hidden md:inline text-white/30">·</span>
-            <span>FRAME: ∞</span>
+          <div className="flex items-center gap-2 md:gap-3 shrink-0 min-w-0">
+            <span className="text-accent shrink-0">●</span>
+            <span className="truncate max-w-[60vw] sm:max-w-none">{matchLabel}</span>
           </div>
         </div>
       </TimelineContent>
