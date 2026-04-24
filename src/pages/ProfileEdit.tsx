@@ -16,6 +16,8 @@ import MootsSection, { Moot } from "@/components/profile/MootsSection";
 import PublicationsSection, { Publication } from "@/components/profile/PublicationsSection";
 import CvSection from "@/components/profile/CvSection";
 import BarPrivacySection from "@/components/profile/BarPrivacySection";
+import OpenToOpportunitiesSection from "@/components/profile/OpenToOpportunitiesSection";
+import ProfileStrengthMeter from "@/components/profile/ProfileStrengthMeter";
 
 type Degree = "BA LLB" | "BBA LLB" | "BCom LLB" | "LLB (3yr)" | "LLM" | "Other";
 
@@ -48,6 +50,7 @@ export default function ProfileEdit() {
   // CV
   const [cvUrl, setCvUrl] = useState<string | null>(null);
   const [cvUploadedAt, setCvUploadedAt] = useState<string | null>(null);
+  const [applicationsCount, setApplicationsCount] = useState(0);
 
   // Password
   const [newPassword, setNewPassword] = useState("");
