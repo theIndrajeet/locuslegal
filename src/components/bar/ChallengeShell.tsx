@@ -6,7 +6,7 @@
 //  - Footer status strip.
 //  - CTA slot bottom-right (passed via `cta` prop).
 import { ReactNode } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -88,6 +88,11 @@ export function ChallengeShell({
   session,
   children,
 }: ChallengeShellProps) {
+  const navigate = useNavigate();
+  const handleBack = () => {
+    if (window.history.length > 1) navigate(-1);
+    else navigate(backHref);
+  };
   return (
     <div className="min-h-screen bg-background text-foreground pt-28 md:pt-32 lg:pt-36">
       <div className="mx-auto max-w-[1400px] px-4 lg:px-6 py-4 lg:py-6">
@@ -182,13 +187,14 @@ export function ChallengeShell({
 
             {/* Header chip row */}
             <div className="flex flex-wrap items-center gap-2">
-              <Link
-                to={backHref}
+              <button
+                type="button"
+                onClick={handleBack}
                 className="inline-flex items-center justify-center w-8 h-8 border-2 border-foreground bg-card hover:bg-muted transition-colors rounded-md"
                 aria-label="Back"
               >
                 <ChevronLeft size={16} />
-              </Link>
+              </button>
               <Chip variant="accent">{formatLabel}</Chip>
               <Chip>{areaLabel}</Chip>
               <Chip

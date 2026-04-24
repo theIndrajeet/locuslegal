@@ -2,7 +2,7 @@
 // Layout: 220px sidebar (numbered nav 01–04) | main column.
 // Main column: sticky top-bar (back + badges + points) → instr-strip → canvas → sticky submit.
 import { ReactNode, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ChevronLeft, FileText, FilePen, Scale, MessagesSquare, Flame } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PremiumBadge } from "./PremiumBadge";
@@ -60,7 +60,13 @@ export function PremiumShell({
   backHref = "/the-bar",
   children,
 }: PremiumShellProps) {
+  const navigate = useNavigate();
   const [displayName, setDisplayName] = useState<string | null>(null);
+
+  const handleBack = () => {
+    if (window.history.length > 1) navigate(-1);
+    else navigate(backHref);
+  };
 
   useEffect(() => {
     let active = true;
@@ -167,13 +173,14 @@ export function PremiumShell({
           {/* Top bar */}
           <header className="sticky top-16 z-10 flex items-center justify-between gap-4 border-b-2 border-[hsl(var(--lp-line))] bg-[hsl(var(--lp-bg))] px-5 md:px-8 py-[18px]">
             <div className="flex items-center gap-3.5 min-w-0">
-              <Link
-                to={backHref}
+              <button
+                type="button"
+                onClick={handleBack}
                 aria-label="Back"
                 className="grid place-items-center w-[34px] h-[34px] border-2 border-[hsl(var(--lp-line))] rounded-[4px] text-[hsl(var(--lp-text-2))] hover:text-[hsl(var(--lp-text))] hover:border-[hsl(var(--lp-line-2))] hover:bg-[hsl(var(--lp-bg-1))] transition-colors shrink-0"
               >
                 <ChevronLeft size={16} />
-              </Link>
+              </button>
               <div className="flex items-center gap-2 flex-wrap min-w-0">
                 <PremiumChip>{formatLabel}</PremiumChip>
                 <PremiumChip>{areaLabel}</PremiumChip>
