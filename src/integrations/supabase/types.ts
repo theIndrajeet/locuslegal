@@ -731,35 +731,24 @@ export type Database = {
     Views: {
       bar_challenges_student: {
         Row: {
-          ai_generation_id: string | null
-          approved_at: string | null
-          approved_by: string | null
           area_of_law: Database["public"]["Enums"]["bar_area_of_law"] | null
           created_at: string | null
-          created_by: string | null
           difficulty: Database["public"]["Enums"]["bar_difficulty"] | null
-          explanation: string | null
           id: string | null
           payload: Json | null
           points_base: number | null
           prompt: string | null
           question_type: Database["public"]["Enums"]["bar_question_type"] | null
           source_citation: string | null
-          source_id: string | null
           source_page: number | null
           status: Database["public"]["Enums"]["bar_challenge_status"] | null
           title: string | null
           updated_at: string | null
         }
         Insert: {
-          ai_generation_id?: string | null
-          approved_at?: string | null
-          approved_by?: string | null
           area_of_law?: Database["public"]["Enums"]["bar_area_of_law"] | null
           created_at?: string | null
-          created_by?: string | null
           difficulty?: Database["public"]["Enums"]["bar_difficulty"] | null
-          explanation?: string | null
           id?: string | null
           payload?: never
           points_base?: number | null
@@ -768,21 +757,15 @@ export type Database = {
             | Database["public"]["Enums"]["bar_question_type"]
             | null
           source_citation?: string | null
-          source_id?: string | null
           source_page?: number | null
           status?: Database["public"]["Enums"]["bar_challenge_status"] | null
           title?: string | null
           updated_at?: string | null
         }
         Update: {
-          ai_generation_id?: string | null
-          approved_at?: string | null
-          approved_by?: string | null
           area_of_law?: Database["public"]["Enums"]["bar_area_of_law"] | null
           created_at?: string | null
-          created_by?: string | null
           difficulty?: Database["public"]["Enums"]["bar_difficulty"] | null
-          explanation?: string | null
           id?: string | null
           payload?: never
           points_base?: number | null
@@ -791,42 +774,12 @@ export type Database = {
             | Database["public"]["Enums"]["bar_question_type"]
             | null
           source_citation?: string | null
-          source_id?: string | null
           source_page?: number | null
           status?: Database["public"]["Enums"]["bar_challenge_status"] | null
           title?: string | null
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "bar_challenges_ai_generation_id_fkey"
-            columns: ["ai_generation_id"]
-            isOneToOne: false
-            referencedRelation: "bar_ai_generations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "bar_challenges_approved_by_fkey"
-            columns: ["approved_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "bar_challenges_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "bar_challenges_source_id_fkey"
-            columns: ["source_id"]
-            isOneToOne: false
-            referencedRelation: "bar_sources"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       bar_weekly_stats: {
         Row: {
