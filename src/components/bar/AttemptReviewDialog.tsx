@@ -235,3 +235,39 @@ function ReviewContent({ attempt, challenge }: { attempt: any; challenge: any })
     </>
   );
 }
+
+function BriefBuilderReview({ payload, submitted }: { payload: any; submitted: any }) {
+  const steps = (payload?.steps ?? []) as any[];
+  const [step, setStep] = useState(0);
+  if (steps.length === 0) return null;
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-[10px] uppercase tracking-[0.18em] text-[hsl(var(--premium-muted))] font-medium mr-1">
+          Step
+        </span>
+        {steps.map((s, i) => (
+          <button
+            key={i}
+            type="button"
+            onClick={() => setStep(i)}
+            className={cn(
+              "px-2.5 py-1 text-[11px] uppercase tracking-[0.1em] border rounded-[3px] transition-colors",
+              i === step
+                ? "border-[hsl(var(--premium-ink))] bg-[hsl(var(--premium-ink))] text-white"
+                : "border-[hsl(var(--premium-border))] text-[hsl(var(--premium-ink))] hover:bg-[hsl(var(--premium-bg))]",
+            )}
+          >
+            {i + 1}. {s?.label ?? `Step ${i + 1}`}
+          </button>
+        ))}
+      </div>
+      <PremiumBriefBuilder
+        mode="review"
+        payload={payload}
+        currentStep={step}
+        submitted={submitted}
+      />
+    </div>
+  );
+}
