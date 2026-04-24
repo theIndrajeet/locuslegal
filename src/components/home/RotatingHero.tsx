@@ -7,7 +7,7 @@ import { Link } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { FallingPattern } from "@/components/ui/falling-pattern";
+import ShapeLandingBg from "@/components/ui/shape-landing-bg";
 
 
 export default function RotatingHero() {
@@ -27,17 +27,7 @@ export default function RotatingHero() {
       aria-label="Locus introduction"
       className="relative min-h-[88vh] flex items-center overflow-hidden"
     >
-      <FallingPattern className="z-0" />
-      <div className="absolute inset-0 bg-background/40 z-[1]" />
-      <div
-        aria-hidden
-        className="absolute right-[12%] top-1/2 -translate-y-1/2 w-[55vw] h-[55vw] max-w-[700px] max-h-[700px] rounded-full pointer-events-none z-[1]"
-        style={{
-          background:
-            "radial-gradient(circle, hsl(var(--accent) / 0.16) 0%, transparent 60%)",
-        }}
-      />
-
+      <ShapeLandingBg />
       <div className="container mx-auto px-4 md:px-8 relative z-10 py-24">
         <div className="max-w-3xl mx-auto text-center">
           <motion.p

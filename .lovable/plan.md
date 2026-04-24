@@ -1,51 +1,37 @@
-## Goal
+# Plan: Replace hero background with floating geometric shapes
 
-Replace the rotating/morphing hero with a static, two-column hero that matches the bento tile language used elsewhere on the home page. No timers, no morphs, no progress bars, no flicker.
+## 1. Create `src/components/ui/shape-landing-bg.tsx`
+A background-only component (no copy, no badge) with 5 floating blurred pill shapes.
 
-## Layout
+- `ElegantShape` subcomponent: SVG-less approach — a rotated `div` with a gradient fill, blur, inner border, and a slow framer-motion `y` float (±15px, ~12s loop).
+- Restyle to **strict Black/White/Yellow** palette:
+  - 3 shapes use `bg-gradient-to-r from-white/[0.08] to-transparent`
+  - 2 shapes use `bg-gradient-to-r from-accent/[0.14] to-transparent` (yellow)
+  - **No** indigo/rose/violet/cyan/amber from original
+- Entry animation: rotate + opacity fade-in via framer-motion (staggered delays 0.3s–0.7s).
+- Honors `useReducedMotion`: static positions, no float loop.
+- `aria-hidden`, `pointer-events-none`, `absolute inset-0 overflow-hidden`.
+- Container has subtle `bg-gradient-to-br from-accent/[0.03] via-transparent to-white/[0.03]` overlay for depth.
 
-- Left column (`lg:col-span-7`): pitch
-- Right column (`lg:col-span-5`): "Receipts" stat tile
-- Mobile: stacked, left content first, tile second
-- Background: keep `FallingPattern` + soft yellow radial glow (toned down, anchored mid-left)
+Shape positions (matching the original's asymmetric composition, adapted):
+| # | size | rotate | position | gradient |
+|---|------|--------|----------|----------|
+| 1 | 600×140 | -8° | left:-10%, top:15% | white |
+| 2 | 500×120 | 15° | right:-5%, top:70% | accent (yellow) |
+| 3 | 300×80  | -20° | left:5%, bottom:10% | white |
+| 4 | 200×60  | 25° | right:15%, top:10% | accent (yellow) |
+| 5 | 150×40  | -25° | left:20%, top:5% | white |
 
-## Left column — pitch
+## 2. Update `src/components/home/RotatingHero.tsx`
+- Remove `import { FallingPattern } from "@/components/ui/falling-pattern"`.
+- Remove the `<FallingPattern>` element, the `bg-background/40` overlay, and the right-side yellow radial-gradient div (lines 30–39).
+- Add `import ShapeLandingBg from "@/components/ui/shape-landing-bg"` and render it as the first child of `<section>`.
+- Keep all copy, motion fades, and CTAs exactly as-is.
+- Keep `relative min-h-[88vh] flex items-center overflow-hidden` on the section.
 
-- **Eyebrow** (mono, tracking-widest, muted, text-xs): `FOR THE 5 LAKH LAW STUDENTS INDIA IGNORES`
-- **Headline** (Sora, font-semibold, text-4xl sm:text-5xl lg:text-6xl, leading-[1.05]): "Law school in India is a lottery. **We're the way out.**" — second sentence in `text-accent`
-- **Subheadline** (Inter, text-base sm:text-lg, text-foreground/70, max-w-[60ch]): "26 NLUs get the firms. The other 5,00,000 get a placement cell that doesn't have a plan. Locus is the plan."
-- **CTAs**:
-  - Primary: `Join the waitlist` → `/waitlist` — solid yellow, black text, 2px black border, neobrutalist hover-lift shadow
-  - Secondary: `Browse the directory` → `/directory` — transparent, white text, 2px white border, hover → border-accent
+## 3. Don't touch
+- `FallingPattern` component file stays (in case used elsewhere later).
+- No other files change.
 
-## Right column — "Receipts" tile (Exhibit A)
-
-Visually a sibling of the bento tiles below.
-
-- Container: `rounded-2xl border-2 border-foreground bg-accent text-accent-foreground p-8 shadow-[8px_8px_0_0_hsl(var(--foreground))]`
-- Top row: `Scale` Lucide icon in `bg-foreground text-accent rounded-md p-2` square + `EXHIBIT A` pill stamp on the right (`bg-foreground text-accent`, mono, tracking-widest — mirrors FLAGSHIP / LOCUS+ stamps in FeatureBento)
-- Hero stat: `5,00,000` — Sora, font-bold, text-6xl lg:text-7xl, leading-none, tabular-nums, black. One-shot count-up from 0 → 500000 over 1.2s on mount.
-- Caption (mono, text-xs, tracking-widest, black/70): `LAW STUDENTS · INDIA · 2025`
-- 2px black hairline divider
-- Three support rows (mono, tabular-nums, black): `26  NLUs in India` / `3,890  firms in the Locus directory` / `1  platform built for everyone else`
-- Bottom-right corner: `ArrowUpRight` link to `/directory`, black on yellow
-
-## Animation
-
-- Stagger fade-up on mount only (eyebrow → headline → subheadline → CTAs → tile, ~80ms steps)
-- One-shot count-up on the `5,00,000` stat (1.2s, ease-out)
-- Respect `prefers-reduced-motion` → static render, no count-up
-- Zero loops, zero rotation, zero morph
-
-## Files
-
-- **Rewrite** `src/components/home/RotatingHero.tsx` — strip all rotation/morph/dot/progress/timer logic. Becomes a static section.
-- **Delete** `src/components/home/HeroAngle.tsx` — no longer used
-- **Keep filename** `RotatingHero.tsx` so `Index.tsx` import stays untouched
-- **No changes** anywhere else (StatsBar, FeatureBento, LocusPlusStrip, AudienceMiniRow, FinalCTA, Navbar, Footer, Index)
-
-## Out of scope
-
-- Anything below the hero
-- `/waitlist` or `/directory` pages
-- The falling background pattern itself
+## Result
+Hero gets a quiet, premium floating-shapes background in our Black/White/Yellow palette instead of the falling pattern + yellow blob. Reduced-motion users get static shapes. No layout shift, copy unchanged.
