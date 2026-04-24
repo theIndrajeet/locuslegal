@@ -139,7 +139,7 @@ export default function ProductOrbit() {
     const onClick = (e: MouseEvent) => {
       if (
         containerRef.current &&
-        !containerRef.current.contains(e.target as Node)
+        !containerRef.current.contains(e.target as globalThis.Node)
       ) {
         setActiveId(null);
       }
