@@ -14,6 +14,11 @@ interface Payload {
   spans: Span[];
   categories: Category[];
   correct_flags?: CorrectFlag[];
+  /** Optional pedagogical fields (Agreement Review Trainer). */
+  reviewer_brief?: string;
+  agreement_type?: string;
+  rationale?: Record<string, string>;
+  suggested_redline?: Record<string, string>;
 }
 
 export interface DocReviewAnswerState {
@@ -90,6 +95,16 @@ export function DocumentReviewRenderer(props: AnswerProps | ReviewProps) {
 
   return (
     <div className="space-y-4">
+      {/* Reviewer brief — partner's instruction, only when supplied */}
+      {payload.reviewer_brief && (
+        <div className="border-2 border-accent bg-accent/10 p-4 rounded-md">
+          <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-accent mb-1.5">
+            Brief from Partner{payload.agreement_type ? ` · ${payload.agreement_type}` : ""}
+          </div>
+          <p className="text-sm text-foreground leading-relaxed">{payload.reviewer_brief}</p>
+        </div>
+      )}
+
       {/* Document card — light surface for legal-text legibility */}
       <article
         className={cn(
@@ -98,7 +113,7 @@ export function DocumentReviewRenderer(props: AnswerProps | ReviewProps) {
         )}
       >
         <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-3">
-          Clause · For Review
+          {payload.agreement_type ? `${payload.agreement_type} · For Review` : "Clause · For Review"}
         </div>
         <div className="font-serif text-[15px] leading-7 whitespace-pre-wrap">
           {segments.map((seg, i) => {
@@ -273,11 +288,12 @@ function ReviewBreakdown({
           <div className="text-[10px] font-bold uppercase tracking-wider text-rose-500 mb-1">
             Missed ({missed.length})
           </div>
-          <ul className="space-y-1 text-xs">
+          <ul className="space-y-2 text-xs">
             {missed.map((f) => (
               <li key={f.span_id} className="text-foreground">
                 <span className="italic">"{spanText.get(f.span_id)}"</span> — should have been
                 flagged as <strong>{catLabel(f.category_id)}</strong>.
+                <Pedagogy spanId={f.span_id} payload={payload} />
               </li>
             ))}
           </ul>
@@ -288,7 +304,7 @@ function ReviewBreakdown({
           <div className="text-[10px] font-bold uppercase tracking-wider text-amber-500 mb-1">
             False Flags ({falseFlags.length})
           </div>
-          <ul className="space-y-1 text-xs">
+          <ul className="space-y-2 text-xs">
             {falseFlags.map((f) => (
               <li key={f.span_id} className="text-foreground">
                 <span className="italic">"{spanText.get(f.span_id)}"</span> — flagged as{" "}
@@ -303,15 +319,38 @@ function ReviewBreakdown({
           <div className="text-[10px] font-bold uppercase tracking-wider text-rose-500 mb-1">
             Wrong Category ({wrongCats.length})
           </div>
-          <ul className="space-y-1 text-xs">
+          <ul className="space-y-2 text-xs">
             {wrongCats.map((f) => (
               <li key={f.span_id} className="text-foreground">
                 <span className="italic">"{spanText.get(f.span_id)}"</span> — you flagged{" "}
                 <strong>{catLabel(f.category_id)}</strong>, was{" "}
                 <strong>{catLabel(correctSet.get(f.span_id)!)}</strong>.
+                <Pedagogy spanId={f.span_id} payload={payload} />
               </li>
             ))}
           </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Pedagogy({ spanId, payload }: { spanId: string; payload: Payload }) {
+  const why = payload.rationale?.[spanId];
+  const fix = payload.suggested_redline?.[spanId];
+  if (!why && !fix) return null;
+  return (
+    <div className="mt-1.5 ml-3 pl-3 border-l-2 border-accent/40 space-y-1">
+      {why && (
+        <div className="text-[11px] leading-relaxed text-muted-foreground">
+          <span className="font-bold uppercase tracking-wider text-accent text-[9px] mr-1.5">Why</span>
+          {why}
+        </div>
+      )}
+      {fix && (
+        <div className="text-[11px] leading-relaxed text-muted-foreground">
+          <span className="font-bold uppercase tracking-wider text-emerald-500 text-[9px] mr-1.5">Redline</span>
+          {fix}
         </div>
       )}
     </div>
