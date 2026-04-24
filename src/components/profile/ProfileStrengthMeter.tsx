@@ -66,15 +66,49 @@ function tier(score: number): { label: string; tone: string } {
 }
 
 export default function ProfileStrengthMeter(props: Inputs) {
+  const { variant = "full", ...inputs } = props;
   const { items, score, nextStep } = useMemo(() => {
-    const items = buildChecklist(props);
+    const items = buildChecklist(inputs);
     const score = items.reduce((acc, it) => acc + (it.done ? it.weight : 0), 0);
     const incomplete = items.filter((it) => !it.done).sort((a, b) => b.weight - a.weight);
     return { items, score, nextStep: incomplete[0] ?? null };
-  }, [props]);
+  }, [inputs]);
 
   const t = tier(score);
   const completedCount = items.filter((it) => it.done).length;
+
+  if (variant === "compact") {
+    return (
+      <div className="border-2 border-border bg-card p-3 shadow-[3px_3px_0_0_hsl(var(--border))]">
+        <div className="flex items-baseline justify-between gap-3">
+          <div className="flex items-baseline gap-2 min-w-0">
+            <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              Profile strength
+            </span>
+            <span className={`font-mono text-[10px] font-bold uppercase tracking-wider ${t.tone}`}>
+              · {t.label}
+            </span>
+          </div>
+          <div className="font-heading text-lg font-extrabold text-foreground leading-none">
+            {score}
+            <span className="text-xs text-muted-foreground">/100</span>
+          </div>
+        </div>
+        <div className="mt-2">
+          <Progress value={score} className="h-1.5" />
+        </div>
+        {nextStep && (
+          <div className="mt-2 flex items-center gap-2 truncate">
+            <ArrowRight size={12} className="text-accent shrink-0" />
+            <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              Next:
+            </span>
+            <span className="text-xs text-foreground truncate">{nextStep.cta || nextStep.label}</span>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="border-2 border-border bg-card p-5 shadow-[3px_3px_0_0_hsl(var(--border))]">
