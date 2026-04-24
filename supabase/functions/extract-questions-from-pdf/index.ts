@@ -46,7 +46,57 @@ const JurisdictionPayloadSchema = z.object({
   correct_option_id: z.string().min(1),
 }).refine((p) => p.options.some((o) => o.id === p.correct_option_id), { message: "correct_option_id mismatch" });
 
-const V1_TYPES = ["mcq", "issue_spotter", "speed_round", "jurisdiction"] as const;
+const DocumentReviewPayloadSchema = z.object({
+  document_html: z.string().min(1),
+  spans: z.array(z.object({ id: z.string().min(1), text: z.string().min(1) })).min(2).max(20),
+  categories: z.array(z.object({ id: z.string().min(1), label: z.string().min(1) })).min(1).max(8),
+  correct_flags: z.array(z.object({ span_id: z.string().min(1), category_id: z.string().min(1) })).min(1),
+});
+
+const BriefBuilderPayloadSchema = z.object({
+  fact_pattern: z.string().min(1),
+  citation: z.string().optional().default(""),
+  steps: z.array(z.object({
+    kind: z.enum(["mcq", "order"]),
+    label: z.string().min(1),
+    prompt: z.string().min(1),
+    options: z.array(z.object({
+      id: z.string().min(1), letter: z.string().min(1).max(2),
+      title: z.string().min(1), desc: z.string().optional().default(""), meta: z.string().optional().default(""),
+    })).optional(),
+    correct_option_id: z.string().optional(),
+    blocks: z.array(z.object({ id: z.string().min(1), text: z.string().min(1) })).optional(),
+    correct_order: z.array(z.string().min(1)).optional(),
+  })).min(2).max(6),
+});
+
+const EthicsPayloadSchema = z.object({
+  scenario: z.string().min(1),
+  decision_options: z.array(z.object({ id: z.string().min(1), letter: z.string().min(1).max(2), text: z.string().min(1) })).min(2).max(6),
+  correct_decision_id: z.string().min(1),
+  consequence_text: z.string().min(1),
+  followup_options: z.array(z.object({ id: z.string().min(1), letter: z.string().min(1).max(2), text: z.string().min(1) })).min(2).max(6),
+  correct_followup_id: z.string().min(1),
+  model_reasoning: z.string().min(1),
+});
+
+const ClientCounselingPayloadSchema = z.object({
+  matter: z.string().min(1),
+  transcript: z.array(z.object({
+    turn: z.number().int().min(1), role: z.enum(["client", "lawyer"]), text: z.string().min(1),
+  })).min(1).max(20),
+  decision_turns: z.array(z.object({
+    turn: z.number().int().min(1), prompt: z.string().min(1),
+    options: z.array(z.object({ id: z.string().min(1), letter: z.string().min(1).max(2), text: z.string().min(1) })).min(2).max(6),
+    correct_option_id: z.string().min(1),
+    model_followup: z.string().optional().default(""),
+  })).min(1).max(10),
+});
+
+const V1_TYPES = [
+  "mcq", "issue_spotter", "speed_round", "jurisdiction",
+  "document_review", "brief_builder", "ethics", "client_counseling",
+] as const;
 type V1Type = typeof V1_TYPES[number];
 
 const AREAS = [
@@ -58,6 +108,7 @@ const DIFFS = ["easy", "medium", "hard"] as const;
 // ----- Inlined scoring constants -----
 const BASE_POINTS_BY_TYPE: Record<V1Type, number> = {
   mcq: 5, issue_spotter: 15, jurisdiction: 10, speed_round: 3,
+  document_review: 10, brief_builder: 10, ethics: 10, client_counseling: 10,
 };
 const DIFFICULTY_MULTIPLIER: Record<typeof DIFFS[number], number> = { easy: 1.0, medium: 1.5, hard: 2.0 };
 
@@ -96,7 +147,7 @@ YOU MUST RETURN ONLY A JSON ARRAY. No markdown fences, no preamble, no commentar
 Each item in the array is one candidate question matching this schema:
 
 {
-  "question_type": "mcq" | "issue_spotter" | "speed_round" | "jurisdiction",
+  "question_type": "mcq" | "issue_spotter" | "speed_round" | "jurisdiction" | "document_review" | "brief_builder" | "ethics" | "client_counseling",
   "area_of_law": "constitutional" | "criminal" | "contract" | "torts" | "corporate" | "ip" | "labour" | "tax" | "evidence" | "procedure" | "family" | "property" | "administrative" | "international" | "jurisprudence" | "environmental" | "other",
   "difficulty": "easy" | "medium" | "hard",
   "title": string (60 chars max),
@@ -111,20 +162,28 @@ Per-type payload shapes:
 - issue_spotter: { "issue_options": [{"id":"a","text":"..."}, ...] (3-10), "correct_issue_ids": ["a","c"] }
 - speed_round: { "questions": [{"id":"q1","prompt":"...","answer":"..."}, ...] (5-15), "time_limit_seconds": 60 }
 - jurisdiction: { "options": [{"id":"a","jurisdiction":"...","reasoning":"..."}, ...] (2-5), "correct_option_id": "a" }
+- document_review: { "document_html":"<p>...</p>", "spans":[{"id":"s1","text":"exact substring of document_html"}], "categories":[{"id":"c1","label":"Risk"}], "correct_flags":[{"span_id":"s1","category_id":"c1"}] }
+- brief_builder: { "fact_pattern":"...", "citation":"X v. Y (2024)", "steps":[ {"kind":"mcq","label":"Statute","prompt":"...","options":[{"id":"a","letter":"A","title":"...","desc":"...","meta":""}],"correct_option_id":"a"}, {"kind":"mcq","label":"Precedent",...}, {"kind":"order","label":"Arguments","prompt":"order strongest→weakest","blocks":[{"id":"b1","text":"..."}],"correct_order":["b1","b2","b3"]}, {"kind":"mcq","label":"Rebuttal",...} ] }  (exactly 4 steps in this order)
+- ethics: { "scenario":"...", "decision_options":[{"id":"a","letter":"A","text":"..."}], "correct_decision_id":"a", "consequence_text":"...", "followup_options":[{"id":"a","letter":"A","text":"..."}], "correct_followup_id":"a", "model_reasoning":"..." }
+- client_counseling: { "matter":"...", "transcript":[{"turn":1,"role":"client","text":"..."}], "decision_turns":[{"turn":1,"prompt":"How do you respond?","options":[{"id":"a","letter":"A","text":"..."}],"correct_option_id":"a","model_followup":"..."}] }  (3-5 decision turns)
 
 RULES:
 1. Extract only questions clearly supported by the PDF. Do NOT fabricate. Do NOT invent citations.
 2. If the PDF already contains MCQs (CLAT/AILET-style), preserve original options and correct answers.
 3. Doctrinal text → may construct questions, but only on content explicitly stated.
-4. ONLY use the 4 types: mcq, issue_spotter, speed_round, jurisdiction.
+4. You may use any of the 8 types. Prefer the simpler types (mcq, issue_spotter, jurisdiction, speed_round) unless the source genuinely contains a contract/document, an ethical dilemma, a client transcript, or a layered argument structure suitable for the premium types.
 5. Issue spotter: rich fact pattern, multiple identifiable issues, short option phrases.
 6. Jurisdiction: only when the question is genuinely about which forum/law applies.
 7. Speed round: rapid-fire definition/section/case-name recall. Short prompts/answers.
-8. Difficulty: easy=foundational; medium=apply-to-facts; hard=multi-step or exceptions.
-9. Area of law: pick ONE closest match. Use 'other' only if cross-cutting.
-10. Option ids: short strings ("a", "b", "c", "d"; "q1", "q2" for speed round).
-11. ${sizeLine} If literally nothing extractable, return exactly one MCQ with title='No extractable content', area='other', difficulty='easy', and prompt explaining why. NEVER return an empty array.
-12. NEVER include a question whose answer you are not confident about.
+8. document_review: ONLY when the source contains an actual contract / clause / document excerpt. Each span.text MUST be a verbatim substring of document_html.
+9. brief_builder: ONLY for fact-pattern style problems with 4 layered steps (statute, precedent, ordered arguments, rebuttal).
+10. ethics: ONLY for professional-conduct dilemmas with a clear correct decision and follow-up.
+11. client_counseling: ONLY for client interview / counseling transcripts with branching decision turns.
+12. Difficulty: easy=foundational; medium=apply-to-facts; hard=multi-step or exceptions.
+13. Area of law: pick ONE closest match. Use 'other' only if cross-cutting.
+14. Option ids: short strings ("a","b","c","d"; "q1","q2" for speed round; "s1","s2" for spans; "c1","c2" for categories; "b1","b2" for brief blocks).
+15. ${sizeLine} If literally nothing extractable, return exactly one MCQ with title='No extractable content', area='other', difficulty='easy', and prompt explaining why. NEVER return an empty array.
+16. NEVER include a question whose answer you are not confident about.
 
 ${hintLines}
 
@@ -157,6 +216,11 @@ function validatePayload(qt: V1Type, payload: unknown): boolean {
     case "issue_spotter": return IssueSpotterPayloadSchema.safeParse(payload).success;
     case "speed_round": return SpeedRoundPayloadSchema.safeParse(payload).success;
     case "jurisdiction": return JurisdictionPayloadSchema.safeParse(payload).success;
+    case "document_review": return DocumentReviewPayloadSchema.safeParse(payload).success;
+    case "brief_builder": return BriefBuilderPayloadSchema.safeParse(payload).success;
+    case "ethics": return EthicsPayloadSchema.safeParse(payload).success;
+    case "client_counseling": return ClientCounselingPayloadSchema.safeParse(payload).success;
+    default: return false;
   }
 }
 
