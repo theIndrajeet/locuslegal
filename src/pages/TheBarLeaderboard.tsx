@@ -21,7 +21,7 @@ import {
   PaginationNext, PaginationPrevious,
 } from "@/components/ui/pagination";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trophy, ArrowRight } from "lucide-react";
+import { Trophy, ArrowRight, ArrowLeft } from "lucide-react";
 import { LeaderboardTable } from "@/components/bar/LeaderboardTable";
 import type { LeaderboardEntry } from "@/components/bar/LeaderboardRow";
 import { AREA_OF_LAW_LABELS } from "@/lib/bar/constants";
