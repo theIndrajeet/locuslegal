@@ -4,10 +4,19 @@
  * over the new floating ShapeLandingBg background.
  */
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { ArrowRight, Building2, Target, FileText, LineChart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { GooeyText } from "@/components/ui/gooey-text-morphing";
 import { RainbowButton } from "@/components/ui/rainbow-button";
 import ShapeLandingBg from "@/components/ui/shape-landing-bg";
+
+const FEATURES = [
+  { icon: Building2, label: "3,890+ Firms Directory" },
+  { icon: Target, label: "Daily Skill Challenges" },
+  { icon: FileText, label: "Templates & Tools" },
+  { icon: LineChart, label: "Application Tracker" },
+];
 
 export default function RotatingHero() {
   const [visible, setVisible] = useState(false);
