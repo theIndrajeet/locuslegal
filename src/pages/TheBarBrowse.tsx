@@ -17,18 +17,19 @@ import { ChallengeCard } from "@/components/bar/ChallengeCard";
 import {
   AREA_OF_LAW_LABELS, QUESTION_TYPE_LABELS, V1_QUESTION_TYPES,
 } from "@/lib/bar/constants";
+import { isPremiumType } from "@/lib/bar/premium";
 import type { AreaOfLaw, Difficulty, QuestionType } from "@/lib/bar/types";
 import { cn } from "@/lib/utils";
 
 const QUESTION_TYPE_SHORT: Record<QuestionType, string> = {
-  mcq: "MCQ",
-  issue_spotter: "Issues",
-  speed_round: "Speed",
-  jurisdiction: "Jurisd.",
-  document_review: "Docs",
-  brief_builder: "Brief",
-  ethics: "Ethics",
-  client_counseling: "Counsel",
+  mcq: "Rapid",
+  issue_spotter: "Spot",
+  speed_round: "Blitz",
+  jurisdiction: "Forum",
+  document_review: "Redline",
+  brief_builder: "Draft",
+  ethics: "Conduct",
+  client_counseling: "Advise",
 };
 
 const PAGE_SIZE = 30;
@@ -211,22 +212,38 @@ export default function TheBarBrowse() {
           >
             All
           </button>
-          {V1_QUESTION_TYPES.map((t) => (
-            <button
-              key={t}
-              type="button"
-              onClick={() => updateParam("type", t)}
-              title={QUESTION_TYPE_LABELS[t]}
-              className={cn(
-                "px-2 py-2 rounded-md border-2 text-sm font-bold whitespace-nowrap transition-all w-full",
-                typeFilter === t
-                  ? "bg-foreground text-background border-foreground shadow-[2px_2px_0_0_hsl(var(--accent))]"
-                  : "bg-background text-foreground border-border hover:border-foreground"
-              )}
-            >
-              {QUESTION_TYPE_SHORT[t]}
-            </button>
-          ))}
+          {V1_QUESTION_TYPES.map((t) => {
+            const premium = isPremiumType(t);
+            const active = typeFilter === t;
+            return (
+              <button
+                key={t}
+                type="button"
+                onClick={() => updateParam("type", t)}
+                title={`${QUESTION_TYPE_LABELS[t]}${premium ? " · Locus+" : ""}`}
+                className={cn(
+                  "relative px-2 py-2 rounded-md border-2 text-sm font-bold whitespace-nowrap transition-all w-full",
+                  active
+                    ? "bg-foreground text-background border-foreground shadow-[2px_2px_0_0_hsl(var(--accent))]"
+                    : "bg-background text-foreground border-border hover:border-foreground",
+                  premium && !active && "ring-1 ring-accent/40",
+                )}
+              >
+                {QUESTION_TYPE_SHORT[t]}
+                {premium && (
+                  <span
+                    aria-hidden
+                    className={cn(
+                      "absolute top-0.5 right-1 text-[10px] font-black leading-none",
+                      active ? "text-accent" : "text-accent",
+                    )}
+                  >
+                    +
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
 
         {/* Filters */}
