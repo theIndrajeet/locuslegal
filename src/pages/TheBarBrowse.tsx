@@ -18,6 +18,18 @@ import {
   AREA_OF_LAW_LABELS, QUESTION_TYPE_LABELS, V1_QUESTION_TYPES,
 } from "@/lib/bar/constants";
 import type { AreaOfLaw, Difficulty, QuestionType } from "@/lib/bar/types";
+import { cn } from "@/lib/utils";
+
+const QUESTION_TYPE_SHORT: Record<QuestionType, string> = {
+  mcq: "MCQ",
+  issue_spotter: "Issues",
+  speed_round: "Speed",
+  jurisdiction: "Jurisd.",
+  document_review: "Docs",
+  brief_builder: "Brief",
+  ethics: "Ethics",
+  client_counseling: "Counsel",
+};
 
 const PAGE_SIZE = 30;
 const DIFF_RANK: Record<Difficulty, number> = { easy: 1, medium: 2, hard: 3 };
@@ -185,17 +197,40 @@ export default function TheBarBrowse() {
           </Card>
         )}
 
+        {/* Type tab bar */}
+        <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+          <button
+            type="button"
+            onClick={() => updateParam("type", "all")}
+            className={cn(
+              "px-4 py-2 rounded-md border-2 text-sm font-bold whitespace-nowrap transition-all",
+              typeFilter === "all"
+                ? "bg-foreground text-background border-foreground shadow-[2px_2px_0_0_hsl(var(--accent))]"
+                : "bg-background text-foreground border-border hover:border-foreground"
+            )}
+          >
+            All
+          </button>
+          {V1_QUESTION_TYPES.map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => updateParam("type", t)}
+              title={QUESTION_TYPE_LABELS[t]}
+              className={cn(
+                "px-4 py-2 rounded-md border-2 text-sm font-bold whitespace-nowrap transition-all",
+                typeFilter === t
+                  ? "bg-foreground text-background border-foreground shadow-[2px_2px_0_0_hsl(var(--accent))]"
+                  : "bg-background text-foreground border-border hover:border-foreground"
+              )}
+            >
+              {QUESTION_TYPE_SHORT[t]}
+            </button>
+          ))}
+        </div>
+
         {/* Filters */}
         <div className="flex flex-wrap gap-3">
-          <Select value={typeFilter} onValueChange={(v) => updateParam("type", v)}>
-            <SelectTrigger className="w-[180px]"><SelectValue placeholder="Type" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Types</SelectItem>
-              {V1_QUESTION_TYPES.map((t) => (
-                <SelectItem key={t} value={t}>{QUESTION_TYPE_LABELS[t]}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
           <Select value={areaFilter} onValueChange={(v) => updateParam("area", v)}>
             <SelectTrigger className="w-[200px]"><SelectValue placeholder="Area" /></SelectTrigger>
             <SelectContent className="max-h-[300px]">
