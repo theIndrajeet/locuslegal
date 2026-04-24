@@ -187,13 +187,14 @@ export function ChallengeShell({
 
             {/* Header chip row */}
             <div className="flex flex-wrap items-center gap-2">
-              <Link
-                to={backHref}
+              <button
+                type="button"
+                onClick={handleBack}
                 className="inline-flex items-center justify-center w-8 h-8 border-2 border-foreground bg-card hover:bg-muted transition-colors rounded-md"
                 aria-label="Back"
               >
                 <ChevronLeft size={16} />
-              </Link>
+              </button>
               <Chip variant="accent">{formatLabel}</Chip>
               <Chip>{areaLabel}</Chip>
               <Chip
