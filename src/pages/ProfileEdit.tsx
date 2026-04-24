@@ -16,6 +16,8 @@ import MootsSection, { Moot } from "@/components/profile/MootsSection";
 import PublicationsSection, { Publication } from "@/components/profile/PublicationsSection";
 import CvSection from "@/components/profile/CvSection";
 import BarPrivacySection from "@/components/profile/BarPrivacySection";
+import OpenToOpportunitiesSection from "@/components/profile/OpenToOpportunitiesSection";
+import ProfileStrengthMeter from "@/components/profile/ProfileStrengthMeter";
 
 type Degree = "BA LLB" | "BBA LLB" | "BCom LLB" | "LLB (3yr)" | "LLM" | "Other";
 
@@ -48,6 +50,7 @@ export default function ProfileEdit() {
   // CV
   const [cvUrl, setCvUrl] = useState<string | null>(null);
   const [cvUploadedAt, setCvUploadedAt] = useState<string | null>(null);
+  const [applicationsCount, setApplicationsCount] = useState(0);
 
   // Password
   const [newPassword, setNewPassword] = useState("");
@@ -131,6 +134,7 @@ export default function ProfileEdit() {
             setSubjects(p.subjects_of_interest || []);
             setCvUrl(p.cv_url || null);
             setCvUploadedAt(p.cv_uploaded_at || null);
+            setApplicationsCount((p as { applications_count?: number }).applications_count ?? 0);
           }
 
           if (internshipsRes.error) console.error("[ProfileEdit] internships error:", internshipsRes.error);
@@ -200,6 +204,21 @@ export default function ProfileEdit() {
           <Button variant="outline" size="sm" onClick={() => navigate(-1)}>Back</Button>
         </div>
 
+        <ProfileStrengthMeter
+          avatarUrl={avatarUrl}
+          bio={bio}
+          college={college}
+          degree={degree}
+          graduationYear={graduationYear}
+          cgpa={cgpa}
+          subjectsCount={subjects.length}
+          internshipsCount={internships.length}
+          mootsCount={moots.length}
+          publicationsCount={publications.length}
+          cvUrl={cvUrl}
+          applicationsCount={applicationsCount}
+        />
+
         <button
           type="button"
           onClick={() => navigate("/applications")}
@@ -257,6 +276,7 @@ export default function ProfileEdit() {
           onParsedApplied={() => setRefreshTick((t) => t + 1)}
         />
 
+        <OpenToOpportunitiesSection userId={userId} />
         <BarPrivacySection userId={userId} />
 
         {hasPassword && (

@@ -676,6 +676,7 @@ export type Database = {
           display_name: string | null
           graduation_year: number | null
           id: string
+          open_to_opportunities: boolean
           subjects_of_interest: string[]
           username: string
         }
@@ -693,6 +694,7 @@ export type Database = {
           display_name?: string | null
           graduation_year?: number | null
           id: string
+          open_to_opportunities?: boolean
           subjects_of_interest?: string[]
           username: string
         }
@@ -710,6 +712,7 @@ export type Database = {
           display_name?: string | null
           graduation_year?: number | null
           id?: string
+          open_to_opportunities?: boolean
           subjects_of_interest?: string[]
           username?: string
         }

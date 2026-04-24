@@ -18,6 +18,7 @@ import StatsStrip from "@/components/applications/StatsStrip";
 import NudgeBanner from "@/components/applications/NudgeBanner";
 import ApplicationRow from "@/components/applications/ApplicationRow";
 import LogApplicationDialog from "@/components/applications/LogApplicationDialog";
+import InsightsPanel from "@/components/applications/InsightsPanel";
 import { STATUS_OPTIONS } from "@/components/applications/StatusPill";
 import { METHOD_OPTIONS } from "@/components/applications/methodMeta";
 import type { Database } from "@/integrations/supabase/types";
@@ -193,6 +194,13 @@ export default function ApplicationTracker() {
       <div className="mb-6">
         <StatsStrip stats={stats} />
       </div>
+
+      {/* Insights — only meaningful with 3+ apps */}
+      {apps.length >= 3 && (
+        <div className="mb-6">
+          <InsightsPanel apps={apps} />
+        </div>
+      )}
 
       {/* Filters */}
       <div className="mb-4 flex flex-wrap items-center gap-2">
