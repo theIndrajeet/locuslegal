@@ -844,48 +844,6 @@ export type Database = {
           },
         ]
       }
-      profile_applications_needing_nudge: {
-        Row: {
-          applied_on: string | null
-          created_at: string | null
-          firm_name_snapshot: string | null
-          id: string | null
-          method: Database["public"]["Enums"]["application_method"] | null
-          notes: string | null
-          role: string | null
-          status: Database["public"]["Enums"]["application_status"] | null
-          status_updated_at: string | null
-          updated_at: string | null
-          user_id: string | null
-        }
-        Insert: {
-          applied_on?: string | null
-          created_at?: string | null
-          firm_name_snapshot?: string | null
-          id?: string | null
-          method?: Database["public"]["Enums"]["application_method"] | null
-          notes?: string | null
-          role?: string | null
-          status?: Database["public"]["Enums"]["application_status"] | null
-          status_updated_at?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          applied_on?: string | null
-          created_at?: string | null
-          firm_name_snapshot?: string | null
-          id?: string | null
-          method?: Database["public"]["Enums"]["application_method"] | null
-          notes?: string | null
-          role?: string | null
-          status?: Database["public"]["Enums"]["application_status"] | null
-          status_updated_at?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
     }
     Functions: {
       get_email_by_username: { Args: { p_username: string }; Returns: string }
