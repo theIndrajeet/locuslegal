@@ -21,6 +21,11 @@ interface Payload {
   doc_title?: string;
   doc_subtitle?: string;
   doc_date?: string;
+  /** Optional pedagogical fields (Agreement Review Trainer). */
+  reviewer_brief?: string;
+  agreement_type?: string;
+  rationale?: Record<string, string>;
+  suggested_redline?: Record<string, string>;
 }
 
 export interface DocReviewAnswerState {
