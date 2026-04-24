@@ -8,7 +8,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FallingPattern } from "@/components/ui/falling-pattern";
-import ProductOrbit from "@/components/home/ProductOrbit";
+
 
 export default function RotatingHero() {
   const reduceMotion = useReducedMotion();
