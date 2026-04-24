@@ -313,8 +313,11 @@ export default function TheBarChallenge() {
   const briefAtLast = briefStep >= briefSteps.length - 1;
   const briefCurrentDone = brief.step_answers.some((a) => a.step_index === briefStep);
 
-  // Counseling advance
-  const counselingHasPick = counseling.turn_picks.some((p) => p.turn === counselingTurn);
+  // Counseling advance — `counselingTurn` is a 1-based position into decision_turns.
+  const counselingCurrentDt = challenge?.payload?.decision_turns?.[counselingTurn - 1];
+  const counselingHasPick = counselingCurrentDt
+    ? counseling.turn_picks.some((p) => p.turn === counselingCurrentDt.turn)
+    : false;
   const counselingAtLast = counselingTurn >= counselingTurnsCount;
 
   // Ethics advance
