@@ -89,7 +89,7 @@ export function ChallengeShell({
   children,
 }: ChallengeShellProps) {
   return (
-    <div className="min-h-screen bg-background text-foreground pt-24 lg:pt-32">
+    <div className="min-h-screen bg-background text-foreground pt-28 md:pt-32 lg:pt-36">
       <div className="mx-auto max-w-[1400px] px-4 lg:px-6 py-4 lg:py-6">
         <div className="grid grid-cols-1 lg:grid-cols-[220px_minmax(0,1fr)] gap-4 lg:gap-6">
           {/* ---------- LEFT RAIL ---------- */}
