@@ -294,7 +294,7 @@ export default function ProductOrbit() {
             </span>
 
             {/* Title */}
-            <h3 className="mt-2 font-heading text-2xl font-bold tracking-tight text-foreground">
+            <h3 className="mt-2 font-heading text-xl font-bold tracking-tight text-foreground">
               {activeNode.label}
             </h3>
 
