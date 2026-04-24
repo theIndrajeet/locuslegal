@@ -134,6 +134,7 @@ export default function ProfileEdit() {
             setSubjects(p.subjects_of_interest || []);
             setCvUrl(p.cv_url || null);
             setCvUploadedAt(p.cv_uploaded_at || null);
+            setApplicationsCount((p as { applications_count?: number }).applications_count ?? 0);
           }
 
           if (internshipsRes.error) console.error("[ProfileEdit] internships error:", internshipsRes.error);
