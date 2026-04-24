@@ -18,7 +18,7 @@ interface Inputs {
   variant?: "full" | "compact";
 }
 
-interface ChecklistItem {
+export interface ChecklistItem {
   key: string;
   label: string;
   weight: number;
