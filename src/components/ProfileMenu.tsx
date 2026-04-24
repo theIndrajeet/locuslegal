@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { UserCircle, LogOut, KeyRound, PenLine, User, ExternalLink, Shield } from "lucide-react";
+import { UserCircle, LogOut, KeyRound, PenLine, User, ExternalLink, Shield, Briefcase } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
@@ -99,6 +99,12 @@ export default function ProfileMenu() {
                 <ExternalLink size={16} /> View My Profile
               </button>
             )}
+            <button
+              onClick={() => { setOpen(false); navigate("/applications"); }}
+              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-foreground rounded-md hover:bg-muted transition-colors"
+            >
+              <Briefcase size={16} /> Applications
+            </button>
 
             <Divider />
 

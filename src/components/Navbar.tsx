@@ -10,7 +10,8 @@ const navLinks = [
   { label: "Directory", href: "/directory" },
   { label: "Playbook", href: "/playbook" },
   { label: "Resources", href: "/resources" },
-  { label: "Tools", href: "/tools", pulse: true },
+  { label: "Tools", href: "/tools" },
+  { label: "Applications", href: "/applications", pulse: true },
   { label: "The Bar", href: "/the-bar", glitch: true },
 ];
 
