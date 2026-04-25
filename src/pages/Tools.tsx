@@ -5,13 +5,15 @@ import { toast } from "sonner";
 import { useFeatureVotes } from "@/hooks/useFeatureVotes";
 import { FeatureVoteButton } from "@/components/FeatureVoteButton";
 
-type ToolType = "nda" | "checklist" | "dpa" | "internship";
+type ToolType = "nda" | "checklist" | "dpa" | "internship" | "freelancer" | "tos";
 
 const TABS: { id: ToolType; num: string; label: string }[] = [
   { id: "nda", num: "01", label: "NDA Generator" },
   { id: "checklist", num: "02", label: "Data Protection Checklist" },
   { id: "dpa", num: "03", label: "DPA Template" },
   { id: "internship", num: "04", label: "Internship Agreement" },
+  { id: "freelancer", num: "05", label: "Freelancer Contract" },
+  { id: "tos", num: "06", label: "Terms of Service" },
 ];
 
 type CategoryType = "All" | "Firms" | "Startups" | "Creators" | "Students" | "SMBs";
