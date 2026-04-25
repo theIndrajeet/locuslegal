@@ -5,6 +5,8 @@ interface GooeyTextProps {
   texts: string[];
   morphTime?: number;
   cooldownTime?: number;
+  /** Delay (ms) before morph cycle starts. Lets the LCP candidate paint stably first. */
+  startDelayMs?: number;
   className?: string;
   textClassName?: string;
 }
@@ -13,14 +15,22 @@ export function GooeyText({
   texts,
   morphTime = 1,
   cooldownTime = 0.25,
+  startDelayMs = 1600,
   className,
   textClassName,
 }: GooeyTextProps) {
   const [filterReady, setFilterReady] = React.useState(false);
+  const [animateReady, setAnimateReady] = React.useState(false);
   const text1Ref = React.useRef<HTMLSpanElement>(null);
   const text2Ref = React.useRef<HTMLSpanElement>(null);
 
   React.useEffect(() => {
+    const t = window.setTimeout(() => setAnimateReady(true), startDelayMs);
+    return () => window.clearTimeout(t);
+  }, [startDelayMs]);
+
+  React.useEffect(() => {
+    if (!animateReady) return;
     let textIndex = texts.length - 1;
     let time = new Date();
     let morph = 0;
