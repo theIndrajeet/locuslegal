@@ -297,10 +297,10 @@ html {
   letter-spacing: -0.003em;
 }
 
-/* H2 — major section break, no decorative prefix */
+/* H2 — major section break, pure foreground for max contrast */
 .playbook-prose h2 {
   font-family: 'Sora', ui-sans-serif, system-ui, sans-serif;
-  font-size: 1.75rem;          /* 28px */
+  font-size: 1.75rem;
   font-weight: 700;
   line-height: 1.25;
   letter-spacing: -0.02em;
@@ -313,10 +313,10 @@ html {
   margin-top: 0;
 }
 
-/* H3 — real subheading, not a tiny mono label */
+/* H3 — real subheading, pure foreground */
 .playbook-prose h3 {
   font-family: 'Sora', ui-sans-serif, system-ui, sans-serif;
-  font-size: 1.25rem;          /* 20px */
+  font-size: 1.25rem;
   font-weight: 600;
   line-height: 1.35;
   letter-spacing: -0.01em;
@@ -326,38 +326,32 @@ html {
   scroll-margin-top: 6rem;
 }
 
-/* H4 — small caps label for sub-sub structure */
+/* H4 — small caps accent label */
 .playbook-prose h4 {
   font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.14em;
-  color: hsl(var(--muted-foreground));
+  color: hsl(var(--accent));
   margin-top: 1.75rem;
   margin-bottom: 0.5rem;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
-/* Paragraphs — generous breathing room */
+/* Paragraphs */
 .playbook-prose p {
   margin-bottom: 1.5rem;
 }
 
-/* Drop cap — ONLY on the very first paragraph of the article */
-.playbook-prose > p:first-of-type::first-letter,
-.playbook-prose > :first-child + p:first-of-type::first-letter {
-  /* fallback handled by the explicit class below */
-}
-.playbook-prose .lead-dropcap::first-letter,
-.playbook-prose > p:first-of-type::first-letter {
-  float: left;
-  font-family: 'Sora', ui-sans-serif, system-ui, sans-serif;
-  font-size: 3.75rem;
-  line-height: 0.95;
-  font-weight: 700;
-  color: hsl(var(--foreground));
-  margin: 0.35rem 0.65rem 0 0;
-  padding: 0;
+/* Lead paragraph — first paragraph after the opening H2: yellow italic deck */
+.playbook-prose > h2:first-child + p {
+  font-size: 1.3125rem;
+  line-height: 1.6;
+  color: hsl(var(--accent));
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.005em;
+  margin-bottom: 2.25rem;
 }
 
 /* Strong — clean heavy weight, brighter color. No tricks. */
@@ -412,6 +406,10 @@ html {
 .playbook-prose li > p:last-child { margin-bottom: 0; }
 .playbook-prose li > ul,
 .playbook-prose li > ol { margin: 0.5rem 0 0.5rem 0; }
+
+/* KeyPoints overrides — suppress prose bullet/padding inside the component */
+.playbook-prose .keypoints-list > li { padding-left: 0; margin-bottom: 0; }
+.playbook-prose .keypoints-list > li::before { display: none; content: none; }
 
 /* Inline code */
 .playbook-prose code {
