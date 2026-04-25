@@ -66,26 +66,45 @@ export default function AppHome() {
       const uid = session.user.id;
 
       try {
-        const [profileRes, internshipsRes, mootsRes, pubsRes, statsRes] = await Promise.all([
-          supabase.from("profiles").select("*").eq("id", uid).maybeSingle(),
-          supabase
-            .from("profile_internships")
-            .select("id", { count: "exact", head: true })
-            .eq("user_id", uid),
-          supabase
-            .from("profile_moots")
-            .select("id", { count: "exact", head: true })
-            .eq("user_id", uid),
-          supabase
-            .from("profile_publications")
-            .select("id", { count: "exact", head: true })
-            .eq("user_id", uid),
-          supabase.from("bar_user_stats").select("*").eq("user_id", uid).maybeSingle(),
-        ]);
+        // Single round-trip via SECURITY DEFINER RPC — replaces 5 parallel queries.
+        const { data: dash, error } = await supabase.rpc("get_app_dashboard", {
+          p_user_id: uid,
+        });
 
         if (!mounted) return;
+        if (error || !dash) {
+          console.error("[AppHome] dashboard rpc error", error);
+          setLoading(false);
+          return;
+        }
 
-        const p = profileRes.data;
+        const d = dash as {
+          profile: Record<string, unknown> | null;
+          internships_count: number;
+          moots_count: number;
+          publications_count: number;
+          bar_stats: {
+            designation?: string;
+            total_points?: number;
+            current_streak?: number;
+            total_attempts?: number;
+          } | null;
+        };
+
+        const p = d.profile as {
+          username: string;
+          display_name: string | null;
+          avatar_url: string | null;
+          open_to_opportunities: boolean;
+          bio: string | null;
+          college: string | null;
+          degree: string | null;
+          graduation_year: number | null;
+          cgpa: number | null;
+          subjects_of_interest: string[] | null;
+          cv_url: string | null;
+          applications_count: number | null;
+        } | null;
         if (!p) {
           // Profile missing — let the layout's auth listener / username flow handle it.
           setLoading(false);
@@ -104,16 +123,16 @@ export default function AppHome() {
           graduationYear: p.graduation_year ? String(p.graduation_year) : "",
           cgpa: p.cgpa !== null && p.cgpa !== undefined ? String(p.cgpa) : "",
           subjects: p.subjects_of_interest || [],
-          internshipsCount: internshipsRes.count ?? 0,
-          mootsCount: mootsRes.count ?? 0,
-          publicationsCount: pubsRes.count ?? 0,
+          internshipsCount: d.internships_count ?? 0,
+          mootsCount: d.moots_count ?? 0,
+          publicationsCount: d.publications_count ?? 0,
           cvUrl: p.cv_url,
           applicationsCount: p.applications_count ?? 0,
           bar: {
-            designation: statsRes.data?.designation ?? null,
-            totalPoints: statsRes.data?.total_points ?? 0,
-            currentStreak: statsRes.data?.current_streak ?? 0,
-            totalAttempts: statsRes.data?.total_attempts ?? 0,
+            designation: (d.bar_stats?.designation as string | undefined) ?? null,
+            totalPoints: d.bar_stats?.total_points ?? 0,
+            currentStreak: d.bar_stats?.current_streak ?? 0,
+            totalAttempts: d.bar_stats?.total_attempts ?? 0,
           },
         });
       } catch (e) {
