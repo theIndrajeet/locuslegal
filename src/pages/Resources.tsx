@@ -194,12 +194,21 @@ export default function Resources() {
                   </div>
                 ) : (
                   <div className="flex items-center gap-3">
-                    <button
-                      disabled={r.comingSoon}
-                      className="text-sm font-semibold px-5 py-2.5 rounded-lg bg-accent text-accent-foreground hover:brightness-110 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                      {r.action}
-                    </button>
+                    {r.href && !r.comingSoon ? (
+                      <a
+                        href={r.href}
+                        className="inline-flex items-center gap-2 text-sm font-semibold px-5 py-2.5 rounded-lg bg-accent text-accent-foreground hover:brightness-110 transition-all"
+                      >
+                        {r.action}
+                      </a>
+                    ) : (
+                      <button
+                        disabled={r.comingSoon}
+                        className="text-sm font-semibold px-5 py-2.5 rounded-lg bg-accent text-accent-foreground hover:brightness-110 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        {r.action}
+                      </button>
+                    )}
                     {r.comingSoon && (
                       <FeatureVoteButton
                         featureKey={`resource-${r.title.toLowerCase().replace(/\s+/g, '-')}`}
