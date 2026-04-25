@@ -144,7 +144,7 @@ export default function PublicProfile() {
         return;
       }
 
-      const d = (data ?? {}) as {
+      const d = (data ?? {}) as unknown as {
         profile: Profile | null;
         internships?: Internship[];
         moots?: Moot[];

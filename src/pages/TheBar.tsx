@@ -66,7 +66,7 @@ export default function TheBar() {
           return;
         }
 
-        const d = data as {
+        const d = data as unknown as {
           stats: Stats;
           recent: Array<{
             id: string;
