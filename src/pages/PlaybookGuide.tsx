@@ -133,7 +133,7 @@ export default function PlaybookGuide() {
           </aside>
 
           {/* Article */}
-          <article ref={articleRef} className="min-w-0 max-w-2xl mx-auto lg:mx-0 w-full lg:border lg:border-dashed lg:border-border lg:rounded-lg lg:p-10">
+          <article ref={articleRef} className="min-w-0 w-full lg:border lg:border-dashed lg:border-border lg:rounded-lg lg:p-10">
             {/* Mobile back */}
             <Link
               to="/playbook"
