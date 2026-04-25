@@ -290,20 +290,20 @@ html {
    Foundation first: generous space, real hierarchy, restrained accent.
    ============================================================ */
 .playbook-prose {
-  color: hsl(var(--foreground) / 0.88);
-  font-size: 1.125rem;        /* 18px */
+  color: hsl(var(--foreground) / 0.82);
+  font-size: 1.0625rem;       /* 17px — slightly tighter for density */
   line-height: 1.75;
   font-weight: 400;
   letter-spacing: -0.003em;
 }
 
-/* H2 — major section break, pure foreground for max contrast */
+/* H2 — major section break, pure white anchor */
 .playbook-prose h2 {
   font-family: 'Sora', ui-sans-serif, system-ui, sans-serif;
-  font-size: 1.75rem;
+  font-size: 1.875rem;
   font-weight: 700;
-  line-height: 1.25;
-  letter-spacing: -0.02em;
+  line-height: 1.2;
+  letter-spacing: -0.022em;
   color: hsl(var(--foreground));
   margin-top: 3.5rem;
   margin-bottom: 1.25rem;
@@ -313,26 +313,26 @@ html {
   margin-top: 0;
 }
 
-/* H3 — real subheading, pure foreground */
+/* H3 — yellow accent, smaller. Distinct from H2 by COLOR not just size. */
 .playbook-prose h3 {
   font-family: 'Sora', ui-sans-serif, system-ui, sans-serif;
-  font-size: 1.25rem;
+  font-size: 1.125rem;
   font-weight: 600;
   line-height: 1.35;
-  letter-spacing: -0.01em;
-  color: hsl(var(--foreground));
+  letter-spacing: -0.005em;
+  color: hsl(var(--accent));
   margin-top: 2.25rem;
-  margin-bottom: 0.875rem;
+  margin-bottom: 0.75rem;
   scroll-margin-top: 6rem;
 }
 
-/* H4 — small caps accent label */
+/* H4 — small caps mono label, muted */
 .playbook-prose h4 {
   font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.14em;
-  color: hsl(var(--accent));
+  color: hsl(var(--muted-foreground));
   margin-top: 1.75rem;
   margin-bottom: 0.5rem;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -343,21 +343,21 @@ html {
   margin-bottom: 1.5rem;
 }
 
-/* Lead paragraph — first paragraph after the opening H2: yellow italic deck */
+/* Lead paragraph — first paragraph after the opening H2: soft off-white italic deck */
 .playbook-prose > h2:first-child + p {
-  font-size: 1.3125rem;
-  line-height: 1.6;
-  color: hsl(var(--accent));
+  font-size: 1.25rem;
+  line-height: 1.55;
+  color: hsl(var(--foreground) / 0.95);
   font-style: italic;
   font-weight: 400;
-  letter-spacing: -0.005em;
+  letter-spacing: -0.008em;
   margin-bottom: 2.25rem;
 }
 
-/* Strong — clean heavy weight, brighter color. No tricks. */
+/* Strong — yellow accent for scannable hits of color through body text */
 .playbook-prose strong {
-  color: hsl(var(--foreground));
-  font-weight: 700;
+  color: hsl(var(--accent));
+  font-weight: 600;
 }
 
 /* Italic */
