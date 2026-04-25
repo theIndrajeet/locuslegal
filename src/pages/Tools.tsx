@@ -375,6 +375,60 @@ Include sections: Parties, Recitals, Term of Internship, Scope of Work, Supervis
     generate("internship", prompt);
   };
 
+  const generateFreelancer = () => {
+    const dateStr = flStart && flEnd
+      ? `from ${new Date(flStart).toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" })} to ${new Date(flEnd).toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" })}`
+      : flStart
+      ? `commencing ${new Date(flStart).toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" })} and continuing until services are completed`
+      : "for the period mutually agreed by the parties";
+
+    const prompt = `Draft a complete and professional Freelance Services Agreement with the following details:
+
+CLIENT: ${flClientName || "Client"} (${flClientType})
+FREELANCER / SERVICE PROVIDER: ${flFreelancerName || "Freelancer"} (Independent Contractor)
+SERVICE TYPE: ${flServiceType}
+SCOPE OF SERVICES: ${flScope || "as detailed in Schedule A / Statement of Work"}
+DELIVERABLES: ${flDeliverables || "as mutually agreed and documented in writing"}
+TERM: ${dateStr}
+FEE STRUCTURE: ${flFeeType}${flFeeAmount ? ` — ${flFeeAmount}` : ""}
+PAYMENT TERMS: ${flPaymentTerms}
+INTELLECTUAL PROPERTY: ${flIp}
+LIABILITY CAP: ${flLiability}
+TERMINATION: ${flTermination}
+GOVERNING LAW: ${flGovLaw}
+${flNotes ? `SPECIAL TERMS: ${flNotes}` : ""}
+
+Include the following sections in the agreement: Parties, Recitals, Definitions, Scope of Services, Deliverables and Acceptance, Term and Renewal, Fees and Payment Terms (including late payment interest, taxes such as GST/VAT where applicable, and invoicing), Independent Contractor Status (no employer-employee relationship), Intellectual Property Rights and Licences, Confidentiality and Non-Disclosure, Data Protection (referencing DPDPA 2023 / GDPR where applicable to the governing law), Warranties and Representations, Limitation of Liability, Indemnification, Termination and Effects of Termination, Force Majeure, Dispute Resolution, Governing Law and Jurisdiction, Notices, Assignment, Severability, Entire Agreement, Amendments, and Signature Block.
+
+Make it jurisdiction-appropriate for the governing law specified. Include specific statutory references (e.g., Indian Contract Act 1872, Copyright Act 1957 for IP under Indian law) where applicable. Use enforceable, modern contract drafting language.`;
+    generate("freelancer", prompt);
+  };
+
+  const generateTos = () => {
+    const compliance = tosCompliance.length ? tosCompliance.join(", ") : "general data protection principles";
+    const prompt = `Draft a complete and professional Terms of Service (Terms and Conditions) for a website / application with the following details:
+
+COMPANY / SERVICE OWNER: ${tosCompany || "Company"}
+WEBSITE / APP URL: ${tosWebsite || "[website URL]"}
+SERVICE TYPE: ${tosServiceType}
+SERVICE DESCRIPTION: ${tosDescription || "online platform providing the services described in the agreement"}
+TARGET USERS: ${tosUserType}
+MINIMUM AGE: ${tosAge}
+PAYMENT MODEL: ${tosPayment}
+REFUND POLICY: ${tosRefund}
+USER-GENERATED CONTENT: ${tosUgc}
+DISPUTE RESOLUTION: ${tosDispute}
+GOVERNING LAW: ${tosGovLaw}
+COMPLIANCE FRAMEWORKS: ${compliance}
+${tosNotes ? `SPECIAL CLAUSES: ${tosNotes}` : ""}
+
+Include the following sections: Acceptance of Terms, Definitions, Eligibility (including age and capacity), Account Registration and Security, Description of Services, User Conduct and Acceptable Use Policy, ${tosUgc.startsWith("Yes") ? "User-Generated Content (Licence Grant, Content Standards, Removal Rights, DMCA / takedown procedure)" : "Content Ownership"}, Payments, Pricing and Taxes, Refunds and Cancellations, Subscription Auto-Renewal (where applicable), Intellectual Property Rights, Third-Party Services and Links, Privacy and Data Protection (referencing the listed compliance frameworks), Cookies and Tracking, Disclaimers and Warranties, Limitation of Liability, Indemnification, Termination and Suspension of Accounts, Modifications to Service and Terms, Force Majeure, Dispute Resolution and Governing Law, Class Action Waiver (where enforceable), Severability, Entire Agreement, Contact Information, and Effective Date.
+
+Make it jurisdiction-appropriate. Reference specific statutory provisions where applicable (e.g., DPDPA 2023, IT Act 2000 and Intermediary Guidelines 2021 for India; GDPR Articles for EU; Section 230 for US platforms). Use clear, plain-English drafting that remains legally enforceable.`;
+    generate("tos", prompt);
+  };
+
+
   const copyOutput = (tool: ToolType) => {
     const text = rawText[tool];
     if (!text) return;
