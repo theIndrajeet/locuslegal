@@ -340,7 +340,64 @@ function ProfileTile({ index }: { index: number }) {
   );
 }
 
-/* ---------- Exhibit A — the 5,00,000 stat ---------- */
+/* ---------- CV Analyser — Locus+ flagship ---------- */
+function CvAnalyserTile({ index }: { index: number }) {
+  return (
+    <TileShell to="/tools/cv-analyser" bg="dark" index={index} className="md:col-span-2">
+      <TileHeader
+        Icon={FileSearch}
+        badge="Locus+"
+        iconClass="bg-accent/15 border-accent/40 text-accent"
+        badgeClass="bg-accent text-black"
+      />
+
+      {/* Three score rings — the 3-vector visual */}
+      <div className="relative my-4 flex min-h-[100px] flex-1 items-center justify-around overflow-hidden">
+        {[
+          { label: "Corp", score: 84, dash: 84 },
+          { label: "Lit", score: 71, dash: 71 },
+          { label: "In-house", score: 78, dash: 78 },
+        ].map((v, i) => {
+          const C = 2 * Math.PI * 22; // r=22
+          return (
+            <div key={v.label} className="flex flex-col items-center gap-1.5">
+              <div className="relative h-14 w-14">
+                <svg viewBox="0 0 56 56" className="h-full w-full -rotate-90">
+                  <circle cx="28" cy="28" r="22" fill="none" stroke="currentColor" strokeWidth="3" className="text-foreground/15" />
+                  <circle
+                    cx="28"
+                    cy="28"
+                    r="22"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                    strokeLinecap="square"
+                    strokeDasharray={C}
+                    strokeDashoffset={C - (v.dash / 100) * C}
+                    className={i === 0 ? "text-accent transition-all duration-700 group-hover:[stroke-dashoffset:0]" : "text-foreground/60"}
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center font-heading text-xs font-black tabular-nums">
+                  {v.score}
+                </div>
+              </div>
+              <div className="font-mono text-[9px] font-bold uppercase tracking-wider text-foreground/60">
+                {v.label}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="mt-4 shrink-0">
+        <h3 className="font-heading text-xl font-extrabold">CV Analyser</h3>
+        <p className="mt-1 text-sm text-foreground/70">
+          Partner-voice scoring across 3 vectors. BCI Rule 25, NLU tiers, Elite Six benchmarks.
+        </p>
+      </div>
+    </TileShell>
+  );
+}
 function ExhibitATile({ index }: { index: number }) {
   return (
     <TileShell to="/directory" bg="yellow" index={index} className="md:col-span-2 md:row-span-2">
