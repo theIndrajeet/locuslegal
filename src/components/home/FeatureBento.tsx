@@ -400,7 +400,7 @@ export default function FeatureBento() {
           </TimelineContent>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 md:auto-rows-[200px] md:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 md:auto-rows-auto md:grid-cols-4">
           <DirectoryTile index={0} />
           <TheBarTile index={1} />
           <ExhibitATile index={2} />
