@@ -169,7 +169,7 @@ export default function AppHome() {
   const showOnboarding = score < 30;
 
   return (
-    <div className="min-h-screen px-4 pt-24 pb-10 md:pt-28">
+    <div className="min-h-screen px-4 pt-20 pb-10">
       <div className="max-w-6xl mx-auto space-y-6">
         <IdentityRow
           userId={data.userId}
