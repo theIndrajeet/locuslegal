@@ -207,19 +207,18 @@ function PlaybookTile({ index }: { index: number }) {
   return (
     <TileShell to="/playbook" bg="dark" index={index} className="md:col-span-2">
       <TileHeader Icon={BookOpen} />
-      <div className="relative my-2 h-16">
+      <div className="relative my-2 h-12 flex-shrink-0">
         {/* Stacked case-file papers */}
-        <div className="absolute left-0 right-0 top-2 h-14 -rotate-2 rounded border-2 border-foreground bg-background/60" />
-        <div className="absolute left-2 right-2 top-1 h-14 rotate-1 rounded border-2 border-foreground bg-card" />
-        <div className="absolute left-4 right-4 top-0 h-14 rounded border-2 border-foreground bg-accent/15 px-3 py-2">
+        <div className="absolute left-0 right-0 top-2 h-10 -rotate-2 rounded border-2 border-foreground bg-background/60" />
+        <div className="absolute left-2 right-2 top-1 h-10 rotate-1 rounded border-2 border-foreground bg-card" />
+        <div className="absolute left-4 right-4 top-0 h-10 rounded border-2 border-foreground bg-accent/15 px-2.5 py-1.5">
           <div className="font-mono text-[10px] font-bold uppercase tracking-wider text-accent">
             LX-001 · Cold Email
           </div>
           <div className="mt-1 h-1 w-3/4 rounded bg-foreground/30" />
-          <div className="mt-1 h-1 w-1/2 rounded bg-foreground/20" />
         </div>
       </div>
-      <div>
+      <div className="mt-auto">
         <h3 className="font-heading text-xl font-extrabold">Playbook</h3>
         <p className="mt-1 text-sm text-foreground/70">
           Field-tested guides for cold emails, interviews, and your first internship.
@@ -237,24 +236,23 @@ function ResourcesTile({ index }: { index: number }) {
         iconClass="bg-black/5 border-black/20 text-black"
         arrowClass="text-black/50 group-hover:text-black"
       />
-      <div className="relative flex-1">
+      <div className="relative flex-1 min-h-0">
         {/* Faux PDF peeking */}
-        <div className="absolute -bottom-3 -right-3 h-20 w-16 rotate-6 rounded border-2 border-black bg-white shadow-[3px_3px_0_0_#000] p-1.5">
+        <div className="absolute bottom-0 right-0 h-16 w-12 rotate-6 rounded border-2 border-black bg-white shadow-[3px_3px_0_0_#000] p-1.5">
           <div className="h-1 w-3/4 rounded bg-black/70" />
           <div className="mt-1 h-1 w-full rounded bg-black/30" />
           <div className="mt-1 h-1 w-2/3 rounded bg-black/30" />
-          <div className="mt-1 h-1 w-3/4 rounded bg-black/30" />
           <div className="mt-2 h-1 w-1/2 rounded bg-accent" />
         </div>
-        <div className="font-heading text-[56px] font-black leading-none tracking-tight text-black">
+        <div className="font-heading text-[44px] font-black leading-none tracking-tight text-black">
           8
         </div>
-        <div className="mt-1 text-xs font-bold uppercase tracking-wider text-black/60">
+        <div className="mt-1 text-[10px] font-bold uppercase tracking-wider text-black/60">
           templates
         </div>
       </div>
-      <div className="mt-3">
-        <h3 className="font-heading text-xl font-extrabold text-black">Resources</h3>
+      <div className="mt-2">
+        <h3 className="font-heading text-lg font-extrabold text-black">Resources</h3>
       </div>
     </TileShell>
   );
@@ -264,16 +262,16 @@ function ToolsTile({ index }: { index: number }) {
   return (
     <TileShell to="/tools" bg="dark" texture="stripes" index={index} className="md:col-span-1">
       <TileHeader Icon={Wrench} />
-      <div className="my-2">
-        <div className="font-heading text-[56px] font-black leading-none tracking-tight text-foreground">
+      <div className="my-2 flex-1 min-h-0">
+        <div className="font-heading text-[44px] font-black leading-none tracking-tight text-foreground">
           10
         </div>
-        <div className="mt-1 text-xs font-bold uppercase tracking-wider text-accent">
+        <div className="mt-1 text-[10px] font-bold uppercase tracking-wider text-accent">
           legal tools
         </div>
       </div>
-      <div>
-        <h3 className="font-heading text-xl font-extrabold">Tools</h3>
+      <div className="mt-auto">
+        <h3 className="font-heading text-lg font-extrabold">Tools</h3>
         <p className="mt-1 text-xs text-foreground/60">NDA · DPA · Contracts</p>
       </div>
     </TileShell>
