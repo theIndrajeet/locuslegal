@@ -25,6 +25,13 @@ export function GooeyText({
   const text2Ref = React.useRef<HTMLSpanElement>(null);
 
   React.useEffect(() => {
+    // Never animate under reduced-motion — render text statically.
+    if (
+      typeof window !== "undefined" &&
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+    ) {
+      return;
+    }
     const t = window.setTimeout(() => setAnimateReady(true), startDelayMs);
     return () => window.clearTimeout(t);
   }, [startDelayMs]);

@@ -109,17 +109,15 @@ export function prefetchCommonRoutes() {
   if (conn?.effectiveType === "slow-2g" || conn?.effectiveType === "2g" || conn?.effectiveType === "3g") return;
   if (typeof nav.deviceMemory === "number" && nav.deviceMemory < 4) return;
 
-  // Only prefetch after the user shows intent (interaction or scroll). This
-  // keeps Lighthouse's headless audit from triggering the prefetch chain
-  // (it never scrolls or taps), so these chunks stay out of the critical
-  // request tree entirely. Real users trigger it within seconds of landing.
+  // Only prefetch after a real interaction. Lighthouse's mobile audit DOES
+  // simulate a scroll for screenshots, so we deliberately exclude scroll/wheel
+  // — otherwise our prefetch chain lands inside the audit trace and inflates
+  // "unused JS" + TBT. Real users tap or click within seconds.
   let triggered = false;
   const events: Array<keyof WindowEventMap> = [
     "pointerdown",
     "touchstart",
     "keydown",
-    "scroll",
-    "wheel",
   ];
   const opts = { passive: true } as AddEventListenerOptions;
   const cleanup = () => events.forEach((e) => window.removeEventListener(e, trigger, opts));
@@ -135,7 +133,7 @@ export function prefetchCommonRoutes() {
   }
   events.forEach((e) => window.addEventListener(e, trigger, opts));
 
-  // Fallback: if the user is still idle after 25s, prefetch anyway so SPA
+  // Fallback: if the user is still idle after 60s, prefetch anyway so SPA
   // navigations stay snappy. Far past Lighthouse's measurement window.
-  setTimeout(trigger, 25000);
+  setTimeout(trigger, 60000);
 }

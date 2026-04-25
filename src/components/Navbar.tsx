@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { Moon, Sun, Shield } from "lucide-react";
+import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Link, useLocation } from "react-router-dom";
-import ProfileMenu from "./ProfileMenu";
-import { useAdminRole } from "@/hooks/useAdminRole";
+import ProfileMenu from "./ProfileMenuLazy";
+import AdminNavLink from "./AdminNavLink";
 import { prefetchRoute } from "@/lib/prefetch";
 
 const navLinks = [
@@ -19,11 +19,10 @@ export default function Navbar() {
   const { theme, setTheme } = useTheme();
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
-  const isAdmin = useAdminRole();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener("scroll", onScroll);
+    window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
@@ -82,18 +81,8 @@ export default function Navbar() {
               </Link>
             );
           })}
-          {isAdmin && (
-            <Link
-              to="/admin/bar"
-              onMouseEnter={() => prefetchRoute("/admin/bar")}
-              onFocus={() => prefetchRoute("/admin/bar")}
-              className={`text-sm font-medium transition-colors duration-300 inline-flex items-center gap-1 ${
-                isActive("/admin/bar") ? "text-accent" : "text-muted-foreground hover:text-accent"
-              }`}
-            >
-              <Shield size={14} /> Admin
-            </Link>
-          )}
+          <AdminNavLink />
+
           <button
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
             className="p-2 rounded-full hover:bg-muted/50 transition-colors"

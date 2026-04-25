@@ -1,21 +1,17 @@
 /**
- * RotatingHero — homepage hero with the migrated Waitlist pitch
- * (RainbowButton eyebrow + GooeyText morph headline + 3 audience CTAs)
- * over the new floating ShapeLandingBg background.
+ * RotatingHero — homepage hero.
+ *
+ * The LCP element is the static <h1> text. We render it as plain text on the
+ * first commit (no Suspense, no lazy boundary, no useEffect→setState gate),
+ * then optionally swap in the GooeyText morph effect once the page is idle.
+ * On reduced-motion or weak devices, GooeyText never mounts.
  */
-import { lazy, Suspense, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Building2, Target, FileText, LineChart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { RainbowButton } from "@/components/ui/rainbow-button";
 import ShapeLandingBg from "@/components/ui/shape-landing-bg";
-
-// GooeyText self-defers (rAF for SVG filter, startDelayMs for morph cycle),
-// so it's safe to mount immediately inside Suspense — the chunk loads async
-// and the static fallback paints first as the LCP candidate.
-const GooeyText = lazy(() =>
-  import("@/components/ui/gooey-text-morphing").then((m) => ({ default: m.GooeyText }))
-);
 
 const FEATURES = [
   { icon: Building2, label: "3,890+ Firms Directory" },
@@ -24,12 +20,71 @@ const FEATURES = [
   { icon: LineChart, label: "Application Tracker" },
 ];
 
-export default function RotatingHero() {
-  const [visible, setVisible] = useState(false);
+const MORPH_TEXTS = [
+  "not the one your college got you.",
+  "based on your skills, not your campus.",
+  "earned through merit, not connections.",
+];
+
+// Lightweight component that mounts GooeyText only after idle on capable
+// devices. Keeps the gooey-text-morphing chunk out of the LCP critical path.
+type MorphProps = {
+  texts: string[];
+  morphTime?: number;
+  cooldownTime?: number;
+  startDelayMs?: number;
+  className?: string;
+  textClassName?: string;
+};
+
+function MorphingTagline() {
+  const [Component, setComponent] = useState<null | React.ComponentType<MorphProps>>(null);
+
   useEffect(() => {
-    setVisible(true);
+    if (typeof window === "undefined") return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    const nav = navigator as unknown as { deviceMemory?: number };
+    if (typeof nav.deviceMemory === "number" && nav.deviceMemory < 4) return;
+
+    let cancelled = false;
+    const load = () => {
+      if (cancelled) return;
+      import("@/components/ui/gooey-text-morphing").then((m) => {
+        if (!cancelled) setComponent(() => m.GooeyText as React.ComponentType<MorphProps>);
+      });
+    };
+    const ric = (window as unknown as {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+    }).requestIdleCallback;
+    if (ric) ric(load, { timeout: 5000 });
+    else setTimeout(load, 3500);
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
+  if (!Component) {
+    return (
+      <span className="block mt-2 min-h-[120px] sm:min-h-[140px] md:min-h-[160px] lg:min-h-[200px] text-accent">
+        {MORPH_TEXTS[0]}
+      </span>
+    );
+  }
+
+  return (
+    <Component
+      texts={MORPH_TEXTS}
+      morphTime={2}
+      cooldownTime={1.5}
+      startDelayMs={500}
+      className="block mt-2 min-h-[120px] sm:min-h-[140px] md:min-h-[160px] lg:min-h-[200px]"
+      textClassName="text-accent font-heading font-extrabold text-4xl sm:text-5xl md:text-6xl lg:text-7xl"
+    />
+  );
+}
+
+export default function RotatingHero() {
   return (
     <section
       aria-label="Locus introduction"
@@ -39,51 +94,20 @@ export default function RotatingHero() {
 
       <div className="container mx-auto px-4 md:px-8 relative z-10 py-24">
         <div className="max-w-3xl mx-auto text-center">
-          <RainbowButton
-            className={`mb-8 font-heading text-sm font-semibold tracking-widest uppercase transition-all duration-700 ${
-              visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-            }`}
-          >
+          <RainbowButton className="mb-8 font-heading text-sm font-semibold tracking-widest uppercase hero-fade-in">
             Your merit. Your internship.
           </RainbowButton>
 
-          <h1
-            className={`font-heading text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold leading-[1.05] tracking-tight mb-8 text-foreground transition-all duration-700 delay-150 ${
-              visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
-            }`}
-          >
+          <h1 className="font-heading text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold leading-[1.05] tracking-tight mb-8 text-foreground hero-fade-in hero-fade-in-delay-1">
             Get the internship you deserve —{" "}
-            <Suspense
-              fallback={
-                <span className="block mt-2 min-h-[120px] sm:min-h-[140px] md:min-h-[160px] lg:min-h-[200px] text-accent">
-                  not the one your college got you.
-                </span>
-              }
-            >
-              <GooeyText
-                texts={[
-                  "not the one your college got you.",
-                  "based on your skills, not your campus.",
-                  "earned through merit, not connections.",
-                ]}
-                morphTime={2}
-                cooldownTime={1.5}
-                startDelayMs={2500}
-                className="block mt-2 min-h-[120px] sm:min-h-[140px] md:min-h-[160px] lg:min-h-[200px]"
-                textClassName="text-accent font-heading font-extrabold text-4xl sm:text-5xl md:text-6xl lg:text-7xl"
-              />
-            </Suspense>
+            <MorphingTagline />
           </h1>
 
-          <div
-            className={`grid grid-cols-2 md:grid-cols-4 gap-3 max-w-3xl mx-auto mb-12 transition-all duration-700 delay-300 ${
-              visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
-            }`}
-          >
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-3xl mx-auto mb-12 hero-fade-in hero-fade-in-delay-2">
             {FEATURES.map(({ icon: Icon, label }) => (
               <div
                 key={label}
-                className="flex items-center gap-2 border-2 border-border bg-card/60 backdrop-blur-sm rounded-xl px-4 py-3 text-left"
+                className="flex items-center gap-2 border-2 border-border bg-card/60 rounded-xl px-4 py-3 text-left"
               >
                 <Icon className="h-5 w-5 text-accent shrink-0" />
                 <span className="font-heading text-xs sm:text-sm font-semibold text-foreground leading-tight">
@@ -93,11 +117,7 @@ export default function RotatingHero() {
             ))}
           </div>
 
-          <div
-            className={`flex flex-col sm:flex-row gap-4 justify-center transition-all duration-700 delay-500 ${
-              visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
-            }`}
-          >
+          <div className="flex flex-col sm:flex-row gap-4 justify-center hero-fade-in hero-fade-in-delay-3">
             <Link to="/waitlist">
               <Button size="lg" className="font-heading text-base px-8 py-4">
                 Join the Waitlist
