@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuthSession } from "@/hooks/useAuthSession";
 import RotatingHero from "@/components/home/RotatingHero";
 import FeatureBento from "@/components/home/FeatureBento";
 import AudienceMiniRow from "@/components/home/AudienceMiniRow";
@@ -16,27 +16,15 @@ const Index = () => {
   });
 
   const navigate = useNavigate();
-  const [checked, setChecked] = useState(false);
+  const { ready, userId } = useAuthSession();
 
   useEffect(() => {
-    let mounted = true;
+    if (ready && userId) navigate("/app", { replace: true });
+  }, [ready, userId, navigate]);
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!mounted) return;
-      if (session) {
-        navigate("/app", { replace: true });
-      } else {
-        setChecked(true);
-      }
-    });
-
-    return () => {
-      mounted = false;
-    };
-  }, [navigate]);
-
-  if (!checked) {
-    // Avoid a marketing-page flash for authenticated users while the session check runs.
+  // Don't block paint waiting for auth — render the marketing page immediately.
+  // If a session is already cached, the redirect above fires synchronously on mount.
+  if (ready && userId) {
     return <div className="min-h-screen" />;
   }
 
