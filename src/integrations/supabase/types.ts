@@ -478,6 +478,7 @@ export type Database = {
           analysis: Json
           completion_tokens: number | null
           created_at: string
+          cv_hash: string | null
           cv_storage_path: string
           duration_ms: number | null
           id: string
@@ -491,6 +492,7 @@ export type Database = {
           analysis?: Json
           completion_tokens?: number | null
           created_at?: string
+          cv_hash?: string | null
           cv_storage_path: string
           duration_ms?: number | null
           id?: string
@@ -504,6 +506,7 @@ export type Database = {
           analysis?: Json
           completion_tokens?: number | null
           created_at?: string
+          cv_hash?: string | null
           cv_storage_path?: string
           duration_ms?: number | null
           id?: string
