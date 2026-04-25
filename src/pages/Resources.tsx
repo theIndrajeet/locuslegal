@@ -110,16 +110,6 @@ const resources = [
     previewPrefix: "/documents/LinkedInProfileChecklist-page-",
   },
   {
-    title: "CV Analyser",
-    description:
-      "Get AI-powered, partner-voice feedback on your legal CV — calibrated for Tier-1 firms, litigation chambers, and NLU placement standards.",
-    icon: ScanSearch,
-    action: "Open Analyser",
-    comingSoon: false,
-    hasPreview: false,
-    href: "/tools/cv-analyser",
-  },
-  {
     title: "Book Your Session",
     description:
       "Schedule a 1-on-1 mentoring session with practicing lawyers and industry professionals.",
