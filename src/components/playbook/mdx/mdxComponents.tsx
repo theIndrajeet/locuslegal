@@ -12,8 +12,8 @@ function extractText(node: ReactNode): string {
   if (typeof node === "number") return String(node);
   if (Array.isArray(node)) return node.map(extractText).join("");
   if (node && typeof node === "object" && "props" in node) {
-    // @ts-expect-error — best-effort recursion
-    return extractText(node.props?.children);
+    const props = (node as { props?: { children?: ReactNode } }).props;
+    return extractText(props?.children);
   }
   return "";
 }
