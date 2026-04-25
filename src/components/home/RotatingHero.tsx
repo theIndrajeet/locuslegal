@@ -3,13 +3,18 @@
  * (RainbowButton eyebrow + GooeyText morph headline + 3 audience CTAs)
  * over the new floating ShapeLandingBg background.
  */
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Building2, Target, FileText, LineChart } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { GooeyText } from "@/components/ui/gooey-text-morphing";
 import { RainbowButton } from "@/components/ui/rainbow-button";
 import ShapeLandingBg from "@/components/ui/shape-landing-bg";
+
+// Defer GooeyText (animation + SVG filter) so the static headline paints first.
+// This unblocks FCP/LCP — Lighthouse was waiting on the opacity-0 span inside it.
+const GooeyText = lazy(() =>
+  import("@/components/ui/gooey-text-morphing").then((m) => ({ default: m.GooeyText }))
+);
 
 const FEATURES = [
   { icon: Building2, label: "3,890+ Firms Directory" },
@@ -20,8 +25,21 @@ const FEATURES = [
 
 export default function RotatingHero() {
   const [visible, setVisible] = useState(false);
+  const [animateHeadline, setAnimateHeadline] = useState(false);
   useEffect(() => {
     setVisible(true);
+    // Wait until after first paint + a beat of idle time before mounting
+    // the GooeyText animation. Keeps FCP/LCP fast without changing the UX.
+    const schedule =
+      (window as unknown as { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number })
+        .requestIdleCallback ?? ((cb: () => void) => window.setTimeout(cb, 1200));
+    const id = schedule(() => setAnimateHeadline(true), { timeout: 2500 });
+    return () => {
+      const cancel =
+        (window as unknown as { cancelIdleCallback?: (id: number) => void }).cancelIdleCallback ??
+        window.clearTimeout;
+      cancel(id as number);
+    };
   }, []);
 
   return (
@@ -47,17 +65,31 @@ export default function RotatingHero() {
             }`}
           >
             Get the internship you deserve —{" "}
-            <GooeyText
-              texts={[
-                "not the one your college got you.",
-                "based on your skills, not your campus.",
-                "earned through merit, not connections.",
-              ]}
-              morphTime={2}
-              cooldownTime={1.5}
-              className="block mt-2 min-h-[120px] sm:min-h-[140px] md:min-h-[160px] lg:min-h-[200px]"
-              textClassName="text-accent font-heading font-extrabold text-4xl sm:text-5xl md:text-6xl lg:text-7xl"
-            />
+            {animateHeadline ? (
+              <Suspense
+                fallback={
+                  <span className="block mt-2 min-h-[120px] sm:min-h-[140px] md:min-h-[160px] lg:min-h-[200px] text-accent">
+                    not the one your college got you.
+                  </span>
+                }
+              >
+                <GooeyText
+                  texts={[
+                    "not the one your college got you.",
+                    "based on your skills, not your campus.",
+                    "earned through merit, not connections.",
+                  ]}
+                  morphTime={2}
+                  cooldownTime={1.5}
+                  className="block mt-2 min-h-[120px] sm:min-h-[140px] md:min-h-[160px] lg:min-h-[200px]"
+                  textClassName="text-accent font-heading font-extrabold text-4xl sm:text-5xl md:text-6xl lg:text-7xl"
+                />
+              </Suspense>
+            ) : (
+              <span className="block mt-2 min-h-[120px] sm:min-h-[140px] md:min-h-[160px] lg:min-h-[200px] text-accent">
+                not the one your college got you.
+              </span>
+            )}
           </h1>
 
           <div
