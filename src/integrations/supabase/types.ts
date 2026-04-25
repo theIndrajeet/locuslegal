@@ -623,6 +623,30 @@ export type Database = {
           },
         ]
       }
+      profile_playbook_progress: {
+        Row: {
+          completed_at: string | null
+          guide_slug: string
+          last_read_at: string
+          started_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          guide_slug: string
+          last_read_at?: string
+          started_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          guide_slug?: string
+          last_read_at?: string
+          started_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profile_publications: {
         Row: {
           created_at: string
