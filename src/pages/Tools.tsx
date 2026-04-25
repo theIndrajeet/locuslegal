@@ -19,7 +19,7 @@ const TABS: { id: ToolType; num: string; label: string }[] = [
 type CategoryType = "All" | "Firms" | "Startups" | "Creators" | "Students" | "SMBs";
 
 const CATEGORIES: { id: CategoryType; label: string; count: number }[] = [
-  { id: "All", label: "All Tools", count: 10 },
+  { id: "All", label: "All Tools", count: 11 },
   { id: "Firms", label: "Firms & Chambers", count: 4 },
   { id: "Startups", label: "Startups & Founders", count: 3 },
   { id: "Creators", label: "Artists & Musicians", count: 2 },
