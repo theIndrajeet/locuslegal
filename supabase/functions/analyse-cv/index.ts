@@ -595,9 +595,40 @@ serve(async (req) => {
     }
     const base64 = bytesToBase64(arr);
 
-    let result;
+    let analysis: any;
+    let pass1_ms = 0;
+    let pass2_ms = 0;
+    let prompt_tokens = 0;
+    let completion_tokens = 0;
+    let pass2_effort: "high" | "medium" = "high";
+
     try {
-      result = await callGemini(base64);
+      // PASS 1 — extract facts (Flash, fast, no reasoning)
+      const t1 = Date.now();
+      const { facts, usage: u1 } = await extractFacts(base64);
+      pass1_ms = Date.now() - t1;
+      prompt_tokens += u1?.prompt_tokens ?? 0;
+      completion_tokens += u1?.completion_tokens ?? 0;
+
+      // PASS 2 — score from facts (Pro, high reasoning, text-only)
+      const t2 = Date.now();
+      let scored;
+      try {
+        scored = await scoreFromFacts(facts, "high");
+      } catch (e: any) {
+        // Graceful degradation: if pass 2 fails (e.g. timeout), retry once at medium effort.
+        if (e?.status && e.status !== 429 && e.status !== 402) {
+          console.warn("pass2 high failed, retrying at medium:", e?.message);
+          pass2_effort = "medium";
+          scored = await scoreFromFacts(facts, "medium");
+        } else {
+          throw e;
+        }
+      }
+      pass2_ms = Date.now() - t2;
+      prompt_tokens += scored.usage?.prompt_tokens ?? 0;
+      completion_tokens += scored.usage?.completion_tokens ?? 0;
+      analysis = scored.analysis;
     } catch (e: any) {
       if (e?.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment.", retryable: true }), {
@@ -612,8 +643,9 @@ serve(async (req) => {
       throw e;
     }
 
-    const { analysis, usage } = result;
     const duration_ms = Date.now() - start;
+    console.log(JSON.stringify({ event: "analyse_cv_ok", user_id: userId, pass1_ms, pass2_ms, total_ms: duration_ms, pass2_effort, prompt_tokens, completion_tokens }));
+    const usage = { prompt_tokens, completion_tokens };
 
     // Best-fit drives the headline overall_score that is persisted as the column value
     const bestFit: "corporate" | "litigation" | "in_house" = analysis?.best_fit_vector ?? "corporate";
