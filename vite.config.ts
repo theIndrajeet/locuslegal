@@ -44,7 +44,7 @@ export default defineConfig(({ mode }) => ({
     __BUILD_VERSION__: JSON.stringify(BUILD_VERSION),
   },
   plugins: [
-    { enforce: "pre" as const, ...mdx({ jsxRuntime: "automatic", development: mode === "development", providerImportSource: "@mdx-js/react", remarkPlugins: [remarkGfm], rehypePlugins: [rehypeSlug] }) } as Plugin,
+    { enforce: "pre" as const, ...mdx({ jsxRuntime: "automatic", development: false, providerImportSource: "@mdx-js/react", remarkPlugins: [remarkGfm], rehypePlugins: [rehypeSlug] }) } as Plugin,
     react(),
     mode === "development" && componentTagger(),
     writeVersionJsonPlugin(),
