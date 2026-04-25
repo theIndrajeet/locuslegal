@@ -288,54 +288,152 @@ html {
 /* Playbook reader prose styles */
 .playbook-prose {
   color: hsl(var(--foreground));
-  font-size: 1rem;
-  line-height: 1.75;
+  font-size: 1.0625rem;
+  line-height: 1.8;
 }
+
+/* Headings */
 .playbook-prose h2 {
-  font-size: 1.5rem;
+  position: relative;
+  font-size: 1.625rem;
   font-weight: 700;
-  margin-top: 2.5rem;
-  margin-bottom: 1rem;
+  margin-top: 3rem;
+  margin-bottom: 1.25rem;
+  padding-top: 1rem;
   scroll-margin-top: 6rem;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
+  border-top: 1px solid hsl(var(--border) / 0.5);
 }
-.playbook-prose h2:first-child { margin-top: 0; }
-.playbook-prose h3 {
-  font-size: 1.125rem;
+.playbook-prose h2::before {
+  content: "§";
+  display: inline-block;
+  margin-right: 0.5rem;
+  color: hsl(var(--accent));
   font-weight: 600;
-  margin-top: 1.75rem;
+  opacity: 0.7;
+}
+.playbook-prose h2:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+.playbook-prose h3 {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: hsl(var(--muted-foreground));
+  margin-top: 2rem;
   margin-bottom: 0.75rem;
   scroll-margin-top: 6rem;
 }
+
+/* Paragraphs — lead-in treatment for first p after h2 */
 .playbook-prose p {
-  margin-bottom: 1rem;
+  margin-bottom: 1.25rem;
   color: hsl(var(--foreground) / 0.92);
 }
-.playbook-prose ul, .playbook-prose ol {
-  margin: 1rem 0 1.25rem 1.25rem;
-  color: hsl(var(--foreground) / 0.92);
+.playbook-prose h2 + p {
+  font-size: 1.1875rem;
+  line-height: 1.7;
+  font-weight: 400;
+  color: hsl(var(--foreground));
+  letter-spacing: -0.005em;
 }
-.playbook-prose ul { list-style: disc; }
-.playbook-prose ol { list-style: decimal; }
-.playbook-prose li { margin-bottom: 0.4rem; line-height: 1.7; }
-.playbook-prose li > p { margin-bottom: 0.4rem; }
-.playbook-prose strong { color: hsl(var(--foreground)); font-weight: 700; }
-.playbook-prose a {
+.playbook-prose h2 + p::first-letter {
+  font-weight: 700;
   color: hsl(var(--accent));
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  text-decoration-thickness: 1px;
 }
-.playbook-prose a:hover { text-decoration-thickness: 2px; }
+
+/* Lists — visible structure, more breathing room */
+.playbook-prose ul, .playbook-prose ol {
+  margin: 1.25rem 0 1.5rem 0;
+  padding-left: 1.25rem;
+  border-left: 2px solid hsl(var(--border) / 0.5);
+  color: hsl(var(--foreground) / 0.92);
+}
+.playbook-prose ul { list-style: none; }
+.playbook-prose ol { list-style: decimal; padding-left: 2rem; }
+.playbook-prose ul > li {
+  position: relative;
+  margin-bottom: 0.75rem;
+  padding-left: 1.25rem;
+  line-height: 1.7;
+}
+.playbook-prose ul > li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.6em;
+  width: 0.5rem;
+  height: 2px;
+  background: hsl(var(--accent));
+  opacity: 0.7;
+}
+.playbook-prose ol > li {
+  margin-bottom: 0.75rem;
+  line-height: 1.7;
+  padding-left: 0.25rem;
+}
+.playbook-prose ol > li::marker {
+  color: hsl(var(--accent));
+  font-weight: 700;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.875em;
+}
+.playbook-prose li > p { margin-bottom: 0.4rem; }
+
+/* Strong — make bold actually punch */
+.playbook-prose strong {
+  color: hsl(var(--foreground));
+  font-weight: 700;
+  background: linear-gradient(
+    to bottom,
+    transparent 60%,
+    hsl(var(--accent) / 0.18) 60%,
+    hsl(var(--accent) / 0.18) 95%,
+    transparent 95%
+  );
+  padding: 0 0.05em;
+}
+
+/* Inline code */
 .playbook-prose code {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.875em;
   background: hsl(var(--muted));
+  color: hsl(var(--foreground));
   padding: 0.15rem 0.4rem;
   border-radius: 0.25rem;
+  border: 1px solid hsl(var(--border) / 0.6);
 }
+
+/* Links */
+.playbook-prose a {
+  color: hsl(var(--foreground));
+  text-decoration: underline;
+  text-decoration-color: hsl(var(--accent) / 0.6);
+  text-underline-offset: 3px;
+  text-decoration-thickness: 2px;
+  transition: text-decoration-color 0.15s ease;
+}
+.playbook-prose a:hover {
+  text-decoration-color: hsl(var(--accent));
+  color: hsl(var(--accent));
+}
+
+/* Horizontal rule */
 .playbook-prose hr {
   border: none;
-  border-top: 1px solid hsl(var(--border));
-  margin: 2rem 0;
+  border-top: 1px dashed hsl(var(--border));
+  margin: 2.5rem 0;
+}
+
+/* Blockquote (markdown native) */
+.playbook-prose blockquote {
+  border-left: 3px solid hsl(var(--accent) / 0.6);
+  padding-left: 1.25rem;
+  margin: 1.75rem 0;
+  font-style: italic;
+  color: hsl(var(--foreground) / 0.85);
 }
