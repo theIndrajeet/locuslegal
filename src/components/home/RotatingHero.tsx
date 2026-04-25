@@ -10,8 +10,9 @@ import { Button } from "@/components/ui/button";
 import { RainbowButton } from "@/components/ui/rainbow-button";
 import ShapeLandingBg from "@/components/ui/shape-landing-bg";
 
-// Defer GooeyText (animation + SVG filter) so the static headline paints first.
-// This unblocks FCP/LCP — Lighthouse was waiting on the opacity-0 span inside it.
+// GooeyText self-defers (rAF for SVG filter, startDelayMs for morph cycle),
+// so it's safe to mount immediately inside Suspense — the chunk loads async
+// and the static fallback paints first as the LCP candidate.
 const GooeyText = lazy(() =>
   import("@/components/ui/gooey-text-morphing").then((m) => ({ default: m.GooeyText }))
 );
@@ -25,15 +26,8 @@ const FEATURES = [
 
 export default function RotatingHero() {
   const [visible, setVisible] = useState(false);
-  const [animateHeadline, setAnimateHeadline] = useState(false);
   useEffect(() => {
     setVisible(true);
-    // Delay GooeyText mount until well after Lighthouse's LCP measurement
-    // window has closed (~4s on mobile). Otherwise the morphing span (which
-    // starts at opacity:0 + heavy blur) gets picked as the LCP element and
-    // restarts the LCP clock when it replaces the static fallback headline.
-    const timeoutId = window.setTimeout(() => setAnimateHeadline(true), 6000);
-    return () => window.clearTimeout(timeoutId);
   }, []);
 
   return (
@@ -59,31 +53,26 @@ export default function RotatingHero() {
             }`}
           >
             Get the internship you deserve —{" "}
-            {animateHeadline ? (
-              <Suspense
-                fallback={
-                  <span className="block mt-2 min-h-[120px] sm:min-h-[140px] md:min-h-[160px] lg:min-h-[200px] text-accent">
-                    not the one your college got you.
-                  </span>
-                }
-              >
-                <GooeyText
-                  texts={[
-                    "not the one your college got you.",
-                    "based on your skills, not your campus.",
-                    "earned through merit, not connections.",
-                  ]}
-                  morphTime={2}
-                  cooldownTime={1.5}
-                  className="block mt-2 min-h-[120px] sm:min-h-[140px] md:min-h-[160px] lg:min-h-[200px]"
-                  textClassName="text-accent font-heading font-extrabold text-4xl sm:text-5xl md:text-6xl lg:text-7xl"
-                />
-              </Suspense>
-            ) : (
-              <span className="block mt-2 min-h-[120px] sm:min-h-[140px] md:min-h-[160px] lg:min-h-[200px] text-accent">
-                not the one your college got you.
-              </span>
-            )}
+            <Suspense
+              fallback={
+                <span className="block mt-2 min-h-[120px] sm:min-h-[140px] md:min-h-[160px] lg:min-h-[200px] text-accent">
+                  not the one your college got you.
+                </span>
+              }
+            >
+              <GooeyText
+                texts={[
+                  "not the one your college got you.",
+                  "based on your skills, not your campus.",
+                  "earned through merit, not connections.",
+                ]}
+                morphTime={2}
+                cooldownTime={1.5}
+                startDelayMs={2500}
+                className="block mt-2 min-h-[120px] sm:min-h-[140px] md:min-h-[160px] lg:min-h-[200px]"
+                textClassName="text-accent font-heading font-extrabold text-4xl sm:text-5xl md:text-6xl lg:text-7xl"
+              />
+            </Suspense>
           </h1>
 
           <div

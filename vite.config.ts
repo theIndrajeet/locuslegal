@@ -66,4 +66,29 @@ export default defineConfig(({ mode }) => ({
       "react-dom": path.resolve(__dirname, "./node_modules/react-dom"),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        // Split heavy/stable vendor code into its own long-cacheable chunks
+        // so the home page's main bundle stays small and repeat visitors only
+        // re-download app code on each deploy.
+        manualChunks(id) {
+          if (!id.includes("node_modules")) return undefined;
+          if (
+            id.includes("/react/") ||
+            id.includes("/react-dom/") ||
+            id.includes("/react-router") ||
+            id.includes("/scheduler/")
+          ) {
+            return "react-vendor";
+          }
+          if (id.includes("framer-motion")) return "framer";
+          if (id.includes("@supabase")) return "supabase";
+          if (id.includes("@tanstack/react-query")) return "query";
+          if (id.includes("lucide-react")) return "icons";
+          return undefined;
+        },
+      },
+    },
+  },
 }));

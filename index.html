@@ -28,11 +28,30 @@
     <meta name="twitter:description" content="India's legal internship platform that connects law students with firms based on merit, not college name. Your merit. Your internship." />
     <meta name="twitter:image" content="https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/8567af15-82ee-4014-93f5-9b4242ac8203/id-preview-d6a9d6f1--912baa0f-e70f-4952-850a-3b128d76c697.lovable.app-1772555938707.png" />
 
-    <!-- Fonts -->
+    <!-- Fonts: critical (Sora + Inter) load async; the rest are deferred and
+         requested on-demand by routes that actually use them. -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700&family=Inter:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=DM+Mono:wght@400&family=DM+Sans:wght@400;500&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'" />
-    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700&family=Inter:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=DM+Mono:wght@400&family=DM+Sans:wght@400;500&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" /></noscript>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" media="print" onload="this.media='all'" />
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" /></noscript>
+    <script>
+      // Defer secondary fonts (editorial/mono families) until after the page
+      // is interactive — they're only used on Playbook, admin, and code blocks.
+      (function () {
+        var load = function () {
+          var l = document.createElement('link');
+          l.rel = 'stylesheet';
+          l.href = 'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=DM+Mono:wght@400&family=DM+Sans:wght@400;500&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap';
+          document.head.appendChild(l);
+        };
+        if ('requestIdleCallback' in window) {
+          requestIdleCallback(load, { timeout: 4000 });
+        } else {
+          window.addEventListener('load', function () { setTimeout(load, 1500); });
+        }
+      })();
+    </script>
+
 
     <!-- Structured Data -->
     <script type="application/ld+json">
