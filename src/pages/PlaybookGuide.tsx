@@ -151,9 +151,9 @@ export default function PlaybookGuide() {
 
             {/* Footer */}
             <footer className="mt-12 pt-8 border-t border-border space-y-8">
-              {/* Mobile mark-complete */}
+              {/* Mark complete */}
               {userId && (
-                <div className="lg:hidden">
+                <div>
                   <MarkCompleteButton
                     completed={completed}
                     onToggle={() => toggleComplete(slug)}
