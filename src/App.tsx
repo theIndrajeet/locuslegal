@@ -10,6 +10,7 @@ import Waitlist from "./pages/Waitlist";
 import Directory from "./pages/Directory";
 import Resources from "./pages/Resources";
 import Playbook from "./pages/Playbook";
+import PlaybookGuide from "./pages/PlaybookGuide";
 import Tools from "./pages/Tools";
 import TheBar from "./pages/TheBar";
 import AppHome from "./pages/AppHome";
@@ -69,6 +70,7 @@ const App = () => (
               <Route path="/waitlist" element={<Waitlist />} />
               <Route path="/directory" element={<Directory />} />
               <Route path="/playbook" element={<Playbook />} />
+              <Route path="/playbook/:slug" element={<PlaybookGuide />} />
               <Route path="/resources" element={<Resources />} />
               <Route path="/tools" element={<Tools />} />
               <Route path="/the-bar" element={<TheBar />} />
