@@ -405,7 +405,7 @@ html {
   padding-left: 0.5rem;
 }
 .playbook-prose ol > li::marker {
-  color: hsl(var(--muted-foreground));
+  color: hsl(var(--prose-anchor));
   font-weight: 600;
 }
 .playbook-prose li > p { margin-bottom: 0.5rem; }
