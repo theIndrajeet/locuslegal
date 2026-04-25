@@ -7,7 +7,132 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const MODEL = "google/gemini-3.1-pro-preview";
+const SCORING_MODEL = "google/gemini-3.1-pro-preview";
+const EXTRACTION_MODEL = "google/gemini-3-flash-preview";
+const MODEL = SCORING_MODEL; // persisted in cv_analyses.model for back-compat
+
+const EXTRACTION_SYSTEM_PROMPT = `You are a CV fact-extractor for an Indian legal hiring platform. Read the attached PDF and extract every concrete signal — DO NOT score, judge, or rewrite. Return strictly via the submit_cv_facts tool.
+
+Be exhaustive: capture EVERY internship, moot, publication, position of responsibility, certification, and skill. For each bullet point in the experience sections, copy the exact bullet text verbatim into bullets[] — do not paraphrase. We need the raw text for downstream semantic analysis.
+
+Date math: convert "Jun–Jul 2024" to duration_weeks (e.g. ~5). If only a month is given, estimate 4 weeks. If "ongoing", estimate to today.
+
+If a field is genuinely absent, use empty string or empty array. Never invent.`;
+
+const EXTRACTION_TOOL = {
+  type: "function",
+  function: {
+    name: "submit_cv_facts",
+    description: "Return the raw structured facts extracted from the CV. No scoring, no opinions.",
+    parameters: {
+      type: "object",
+      properties: {
+        identity: {
+          type: "object",
+          properties: {
+            name: { type: "string" },
+            college: { type: "string" },
+            programme: { type: "string", description: "5-year integrated, 3-year LLB, LLM, or unknown" },
+            graduation_year: { type: "string" },
+            current_year_of_study: { type: "string" },
+            cgpa_or_rank: { type: "string" },
+            email_present: { type: "boolean" },
+            phone_present: { type: "boolean" },
+            linkedin_present: { type: "boolean" },
+          },
+          required: ["name", "college", "programme", "graduation_year", "current_year_of_study", "cgpa_or_rank", "email_present", "phone_present", "linkedin_present"],
+          additionalProperties: false,
+        },
+        structural_signals: {
+          type: "object",
+          properties: {
+            page_count: { type: "number" },
+            font_family_guess: { type: "string" },
+            has_photo: { type: "boolean" },
+            has_dob_or_marital: { type: "boolean" },
+            uses_first_person: { type: "boolean" },
+            chronological_order: { type: "boolean" },
+            obvious_typos: { type: "array", items: { type: "string" } },
+            sections_present: { type: "array", items: { type: "string" } },
+          },
+          required: ["page_count", "font_family_guess", "has_photo", "has_dob_or_marital", "uses_first_person", "chronological_order", "obvious_typos", "sections_present"],
+          additionalProperties: false,
+        },
+        internships: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              firm_or_chamber: { type: "string" },
+              role: { type: "string" },
+              location: { type: "string" },
+              period_raw: { type: "string", description: "Verbatim date range from CV." },
+              duration_weeks: { type: "number" },
+              practice_areas_mentioned: { type: "array", items: { type: "string" } },
+              bullets: { type: "array", items: { type: "string" }, description: "Verbatim bullet points." },
+            },
+            required: ["firm_or_chamber", "role", "location", "period_raw", "duration_weeks", "practice_areas_mentioned", "bullets"],
+            additionalProperties: false,
+          },
+        },
+        moots: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              name: { type: "string" },
+              year: { type: "string" },
+              role_raw: { type: "string", description: "speaker, researcher, both, or as written." },
+              outcome_raw: { type: "string" },
+              awards: { type: "array", items: { type: "string" } },
+            },
+            required: ["name", "year", "role_raw", "outcome_raw", "awards"],
+            additionalProperties: false,
+          },
+        },
+        publications: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              title: { type: "string" },
+              venue: { type: "string" },
+              year: { type: "string" },
+              url_present: { type: "boolean" },
+              kind_hint: { type: "string", description: "journal, blog, magazine, book chapter, etc., or unknown." },
+            },
+            required: ["title", "venue", "year", "url_present", "kind_hint"],
+            additionalProperties: false,
+          },
+        },
+        positions_of_responsibility: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              title: { type: "string" },
+              organisation: { type: "string" },
+              period_raw: { type: "string" },
+              bullets: { type: "array", items: { type: "string" } },
+            },
+            required: ["title", "organisation", "period_raw", "bullets"],
+            additionalProperties: false,
+          },
+        },
+        awards_and_scholarships: { type: "array", items: { type: "string" } },
+        certifications: { type: "array", items: { type: "string" } },
+        skills: { type: "array", items: { type: "string" } },
+        languages: { type: "array", items: { type: "string" } },
+        databases_mentioned: { type: "array", items: { type: "string" }, description: "SCC Online, Manupatra, Westlaw, etc." },
+        ai_or_tech_mentioned: { type: "array", items: { type: "string" }, description: "Harvey, GenAI, CLM, prompt engineering, etc." },
+        commercial_vocabulary_hits: { type: "array", items: { type: "string" }, description: "Verbatim phrases like 'commercial implications', 'deal economics', etc." },
+        other_sections_raw: { type: "string", description: "Anything notable that did not fit above (interests, declarations). Trim aggressively." },
+      },
+      required: ["identity", "structural_signals", "internships", "moots", "publications", "positions_of_responsibility", "awards_and_scholarships", "certifications", "skills", "languages", "databases_mentioned", "ai_or_tech_mentioned", "commercial_vocabulary_hits", "other_sections_raw"],
+      additionalProperties: false,
+    },
+  },
+};
 
 const SYSTEM_PROMPT = `You are the INDIAN LEGAL CV ANALYSER, calibrated to the 2026 market. You speak as the consensus of three veterans:
 
@@ -339,23 +464,9 @@ function bytesToBase64(bytes: Uint8Array): string {
   return btoa(binary);
 }
 
-async function callGemini(base64Pdf: string): Promise<{ analysis: any; usage: any }> {
+async function callGateway(body: any): Promise<any> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
-
-  const userContent: any[] = [
-    {
-      type: "file",
-      file: {
-        filename: "cv.pdf",
-        file_data: `data:application/pdf;base64,${base64Pdf}`,
-      },
-    },
-    {
-      type: "text",
-      text: "Analyse this CV under the Indian Legal Blueprint. Score against ALL THREE vectors (corporate, litigation, in-house) independently. Return via submit_cv_analysis. Brutally honest. Partner voice.",
-    },
-  ];
 
   const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
@@ -363,16 +474,7 @@ async function callGemini(base64Pdf: string): Promise<{ analysis: any; usage: an
       Authorization: `Bearer ${LOVABLE_API_KEY}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      model: MODEL,
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: userContent },
-      ],
-      tools: [TOOL],
-      tool_choice: { type: "function", function: { name: "submit_cv_analysis" } },
-      reasoning: { effort: "low" },
-    }),
+    body: JSON.stringify(body),
   });
 
   if (!response.ok) {
@@ -381,18 +483,57 @@ async function callGemini(base64Pdf: string): Promise<{ analysis: any; usage: an
     err.status = response.status;
     throw err;
   }
-  const data = await response.json();
+  return await response.json();
+}
+
+function parseToolCall(data: any, fnName: string): any {
   const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
   if (!toolCall?.function?.arguments) {
-    throw new Error("AI did not return a tool call");
+    throw new Error(`AI did not return a ${fnName} tool call`);
   }
-  let parsed: any;
   try {
-    parsed = JSON.parse(toolCall.function.arguments);
+    return JSON.parse(toolCall.function.arguments);
   } catch {
-    throw new Error("AI tool arguments were not valid JSON");
+    throw new Error(`AI ${fnName} arguments were not valid JSON`);
   }
-  return { analysis: parsed, usage: data.usage || {} };
+}
+
+// PASS 1: extract structured facts from the PDF using a fast model, no reasoning.
+async function extractFacts(base64Pdf: string): Promise<{ facts: any; usage: any }> {
+  const data = await callGateway({
+    model: EXTRACTION_MODEL,
+    messages: [
+      { role: "system", content: EXTRACTION_SYSTEM_PROMPT },
+      {
+        role: "user",
+        content: [
+          { type: "file", file: { filename: "cv.pdf", file_data: `data:application/pdf;base64,${base64Pdf}` } },
+          { type: "text", text: "Extract every fact from this CV via submit_cv_facts. Be exhaustive. Verbatim bullets." },
+        ],
+      },
+    ],
+    tools: [EXTRACTION_TOOL],
+    tool_choice: { type: "function", function: { name: "submit_cv_facts" } },
+  });
+  return { facts: parseToolCall(data, "submit_cv_facts"), usage: data.usage || {} };
+}
+
+// PASS 2: score the structured facts using a strong reasoning model on text only.
+async function scoreFromFacts(facts: any, effort: "high" | "medium" = "high"): Promise<{ analysis: any; usage: any }> {
+  const data = await callGateway({
+    model: SCORING_MODEL,
+    messages: [
+      { role: "system", content: SYSTEM_PROMPT },
+      {
+        role: "user",
+        content: `The following JSON is the verbatim, fully-extracted fact set from the candidate's CV (extracted by an upstream parser). Score this candidate against ALL THREE vectors under the Indian Legal Blueprint. Use ONLY these facts — do not invent additional information. Where a field is empty, treat it as genuinely absent. Return via submit_cv_analysis.\n\nCV_FACTS:\n${JSON.stringify(facts)}`,
+      },
+    ],
+    tools: [TOOL],
+    tool_choice: { type: "function", function: { name: "submit_cv_analysis" } },
+    reasoning: { effort },
+  });
+  return { analysis: parseToolCall(data, "submit_cv_analysis"), usage: data.usage || {} };
 }
 
 serve(async (req) => {
@@ -454,9 +595,40 @@ serve(async (req) => {
     }
     const base64 = bytesToBase64(arr);
 
-    let result;
+    let analysis: any;
+    let pass1_ms = 0;
+    let pass2_ms = 0;
+    let prompt_tokens = 0;
+    let completion_tokens = 0;
+    let pass2_effort: "high" | "medium" = "high";
+
     try {
-      result = await callGemini(base64);
+      // PASS 1 — extract facts (Flash, fast, no reasoning)
+      const t1 = Date.now();
+      const { facts, usage: u1 } = await extractFacts(base64);
+      pass1_ms = Date.now() - t1;
+      prompt_tokens += u1?.prompt_tokens ?? 0;
+      completion_tokens += u1?.completion_tokens ?? 0;
+
+      // PASS 2 — score from facts (Pro, high reasoning, text-only)
+      const t2 = Date.now();
+      let scored;
+      try {
+        scored = await scoreFromFacts(facts, "high");
+      } catch (e: any) {
+        // Graceful degradation: if pass 2 fails (e.g. timeout), retry once at medium effort.
+        if (e?.status && e.status !== 429 && e.status !== 402) {
+          console.warn("pass2 high failed, retrying at medium:", e?.message);
+          pass2_effort = "medium";
+          scored = await scoreFromFacts(facts, "medium");
+        } else {
+          throw e;
+        }
+      }
+      pass2_ms = Date.now() - t2;
+      prompt_tokens += scored.usage?.prompt_tokens ?? 0;
+      completion_tokens += scored.usage?.completion_tokens ?? 0;
+      analysis = scored.analysis;
     } catch (e: any) {
       if (e?.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment.", retryable: true }), {
@@ -471,8 +643,9 @@ serve(async (req) => {
       throw e;
     }
 
-    const { analysis, usage } = result;
     const duration_ms = Date.now() - start;
+    console.log(JSON.stringify({ event: "analyse_cv_ok", user_id: userId, pass1_ms, pass2_ms, total_ms: duration_ms, pass2_effort, prompt_tokens, completion_tokens }));
+    const usage = { prompt_tokens, completion_tokens };
 
     // Best-fit drives the headline overall_score that is persisted as the column value
     const bestFit: "corporate" | "litigation" | "in_house" = analysis?.best_fit_vector ?? "corporate";
