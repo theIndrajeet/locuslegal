@@ -115,9 +115,8 @@ const baseGuides: GuideMeta[] = [
     title: "How to Network as a Law Student in India",
     audience: "Students",
     stage: "Before You Apply",
-    readTime: "4 min",
-    sections: ["Why most law students network wrong", "LinkedIn vs in-person", "Reaching out to seniors", "Conference strategy", "Maintaining relationships"],
-    comingSoon: true,
+    readTime: "9 min",
+    sections: ["Why most law students network wrong", "The two-degree rule", "LinkedIn done properly", "Reaching out to seniors", "In-person: where students meet seniors", "The first conversation", "Maintaining relationships", "What to never do", "A 12-month networking plan"],
   },
   {
     slug: "practice-area-guide",
@@ -135,9 +134,8 @@ const baseGuides: GuideMeta[] = [
     title: "Bar Council Registration Guide for Final Year Students",
     audience: "Students",
     stage: "After It Ends",
-    readTime: "5 min",
-    sections: ["Eligibility requirements", "Documents checklist", "State Bar Council vs BCI", "Timeline", "Common errors"],
-    comingSoon: true,
+    readTime: "10 min",
+    sections: ["Why this matters and when to start", "The legal framework", "Eligibility — Section 24 in plain English", "Documents checklist", "Fees — what it actually costs", "SBC vs BCI vs AIBE timeline", "Picking the right State Bar Council", "Common mistakes that cost months", "What to do while you wait", "Post-enrolment: first 90 days"],
   },
   {
     slug: "evaluate-law-intern",
