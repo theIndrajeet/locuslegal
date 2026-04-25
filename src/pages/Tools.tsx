@@ -438,7 +438,7 @@ Make it jurisdiction-appropriate. Reference specific statutory provisions where 
   const downloadOutput = (tool: ToolType) => {
     const text = rawText[tool];
     if (!text) return;
-    const fname = { nda: "NDA_Agreement", checklist: "Data_Protection_Checklist", dpa: "Data_Processing_Addendum", internship: "Internship_Agreement" }[tool];
+    const fname = { nda: "NDA_Agreement", checklist: "Data_Protection_Checklist", dpa: "Data_Processing_Addendum", internship: "Internship_Agreement", freelancer: "Freelancer_Contract", tos: "Terms_of_Service" }[tool];
     const blob = new Blob([text], { type: "text/plain" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
