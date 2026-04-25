@@ -10,6 +10,7 @@ import {
   ArrowUpRight,
   Plus,
   Scale,
+  FileSearch,
 } from "lucide-react";
 import { TimelineContent, textVariants } from "@/components/ui/timeline-animation";
 
