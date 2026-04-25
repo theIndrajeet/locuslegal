@@ -105,20 +105,30 @@ const TOS_UGC = ["Yes — users post content publicly", "Yes — users share con
 const TOS_DISPUTE = ["Arbitration (binding)", "Courts of governing jurisdiction", "Mediation followed by arbitration"];
 const TOS_GOV_LAWS = ["India (DPDPA 2023 + IT Act, 2000)", "EU (GDPR)", "United States (Delaware / California)", "United Kingdom", "Singapore", "Australia"];
 
+function escapeHTML(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 function textToHTML(text: string) {
   const lines = text.split("\n");
   let html = '<div class="lt-doc-output">';
   for (const line of lines) {
     const t = line.trim();
     if (!t) { html += "<br/>"; continue; }
+    const safe = escapeHTML(t);
     if (t === t.toUpperCase() && t.length > 4 && !t.includes(".") && !t.startsWith("(")) {
-      html += `<h2>${t}</h2>`;
+      html += `<h2>${safe}</h2>`;
     } else if (t.match(/^\d+\.\s+[A-Z]/) && !t.match(/^\d+\.\d+/)) {
-      html += `<h3>${t}</h3>`;
+      html += `<h3>${safe}</h3>`;
     } else if (t.startsWith("DISCLAIMER")) {
-      html += `<p class="lt-disclaimer">${t}</p>`;
+      html += `<p class="lt-disclaimer">${safe}</p>`;
     } else {
-      html += `<p>${t}</p>`;
+      html += `<p>${safe}</p>`;
     }
   }
   html += "</div>";
