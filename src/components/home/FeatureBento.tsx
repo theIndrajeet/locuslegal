@@ -464,10 +464,11 @@ export default function FeatureBento() {
           <TheBarTile index={1} />
           <ExhibitATile index={2} />
           <PlaybookTile index={3} />
-          <ResourcesTile index={4} />
-          <ToolsTile index={5} />
-          <TrackerTile index={6} />
-          <ProfileTile index={7} />
+          <CvAnalyserTile index={4} />
+          <ResourcesTile index={5} />
+          <ToolsTile index={6} />
+          <TrackerTile index={7} />
+          <ProfileTile index={8} />
         </div>
       </div>
     </section>
