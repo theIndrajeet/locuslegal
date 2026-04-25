@@ -28,11 +28,19 @@ const MORPH_TEXTS = [
 
 // Lightweight component that mounts GooeyText only after idle on capable
 // devices. Keeps the gooey-text-morphing chunk out of the LCP critical path.
+type MorphProps = {
+  texts: string[];
+  morphTime?: number;
+  cooldownTime?: number;
+  startDelayMs?: number;
+  className?: string;
+  textClassName?: string;
+};
+
 function MorphingTagline() {
-  const [Component, setComponent] = useState<null | React.ComponentType<Record<string, unknown>>>(null);
+  const [Component, setComponent] = useState<null | React.ComponentType<MorphProps>>(null);
 
   useEffect(() => {
-    // Skip entirely on reduced-motion or low-memory devices.
     if (typeof window === "undefined") return;
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
     const nav = navigator as unknown as { deviceMemory?: number };
@@ -42,7 +50,7 @@ function MorphingTagline() {
     const load = () => {
       if (cancelled) return;
       import("@/components/ui/gooey-text-morphing").then((m) => {
-        if (!cancelled) setComponent(() => m.GooeyText as React.ComponentType<Record<string, unknown>>);
+        if (!cancelled) setComponent(() => m.GooeyText as React.ComponentType<MorphProps>);
       });
     };
     const ric = (window as unknown as {
