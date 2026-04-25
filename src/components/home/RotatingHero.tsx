@@ -3,13 +3,18 @@
  * (RainbowButton eyebrow + GooeyText morph headline + 3 audience CTAs)
  * over the new floating ShapeLandingBg background.
  */
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Building2, Target, FileText, LineChart } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { GooeyText } from "@/components/ui/gooey-text-morphing";
 import { RainbowButton } from "@/components/ui/rainbow-button";
 import ShapeLandingBg from "@/components/ui/shape-landing-bg";
+
+// Defer GooeyText (animation + SVG filter) so the static headline paints first.
+// This unblocks FCP/LCP — Lighthouse was waiting on the opacity-0 span inside it.
+const GooeyText = lazy(() =>
+  import("@/components/ui/gooey-text-morphing").then((m) => ({ default: m.GooeyText }))
+);
 
 const FEATURES = [
   { icon: Building2, label: "3,890+ Firms Directory" },
