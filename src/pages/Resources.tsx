@@ -111,11 +111,12 @@ const resources = [
   {
     title: "CV Analyser",
     description:
-      "Get AI-powered feedback on your legal CV — structure, keywords, formatting, and content suggestions.",
+      "Get AI-powered, partner-voice feedback on your legal CV — calibrated for Tier-1 firms, litigation chambers, and NLU placement standards.",
     icon: ScanSearch,
-    action: "Coming Soon",
-    comingSoon: true,
+    action: "Open Analyser",
+    comingSoon: false,
     hasPreview: false,
+    href: "/tools/cv-analyser",
   },
   {
     title: "Book Your Session",
