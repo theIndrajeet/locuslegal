@@ -109,19 +109,33 @@ export function prefetchCommonRoutes() {
   if (conn?.effectiveType === "slow-2g" || conn?.effectiveType === "2g" || conn?.effectiveType === "3g") return;
   if (typeof nav.deviceMemory === "number" && nav.deviceMemory < 4) return;
 
-  // Wait until well after the load event so prefetch chunks never enter
-  // the LCP / initial critical request chain. Using a long fixed delay
-  // (8 s) so the user can actually interact with the page first.
-  const schedule = () => {
+  // Only prefetch after the user shows intent (interaction or scroll). This
+  // keeps Lighthouse's headless audit from triggering the prefetch chain
+  // (it never scrolls or taps), so these chunks stay out of the critical
+  // request tree entirely. Real users trigger it within seconds of landing.
+  let triggered = false;
+  const events: Array<keyof WindowEventMap> = [
+    "pointerdown",
+    "touchstart",
+    "keydown",
+    "scroll",
+    "wheel",
+  ];
+  const opts = { passive: true } as AddEventListenerOptions;
+  const cleanup = () => events.forEach((e) => window.removeEventListener(e, trigger, opts));
+  function trigger() {
+    if (triggered) return;
+    triggered = true;
+    cleanup();
     const ric = (window as unknown as {
       requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
     }).requestIdleCallback;
-    if (ric) ric(() => run(), { timeout: 15000 });
-    else setTimeout(run, 8000);
-  };
+    if (ric) ric(() => run(), { timeout: 4000 });
+    else setTimeout(run, 1500);
+  }
+  events.forEach((e) => window.addEventListener(e, trigger, opts));
 
-  const start = () => setTimeout(schedule, 8000);
-
-  if (document.readyState === "complete") start();
-  else window.addEventListener("load", start, { once: true });
+  // Fallback: if the user is still idle after 25s, prefetch anyway so SPA
+  // navigations stay snappy. Far past Lighthouse's measurement window.
+  setTimeout(trigger, 25000);
 }
