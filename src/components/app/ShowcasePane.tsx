@@ -127,11 +127,29 @@ export default function ShowcasePane({
         </div>
       )}
 
+      {hasCv && (
+        <Link
+          to="/tools/cv-analyser"
+          className="mt-4 group flex items-center justify-between gap-2 border-2 border-accent/40 bg-accent/10 px-3 py-2 transition-colors hover:border-accent hover:bg-accent/20"
+        >
+          <div className="flex items-center gap-2 min-w-0">
+            <FileSearch size={14} className="shrink-0 text-accent" />
+            <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-accent">
+              Locus+
+            </span>
+            <span className="truncate text-[11px] text-foreground/80">
+              Score your CV across 3 vectors
+            </span>
+          </div>
+          <ArrowRight size={12} className="shrink-0 text-accent opacity-70 group-hover:opacity-100" />
+        </Link>
+      )}
+
       <Link
         to={`/u/${username}`}
         target="_blank"
         rel="noreferrer"
-        className="mt-4 inline-flex items-center justify-between border-2 border-border bg-muted/30 px-3 py-2 font-mono text-[11px] font-bold uppercase tracking-wider text-foreground hover:border-accent hover:text-accent transition-colors"
+        className="mt-3 inline-flex items-center justify-between border-2 border-border bg-muted/30 px-3 py-2 font-mono text-[11px] font-bold uppercase tracking-wider text-foreground hover:border-accent hover:text-accent transition-colors"
       >
         View public profile
         <ArrowRight size={14} />
