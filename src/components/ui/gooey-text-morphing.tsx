@@ -124,8 +124,8 @@ export function GooeyText({
 
   return (
     <div className={cn("relative inline-block", className)}>
-      {filterReady && (
-        <svg className="absolute h-0 w-0">
+      {animateReady && filterReady && (
+        <svg className="absolute h-0 w-0" aria-hidden="true">
           <defs>
             <filter id="gooey-text-threshold">
               <feColorMatrix
@@ -143,19 +143,37 @@ export function GooeyText({
 
       <div
         className="relative"
-        style={filterReady ? { filter: "url(#gooey-text-threshold)" } : undefined}
+        style={
+          animateReady && filterReady
+            ? { filter: "url(#gooey-text-threshold)" }
+            : undefined
+        }
       >
-        <span
-          ref={text1Ref}
-          className={cn("absolute inset-0", textClassName)}
-          style={{ opacity: "0%" }}
-        />
+        {/*
+          LCP-critical text: rendered visibly in normal flow on first paint,
+          at full opacity, with no absolute-positioned opacity:0 sibling.
+          Lighthouse picks this span as the LCP candidate and sees it painted
+          in frame 1.
+        */}
         <span
           ref={text2Ref}
           className={cn("inline-block", textClassName)}
         >
           {texts[0]}
         </span>
+        {/*
+          Hidden morph layer mounts only after the page is idle. Until then
+          there is no opacity:0 sibling for Lighthouse to flag as an LCP
+          render-delay culprit.
+        */}
+        {animateReady && (
+          <span
+            ref={text1Ref}
+            aria-hidden="true"
+            className={cn("absolute inset-0", textClassName)}
+            style={{ opacity: "0%" }}
+          />
+        )}
       </div>
     </div>
   );

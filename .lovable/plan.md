@@ -1,90 +1,70 @@
-# Mobile Performance: Real Fixes
+# Shipment 1 — Fix LCP `opacity: 0` on the rotating hero
 
-You're right that 86 mobile vs 99 desktop is a real gap, not a flake. Mobile CPUs amplify three things desktop hides: JS parse/compile time, paint/composite cost, and layout passes. After re-reading the codebase, here's what's actually still hurting mobile — and what I propose to fix.
+## Root cause (confirmed from Lighthouse report)
 
-## What's actually slowing mobile down
+The mobile LCP element is the `<span>` inside `GooeyText` with `style="opacity: 0"`:
 
-### 1. Supabase is still in the above-the-fold critical path
-Despite `Layout.tsx` lazy-importing supabase, **`Navbar.tsx` → `ProfileMenu.tsx`** statically imports:
-- `@/integrations/supabase/client` (pulls the 52 KB supabase chunk)
-- `sonner` (toast lib)
-- `@supabase/supabase-js` types
-- `useAdminRole` (which itself queries supabase)
+```
+"snippet": "<span class=\"absolute inset-0 text-accent ...\" style=\"opacity: 0;\">"
+"label": "Element render delay", "duration": 4535ms
+```
 
-Navbar mounts on every page including `/`, so the supabase chunk **is downloaded, parsed, and executed during the home page's critical render**, even though no anonymous visitor needs it. This is the single biggest mobile JS-parse hit.
+This is `text1Ref` — the *hidden* sibling used to crossfade between morph variants. It's rendered absolutely-positioned over `text2Ref` (which contains the actual visible first phrase). Because `text1Ref` shares the same bounding box and is the later-painted candidate of the two, Lighthouse picks **it** as the LCP node and waits for it to become visible — which never happens, hence the 4.5s render-delay penalty.
 
-### 2. The LCP heading is gated behind a lazy chunk + Suspense
-`RotatingHero` wraps `<GooeyText>` in `<Suspense>` with a fallback. On mobile, React renders the fallback, then re-renders when the chunk arrives — that's a second commit + paint cycle on the LCP element.
+The above-the-fold elements (eyebrow button, H1, feature grid, CTAs) also use `hero-fade-in` CSS keyframes that start at `opacity: 0`, contributing to the perceived delay even though they're not the LCP node themselves.
 
-### 3. Constant-running animations above the fold
-- `RainbowButton` runs 2 infinite `animate-rainbow` loops + a `blur()` pseudo-element. On mid-tier phones this is a permanent compositor task.
-- `ShapeLandingBg` paints 5 floating shapes with `backdrop-blur-[2px]` + a giant `blur-3xl` tint layer. Backdrop-blur is one of the most expensive things you can ask a mobile GPU to do, and it runs through the entire animation.
-- `GooeyText`'s `requestAnimationFrame` morph loop runs forever, mutating `style.filter = "blur(...)"` every frame on the LCP node.
+## Files to edit
 
-### 4. Idle prefetch can fire inside Lighthouse's measurement window
-`prefetchCommonRoutes` listens for `scroll`/`pointerdown`. Lighthouse mobile **does** scroll during its screenshot phase, which can trigger the prefetch chain (Directory + Playbook + Resources + Tools + TheBar) inside the trace, inflating "unused JS" and TBT.
+### 1. `src/components/ui/gooey-text-morphing.tsx`
 
-### 5. Two `useEffect → setState` gates run before first paint stabilizes
-Both `ShapeLandingBg` and `RotatingHero` mount with `visible: false`, then flip via `useEffect`. That forces an extra render/commit on every visit.
+- **Render `texts[0]` (text2Ref) at full opacity in normal flow on first paint.** No changes needed here — already correct.
+- **Do NOT mount `text1Ref` (the hidden absolute span) until `animateReady` is true.** Currently it mounts immediately at `opacity: 0%`, which is what Lighthouse flags. Wrap it in `{animateReady && (...)}`.
+- **Defer the SVG `<filter>` mount behind `animateReady` as well** so it only enters the DOM once we're ready to actually morph.
+- **Add `aria-hidden="true"` to the hidden morph span.**
 
----
+### 2. `src/components/home/RotatingHero.tsx`
 
-## Proposed changes
+Remove the `hero-fade-in` and `hero-fade-in-delay-{1,2,3}` classes from:
+- The `RainbowButton` eyebrow
+- The `<h1>` containing the LCP text
+- The features grid `<div>`
+- The CTA row `<div>`
 
-### A. Pull Supabase out of Navbar (biggest win)
-- **`Navbar.tsx`**: stop importing `ProfileMenu` and `useAdminRole` statically. Use `React.lazy` for `ProfileMenu`. Render a static `<UserCircle>` placeholder button that swaps in the real menu on first interaction or after the page is idle.
-- **`useAdminRole`**: only run after `ProfileMenu` mounts (it's the only consumer in the navbar).
-- Result: home page main bundle no longer pulls supabase or sonner. The ~52 KB `supabase` chunk + `sonner`'s ~8 KB stay deferred until the user clicks the avatar or goes idle.
+These elements will render at their final visual state on first paint. No fade-in animation on initial mount. (Subsequent variant transitions inside `GooeyText` continue to animate normally — only the *initial* paint is changed.)
 
-### B. Make the LCP heading a static string (no Suspense, no lazy)
-- Render the first morph phrase as plain text inside the `<h1>` immediately.
-- Mount `<GooeyText>` *replacing* that text only after the page is idle (`requestIdleCallback` or `setTimeout` 2.5 s) — no Suspense, no lazy boundary visible to React's first paint.
-- Result: LCP element is text, painted on the first commit, with zero JS dependency.
+Leave `hero-fade-in` keyframes in `src/index.css` untouched (still used by other places, harmless if unreferenced here).
 
-### C. Reduce paint cost above the fold
-- **`RainbowButton`**: gate the infinite `animate-rainbow` + blur on `prefers-reduced-motion` AND on a one-time `requestIdleCallback` flag — render a static yellow button for the first ~1.5s, then enable the animation. Visual outcome on slow devices: no animation. On fast devices: indistinguishable from now.
-- **`ShapeLandingBg`**:
-  - Remove `backdrop-blur-[2px]` from the shapes (they sit on a dark background; the blur is invisible).
-  - Replace `blur-3xl` tint with a static `radial-gradient` background — same look, no compositor layer.
-  - Render shapes only after `requestIdleCallback` so they're not in the first paint at all. They're decorative.
-- **`GooeyText`**: when the tab is hidden OR `prefers-reduced-motion` is set, never start the rAF loop. Already partial — make it stricter.
+### 3. `vite.config.ts`
 
-### D. Gate the idle prefetcher tighter
-- Remove `scroll` and `wheel` from the trigger event list. Keep `pointerdown`/`touchstart`/`keydown` only — Lighthouse doesn't tap, but it does scroll.
-- Bump the unconditional fallback from 25 s to 60 s. Real users navigate within seconds of *interacting*; Lighthouse never interacts.
+Add explicit minification flags inside the existing `build:` block (currently only `rollupOptions` is set):
 
-### E. Collapse the double-render gate
-- `RotatingHero`'s `visible` flag controls only the entrance transitions. Initialize it to `true` when `prefers-reduced-motion` is set; otherwise apply CSS-only entry animations (keyframes with `animation-delay`) instead of `useEffect → setState`. One render, one commit.
-- Same treatment for `ShapeLandingBg`'s `visible` flag.
+```ts
+build: {
+  minify: "esbuild",   // explicit (esbuild is the default but pinning is safer)
+  cssMinify: true,     // explicit
+  sourcemap: false,    // don't ship .map files to production
+  rollupOptions: { ... }  // unchanged
+}
+```
 
-### F. Minor: drop the rainbow blur pseudo-element entirely on mobile
-The `before:filter:blur(0.8rem)` glow under RainbowButton is invisible at small sizes anyway — guard it behind a `md:` breakpoint.
+## What this does NOT touch (per instructions)
 
----
+- ❌ No Supabase / lazy-load work
+- ❌ No `src/lib/prefetch.ts` changes
+- ❌ No visual design changes (final rendered state is identical — only the entry animation is removed)
+- ❌ No changes to `Layout.tsx`, `Navbar.tsx`, `ShapeLandingBg.tsx`, `RainbowButton.tsx`, etc.
+- ❌ No changes to fonts, `index.html`, or CSS beyond the class removals above
+- ❌ Dead-code `src/components/Hero.tsx` left alone (not imported anywhere — confirmed via ripgrep)
+- ❌ No `HeroAngle.tsx` exists in this project (confirmed)
 
-## Files I'll touch
+## Expected outcome
 
-- `src/components/Navbar.tsx` — lazy ProfileMenu, defer admin check
-- `src/components/ProfileMenu.tsx` — split a tiny placeholder out
-- `src/components/home/RotatingHero.tsx` — drop Suspense, mount GooeyText on idle, CSS-only entry
-- `src/components/ui/gooey-text-morphing.tsx` — honor reduced-motion, never start loop on hidden tabs
-- `src/components/ui/shape-landing-bg.tsx` — drop backdrop-blur, swap blur-3xl for static radial, idle-mount
-- `src/components/ui/rainbow-button.tsx` — gate animation behind idle flag + md: breakpoint for the glow
-- `src/lib/prefetch.ts` — tighten triggers, lengthen fallback
-- `src/index.css` — small `@keyframes` for CSS-only hero entry animations
+- LCP element (`<h1>` text) paints in frame 1 at opacity 1
+- Lighthouse no longer sees an `opacity: 0` sibling competing for LCP candidacy
+- "Element render delay" subpart should drop from ~4.5s to near-zero
+- Mobile LCP estimated to fall from 3.3s → ~1.0–1.5s
+- Mobile performance score expected to land in the 90+ range
 
-## Expected impact
+## After deploy
 
-- **Main JS bundle**: ~169 KB → ~110-120 KB (Supabase chunk + sonner removed from critical path).
-- **LCP element**: paints on first commit instead of waiting for `gooey-text-morphing` chunk and a second render.
-- **Mobile TBT (Total Blocking Time)**: should drop noticeably from removing the rAF morph loop + backdrop-blur layers from the initial render.
-- **Realistic mobile target**: 92-96. Hitting 99 mobile on Lighthouse's 4× CPU throttle with any meaningful JS app is genuinely hard — the 86 → 92+ jump is the achievable win.
-
-## What I am NOT doing (and why)
-
-- **Critical CSS inlining**: still requires a Vite plugin (e.g. `beasties`), changes the build pipeline, and risks FOUC. Save for later if needed.
-- **Service worker**: high complexity, easy to ship stale-content bugs.
-- **Removing framer-motion entirely**: already done for the home page; it's only loaded on routes that explicitly use it.
-- **Cache-Control headers**: still a Lovable platform concern, not fixable in code.
-
-If you approve, I'll implement A–F in one pass and you can re-publish to measure.
+Stop. Run mobile Lighthouse 3× on `https://locus.legal`. Report median FCP, LCP, TBT, and overall performance score. Do not proceed to any further optimization work without explicit approval.
