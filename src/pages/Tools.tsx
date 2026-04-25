@@ -223,6 +223,39 @@ export default function Tools() {
   const [iaDays, setIaDays] = useState(IA_DAYS[0]);
   const [iaCert, setIaCert] = useState(IA_CERTS[0]);
 
+  // Freelancer state
+  const [flClientName, setFlClientName] = useState("");
+  const [flClientType, setFlClientType] = useState(ENTITY_TYPES[0]);
+  const [flFreelancerName, setFlFreelancerName] = useState("");
+  const [flServiceType, setFlServiceType] = useState(FL_SERVICE_TYPES[0]);
+  const [flScope, setFlScope] = useState("");
+  const [flDeliverables, setFlDeliverables] = useState("");
+  const [flStart, setFlStart] = useState("");
+  const [flEnd, setFlEnd] = useState("");
+  const [flFeeType, setFlFeeType] = useState(FL_FEE_TYPES[0]);
+  const [flFeeAmount, setFlFeeAmount] = useState("");
+  const [flPaymentTerms, setFlPaymentTerms] = useState(FL_PAYMENT_TERMS[0]);
+  const [flIp, setFlIp] = useState(FL_IP_OWNERSHIP[0]);
+  const [flLiability, setFlLiability] = useState(FL_LIABILITY[0]);
+  const [flTermination, setFlTermination] = useState(FL_TERMINATION[2]);
+  const [flGovLaw, setFlGovLaw] = useState(FL_GOV_LAWS[0]);
+  const [flNotes, setFlNotes] = useState("");
+
+  // ToS state
+  const [tosCompany, setTosCompany] = useState("");
+  const [tosWebsite, setTosWebsite] = useState("");
+  const [tosServiceType, setTosServiceType] = useState(TOS_SERVICE_TYPES[0]);
+  const [tosDescription, setTosDescription] = useState("");
+  const [tosUserType, setTosUserType] = useState(TOS_USER_TYPES[0]);
+  const [tosAge, setTosAge] = useState(TOS_AGE[2]);
+  const [tosPayment, setTosPayment] = useState(TOS_PAYMENT[0]);
+  const [tosRefund, setTosRefund] = useState(TOS_REFUND[0]);
+  const [tosUgc, setTosUgc] = useState(TOS_UGC[2]);
+  const [tosDispute, setTosDispute] = useState(TOS_DISPUTE[0]);
+  const [tosGovLaw, setTosGovLaw] = useState(TOS_GOV_LAWS[0]);
+  const [tosCompliance, setTosCompliance] = useState<string[]>(["DPDPA 2023"]);
+  const [tosNotes, setTosNotes] = useState("");
+
   const callAI = useCallback(async (prompt: string): Promise<string> => {
     const { data, error } = await supabase.functions.invoke("chat-legal", {
       body: { prompt },
