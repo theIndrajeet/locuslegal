@@ -12,6 +12,7 @@ import Resources from "./pages/Resources";
 import Playbook from "./pages/Playbook";
 import PlaybookGuide from "./pages/PlaybookGuide";
 import Tools from "./pages/Tools";
+import CvAnalyser from "./pages/CvAnalyser";
 import TheBar from "./pages/TheBar";
 import AppHome from "./pages/AppHome";
 import TheBarPreview from "./pages/TheBarPreview";
