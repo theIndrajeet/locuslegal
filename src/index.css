@@ -286,24 +286,31 @@ html {
 .locus-plus .lp-scroll::-webkit-scrollbar-track { background: transparent; }
 
 /* ============================================================
-   Playbook reader prose — editorial longform
-   Foundation first: generous space, real hierarchy, restrained accent.
+   Playbook reader prose — Editorial Magazine Treatment
+   Instrument Serif for display, Sora tracked for labels,
+   five-color semantic palette.
    ============================================================ */
 .playbook-prose {
+  /* Editorial color palette — scoped strictly to .playbook-prose */
+  --prose-anchor: 211 56% 71%;     /* sky blue — structural anchors, italics */
+  --prose-positive: 145 35% 62%;   /* sage green — what works, tips */
+  --prose-warning: 6 75% 70%;      /* rose/coral — what kills, warnings */
+  --prose-emphasis: 45 100% 51%;   /* yellow — strong, lead, code chips */
+
   color: hsl(var(--foreground) / 0.82);
-  font-size: 1.0625rem;       /* 17px — slightly tighter for density */
+  font-size: 1.0625rem;
   line-height: 1.75;
   font-weight: 400;
   letter-spacing: -0.003em;
 }
 
-/* H2 — major section break, pure white anchor */
+/* H2 — Instrument Serif upright. Major section break. */
 .playbook-prose h2 {
-  font-family: 'Sora', ui-sans-serif, system-ui, sans-serif;
-  font-size: 1.875rem;
-  font-weight: 700;
-  line-height: 1.2;
-  letter-spacing: -0.022em;
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-size: 2.5rem;
+  font-weight: 400;
+  line-height: 1.1;
+  letter-spacing: -0.015em;
   color: hsl(var(--foreground));
   margin-top: 3.5rem;
   margin-bottom: 1.25rem;
@@ -311,26 +318,43 @@ html {
 }
 .playbook-prose h2:first-child {
   margin-top: 0;
+  font-style: italic;
+  font-size: 2.875rem;
+  letter-spacing: -0.02em;
 }
 
-/* Editorial two-tone: soft sky blue for structural references / citations.
-   Scoped strictly to .playbook-prose — does not leak to marketing site. */
-.playbook-prose {
-  --prose-anchor: 211 56% 71%; /* #8AB8E0 — chalk-on-blackboard sky blue */
+/* Eyebrow label rendered before each H2 (except the first) via the custom
+   MDX h2 component. Styled as tracked uppercase Sora. */
+.playbook-prose .prose-eyebrow {
+  display: block;
+  font-family: 'Sora', ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: hsl(var(--prose-emphasis));
+  margin-top: 3.5rem;
+  margin-bottom: 0.5rem;
+}
+.playbook-prose .prose-eyebrow + h2 {
+  margin-top: 0;
 }
 
-/* H3 — soft sky blue, smaller. Structural sub-heading. */
+/* H3 — Sora tracked uppercase label. Color may be overridden by variant class. */
 .playbook-prose h3 {
   font-family: 'Sora', ui-sans-serif, system-ui, sans-serif;
-  font-size: 1.125rem;
-  font-weight: 600;
-  line-height: 1.35;
-  letter-spacing: -0.005em;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.4;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
   color: hsl(var(--prose-anchor));
-  margin-top: 2.25rem;
-  margin-bottom: 0.75rem;
+  margin-top: 2.5rem;
+  margin-bottom: 1rem;
   scroll-margin-top: 6rem;
 }
+.playbook-prose h3.prose-h3-positive { color: hsl(var(--prose-positive)); }
+.playbook-prose h3.prose-h3-warning { color: hsl(var(--prose-warning)); }
 
 /* H4 — small caps mono label, muted */
 .playbook-prose h4 {
@@ -349,20 +373,21 @@ html {
   margin-bottom: 1.5rem;
 }
 
-/* Lead paragraph — first paragraph after the opening H2: soft off-white italic deck */
+/* Lead paragraph — first paragraph after opening H2: large yellow italic deck */
 .playbook-prose > h2:first-child + p {
-  font-size: 1.25rem;
-  line-height: 1.55;
-  color: hsl(var(--foreground) / 0.95);
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-size: 1.625rem;
+  line-height: 1.4;
+  color: hsl(var(--prose-emphasis));
   font-style: italic;
   font-weight: 400;
-  letter-spacing: -0.008em;
+  letter-spacing: -0.01em;
   margin-bottom: 2.25rem;
 }
 
 /* Strong — yellow accent for scannable hits of color through body text */
 .playbook-prose strong {
-  color: hsl(var(--accent));
+  color: hsl(var(--prose-emphasis));
   font-weight: 600;
 }
 
@@ -417,14 +442,15 @@ html {
 .playbook-prose .keypoints-list > li { padding-left: 0; margin-bottom: 0; }
 .playbook-prose .keypoints-list > li::before { display: none; content: none; }
 
-/* Inline code */
+/* Inline code — yellow-tinted chip */
 .playbook-prose code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.875em;
-  background: hsl(var(--muted));
-  color: hsl(var(--foreground));
-  padding: 0.125rem 0.375rem;
+  background: hsl(var(--prose-emphasis) / 0.14);
+  color: hsl(var(--prose-emphasis));
+  padding: 0.125rem 0.4rem;
   border-radius: 0.25rem;
+  border: 1px solid hsl(var(--prose-emphasis) / 0.22);
 }
 
 /* Links — confident underline, accent on hover */

@@ -3,11 +3,16 @@ import type { ReactNode } from "react";
 
 type CalloutType = "rule" | "warning" | "tip" | "info";
 
-const styles: Record<CalloutType, { icon: typeof Info; cls: string; label: string }> = {
-  rule: { icon: Scale, cls: "border-accent/60 bg-accent/5 text-foreground", label: "Rule" },
-  warning: { icon: AlertTriangle, cls: "border-destructive/50 bg-destructive/5 text-foreground", label: "Watch out" },
-  tip: { icon: Lightbulb, cls: "border-emerald-500/40 bg-emerald-500/5 text-foreground", label: "Tip" },
-  info: { icon: Info, cls: "border-border bg-muted/30 text-foreground", label: "Note" },
+/* Each variant maps to one of the prose semantic tokens defined in
+   .playbook-prose (--prose-anchor / -positive / -warning / -emphasis). */
+const variants: Record<
+  CalloutType,
+  { icon: typeof Info; token: string; label: string }
+> = {
+  rule: { icon: Scale, token: "--prose-anchor", label: "Rule" },
+  tip: { icon: Lightbulb, token: "--prose-positive", label: "Tip" },
+  warning: { icon: AlertTriangle, token: "--prose-warning", label: "Watch out" },
+  info: { icon: Info, token: "--prose-emphasis", label: "Note" },
 };
 
 export function Callout({
@@ -19,17 +24,27 @@ export function Callout({
   title?: string;
   children: ReactNode;
 }) {
-  const s = styles[type];
-  const Icon = s.icon;
+  const v = variants[type];
+  const Icon = v.icon;
+  const tint = `hsl(var(${v.token}))`;
   return (
-    <div className={`my-6 rounded-lg border-2 p-5 ${s.cls}`}>
+    <div
+      className="my-6 rounded-lg border-l-[3px] p-5"
+      style={{
+        borderLeftColor: tint,
+        background: `hsl(var(${v.token}) / 0.07)`,
+      }}
+    >
       <div className="flex items-center gap-2 mb-2">
-        <Icon size={16} className="text-accent" />
-        <span className="text-xs font-bold uppercase tracking-wider">
-          {title || s.label}
+        <Icon size={14} style={{ color: tint }} />
+        <span
+          className="text-[11px] font-bold uppercase tracking-[0.16em] font-sora"
+          style={{ color: tint }}
+        >
+          {title || v.label}
         </span>
       </div>
-      <div className="text-sm leading-relaxed [&>p]:mb-2 [&>p:last-child]:mb-0">
+      <div className="text-[0.95rem] leading-relaxed text-foreground/88 [&>p]:mb-2 [&>p:last-child]:mb-0">
         {children}
       </div>
     </div>
