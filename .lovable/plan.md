@@ -1,19 +1,52 @@
-## Problem
+## Goal
 
-At 390px (mobile), the IdentityRow squeezes 4 elements into one row:
-`[Avatar] [Name + @handle] [● OPEN pill] [VIEW PUBLIC PROFILE ↗]`
+Figure out **why the site feels slow on mobile** before migrating hosting. If Lovable is genuinely the bottleneck, we migrate. If it's bundle size / queries / render work, Netlify won't help and we fix the root cause instead — saving you the migration overhead (Git deploys, env vars, DNS, two deploy targets to keep in sync).
 
-Result: the row wraps, the OPEN pill ends up on a second line next to a stranded "VIEW PUBLIC PROFILE" link, and the name gets truncated to "ad…". It looks broken.
+## Step 1 — Measure the real production site
 
-## Fix
+Run a full performance profile against `https://locus.legal` (not the preview URL) using:
 
-In `src/components/app/IdentityRow.tsx`:
+- **`browser--performance_profile`** — Web Vitals, resource timing, long tasks, DOM complexity on mobile-emulated viewport
+- **`browser--start_profiling` → reload → `browser--stop_profiling`** — actual JS execution traces, slowest functions, main-thread blocking
+- **`browser--list_network_requests`** — see exactly what's loading, sizes, TTFB per asset, and whether Lovable's CDN is the bottleneck
+- Compare cold load vs warm load (cache effectiveness)
 
-1. **Collapse "View public profile" to an icon-only button on mobile** — show just the `ExternalLink` icon (with `aria-label` + `title="View public profile"` for a11y). Expand to the full text label only at `sm:` and above.
-2. **Add `shrink-0`** to the avatar, OPEN pill, and profile-link button so they never get squeezed.
-3. **Remove `flex-wrap`** from the row — with the icon-only profile link, everything fits cleanly on one line at 390px without wrapping.
-4. **Keep the name block as `flex-1 min-w-0 truncate`** so the name is the only element that gracefully truncates if the display name is very long.
+This tells us conclusively: is the slowness from (a) hosting/CDN, (b) JS bundle execution, (c) Supabase query latency, or (d) third-party scripts.
 
-Net effect at 390px: `[AV] [adminmadam @adminmadam] [● OPEN] [↗]` — single line, no truncation of the username, OPEN pill stays inline.
+## Step 2 — Categorise findings
 
-No other files affected. No design-system or behavior changes.
+Based on what the profile shows, slowness falls into one of three buckets:
+
+**Bucket A — Hosting/CDN is genuinely slow** (high TTFB on static assets, slow asset delivery from edge)
+→ Migrating to Netlify is justified. Proceed with mirror setup (see Step 3a).
+
+**Bucket B — Bundle/render work is the bottleneck** (long JS tasks, large main bundle parse time, expensive re-renders)
+→ Netlify won't fix this. Real fixes: split the main 216 KB chunk further, defer non-critical Radix components, audit `useEffect` chains on mobile.
+
+**Bucket C — Supabase query latency** (slow data loads on `/app`, `/the-bar`, etc.)
+→ Netlify won't fix this either (same backend). Real fixes: add indexes, reduce N+1 queries, possibly upsize the Lovable Cloud instance via Backend → Advanced settings.
+
+## Step 3 — Act on the diagnosis
+
+**3a. If migrating to Netlify is the right call:**
+- Add `public/_redirects` with `/* /index.html 200` (Lovable ignores this file, so it's safe to add now — won't affect current hosting)
+- Add `netlify.toml` with sensible cache headers (`Cache-Control: public, max-age=31536000, immutable` on `/assets/*`) — this also fixes the "efficient cache lifetime" SEO audit you've been hitting
+- Document env vars needed in Netlify: `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_SUPABASE_PROJECT_ID`
+- You add the Netlify URL to Supabase Redirect URLs allowlist (1-min UI step on your end)
+- Mirror first — leave `locus.legal` on Lovable. Compare the two side-by-side before migrating DNS.
+
+**3b. If the bottleneck is bundle/render or queries:**
+- Present a targeted optimization plan based on what the profiler actually finds
+- No hosting migration needed
+
+## What I'll deliver
+
+A concrete diagnosis (with numbers) of where the mobile slowness actually comes from, and either:
+- A safe Netlify mirror setup that lets you A/B compare hosting performance without risk, OR
+- A targeted code/query fix list that addresses the real bottleneck.
+
+## What I won't do without confirmation
+
+- Touch DNS or change the Site URL in Supabase auth config
+- Remove Lovable hosting until you've verified Netlify is actually faster on the same site
+- Make sweeping bundle changes that risk UX regressions
