@@ -62,6 +62,13 @@ export function GooeyText({
     };
 
     function animate() {
+      if (document.hidden) {
+        // Pause work entirely while the tab is in the background — this was
+        // the main cause of "everything is laggy when I come back to the tab".
+        animationId = requestAnimationFrame(animate);
+        time = new Date();
+        return;
+      }
       animationId = requestAnimationFrame(animate);
       const newTime = new Date();
       const shouldIncrementIndex = cooldown > 0;

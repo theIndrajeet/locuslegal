@@ -78,16 +78,25 @@ const COMMON_KEYS: Array<keyof typeof routeImports> = [
 ];
 
 export function prefetchCommonRoutes() {
-  const run = () => {
-    COMMON_KEYS.forEach((key) => {
-      if (fired.has(key)) return;
-      fired.add(key);
-      routeImports[key]().catch(() => fired.delete(key));
-    });
-  };
   if (typeof window === "undefined") return;
-  const ric = (window as unknown as { requestIdleCallback?: (cb: () => void) => number })
+
+  // Run sequentially so we don't compete with the current page's API calls.
+  const run = async () => {
+    for (const key of COMMON_KEYS) {
+      if (fired.has(key)) continue;
+      fired.add(key);
+      try {
+        await routeImports[key]();
+      } catch {
+        fired.delete(key);
+      }
+      // Yield between chunks so the main thread stays responsive.
+      await new Promise((r) => setTimeout(r, 250));
+    }
+  };
+
+  const ric = (window as unknown as { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number })
     .requestIdleCallback;
-  if (ric) ric(run);
-  else setTimeout(run, 1500);
+  if (ric) ric(() => run(), { timeout: 4000 });
+  else setTimeout(run, 3000);
 }
