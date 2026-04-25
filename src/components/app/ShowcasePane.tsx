@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { ArrowRight, Check } from "lucide-react";
+import { ArrowRight, Check, FileSearch } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
