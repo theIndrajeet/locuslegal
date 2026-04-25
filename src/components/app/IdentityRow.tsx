@@ -76,17 +76,19 @@ export default function IdentityRow({
           type="button"
           onClick={toggleOTO}
           disabled={saving}
-          className={`inline-flex items-center gap-2 border-2 px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-wider transition-colors ${
+          title={oto ? "Open to opportunities — click to turn off" : "Not seeking — click to mark as open"}
+          className={`inline-flex items-center gap-1.5 border-2 px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-wider transition-colors ${
             oto
               ? "border-accent bg-accent/10 text-accent"
               : "border-border bg-muted/30 text-muted-foreground hover:text-foreground"
           }`}
           aria-pressed={oto}
+          aria-label={oto ? "Open to opportunities" : "Not seeking opportunities"}
         >
           <span
             className={`h-1.5 w-1.5 rounded-full ${oto ? "bg-accent" : "bg-muted-foreground"}`}
           />
-          {oto ? "Open to opportunities" : "Not seeking"}
+          {oto ? "Open" : "Closed"}
         </button>
 
         <Link
