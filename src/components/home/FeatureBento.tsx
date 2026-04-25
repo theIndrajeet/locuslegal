@@ -109,11 +109,11 @@ function DirectoryTile({ index }: { index: number }) {
         arrowClass="text-black/60 group-hover:text-black"
       />
 
-      {/* Faux India silhouette */}
-      <div className="relative my-3 flex flex-1 items-center justify-center">
+      {/* Faux India silhouette — flex middle, scales with tile */}
+      <div className="relative my-4 flex min-h-[140px] flex-1 items-center justify-center overflow-hidden">
         <svg
           viewBox="0 0 200 220"
-          className="h-full max-h-[180px] w-auto opacity-90"
+          className="h-full max-h-[220px] w-auto opacity-90"
           aria-hidden
         >
           <path
@@ -137,11 +137,11 @@ function DirectoryTile({ index }: { index: number }) {
         </svg>
       </div>
 
-      <div>
-        <div className="font-heading text-[64px] md:text-[80px] font-black leading-none tracking-tight">
+      <div className="mt-4 shrink-0">
+        <div className="font-heading text-[clamp(40px,7vw,72px)] font-black leading-none tracking-tight">
           3,890
         </div>
-        <div className="mt-1 text-sm font-bold uppercase tracking-wider opacity-80">
+        <div className="mt-2 text-xs font-bold uppercase tracking-wider opacity-80 sm:text-sm">
           firms · 28 cities · updated daily
         </div>
         <h3 className="font-heading mt-3 text-2xl font-extrabold">Directory</h3>
@@ -169,11 +169,10 @@ function TheBarTile({ index }: { index: number }) {
         arrowClass="text-white/50 group-hover:text-accent"
       />
 
-      <div className="relative my-4 flex-1">
-        {/* Floating + badges */}
-        <Plus className="absolute -top-1 right-2 h-5 w-5 text-accent opacity-80" strokeWidth={3} />
-        <Plus className="absolute top-1/3 right-10 h-3 w-3 text-accent opacity-60" strokeWidth={3} />
-        <Plus className="absolute bottom-2 right-6 h-4 w-4 text-accent opacity-70" strokeWidth={3} />
+      <div className="relative my-4 min-h-[150px] flex-1 overflow-hidden">
+        {/* Floating + badges — contained */}
+        <Plus className="absolute right-2 top-1 h-4 w-4 text-accent opacity-70" strokeWidth={3} />
+        <Plus className="absolute right-10 top-1/3 h-3 w-3 text-accent opacity-50" strokeWidth={3} />
 
         <ul className="space-y-2">
           {rows.map((r) => (
@@ -193,7 +192,7 @@ function TheBarTile({ index }: { index: number }) {
         </ul>
       </div>
 
-      <div>
+      <div className="mt-4 shrink-0">
         <h3 className="font-heading text-2xl font-extrabold text-white">The Bar</h3>
         <p className="mt-1 text-sm text-white/70">
           Daily skill challenges. Climb the leaderboard. Prove yourself on merit.
@@ -207,18 +206,18 @@ function PlaybookTile({ index }: { index: number }) {
   return (
     <TileShell to="/playbook" bg="dark" index={index} className="md:col-span-2">
       <TileHeader Icon={BookOpen} />
-      <div className="relative my-2 h-12 flex-shrink-0">
-        {/* Stacked case-file papers */}
-        <div className="absolute left-0 right-0 top-2 h-10 -rotate-2 rounded border-2 border-foreground bg-background/60" />
-        <div className="absolute left-2 right-2 top-1 h-10 rotate-1 rounded border-2 border-foreground bg-card" />
-        <div className="absolute left-4 right-4 top-0 h-10 rounded border-2 border-foreground bg-accent/15 px-2.5 py-1.5">
+      <div className="relative my-4 min-h-[72px] flex-1 overflow-hidden">
+        {/* Stacked case-file papers — fully inside bounds */}
+        <div className="absolute inset-x-0 top-3 h-12 -rotate-2 rounded border-2 border-foreground bg-background/60" />
+        <div className="absolute inset-x-2 top-1.5 h-12 rotate-1 rounded border-2 border-foreground bg-card" />
+        <div className="absolute inset-x-4 top-0 h-12 rounded border-2 border-foreground bg-accent/15 px-2.5 py-1.5">
           <div className="font-mono text-[10px] font-bold uppercase tracking-wider text-accent">
             LX-001 · Cold Email
           </div>
           <div className="mt-1 h-1 w-3/4 rounded bg-foreground/30" />
         </div>
       </div>
-      <div className="mt-auto">
+      <div className="mt-4 shrink-0">
         <h3 className="font-heading text-xl font-extrabold">Playbook</h3>
         <p className="mt-1 text-sm text-foreground/70">
           Field-tested guides for cold emails, interviews, and your first internship.
@@ -236,22 +235,22 @@ function ResourcesTile({ index }: { index: number }) {
         iconClass="bg-black/5 border-black/20 text-black"
         arrowClass="text-black/50 group-hover:text-black"
       />
-      <div className="relative flex-1 min-h-0">
-        {/* Faux PDF peeking */}
-        <div className="absolute bottom-0 right-0 h-16 w-12 rotate-6 rounded border-2 border-black bg-white shadow-[3px_3px_0_0_#000] p-1.5">
-          <div className="h-1 w-3/4 rounded bg-black/70" />
-          <div className="mt-1 h-1 w-full rounded bg-black/30" />
-          <div className="mt-1 h-1 w-2/3 rounded bg-black/30" />
-          <div className="mt-2 h-1 w-1/2 rounded bg-accent" />
-        </div>
-        <div className="font-heading text-[44px] font-black leading-none tracking-tight text-black">
+      <div className="relative my-3 min-h-[80px] flex-1 overflow-hidden">
+        <div className="font-heading text-[clamp(36px,6vw,52px)] font-black leading-none tracking-tight text-black">
           8
         </div>
         <div className="mt-1 text-[10px] font-bold uppercase tracking-wider text-black/60">
           templates
         </div>
+        {/* Faux PDF peeking — inside tile bounds */}
+        <div className="absolute bottom-1 right-1 h-14 w-11 rotate-6 rounded border-2 border-black bg-white p-1.5 shadow-[3px_3px_0_0_#000]">
+          <div className="h-1 w-3/4 rounded bg-black/70" />
+          <div className="mt-1 h-1 w-full rounded bg-black/30" />
+          <div className="mt-1 h-1 w-2/3 rounded bg-black/30" />
+          <div className="mt-2 h-1 w-1/2 rounded bg-accent" />
+        </div>
       </div>
-      <div className="mt-2">
+      <div className="mt-3 shrink-0">
         <h3 className="font-heading text-lg font-extrabold text-black">Resources</h3>
       </div>
     </TileShell>
@@ -262,15 +261,15 @@ function ToolsTile({ index }: { index: number }) {
   return (
     <TileShell to="/tools" bg="dark" texture="stripes" index={index} className="md:col-span-1">
       <TileHeader Icon={Wrench} />
-      <div className="my-2 flex-1 min-h-0">
-        <div className="font-heading text-[44px] font-black leading-none tracking-tight text-foreground">
+      <div className="my-3 min-h-[80px] flex-1 overflow-hidden">
+        <div className="font-heading text-[clamp(36px,6vw,52px)] font-black leading-none tracking-tight text-foreground">
           10
         </div>
         <div className="mt-1 text-[10px] font-bold uppercase tracking-wider text-accent">
           legal tools
         </div>
       </div>
-      <div className="mt-auto">
+      <div className="mt-3 shrink-0">
         <h3 className="font-heading text-lg font-extrabold">Tools</h3>
         <p className="mt-1 text-xs text-foreground/60">NDA · DPA · Contracts</p>
       </div>
@@ -282,11 +281,11 @@ function TrackerTile({ index }: { index: number }) {
   return (
     <TileShell to="/applications" bg="dark" index={index} className="md:col-span-2">
       <TileHeader Icon={ListChecks} />
-      <div className="my-3 space-y-2">
+      <div className="my-4 min-h-[60px] flex-1 space-y-3 overflow-hidden">
         <div className="h-2 w-full overflow-hidden rounded-full bg-foreground/10">
           <div className="h-full w-[68%] rounded-full bg-accent transition-all duration-700 group-hover:w-[82%]" />
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <span className="rounded-full border border-foreground/20 bg-foreground/5 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-foreground/70">
             Applied 12
           </span>
@@ -298,7 +297,7 @@ function TrackerTile({ index }: { index: number }) {
           </span>
         </div>
       </div>
-      <div>
+      <div className="mt-4 shrink-0">
         <h3 className="font-heading text-xl font-extrabold">Tracker</h3>
         <p className="mt-1 text-sm text-foreground/70">
           Log every application. Get nudged on stale follow-ups.
@@ -312,23 +311,25 @@ function ProfileTile({ index }: { index: number }) {
   return (
     <TileShell to="/profile/edit" bg="dark" texture="dots" index={index} className="md:col-span-2">
       <TileHeader Icon={UserCircle2} />
-      <div className="my-3 flex items-center gap-2.5 rounded-lg border-2 border-foreground/15 bg-background/60 p-2.5">
-        <div className="font-heading flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border-2 border-foreground bg-accent text-sm font-black text-accent-foreground">
-          RK
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="font-heading text-sm font-extrabold">riya.k</div>
-          <div className="mt-1 flex flex-wrap gap-1.5">
-            <span className="rounded border border-accent/40 bg-accent/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-accent">
-              Top 5%
-            </span>
-            <span className="rounded border border-foreground/20 bg-foreground/5 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-foreground/70">
-              12 internships
-            </span>
+      <div className="my-4 min-h-[64px] flex-1 overflow-hidden">
+        <div className="flex items-center gap-2.5 rounded-lg border-2 border-foreground/15 bg-background/60 p-2.5">
+          <div className="font-heading flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border-2 border-foreground bg-accent text-sm font-black text-accent-foreground">
+            RK
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="font-heading truncate text-sm font-extrabold">riya.k</div>
+            <div className="mt-1 flex flex-wrap gap-1.5">
+              <span className="rounded border border-accent/40 bg-accent/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-accent">
+                Top 5%
+              </span>
+              <span className="rounded border border-foreground/20 bg-foreground/5 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-foreground/70">
+                12 internships
+              </span>
+            </div>
           </div>
         </div>
       </div>
-      <div>
+      <div className="mt-4 shrink-0">
         <h3 className="font-heading text-xl font-extrabold">Public Profile</h3>
         <p className="mt-1 text-sm text-foreground/70">
           A merit-first profile firms actually want to read.
