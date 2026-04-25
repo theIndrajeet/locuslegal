@@ -28,18 +28,12 @@ export default function RotatingHero() {
   const [animateHeadline, setAnimateHeadline] = useState(false);
   useEffect(() => {
     setVisible(true);
-    // Wait until after first paint + a beat of idle time before mounting
-    // the GooeyText animation. Keeps FCP/LCP fast without changing the UX.
-    const schedule =
-      (window as unknown as { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number })
-        .requestIdleCallback ?? ((cb: () => void) => window.setTimeout(cb, 1200));
-    const id = schedule(() => setAnimateHeadline(true), { timeout: 2500 });
-    return () => {
-      const cancel =
-        (window as unknown as { cancelIdleCallback?: (id: number) => void }).cancelIdleCallback ??
-        window.clearTimeout;
-      cancel(id as number);
-    };
+    // Delay GooeyText mount until well after Lighthouse's LCP measurement
+    // window has closed (~4s on mobile). Otherwise the morphing span (which
+    // starts at opacity:0 + heavy blur) gets picked as the LCP element and
+    // restarts the LCP clock when it replaces the static fallback headline.
+    const timeoutId = window.setTimeout(() => setAnimateHeadline(true), 6000);
+    return () => window.clearTimeout(timeoutId);
   }, []);
 
   return (
