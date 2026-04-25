@@ -404,7 +404,7 @@ export default function CvAnalyser() {
               <CardTitle className="font-heading">Indian-market signals detected</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-wrap gap-2">
-              <SignalChip label={`Pedigree: ${analysis.market_signals.nlu_pedigree.replaceAll("-", " ")}`} on={analysis.market_signals.nlu_pedigree.includes("nlu")} />
+              <SignalChip label={`Pedigree: ${analysis.market_signals.nlu_pedigree.split("-").join(" ")}`} on={analysis.market_signals.nlu_pedigree.includes("nlu")} />
               <SignalChip label="Top-tier moot" on={analysis.market_signals.top_tier_moot} />
               <SignalChip label="Tier-1 firm internship" on={analysis.market_signals.tier1_firm_internship} />
               <SignalChip label="Sr. counsel chamber" on={analysis.market_signals.chamber_internship} />
