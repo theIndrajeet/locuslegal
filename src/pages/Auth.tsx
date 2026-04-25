@@ -18,9 +18,13 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const nextParam = searchParams.get("next");
-  const safeNext = nextParam && nextParam.startsWith("/the-bar") ? nextParam : null;
-  const postLoginPath = safeNext ?? "/the-bar";
+  const nextParam = searchParams.get("next") ?? searchParams.get("redirect");
+  // Accept any internal path (must start with "/" but not "//" to prevent open redirects)
+  const safeNext =
+    nextParam && nextParam.startsWith("/") && !nextParam.startsWith("//")
+      ? nextParam
+      : null;
+  const postLoginPath = safeNext ?? "/app";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,12 +115,12 @@ export default function Auth() {
             </span>
           </Link>
           <h1 className="text-2xl font-bold text-foreground font-heading">
-            {isLogin ? "Sign in to The Bar" : "Join The Bar"}
+            {isLogin ? "Welcome back" : "Join Locus"}
           </h1>
           <p className="text-muted-foreground mt-2 text-sm">
             {isLogin
-              ? "Welcome back, counselor."
-              : "Create an account to ask & answer questions."}
+              ? "Sign in to continue."
+              : "Create your account to get started."}
           </p>
         </div>
 

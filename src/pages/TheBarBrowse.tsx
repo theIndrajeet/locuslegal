@@ -186,7 +186,7 @@ export default function TheBarBrowse() {
               <span className="font-semibold">Browsing as guest.</span>{" "}
               <span className="text-muted-foreground">Sign in to take a challenge and earn points.</span>
             </div>
-            <Link to="/auth">
+            <Link to="/auth?next=/the-bar/browse">
               <Button size="sm" className="w-full sm:w-auto">Sign in</Button>
             </Link>
           </Card>

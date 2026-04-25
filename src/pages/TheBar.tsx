@@ -145,7 +145,7 @@ export default function TheBar() {
               <span className="font-semibold">Browsing as guest.</span>{" "}
               <span className="text-muted-foreground">Sign in to take challenges, earn points, and climb the ranks.</span>
             </div>
-            <Link to="/auth">
+            <Link to="/auth?next=/the-bar">
               <Button size="sm" className="gap-2 w-full sm:w-auto">
                 <LogIn size={14} /> Sign in
               </Button>
@@ -206,7 +206,7 @@ export default function TheBar() {
               <p className="text-muted-foreground mb-4">
                 Sign in to track your attempts and earn points.
               </p>
-              <Link to="/auth">
+              <Link to="/auth?next=/the-bar">
                 <Button className="gap-2">
                   <LogIn size={16} /> Sign in
                 </Button>
