@@ -7,137 +7,324 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const SYSTEM_PROMPT = `You are a CV reviewer trio for the INDIAN LEGAL MARKET. You speak with the consensus of three veterans:
+const MODEL = "google/gemini-3.1-pro-preview";
 
-1. TIER-1 RECRUITER — 12 years hiring at Cyril Amarchand Mangaldas, Shardul Amarchand, AZB, Khaitan, Trilegal, JSA, S&R. You triage 400 CVs/week. You spot fluff in seconds.
-2. LITIGATION SENIOR — Senior counsel running a Supreme Court / Delhi High Court chamber. You hire on raw drafting ability, research depth, and willingness to grind.
-3. PLACEMENT COMMITTEE FACULTY — NLU placement chair. You see what differentiates the top 10% from the rest at NLSIU, NALSAR, NUJS, NLU-D.
+const SYSTEM_PROMPT = `You are the INDIAN LEGAL CV ANALYSER, calibrated to the 2026 market. You speak as the consensus of three veterans:
 
-Your tone is BRUTALLY HONEST — partner-level candour. No sugar-coating. No participation trophies. If something is generic, weak, fabricated-looking, or below tier-1 bar, you say so plainly. But you are FAIR — you reward genuine signals (real moot wins, substantive internships at known firms/chambers, peer-reviewed publications, demonstrated drafting).
+1. TIER-1 RECRUITER — 12 years hiring at Cyril Amarchand Mangaldas, Shardul Amarchand, AZB, Khaitan, Trilegal, JSA, S&R. You triage 400 CVs/week.
+2. LITIGATION SENIOR — Senior counsel running a Supreme Court / Delhi High Court chamber. Hires on raw drafting, research depth, willingness to grind.
+3. NLU PLACEMENT CHAIR — Knows what differentiates the top 10% from the rest at NLSIU/NALSAR/NUJS/NLU-D.
 
-You are calibrated to the INDIAN LEGAL MARKET specifically:
-- Real signals: NLU pedigree (NLSIU/NALSAR/NUJS/NLU-D > other NLUs > top private > rest), CGPA above 7.5 from NLU or 8.5 from non-NLU, top-tier moots (Jessup, Vis, Manfred Lachs, Stetson, Henry Dunant, FDI Moot, NLS Trilegal — wins/finals/QF count), substantive internships at the firms above OR known senior counsel chambers (Sr. Adv. names), publications in NUJS Law Review / NLSIR / SCC Online Blog / Indian Law Review / Cambridge Law Review / Manupatra Articles, ADR/arbitration certifications (CIArb), language work (German/French/Mandarin for arbitration), tech-law signals (data protection, IP).
-- Weak signals you punish: "Legal Aid Cell volunteer" listed as work experience, generic MUN, vague "research projects", certificate-mill courses (random Coursera 4-hour completions), inflated titles ("Founder & CEO" of a college club), buzzword soup ("dynamic, hardworking, team player"), missing dates, no quantified outputs ("drafted 12 plaints" beats "assisted with drafting").
-- Drafting & writing: examine specificity, verbs, quantification, citation hygiene.
+Tone: BRUTALLY HONEST, partner-voice. No participation trophies. No hedging. But FAIR — reward genuine signals.
 
-You output STRUCTURED JSON via the provided tool — never freeform text.
+You output STRUCTURED JSON via the submit_cv_analysis tool. Never freeform.
 
-Scoring rubric (0–100 overall, weighted):
-- Pedigree & Academics (20): institution tier, CGPA, rank if shown, scholarships, exchange.
-- Experience Substance (30): which firms/chambers, role specificity, duration, quantified output, repeat-callbacks/PPOs.
-- Moots & Advocacy (15): tier of moot, result, role.
-- Publications & Research (15): venue, peer review, sole vs co-authored, citation count if known.
-- Skills & Differentiators (10): languages, ADR creds, tech-law, data, drafting samples.
-- Presentation & Hygiene (10): structure, dates, typos, length (1-2 pages), font discipline, no photos, no DOB.
+==============================================================
+THE INDIAN LEGAL BLUEPRINT — apply rigorously
+==============================================================
 
-Tier-fit percentages must be HONEST and add insight (not all 70%). A weak CV should get 12% tier-1, 25% boutique, 45% in-house, 60% PSU. A strong NLSIU CV with Jessup finals + AZB summer might get 75% tier-1, 80% boutique, 65% in-house, 50% PSU.
+A. STRUCTURAL AUDIT (gating — formatting failures cap overall scores at ~65)
+- Length: 1 page preferred for fresh grads; max 2 pages. >2 pages = heavy penalty.
+- Typography: Times New Roman / Garamond at 11–12. Penalise colourful templates, heavy graphics, unusual fonts.
+- Reverse chronological order across every section. Flag gaps.
+- NO photo, DOB, marital status, irrelevant hobbies. NO first-person pronouns ("I", "me", "my"). Bullets must start with strong action verbs.
+- BCI Rule 25 compliance: 5-year integrated programme requires ≥20 weeks of internships; 3-year LLB requires ≥12 weeks. Aggregate every internship's duration and report bci_weeks_total + bci_compliant.
+- Grammar/orthography MUST be flawless. Any typo = severe penalty.
 
-Verdict is ONE sentence. Sharp. No hedging. Examples:
-- "Solid NLU profile undermined by generic phrasing — fixable in a weekend."
-- "Reads like a participation-trophy CV; nothing here makes a tier-1 partner pause."
-- "Genuinely strong — top-quartile for CAM/AZB summer pool."
-- "Promising junior with real chamber exposure but academics will gate you out of magic-circle equivalents."
+B. PEDIGREE TIERING
+- Tier 1 NLUs: NLSIU Bengaluru, NALSAR Hyderabad, NUJS Kolkata, NLU Jodhpur, GNLU Gandhinagar, NLU Delhi.
+- Tier 2: NLIU Bhopal, HNLU Raipur, RMLNLU Lucknow, NUSRL Ranchi, etc; premier private (Symbiosis Pune, Jindal Global).
+- Tier 3: newer NLUs, regional state universities, local private colleges.
+- PROXIMITY ADVANTAGE: Government Law College Mumbai, Campus Law Centre Delhi, ILS Pune — apply a positive modifier IF the CV shows continuous concurrent-semester internships at HCs or Tier 1/2 firms.
+- GPA: do NOT compare absolute numbers across institutions. 6.0/10 at older NLU may equal 8.5/10 elsewhere. Note grading context.
 
-Prioritized fixes: rank by IMPACT × EFFORT. Top 5 only. Each fix shows the EXACT current text from the CV (or "MISSING") and a concrete REWRITE the candidate can copy.
+C. INTERNSHIP LADDER (the spine of the CV)
+- Year 1–2: NGOs, policy think tanks (Vidhi, CCS, NIPFP), district court chambers, legal aid — foundational.
+- Year 3: Tier 3 firms or Senior Advocates at HCs/SC — substantive transition.
+- Year 4–5: Tier 1/2 firm internships — pinnacle.
+- CALLBACK = a candidate interning at the SAME Tier 1/2 firm in TWO distinct windows (e.g., Summer 2024 + Winter 2024 at Trilegal). Apply a MASSIVE positive multiplier — partners explicitly validated the work.
+- "Resume Tetris" = ten 1-week stints at brand-name firms. Penalise hard — signals logo-collection, not substance.
 
-Red flags: list only genuine concerns (gaps, inflated titles, plagiarism risk, formatting disasters). Empty array if none.
+D. FIRM TIERING (use exact tier when scoring)
+- Tier 1 (Elite Six): AZB & Partners, Cyril Amarchand Mangaldas, Shardul Amarchand Mangaldas, Khaitan & Co, J. Sagar Associates (JSA), Trilegal.
+- Tier 2 (Strong National): S&R Associates, Luthra and Luthra, IndusLaw, Dentons Link Legal, ELP, Nishith Desai Associates, DSK Legal, AZB-equivalent regional offices.
+- Tier 3 (Boutique/Regional): Argus Partners, Keystone Partners, Singhania & Partners, Phoenix Legal, Saraf and Partners, Veritas Legal, Talwar Thakore.
+- Tier 4: Sole practitioners, district court advocates, small regional offices.
 
-Strengths: list only genuine differentiators (not "good communication"). Empty array if the CV is mediocre — do not invent strengths.
+E. MOOT TIERING
+- Global Tier 1: Philip C. Jessup, Willem C. Vis (Vienna/East), ICC Trial Moot, Oxford Price Media, FDI Moot, Jean Pictet, Stetson, Manfred Lachs, Henry Dunant.
+- National Tier 1: BCI Trust, Surana & Surana Corporate Law, NUJS HSF Corporate Law, K.K. Luthra Memorial, NLSTIAM, D.M. Harish, GNLU Moot on Securities & Investment Law.
+- National Tier 2: NLU-D All India Corporate, NLUO Maritime, ILS Pune S.P. Sathe, Amity National, NLS-NHRC Human Rights, NLIU Justice R.K. Tankha.
+- Tier 3: intra-college rounds, regional moots without pan-India participation.
+- Outcomes that earn multipliers: Winner, Runner-up, Best Speaker, Best Memorial, Octa/Quarter/Semi-finalist at world rounds.
+- "Researcher" role = drafting strength; "Speaker" awards = front-line advocacy strength.
 
-Section scores: rate each major CV section 0-10 with one-line critique.`;
+F. PUBLICATION TIERING
+- Tier 1 Peer-Reviewed: NLSIR, IJLT, JILI, NUJS Law Review, Indian Law Review, Cambridge Law Review, Journal of National Law University Delhi.
+- Tier 2 Institutional: Delhi Law Review, Christ University Law Journal, CNLU Law Journal, Amity Law Review.
+- Tier 1 Curated Commercial Blogs (HIGHLY VALUED for corporate vector): IndiaCorpLaw, IRCCL, SpicyIP, Bar & Bench, LiveLaw, Kluwer Arbitration Blog, SCC Online Blog.
+- Student/University blogs: moderate weight.
+- Predatory / pay-to-publish aggregators: ZERO or NEGATIVE weight — flag as resume padding.
+
+G. SEMANTIC QUALITY (parse every bullet)
+- Strong verbs: Authored, Drafted, Negotiated, Mediated, Litigated, Formulated, Structured, Examined, Executed, Advised, Analyzed, Researched, Argued, Filed.
+- Weak/passive: Assisted, Helped, Participated in, Gained exposure to, Shadowed, Handled, Observed, Worked on, Was part of.
+- Penalise weak-verb dominance.
+- The TRIFECTA every elite bullet hits: ACTION + SCALE + OUTCOME (e.g., "Drafted 12 plaints under §138 NI Act, securing interim relief in 8 matters within 3 weeks").
+- Compute action_scale_outcome_ratio = (bullets with all three) / total bullets.
+
+H. CAREER VECTORS — score against ALL THREE independently
+You MUST produce three distinct vector_scores. Each scores the CV as if applied for that vector.
+- CORPORATE: Tier 1/2 firm transactional teams. Reward M&A, PE, capital markets, due diligence, term sheets, data rooms, IndiaCorpLaw publications, corporate moots (NUJS HSF, GNLU Securities).
+- LITIGATION: dispute resolution, Sr. Adv. chambers, HC/SC, arbitration, drafting plaints/SLPs/writs, criminal trial work, Jessup/Vis speaker awards, procedural depth.
+- IN-HOUSE: corporate counsel, regulatory/compliance, DPDP Act, BNS rollout, contract lifecycle, GC-team. Reward business acumen, financial outcomes, secondments, tech-law literacy.
+HEDGING: if the CV is a confused mix without clear signal toward any vector, set hedging_warning to one sharp partner-voice line.
+
+I. TECH & AI LITERACY (2026 paradigm)
+- Reward explicit mention of: SCC Online, Manupatra, Westlaw, LexisNexis, Kluwer, Harvey, iManage, CLM tools (Ironclad, Icertis), GenAI for review/research/drafting, prompt engineering, agentic systems.
+- A CV with NO tech-literacy in 2026 should be flagged.
+
+J. COMMERCIAL AWARENESS
+- Reward language showing the candidate sees law as a business tool: "commercial implications", "market risk", "stakeholder management", "industry analysis", "deal economics".
+
+==============================================================
+SCORING RUBRIC (per vector, 0–100)
+==============================================================
+Pedigree & Academics (15) · Internship Ladder + Substance (30) · Vector-aligned moots (10) · Vector-aligned publications (10) · Tech & Commercial Awareness (10) · Semantic Quality (15) · Structure & Hygiene (10).
+Each vector applies its own weights to alignment — a litigation-heavy CV will score high on litigation vector even if low on corporate.
+
+Verdicts: ONE sharp sentence per vector. No hedging. Examples:
+- "Reads like a textbook NLSIU corporate aspirant — Trilegal callback + IndiaCorpLaw piece make this a top-quartile A0 candidate."
+- "Litigation chops are real but every bullet is passive — fix the verbs and you double your shortlist rate."
+- "In-house pivot is wishful — no DPDP, no contract-lifecycle, no business vocabulary."
+
+Strengths arrays must contain GENUINE differentiators only. Empty array if none — do not invent.
+Red flags must list only real concerns (gaps, inflated titles, plagiarism risk, formatting disasters).
+Top fixes: rank by IMPACT × EFFORT, max 5, each with current_text (exact CV quote or "MISSING") + concrete copy-pasteable rewrite.`;
 
 const TOOL = {
   type: "function",
   function: {
     name: "submit_cv_analysis",
-    description: "Return the structured CV analysis.",
+    description: "Return the full structured analysis under the Indian Legal Blueprint.",
     parameters: {
       type: "object",
       properties: {
-        overall_score: { type: "integer", minimum: 0, maximum: 100 },
-        verdict: { type: "string", description: "One sharp sentence. No hedging." },
+        verdict_headline: { type: "string", description: "One sharp partner-voice sentence summarising the entire CV." },
         candidate_snapshot: {
           type: "object",
           properties: {
             name_present: { type: "boolean" },
             college_detected: { type: "string" },
             year_or_graduation: { type: "string" },
-            cgpa_or_rank: { type: "string", description: "As shown on CV; empty string if not shown." },
+            cgpa_or_rank: { type: "string" },
+            programme: { type: "string", description: "5-year integrated, 3-year LLB, LLM, or unknown" },
           },
-          required: ["name_present", "college_detected", "year_or_graduation", "cgpa_or_rank"],
+          required: ["name_present", "college_detected", "year_or_graduation", "cgpa_or_rank", "programme"],
           additionalProperties: false,
         },
-        tier_fit: {
+        structural_audit: {
           type: "object",
-          description: "Honest 0-100 fit percentages. Must vary based on CV strength.",
           properties: {
-            tier1_firms: { type: "integer", minimum: 0, maximum: 100, description: "CAM, SAM, AZB, Khaitan, Trilegal, JSA, S&R" },
-            boutique_litigation: { type: "integer", minimum: 0, maximum: 100, description: "Sr. counsel chambers, dispute boutiques" },
-            inhouse_corporate: { type: "integer", minimum: 0, maximum: 100, description: "GE, Microsoft, Reliance, Tata legal" },
-            psu_government: { type: "integer", minimum: 0, maximum: 100, description: "PSU, government legal advisor, judiciary" },
-            policy_thinktank: { type: "integer", minimum: 0, maximum: 100, description: "Vidhi, CCS, NIPFP, IDFC Institute" },
+            length_pages: { type: "number" },
+            length_ok: { type: "boolean" },
+            font_compliant: { type: "boolean" },
+            chronological_order: { type: "boolean" },
+            has_photo_or_dob: { type: "boolean" },
+            uses_first_person: { type: "boolean" },
+            grammar_clean: { type: "boolean" },
+            bci_weeks_total: { type: "number" },
+            bci_compliant: { type: "boolean" },
+            bci_required_weeks: { type: "number" },
+            violations: { type: "array", items: { type: "string" } },
           },
-          required: ["tier1_firms", "boutique_litigation", "inhouse_corporate", "psu_government", "policy_thinktank"],
+          required: ["length_pages", "length_ok", "font_compliant", "chronological_order", "has_photo_or_dob", "uses_first_person", "grammar_clean", "bci_weeks_total", "bci_compliant", "bci_required_weeks", "violations"],
           additionalProperties: false,
         },
-        section_scores: {
+        pedigree: {
+          type: "object",
+          properties: {
+            institution_name: { type: "string" },
+            tier: { type: "integer", minimum: 1, maximum: 3 },
+            proximity_advantage: { type: "boolean" },
+            gpa_raw: { type: "string" },
+            gpa_context_note: { type: "string", description: "Normalisation note (grading rigor, cohort rank if available)." },
+          },
+          required: ["institution_name", "tier", "proximity_advantage", "gpa_raw", "gpa_context_note"],
+          additionalProperties: false,
+        },
+        internship_ladder: {
           type: "array",
-          description: "One entry per major section detected.",
+          description: "Every internship detected, oldest to newest.",
           items: {
             type: "object",
             properties: {
-              section: { type: "string", description: "e.g. Education, Internships, Moots, Publications, Skills, Presentation" },
-              score: { type: "integer", minimum: 0, maximum: 10 },
-              critique: { type: "string", description: "One sharp line." },
+              firm_or_chamber: { type: "string" },
+              tier: { type: "integer", minimum: 1, maximum: 4 },
+              role: { type: "string" },
+              year_or_period: { type: "string" },
+              duration_weeks: { type: "number" },
+              callback: { type: "boolean", description: "True if same firm appears in another window." },
+              substance_score: { type: "integer", minimum: 0, maximum: 10 },
+              vector_alignment: { type: "string", enum: ["corporate", "litigation", "in_house", "mixed", "foundational"] },
             },
-            required: ["section", "score", "critique"],
+            required: ["firm_or_chamber", "tier", "role", "year_or_period", "duration_weeks", "callback", "substance_score", "vector_alignment"],
             additionalProperties: false,
           },
         },
-        strengths: {
+        moots: {
           type: "array",
-          description: "Genuine differentiators only. Empty array if none.",
-          items: { type: "string" },
-        },
-        red_flags: {
-          type: "array",
-          description: "Genuine concerns only.",
-          items: { type: "string" },
-        },
-        prioritized_fixes: {
-          type: "array",
-          description: "Top 5, ranked by impact x effort.",
           items: {
             type: "object",
             properties: {
-              priority: { type: "integer", minimum: 1, maximum: 5 },
-              area: { type: "string", description: "e.g. Internships, Moots, Summary, Formatting" },
-              issue: { type: "string", description: "What's wrong, partner-voice." },
-              current_text: { type: "string", description: "Exact text from CV, or 'MISSING'." },
-              rewrite: { type: "string", description: "Concrete copy-pasteable replacement." },
-              impact: { type: "string", enum: ["high", "medium", "low"] },
-              effort: { type: "string", enum: ["low", "medium", "high"] },
+              name: { type: "string" },
+              tier: { type: "string", enum: ["global_t1", "national_t1", "national_t2", "tier3"] },
+              role: { type: "string", enum: ["speaker", "researcher", "both", "unknown"] },
+              outcome: { type: "string", description: "Winner, Runner-up, Best Speaker, QF, participant, etc." },
+              vector_alignment: { type: "string", enum: ["corporate", "litigation", "in_house", "general"] },
             },
-            required: ["priority", "area", "issue", "current_text", "rewrite", "impact", "effort"],
+            required: ["name", "tier", "role", "outcome", "vector_alignment"],
             additionalProperties: false,
           },
         },
-        market_signals: {
-          type: "object",
-          description: "Specific Indian-legal-market signals detected.",
-          properties: {
-            nlu_pedigree: { type: "string", description: "tier-1-nlu | other-nlu | top-private | other | unknown" },
-            top_tier_moot: { type: "boolean" },
-            tier1_firm_internship: { type: "boolean" },
-            chamber_internship: { type: "boolean" },
-            peer_reviewed_publication: { type: "boolean" },
-            quantified_outputs: { type: "boolean", description: "Does the CV use numbers (drafted X plaints, researched Y matters)?" },
+        publications: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              title: { type: "string" },
+              venue: { type: "string" },
+              tier: { type: "string", enum: ["t1_peer_reviewed", "t2_institutional", "t1_commercial_blog", "student_blog", "predatory"] },
+              vector_alignment: { type: "string", enum: ["corporate", "litigation", "in_house", "general"] },
+            },
+            required: ["title", "venue", "tier", "vector_alignment"],
+            additionalProperties: false,
           },
-          required: ["nlu_pedigree", "top_tier_moot", "tier1_firm_internship", "chamber_internship", "peer_reviewed_publication", "quantified_outputs"],
+        },
+        semantic_quality: {
+          type: "object",
+          properties: {
+            total_bullets: { type: "integer" },
+            strong_verb_bullets: { type: "integer" },
+            weak_verb_bullets: { type: "integer" },
+            quantified_bullets: { type: "integer" },
+            action_scale_outcome_bullets: { type: "integer" },
+            top_weak_verbs_used: { type: "array", items: { type: "string" } },
+            example_weak_bullet: { type: "string", description: "Verbatim weakest bullet from CV." },
+            example_strong_bullet: { type: "string", description: "Verbatim strongest bullet from CV, or empty." },
+          },
+          required: ["total_bullets", "strong_verb_bullets", "weak_verb_bullets", "quantified_bullets", "action_scale_outcome_bullets", "top_weak_verbs_used", "example_weak_bullet", "example_strong_bullet"],
           additionalProperties: false,
         },
+        tech_literacy: {
+          type: "object",
+          properties: {
+            databases_mentioned: { type: "array", items: { type: "string" }, description: "SCC Online, Manupatra, Westlaw, etc." },
+            ai_or_tech_mentioned: { type: "array", items: { type: "string" }, description: "Harvey, GenAI, CLM, prompt engineering, etc." },
+            score: { type: "integer", minimum: 0, maximum: 10 },
+            verdict: { type: "string" },
+          },
+          required: ["databases_mentioned", "ai_or_tech_mentioned", "score", "verdict"],
+          additionalProperties: false,
+        },
+        vector_scores: {
+          type: "object",
+          properties: {
+            corporate: {
+              type: "object",
+              properties: {
+                overall_score: { type: "integer", minimum: 0, maximum: 100 },
+                tier_fit_pct: { type: "integer", minimum: 0, maximum: 100, description: "Realistic shortlist probability for Tier 1 corporate firms." },
+                verdict: { type: "string", description: "One sharp sentence." },
+                strengths: { type: "array", items: { type: "string" } },
+                red_flags: { type: "array", items: { type: "string" } },
+                top_fixes: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      priority: { type: "integer", minimum: 1, maximum: 5 },
+                      area: { type: "string" },
+                      issue: { type: "string" },
+                      current_text: { type: "string" },
+                      rewrite: { type: "string" },
+                      impact: { type: "string", enum: ["high", "medium", "low"] },
+                      effort: { type: "string", enum: ["low", "medium", "high"] },
+                    },
+                    required: ["priority", "area", "issue", "current_text", "rewrite", "impact", "effort"],
+                    additionalProperties: false,
+                  },
+                },
+              },
+              required: ["overall_score", "tier_fit_pct", "verdict", "strengths", "red_flags", "top_fixes"],
+              additionalProperties: false,
+            },
+            litigation: {
+              type: "object",
+              properties: {
+                overall_score: { type: "integer", minimum: 0, maximum: 100 },
+                tier_fit_pct: { type: "integer", minimum: 0, maximum: 100, description: "Realistic shortlist probability for Sr. counsel chambers / dispute boutiques." },
+                verdict: { type: "string" },
+                strengths: { type: "array", items: { type: "string" } },
+                red_flags: { type: "array", items: { type: "string" } },
+                top_fixes: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      priority: { type: "integer", minimum: 1, maximum: 5 },
+                      area: { type: "string" },
+                      issue: { type: "string" },
+                      current_text: { type: "string" },
+                      rewrite: { type: "string" },
+                      impact: { type: "string", enum: ["high", "medium", "low"] },
+                      effort: { type: "string", enum: ["low", "medium", "high"] },
+                    },
+                    required: ["priority", "area", "issue", "current_text", "rewrite", "impact", "effort"],
+                    additionalProperties: false,
+                  },
+                },
+              },
+              required: ["overall_score", "tier_fit_pct", "verdict", "strengths", "red_flags", "top_fixes"],
+              additionalProperties: false,
+            },
+            in_house: {
+              type: "object",
+              properties: {
+                overall_score: { type: "integer", minimum: 0, maximum: 100 },
+                tier_fit_pct: { type: "integer", minimum: 0, maximum: 100, description: "Realistic shortlist probability for in-house GC / corporate legal teams." },
+                verdict: { type: "string" },
+                strengths: { type: "array", items: { type: "string" } },
+                red_flags: { type: "array", items: { type: "string" } },
+                top_fixes: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      priority: { type: "integer", minimum: 1, maximum: 5 },
+                      area: { type: "string" },
+                      issue: { type: "string" },
+                      current_text: { type: "string" },
+                      rewrite: { type: "string" },
+                      impact: { type: "string", enum: ["high", "medium", "low"] },
+                      effort: { type: "string", enum: ["low", "medium", "high"] },
+                    },
+                    required: ["priority", "area", "issue", "current_text", "rewrite", "impact", "effort"],
+                    additionalProperties: false,
+                  },
+                },
+              },
+              required: ["overall_score", "tier_fit_pct", "verdict", "strengths", "red_flags", "top_fixes"],
+              additionalProperties: false,
+            },
+          },
+          required: ["corporate", "litigation", "in_house"],
+          additionalProperties: false,
+        },
+        best_fit_vector: { type: "string", enum: ["corporate", "litigation", "in_house"] },
+        hedging_warning: { type: "string", description: "Empty string if the CV has a clear vector. Otherwise a sharp one-liner." },
       },
-      required: ["overall_score", "verdict", "candidate_snapshot", "tier_fit", "section_scores", "strengths", "red_flags", "prioritized_fixes", "market_signals"],
+      required: ["verdict_headline", "candidate_snapshot", "structural_audit", "pedigree", "internship_ladder", "moots", "publications", "semantic_quality", "tech_literacy", "vector_scores", "best_fit_vector", "hedging_warning"],
       additionalProperties: false,
     },
   },
@@ -166,7 +353,7 @@ async function callGemini(base64Pdf: string): Promise<{ analysis: any; usage: an
     },
     {
       type: "text",
-      text: "Analyse this CV against the Indian legal market. Return your verdict via the submit_cv_analysis tool. Be brutally honest — partner voice. No participation trophies.",
+      text: "Analyse this CV under the Indian Legal Blueprint. Score against ALL THREE vectors (corporate, litigation, in-house) independently. Return via submit_cv_analysis. Brutally honest. Partner voice.",
     },
   ];
 
@@ -177,13 +364,14 @@ async function callGemini(base64Pdf: string): Promise<{ analysis: any; usage: an
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "google/gemini-2.5-pro",
+      model: MODEL,
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
         { role: "user", content: userContent },
       ],
       tools: [TOOL],
       tool_choice: { type: "function", function: { name: "submit_cv_analysis" } },
+      reasoning: { effort: "high" },
     }),
   });
 
@@ -286,16 +474,20 @@ serve(async (req) => {
     const { analysis, usage } = result;
     const duration_ms = Date.now() - start;
 
-    // Persist
+    // Best-fit drives the headline overall_score that is persisted as the column value
+    const bestFit: "corporate" | "litigation" | "in_house" = analysis?.best_fit_vector ?? "corporate";
+    const overallScore: number = analysis?.vector_scores?.[bestFit]?.overall_score ?? 0;
+    const verdict: string = analysis?.verdict_headline ?? analysis?.vector_scores?.[bestFit]?.verdict ?? "";
+
     const { data: inserted, error: insErr } = await adminClient
       .from("cv_analyses")
       .insert({
         user_id: userId,
         cv_storage_path: cvStoragePath,
-        overall_score: analysis.overall_score,
-        verdict: analysis.verdict,
+        overall_score: overallScore,
+        verdict,
         analysis,
-        model: "google/gemini-2.5-pro",
+        model: MODEL,
         prompt_tokens: usage?.prompt_tokens ?? null,
         completion_tokens: usage?.completion_tokens ?? null,
         duration_ms,
