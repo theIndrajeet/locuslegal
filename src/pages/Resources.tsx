@@ -140,6 +140,66 @@ export default function Resources() {
         </p>
       </section>
 
+      {/* Pinned: Locus+ CV Analyser */}
+      <section className="container mx-auto px-4 md:px-8 mb-10">
+        <div className="max-w-4xl mx-auto">
+          <div className="mb-3 flex items-center gap-2">
+            <Pin size={12} className="text-accent" strokeWidth={2.5} />
+            <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-accent">
+              Pinned · Featured Resource
+            </span>
+          </div>
+          <Link
+            to="/tools/cv-analyser"
+            className="group relative block overflow-hidden rounded-2xl border-2 border-accent/50 bg-card p-6 md:p-8 transition-all duration-300 hover:border-accent hover:shadow-[0_0_0_3px_hsl(var(--accent)/0.15)]"
+          >
+            {/* Diagonal stripe texture */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 opacity-[0.04]"
+              style={{
+                backgroundImage:
+                  "repeating-linear-gradient(45deg, hsl(var(--accent)) 0 1px, transparent 1px 14px)",
+              }}
+            />
+            {/* Locus+ badge — top right */}
+            <span className="absolute top-4 right-4 inline-flex items-center gap-1.5 rounded-sm border-2 border-accent/40 bg-accent/15 px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-accent">
+              <span className="h-1.5 w-1.5 rounded-[1px] bg-accent" />
+              Locus+
+            </span>
+
+            <div className="relative grid gap-6 md:grid-cols-[auto_1fr_auto] md:items-center">
+              <div className="h-14 w-14 shrink-0 rounded-xl bg-accent/15 border border-accent/30 flex items-center justify-center">
+                <ScanSearch className="text-accent" size={28} />
+              </div>
+
+              <div className="min-w-0">
+                <h2 className="font-heading text-2xl md:text-3xl font-extrabold tracking-tight">
+                  CV Analyser
+                </h2>
+                <p className="mt-1.5 text-sm md:text-[15px] text-muted-foreground leading-relaxed max-w-2xl">
+                  Partner-voice scoring across <span className="text-foreground font-semibold">Corporate, Litigation & In-house</span> vectors. Calibrated to BCI Rule 25, NLU tiering, and Elite Six benchmarks.
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {["3-Vector AI", "BCI Rule 25", "Indian Market", "~30s"].map((t) => (
+                    <span key={t} className="font-mono text-[10px] font-bold uppercase tracking-wider border border-accent/30 bg-accent/5 text-accent/90 px-2 py-0.5 rounded">
+                      {t}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div className="md:self-center">
+                <span className="inline-flex items-center gap-2 text-sm font-bold px-5 py-3 rounded-lg bg-accent text-accent-foreground transition-all group-hover:brightness-110">
+                  Open Analyser
+                  <ArrowRight size={16} />
+                </span>
+              </div>
+            </div>
+          </Link>
+        </div>
+      </section>
+
       {/* Cards */}
       <section className="container mx-auto px-4 md:px-8">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
