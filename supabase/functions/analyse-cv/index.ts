@@ -371,7 +371,7 @@ async function callGemini(base64Pdf: string): Promise<{ analysis: any; usage: an
       ],
       tools: [TOOL],
       tool_choice: { type: "function", function: { name: "submit_cv_analysis" } },
-      reasoning: { effort: "high" },
+      reasoning: { effort: "low" },
     }),
   });
 
