@@ -1,6 +1,8 @@
 import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import mdx from "@mdx-js/rollup";
+import remarkGfm from "remark-gfm";
+import rehypeSlug from "rehype-slug";
 import path from "path";
 import { writeFileSync, mkdirSync } from "fs";
 import { componentTagger } from "lovable-tagger";
@@ -42,7 +44,7 @@ export default defineConfig(({ mode }) => ({
     __BUILD_VERSION__: JSON.stringify(BUILD_VERSION),
   },
   plugins: [
-    { enforce: "pre" as const, ...mdx({ providerImportSource: "@mdx-js/react" }) } as Plugin,
+    { enforce: "pre" as const, ...mdx({ providerImportSource: "@mdx-js/react", remarkPlugins: [remarkGfm], rehypePlugins: [rehypeSlug] }) } as Plugin,
     react(),
     mode === "development" && componentTagger(),
     writeVersionJsonPlugin(),
