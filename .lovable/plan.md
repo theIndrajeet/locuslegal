@@ -1,63 +1,41 @@
-# Audit findings
+# Self-host Sora (Option C)
 
-I traced the import chain that pulls `supabase-bajmEEQQ.js` (~42 KiB raw, ~14 KiB gzip) into the home page critical bundle. There is exactly **one** remaining offender:
+Goal: remove Sora from the Google Fonts request so the LCP H1 paints in-brand on the first frame, with no swap and no extra round-trip.
 
-```
-src/pages/Index.tsx
-  └─ static import: useAuthSession
-       └─ static import: @/integrations/supabase/client (supabase chunk)
-```
+## Changes
 
-`Index.tsx` calls `useAuthSession()` purely to detect if a logged-in user lands on `/` and redirect them to `/app`. That's a tiny side-effect, but the static import forces the supabase client into the home-page chunk graph for **every visitor**, including anonymous first-time visitors who will never hit that redirect.
+### 1. Add Sora `.woff2` files to `/public/fonts/`
+Download the three weights actually used in the codebase:
+- `sora-600.woff2` (semibold)
+- `sora-700.woff2` (bold — used by H1, the LCP element)
+- `sora-800.woff2` (extrabold)
 
-**Everything else is already optimized:**
-- `Layout.tsx` — already dynamic-imports supabase ✅
-- `Navbar.tsx` — uses `ProfileMenuLazy` + `AdminNavLink`, both idle-deferred ✅
-- `AdminNavLink.tsx` — already does `import("@/hooks/useAdminRole")` on idle ✅
-- `ProfileMenuLazy.tsx` — already `lazy()` + idle-loaded ✅
-- `useFeatureVotes.ts` — not imported by any home component (only Tools/Resources, both lazy routes) ✅
-- Home components (`RotatingHero`, `FeatureBento`, `AudienceMiniRow`, `FinalCTA`) — zero supabase touch ✅
+Source: Google Fonts API `woff2` files (latin subset only — keeps each file ~12–18 KB).
 
-So this is a single-file fix.
+### 2. Update `index.html`
+- **Remove** Sora from the existing Google Fonts `<link>`. Keep Inter on Google Fonts (it's body text, not the LCP, and removing it would mean shipping 3 more woff2 files for marginal gain).
+  - Before: `family=Sora:wght@600;700;800&family=Inter:wght@400;500;600`
+  - After: `family=Inter:wght@400;500;600`
+- **Add** a `<link rel="preload">` for `sora-700.woff2` (the H1 weight) before the stylesheet links so it starts downloading in the very first network burst.
+  ```html
+  <link rel="preload" href="/fonts/sora-700.woff2" as="font" type="font/woff2" crossorigin />
+  ```
+- **Add** an inline `<style>` block with `@font-face` declarations for all three Sora weights, using `font-display: swap` (safe because the file will already be cached/preloaded by the time text paints).
 
-# The fix
+### 3. No changes to `tailwind.config.ts` or `index.css`
+The `font-sora` Tailwind utility already references `'Sora', sans-serif` by family name — once the `@font-face` is registered, every existing `font-sora` class picks it up automatically. Zero component changes needed.
 
-## Change `src/pages/Index.tsx` to defer the auth check
+## Expected impact
+- **Removes** one render-blocking external CSS request (Google Fonts `css2?family=Sora...` shaves ~80–150 ms on slow 4G).
+- **Sora 700 arrives before first paint** for ~all visitors → LCP H1 renders in brand font on frame 1, no swap, no CLS.
+- **Estimated Lighthouse mobile gain:** +3 to +5 points (mostly via FCP/LCP improvement).
+- **Bundle cost:** ~14 KB (one woff2) added to critical path, but it replaces a ~20 KB Google Fonts CSS + font-file chain — net win.
 
-Replace the static `useAuthSession` import with an idle-deferred dynamic import using the same pattern that `AdminNavLink.tsx` already uses successfully. The redirect logic moves into a small inner component that mounts only after the page is idle.
+## Verification after deploy
+1. DevTools → Network: confirm `sora-700.woff2` loads from `/fonts/` in the first wave, no Google Fonts request for Sora.
+2. DevTools → Performance: H1 paints with Sora on the first frame (no fallback flash).
+3. Run mobile Lighthouse 2× on `https://locuslegal.lovable.app` and report median FCP / LCP / score.
 
-**Pattern:**
-1. Render the marketing hero + sections immediately, with zero Supabase dependency.
-2. After mount, schedule a `requestIdleCallback` (with `setTimeout` fallback) to dynamically import `useAuthSession`.
-3. Once loaded, mount a tiny `<AuthRedirectCheck />` child component that runs the hook and triggers `navigate("/app")` if a session exists.
-
-Anonymous visitors (the vast majority of first-time landings) **never download the supabase chunk** for the home page. Returning logged-in users get redirected ~500ms later than they do today — imperceptible, since the home page is purely a marketing landing they're not going to read anyway.
-
-**File touched:** `src/pages/Index.tsx` only.
-
-# Estimated impact
-
-Based on the Lighthouse treemap that previously flagged `supabase-bajmEEQQ.js` at 41.7 KiB unused (82% of the chunk):
-
-| Metric | Before | After (estimated) |
-|---|---|---|
-| Home critical JS (raw) | ~146 KB | ~104 KB |
-| Home critical JS (gzip) | ~45 KB | ~32 KB |
-| Lighthouse "unused JS" finding | ~63 KiB | ~20 KiB |
-| Mobile Lighthouse score | 66 | **70–75** (realistic) |
-
-**Note on expectations:** the dominant remaining bottleneck is still the **2,090 ms document latency** (server TTFB), which is a Lovable platform issue we can't fix from code. So even with this win, mobile Lighthouse won't hit 90+. The realistic ceiling from inside the codebase is ~75–80.
-
-# Validation steps after the fix
-
-1. Build and check `dist/assets/index-*.js` size (compare gzip before/after).
-2. Run `bun run build --mode analyze` and confirm `supabase-*.js` is no longer in the home page's import graph.
-3. Smoke-test the `/` → `/app` auto-redirect for a logged-in user (must still work, just ~500ms delayed).
-4. Re-run mobile Lighthouse 3× on `https://locuslegal.lovable.app` and report median FCP, LCP, TBT, score.
-
-# Out of scope (per your instructions)
-
-- ❌ Not touching `src/lib/prefetch.ts`
-- ❌ Not changing visual design or animations
-- ❌ Not regressing desktop (currently 99 — this change is a pure subtraction from the home critical path, can only help)
-- ❌ Not asking Lovable for cache headers (separate platform-level conversation)
+## Out of scope (per your instruction)
+- Inter stays on Google Fonts.
+- No changes to `prefetch.ts`, Supabase code, or anything else.
