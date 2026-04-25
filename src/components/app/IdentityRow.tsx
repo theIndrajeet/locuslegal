@@ -46,8 +46,8 @@ export default function IdentityRow({
 
   return (
     <div className="border-2 border-border bg-card px-4 py-3 shadow-[3px_3px_0_0_hsl(var(--border))]">
-      <div className="flex items-center gap-3 flex-wrap">
-        <Avatar className="h-10 w-10 border-2 border-border">
+      <div className="flex items-center gap-3">
+        <Avatar className="h-10 w-10 border-2 border-border shrink-0">
           {avatarUrl ? <AvatarImage src={avatarUrl} alt={displayName || username} /> : null}
           <AvatarFallback className="bg-muted text-foreground text-xs font-bold">
             {initials || <User size={14} />}
@@ -55,11 +55,13 @@ export default function IdentityRow({
         </Avatar>
 
         <div className="min-w-0 flex-1">
-          <div className="flex items-baseline gap-2 flex-wrap">
+          <div className="flex items-baseline gap-2 min-w-0">
             <span className="font-heading text-base font-extrabold text-foreground truncate">
               {displayName || username}
             </span>
-            <span className="font-mono text-xs text-muted-foreground">@{username}</span>
+            <span className="font-mono text-xs text-muted-foreground truncate hidden sm:inline">
+              @{username}
+            </span>
           </div>
           {bio.trim().length < 40 && (
             <Link
@@ -77,7 +79,7 @@ export default function IdentityRow({
           onClick={toggleOTO}
           disabled={saving}
           title={oto ? "Open to opportunities — click to turn off" : "Not seeking — click to mark as open"}
-          className={`inline-flex items-center gap-1.5 border-2 px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-wider transition-colors ${
+          className={`shrink-0 inline-flex items-center gap-1.5 border-2 px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-wider transition-colors ${
             oto
               ? "border-accent bg-accent/10 text-accent"
               : "border-border bg-muted/30 text-muted-foreground hover:text-foreground"
@@ -95,9 +97,11 @@ export default function IdentityRow({
           to={`/u/${username}`}
           target="_blank"
           rel="noreferrer"
-          className="inline-flex items-center gap-1 font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:text-accent transition-colors"
+          title="View public profile"
+          aria-label="View public profile"
+          className="shrink-0 inline-flex items-center gap-1 border-2 border-border bg-muted/30 px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:text-accent hover:border-accent transition-colors"
         >
-          View public profile
+          <span className="hidden sm:inline">View public profile</span>
           <ExternalLink size={11} />
         </Link>
       </div>
