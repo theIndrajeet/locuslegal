@@ -177,6 +177,7 @@ export default function AppHome() {
           displayName={data.displayName}
           avatarUrl={data.avatarUrl}
           openToOpportunities={data.openToOpportunities}
+          bio={data.bio}
         />
 
         <ProfileStrengthMeter variant="full" {...meterInputs} />
