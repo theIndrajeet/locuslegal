@@ -91,67 +91,36 @@ export default function PlaybookGuide() {
     <div className="min-h-screen bg-background">
       <ReaderProgressBar targetRef={articleRef} />
 
+      {/* Floating TOC rail (desktop only) */}
+      <aside
+        aria-label="Reading navigation"
+        className="hidden lg:block fixed left-6 top-1/2 -translate-y-1/2 z-40"
+      >
+        <ReaderTOC items={tocItems} />
+      </aside>
+
       <div className="pt-20 pb-16">
-        <div className="max-w-7xl mx-auto px-4 lg:px-8 grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-10">
-          {/* Left rail */}
-          <aside className="hidden lg:block">
-            <div className="sticky top-24 space-y-5">
+        <div className="max-w-3xl mx-auto px-4 lg:px-8">
+          {/* Article */}
+          <article ref={articleRef} className="min-w-0 w-full">
+            {/* Back link + case meta */}
+            <div className="flex items-center justify-between gap-3 mb-6">
               <Link
                 to="/playbook"
                 className="inline-flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground hover:text-foreground transition-colors"
               >
                 <ArrowLeft size={11} /> Back to Playbook
               </Link>
-
-              <div className="h-px bg-border/60" />
-
-              <div className="space-y-2">
-                <span className="font-mono text-[10px] tracking-[0.15em] text-muted-foreground block">
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-[10px] tracking-[0.15em] text-muted-foreground">
                   {guide.caseNumber}
                 </span>
                 <span
-                  className={`inline-block px-2 py-0.5 rounded text-[10px] font-medium border ${audienceTagStyles[guide.audience]}`}
+                  className={`px-2 py-0.5 rounded text-[10px] font-medium border ${audienceTagStyles[guide.audience]}`}
                 >
                   {guide.audience}
                 </span>
               </div>
-
-              <div className="h-px bg-border/60" />
-
-              <ReaderTOC items={tocItems} />
-
-              {userId && (
-                <>
-                  <div className="h-px bg-border/60" />
-                  <MarkCompleteButton
-                    completed={completed}
-                    onToggle={() => toggleComplete(slug)}
-                  />
-                </>
-              )}
-            </div>
-          </aside>
-
-          {/* Article */}
-          <article ref={articleRef} className="min-w-0 w-full lg:border lg:border-dashed lg:border-border lg:rounded-lg lg:p-10">
-            {/* Mobile back */}
-            <Link
-              to="/playbook"
-              className="lg:hidden inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors mb-4"
-            >
-              <ArrowLeft size={12} /> Back to Playbook
-            </Link>
-
-            {/* Mobile case meta */}
-            <div className="lg:hidden flex items-center gap-2 mb-3">
-              <span className="font-mono text-[10px] tracking-wider text-muted-foreground">
-                {guide.caseNumber}
-              </span>
-              <span
-                className={`px-2 py-0.5 rounded text-[10px] font-medium border ${audienceTagStyles[guide.audience]}`}
-              >
-                {guide.audience}
-              </span>
             </div>
 
             <header className="mb-8">
@@ -182,9 +151,9 @@ export default function PlaybookGuide() {
 
             {/* Footer */}
             <footer className="mt-12 pt-8 border-t border-border space-y-8">
-              {/* Mobile mark-complete */}
+              {/* Mark complete */}
               {userId && (
-                <div className="lg:hidden">
+                <div>
                   <MarkCompleteButton
                     completed={completed}
                     onToggle={() => toggleComplete(slug)}
