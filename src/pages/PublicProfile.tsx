@@ -125,104 +125,76 @@ export default function PublicProfile() {
 
     const load = async () => {
       setLoading(true);
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select("id, username, display_name, avatar_url, bio, college, degree, graduation_year, cgpa, subjects_of_interest, created_at, open_to_opportunities")
-        .eq("username", username)
-        .maybeSingle();
+      // Single round-trip via SECURITY DEFINER RPC — replaces 5 queries
+      // (profile + 3 children + bar stats + rank).
+      const { data, error } = await supabase.rpc("get_public_profile", {
+        p_username: username,
+      });
 
       if (!mounted) return;
 
-      if (!profileData) {
+      if (error) {
+        console.error("[PublicProfile] rpc error", error);
         setProfile(null);
         setInternships([]);
         setMoots([]);
         setPublications([]);
+        setBarStats(null);
         setLoading(false);
         return;
       }
 
-      setProfile(profileData as Profile);
+      const d = (data ?? {}) as unknown as {
+        profile: Profile | null;
+        internships?: Internship[];
+        moots?: Moot[];
+        publications?: Publication[];
+        bar?: {
+          designation: BarDesignation;
+          total_points: number;
+          accuracy_pct: number | string;
+          current_streak: number;
+          total_attempts: number;
+          rank_position: number | null;
+          opted_out: boolean;
+        } | null;
+      };
 
-      const [internshipsRes, mootsRes, pubsRes] = await Promise.all([
-        supabase.from("profile_internships").select("id, firm_name, role, start_date, end_date, description").eq("user_id", profileData.id).order("start_date", { ascending: false }),
-        supabase.from("profile_moots").select("id, competition_name, year, role, result").eq("user_id", profileData.id).order("year", { ascending: false }),
-        supabase.from("profile_publications").select("id, title, publisher, url, publication_date").eq("user_id", profileData.id).order("publication_date", { ascending: false }),
-      ]);
+      if (!d.profile) {
+        setProfile(null);
+        setInternships([]);
+        setMoots([]);
+        setPublications([]);
+        setBarStats(null);
+        setLoading(false);
+        return;
+      }
 
-      if (!mounted) return;
-      if (internshipsRes.data) setInternships(internshipsRes.data as Internship[]);
-      if (mootsRes.data) setMoots(mootsRes.data as Moot[]);
-      if (pubsRes.data) setPublications(pubsRes.data as Publication[]);
+      setProfile(d.profile);
+      setInternships(d.internships ?? []);
+      setMoots(d.moots ?? []);
+      setPublications(d.publications ?? []);
+
+      if (d.bar) {
+        setBarStats({
+          designation: d.bar.designation,
+          total_points: d.bar.total_points,
+          accuracy_pct: Number(d.bar.accuracy_pct),
+          current_streak: d.bar.current_streak,
+          rank_position: d.bar.rank_position,
+          // is_owner is a view-time computation — derive from cached viewer.
+          is_owner: viewerId === d.profile.id,
+          opted_out: d.bar.opted_out,
+        });
+      } else {
+        setBarStats(null);
+      }
       setLoading(false);
     };
 
     load();
     return () => { mounted = false; };
-  }, [username]);
-
-  // Isolated bar-stats fetch — failure must not block profile render
-  useEffect(() => {
-    if (!profile?.id) { setBarStats(null); return; }
-    let mounted = true;
-    (async () => {
-      try {
-        const [statsRes, sessionRes, profileExtra] = await Promise.all([
-          supabase
-            .from("bar_user_stats")
-            .select("designation, total_points, accuracy_pct, current_streak, total_attempts")
-            .eq("user_id", profile.id)
-            .maybeSingle(),
-          supabase.auth.getSession(),
-          supabase
-            .from("profiles")
-            .select("bar_leaderboard_opt_out")
-            .eq("id", profile.id)
-            .maybeSingle(),
-        ]);
-
-        if (!mounted) return;
-        const stats = statsRes.data as {
-          designation: BarDesignation;
-          total_points: number;
-          accuracy_pct: number;
-          current_streak: number;
-          total_attempts: number;
-        } | null;
-        if (!stats || stats.total_attempts <= 0) { setBarStats(null); return; }
-
-        const viewerId = sessionRes.data.session?.user?.id ?? null;
-        const isOwner = viewerId === profile.id;
-        const optedOut = !!(profileExtra.data as { bar_leaderboard_opt_out?: boolean } | null)?.bar_leaderboard_opt_out;
-
-        let rankPosition: number | null = null;
-        // Skip rank query when subject opted out and viewer is not the owner
-        if (!optedOut || isOwner) {
-          const { count } = await supabase
-            .from("bar_user_stats")
-            .select("user_id", { count: "exact", head: true })
-            .gt("total_points", stats.total_points);
-          if (mounted) rankPosition = (count ?? 0) + 1;
-        }
-
-        if (mounted) {
-          setBarStats({
-            designation: stats.designation,
-            total_points: stats.total_points,
-            accuracy_pct: Number(stats.accuracy_pct),
-            current_streak: stats.current_streak,
-            rank_position: rankPosition,
-            is_owner: isOwner,
-            opted_out: optedOut,
-          });
-        }
-      } catch (e) {
-        console.error("[PublicProfile] bar stats fetch failed:", e);
-        if (mounted) setBarStats(null);
-      }
-    })();
-    return () => { mounted = false; };
-  }, [profile?.id]);
+  }, [username, viewerId]);
 
   useEffect(() => {
     if (loading || hasAutoSelected.current || !profile) return;

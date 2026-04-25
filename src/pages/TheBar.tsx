@@ -56,37 +56,45 @@ export default function TheBar() {
     (async () => {
       setLoading(true);
       try {
-        const [statsRes, recentRes, profileRes] = await Promise.all([
-          supabase.from("bar_user_stats").select("*").eq("user_id", userId).maybeSingle(),
-          supabase
-            .from("bar_attempts")
-            .select("id, is_correct, points_awarded, attempted_at, bar_challenges(title, question_type)")
-            .eq("user_id", userId)
-            .order("attempted_at", { ascending: false })
-            .limit(10),
-          supabase.from("profiles").select("bar_leaderboard_opt_out").eq("id", userId).maybeSingle(),
-        ]);
+        // Single round-trip via SECURITY DEFINER RPC — replaces 4 sequential queries.
+        const { data, error } = await supabase.rpc("get_bar_dashboard", {
+          p_user_id: userId,
+        });
         if (!active) return;
-        const resolvedStats = (statsRes.data as Stats | null) ?? {
-          total_points: 0,
-          accuracy_pct: 0,
-          current_streak: 0,
-          longest_streak: 0,
-          designation: "trainee",
-        };
-        setStats(resolvedStats);
-        setRecent((recentRes.data ?? []) as RecentAttempt[]);
-        setOptedOut(((profileRes.data as { bar_leaderboard_opt_out?: boolean } | null)?.bar_leaderboard_opt_out) ?? false);
-
-        if (resolvedStats.total_points > 0) {
-          const { count } = await supabase
-            .from("bar_user_stats")
-            .select("user_id", { count: "exact", head: true })
-            .gt("total_points", resolvedStats.total_points);
-          if (active) setOverallRank((count ?? 0) + 1);
-        } else {
-          setOverallRank(null);
+        if (error || !data) {
+          /* defaults render below */
+          return;
         }
+
+        const d = data as unknown as {
+          stats: Stats;
+          recent: Array<{
+            id: string;
+            is_correct: boolean;
+            points_awarded: number;
+            attempted_at: string;
+            challenge_title: string | null;
+            question_type: string | null;
+          }>;
+          opted_out: boolean;
+          overall_rank: number | null;
+        };
+
+        setStats(d.stats);
+        // Map flat RPC shape back to the nested form the UI expects.
+        setRecent(
+          (d.recent ?? []).map((r) => ({
+            id: r.id,
+            is_correct: r.is_correct,
+            points_awarded: r.points_awarded,
+            attempted_at: r.attempted_at,
+            bar_challenges: r.challenge_title
+              ? { title: r.challenge_title, question_type: r.question_type ?? "mcq" }
+              : null,
+          }))
+        );
+        setOptedOut(!!d.opted_out);
+        setOverallRank(d.overall_rank ?? null);
       } catch {
         /* defaults render below */
       } finally {

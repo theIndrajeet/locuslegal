@@ -6,6 +6,7 @@ import rehypeSlug from "rehype-slug";
 import path from "path";
 import { writeFileSync, mkdirSync } from "fs";
 import { componentTagger } from "lovable-tagger";
+import { visualizer } from "rollup-plugin-visualizer";
 
 const BUILD_VERSION = Date.now().toString();
 
@@ -48,6 +49,15 @@ export default defineConfig(({ mode }) => ({
     react(),
     mode === "development" && componentTagger(),
     writeVersionJsonPlugin(),
+    // Bundle size report. Enabled with `bun run build --mode analyze`.
+    // Writes dist/stats.html — open it locally to inspect chunk sizes.
+    mode === "analyze" &&
+      (visualizer({
+        filename: "dist/stats.html",
+        gzipSize: true,
+        brotliSize: true,
+        template: "treemap",
+      }) as Plugin),
   ].filter(Boolean),
   resolve: {
     alias: {
