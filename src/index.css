@@ -285,117 +285,133 @@ html {
 .locus-plus .lp-scroll::-webkit-scrollbar-thumb { background: hsl(var(--lp-line)); border-radius: 4px; }
 .locus-plus .lp-scroll::-webkit-scrollbar-track { background: transparent; }
 
-/* Playbook reader prose styles */
+/* ============================================================
+   Playbook reader prose — editorial longform
+   Foundation first: generous space, real hierarchy, restrained accent.
+   ============================================================ */
 .playbook-prose {
-  color: hsl(var(--foreground));
-  font-size: 1.0625rem;
-  line-height: 1.8;
+  color: hsl(var(--foreground) / 0.88);
+  font-size: 1.125rem;        /* 18px */
+  line-height: 1.75;
+  font-weight: 400;
+  letter-spacing: -0.003em;
 }
 
-/* Headings */
+/* H2 — major section break, no decorative prefix */
 .playbook-prose h2 {
-  position: relative;
-  font-size: 1.625rem;
+  font-family: 'Sora', ui-sans-serif, system-ui, sans-serif;
+  font-size: 1.75rem;          /* 28px */
   font-weight: 700;
-  margin-top: 3rem;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  color: hsl(var(--foreground));
+  margin-top: 3.5rem;
   margin-bottom: 1.25rem;
-  padding-top: 1rem;
   scroll-margin-top: 6rem;
-  letter-spacing: -0.015em;
-  border-top: 1px solid hsl(var(--border) / 0.5);
-}
-.playbook-prose h2::before {
-  content: "§";
-  display: inline-block;
-  margin-right: 0.5rem;
-  color: hsl(var(--accent));
-  font-weight: 600;
-  opacity: 0.7;
 }
 .playbook-prose h2:first-child {
   margin-top: 0;
-  padding-top: 0;
-  border-top: none;
 }
+
+/* H3 — real subheading, not a tiny mono label */
 .playbook-prose h3 {
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: hsl(var(--muted-foreground));
-  margin-top: 2rem;
-  margin-bottom: 0.75rem;
+  font-family: 'Sora', ui-sans-serif, system-ui, sans-serif;
+  font-size: 1.25rem;          /* 20px */
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+  color: hsl(var(--foreground));
+  margin-top: 2.25rem;
+  margin-bottom: 0.875rem;
   scroll-margin-top: 6rem;
 }
 
-/* Paragraphs — lead-in treatment for first p after h2 */
-.playbook-prose p {
-  margin-bottom: 1.25rem;
-  color: hsl(var(--foreground) / 0.92);
-}
-.playbook-prose h2 + p {
-  font-size: 1.1875rem;
-  line-height: 1.7;
-  font-weight: 400;
-  color: hsl(var(--foreground));
-  letter-spacing: -0.005em;
-}
-.playbook-prose h2 + p::first-letter {
+/* H4 — small caps label for sub-sub structure */
+.playbook-prose h4 {
+  font-size: 0.75rem;
   font-weight: 700;
-  color: hsl(var(--accent));
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: hsl(var(--muted-foreground));
+  margin-top: 1.75rem;
+  margin-bottom: 0.5rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
-/* Lists — visible structure, more breathing room */
-.playbook-prose ul, .playbook-prose ol {
-  margin: 1.25rem 0 1.5rem 0;
-  padding-left: 1.25rem;
-  border-left: 2px solid hsl(var(--border) / 0.5);
-  color: hsl(var(--foreground) / 0.92);
+/* Paragraphs — generous breathing room */
+.playbook-prose p {
+  margin-bottom: 1.5rem;
 }
-.playbook-prose ul { list-style: none; }
-.playbook-prose ol { list-style: decimal; padding-left: 2rem; }
+
+/* Drop cap — ONLY on the very first paragraph of the article */
+.playbook-prose > p:first-of-type::first-letter,
+.playbook-prose > :first-child + p:first-of-type::first-letter {
+  /* fallback handled by the explicit class below */
+}
+.playbook-prose .lead-dropcap::first-letter,
+.playbook-prose > p:first-of-type::first-letter {
+  float: left;
+  font-family: 'Sora', ui-sans-serif, system-ui, sans-serif;
+  font-size: 3.75rem;
+  line-height: 0.95;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+  margin: 0.35rem 0.65rem 0 0;
+  padding: 0;
+}
+
+/* Strong — clean heavy weight, brighter color. No tricks. */
+.playbook-prose strong {
+  color: hsl(var(--foreground));
+  font-weight: 700;
+}
+
+/* Italic */
+.playbook-prose em {
+  color: hsl(var(--foreground));
+  font-style: italic;
+}
+
+/* Lists — clear, scannable, generous */
+.playbook-prose ul,
+.playbook-prose ol {
+  margin: 1.5rem 0;
+  padding-left: 1.5rem;
+}
+.playbook-prose ul { list-style: none; padding-left: 0; }
 .playbook-prose ul > li {
   position: relative;
+  padding-left: 1.5rem;
   margin-bottom: 0.75rem;
-  padding-left: 1.25rem;
-  line-height: 1.7;
+  line-height: 1.75;
 }
 .playbook-prose ul > li::before {
   content: "";
   position: absolute;
   left: 0;
-  top: 0.6em;
+  top: 0.7em;
   width: 0.5rem;
-  height: 2px;
-  background: hsl(var(--accent));
-  opacity: 0.7;
+  height: 0.5rem;
+  border-radius: 9999px;
+  background: hsl(var(--foreground) / 0.35);
+}
+.playbook-prose ol {
+  list-style: decimal;
+  padding-left: 1.75rem;
 }
 .playbook-prose ol > li {
   margin-bottom: 0.75rem;
-  line-height: 1.7;
-  padding-left: 0.25rem;
+  line-height: 1.75;
+  padding-left: 0.5rem;
 }
 .playbook-prose ol > li::marker {
-  color: hsl(var(--accent));
-  font-weight: 700;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.875em;
+  color: hsl(var(--muted-foreground));
+  font-weight: 600;
 }
-.playbook-prose li > p { margin-bottom: 0.4rem; }
-
-/* Strong — make bold actually punch */
-.playbook-prose strong {
-  color: hsl(var(--foreground));
-  font-weight: 700;
-  background: linear-gradient(
-    to bottom,
-    transparent 60%,
-    hsl(var(--accent) / 0.18) 60%,
-    hsl(var(--accent) / 0.18) 95%,
-    transparent 95%
-  );
-  padding: 0 0.05em;
-}
+.playbook-prose li > p { margin-bottom: 0.5rem; }
+.playbook-prose li > p:last-child { margin-bottom: 0; }
+.playbook-prose li > ul,
+.playbook-prose li > ol { margin: 0.5rem 0 0.5rem 0; }
 
 /* Inline code */
 .playbook-prose code {
@@ -403,37 +419,39 @@ html {
   font-size: 0.875em;
   background: hsl(var(--muted));
   color: hsl(var(--foreground));
-  padding: 0.15rem 0.4rem;
+  padding: 0.125rem 0.375rem;
   border-radius: 0.25rem;
-  border: 1px solid hsl(var(--border) / 0.6);
 }
 
-/* Links */
+/* Links — confident underline, accent on hover */
 .playbook-prose a {
   color: hsl(var(--foreground));
   text-decoration: underline;
-  text-decoration-color: hsl(var(--accent) / 0.6);
-  text-underline-offset: 3px;
-  text-decoration-thickness: 2px;
-  transition: text-decoration-color 0.15s ease;
+  text-decoration-color: hsl(var(--foreground) / 0.35);
+  text-underline-offset: 4px;
+  text-decoration-thickness: 1px;
+  transition: text-decoration-color 0.15s ease, color 0.15s ease;
 }
 .playbook-prose a:hover {
-  text-decoration-color: hsl(var(--accent));
   color: hsl(var(--accent));
+  text-decoration-color: hsl(var(--accent));
 }
 
-/* Horizontal rule */
+/* Horizontal rule — quiet structural break */
 .playbook-prose hr {
   border: none;
-  border-top: 1px dashed hsl(var(--border));
-  margin: 2.5rem 0;
+  border-top: 1px solid hsl(var(--border));
+  margin: 3rem auto;
+  width: 4rem;
 }
 
-/* Blockquote (markdown native) */
+/* Blockquote — editorial, not yelled */
 .playbook-prose blockquote {
-  border-left: 3px solid hsl(var(--accent) / 0.6);
-  padding-left: 1.25rem;
-  margin: 1.75rem 0;
+  border-left: 2px solid hsl(var(--foreground) / 0.25);
+  padding-left: 1.5rem;
+  margin: 2rem 0;
   font-style: italic;
-  color: hsl(var(--foreground) / 0.85);
+  color: hsl(var(--foreground) / 0.78);
 }
+.playbook-prose blockquote p { margin-bottom: 0.75rem; }
+.playbook-prose blockquote p:last-child { margin-bottom: 0; }
