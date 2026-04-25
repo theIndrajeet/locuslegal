@@ -87,6 +87,25 @@ const IA_STIPENDS = ["Unpaid (Academic Credit)", "₹5,000/month", "₹7,500/mon
 const IA_DAYS = ["Monday–Friday", "Monday–Saturday", "Flexible / Remote", "Hybrid (3 days/week)"];
 const IA_CERTS = ["Yes — Internship Certificate issued", "Yes — Certificate + Letter of Recommendation", "No certificate"];
 
+// Freelancer Contract
+const FL_SERVICE_TYPES = ["Software Development", "Design / Creative", "Content & Copywriting", "Marketing / SEO", "Consulting / Advisory", "Photography / Videography", "Legal / Paralegal Services", "Other Professional Services"];
+const FL_FEE_TYPES = ["Fixed Fee (lump sum)", "Hourly Rate", "Milestone-based payments", "Monthly Retainer"];
+const FL_PAYMENT_TERMS = ["50% advance, 50% on delivery", "100% advance", "Net 15 days from invoice", "Net 30 days from invoice", "On milestone completion"];
+const FL_IP_OWNERSHIP = ["Client owns all IP on full payment", "Freelancer retains IP, grants client a licence", "Joint ownership", "Work-for-hire (Client owns from creation)"];
+const FL_LIABILITY = ["Capped at total fees paid", "Capped at 2x total fees paid", "No cap (unlimited)", "Mutually agreed cap"];
+const FL_TERMINATION = ["7 days written notice", "14 days written notice", "30 days written notice", "Immediate on material breach"];
+const FL_GOV_LAWS = ["India (Indian Contract Act, 1872)", "Singapore", "United Kingdom", "United States (Delaware)", "UAE (DIFC)", "Australia"];
+
+// Terms of Service
+const TOS_SERVICE_TYPES = ["SaaS Platform", "Mobile App", "E-commerce / Marketplace", "Content Platform / Media", "Fintech / Payments", "EdTech / Online Learning", "Social Network / Community", "Booking / Marketplace"];
+const TOS_USER_TYPES = ["Consumers (B2C)", "Businesses (B2B)", "Both consumers and businesses"];
+const TOS_AGE = ["13+ (with parental consent under 18)", "16+", "18+ only", "No age restriction"];
+const TOS_PAYMENT = ["Free service", "One-time purchase", "Subscription (recurring)", "Freemium with paid tiers", "Marketplace (commission-based)"];
+const TOS_REFUND = ["No refunds", "7-day refund window", "14-day refund window (EU consumer rights)", "30-day money-back guarantee", "Pro-rated for subscriptions"];
+const TOS_UGC = ["Yes — users post content publicly", "Yes — users share content privately", "No user-generated content"];
+const TOS_DISPUTE = ["Arbitration (binding)", "Courts of governing jurisdiction", "Mediation followed by arbitration"];
+const TOS_GOV_LAWS = ["India (DPDPA 2023 + IT Act, 2000)", "EU (GDPR)", "United States (Delaware / California)", "United Kingdom", "Singapore", "Australia"];
+
 function textToHTML(text: string) {
   const lines = text.split("\n");
   let html = '<div class="lt-doc-output">';
