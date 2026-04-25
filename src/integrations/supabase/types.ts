@@ -918,6 +918,8 @@ export type Database = {
       }
     }
     Functions: {
+      get_app_dashboard: { Args: { p_user_id: string }; Returns: Json }
+      get_bar_dashboard: { Args: { p_user_id: string }; Returns: Json }
       get_email_by_username: { Args: { p_username: string }; Returns: string }
       get_feature_vote_counts: {
         Args: never
@@ -935,6 +937,7 @@ export type Database = {
           total_count: number
         }[]
       }
+      get_public_profile: { Args: { p_username: string }; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

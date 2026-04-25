@@ -1,102 +1,114 @@
-# Batch A — Foundation perf wins
+# Batch B — Structural perf wins
 
-Four small, safe, high-ROI changes. No new dependencies, no UI changes the user will see (except things feeling faster and stiller).
+Two things: (1) collapse the 4 worst multi-query pages into single `SECURITY DEFINER` RPCs so each page does **1 round-trip instead of 4–6**, and (2) run a one-time bundle analysis to catch any silent bloat. No UI changes the user will see except things feeling faster.
 
 ---
 
-## 1. React Query global defaults (`src/App.tsx`)
+## 1. Three RPCs to bundle multi-query pages
 
-Currently:
-```ts
-const queryClient = new QueryClient();
+Each RPC is `STABLE SECURITY DEFINER`, returns a single `jsonb`, and respects the same RLS-equivalent rules the page enforces today (mostly "owner or public").
+
+### a) `get_app_dashboard(p_user_id uuid) → jsonb`
+
+**Replaces**: `src/pages/AppHome.tsx` lines 69–84 (5 parallel queries).
+
+Returns:
+```json
+{
+  "profile": { ...profile row... },
+  "internships_count": int,
+  "moots_count": int,
+  "publications_count": int,
+  "bar_stats": { ...bar_user_stats row or nulls... }
+}
 ```
 
-Change to:
-```ts
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 30_000,
-      gcTime: 5 * 60_000,
-      refetchOnWindowFocus: false,
-      refetchOnReconnect: "always",
-      retry: 1,
-    },
-  },
-});
+Caller becomes one `supabase.rpc('get_app_dashboard', { p_user_id: uid })`. Auth check inside the function: `IF auth.uid() <> p_user_id THEN RAISE EXCEPTION 'forbidden'; END IF;` — only the owner can call it (matches today's behavior, since the page is `/app` and gated to the logged-in user).
+
+### b) `get_public_profile(p_username text) → jsonb`
+
+**Replaces**: `src/pages/PublicProfile.tsx` lines 128–151 + 170–206 (4 queries + a separate rank query).
+
+Returns:
+```json
+{
+  "profile": { id, username, display_name, avatar_url, bio, college, degree, graduation_year, cgpa, subjects_of_interest, created_at, open_to_opportunities },
+  "internships": [...],
+  "moots": [...],
+  "publications": [...],
+  "bar": {
+    "designation": "...",
+    "total_points": int,
+    "accuracy_pct": numeric,
+    "current_streak": int,
+    "total_attempts": int,
+    "rank_position": int | null,
+    "opted_out": bool
+  } | null
+}
 ```
 
-**Risk audit** — searched the codebase for queries that genuinely need fresh-on-mount data. The ones to watch:
-- Bar leaderboard / recent attempts → already invalidated after `submit-bar-attempt`, safe.
-- `useFeatureVotes` → uses its own module cache + optimistic UI, not React Query, unaffected.
-- Applications list → mutations already call refetch, safe.
+Logic inside the function:
+- Look up profile by username (`LIMIT 1`). If null, return `{}`.
+- Pull internships / moots / pubs ordered as the page does today.
+- Pull `bar_user_stats` + `bar_leaderboard_opt_out`.
+- If `total_attempts > 0` AND `(NOT opted_out OR p_user_id = auth.uid())`, compute `rank_position` via the same `count(*) WHERE total_points > X` query.
+- The "is_owner" flag stays client-side (compare `profile.id` to `useAuthSession().userId`) — keeps the RPC pure and avoids needing `auth.uid()` for permission.
 
-If any specific query later needs tighter freshness, override `staleTime` per-query rather than fighting the global.
+This is the **biggest win on the list**: 4 sequential round-trips (profile → 3-parallel children → bar_stats → rank) collapse into 1.
 
----
+### c) `get_bar_dashboard(p_user_id uuid) → jsonb`
 
-## 2. Animation guards
+**Replaces**: `src/pages/TheBar.tsx` lines 59–89 (3 parallel queries + sequential rank query).
 
-**Already guarded** (verified): `gooey-text-morphing` (document.hidden), `shape-landing-bg`, `falling-pattern`, `timeline-animation` (all use `useReducedMotion`).
+Returns:
+```json
+{
+  "stats": { ...bar_user_stats row or trainee defaults... },
+  "recent": [ { id, is_correct, points_awarded, attempted_at, challenge_title, question_type } x10 ],
+  "opted_out": bool,
+  "overall_rank": int | null
+}
+```
 
-**Needs fixing — `src/components/ui/background-paths.tsx`:**
-- Currently runs 72 infinite Framer Motion path animations regardless of reduced-motion preference or tab visibility.
-- Add `useReducedMotion()` → if true, render the SVG static (no `animate` prop, no `transition`).
-- Wrap the component output so it pauses repaints when `document.hidden` (visibilitychange listener gating a state flag that conditionally renders the motion paths vs static paths).
+Auth gate: `auth.uid() = p_user_id` (page is private to the logged-in user). The 8s safety timeout in `TheBar.tsx` stays — RPC fails closed, page shows defaults.
 
-Mechanical, ~15 lines.
+### Risk audit
+- All three are `STABLE` (no writes), `SECURITY DEFINER` with `SET search_path = public`, fixed `auth.uid()` checks where needed. Standard pattern, already used by `get_profile_activity` in this project.
+- No RLS bypass risk — the RPCs return only the data the user could have fetched themselves; we're just collapsing round-trips.
+- `supabase/types.ts` regenerates automatically after the migration; the `.rpc()` calls will be type-safe.
 
----
-
-## 3. Consolidate auth hooks onto `useAuthSession`
-
-Three hooks currently each call `supabase.auth.getSession()` on mount, defeating the module-cache work we just did:
-
-- **`src/hooks/useAdminRole.ts`** — replace internal `getSession()` + `onAuthStateChange` with `const { userId, ready } = useAuthSession()`. Run the `user_roles` lookup in a `useEffect` keyed on `userId`. Return `null` while `!ready`, `false` if no user, the role check otherwise.
-- **`src/hooks/useFeatureVotes.ts`** (line 93) — same pattern. Replace the `getSession().then(...)` block with `useAuthSession()` and key the votes fetch on `userId`.
-- **`src/hooks/usePlaybookProgress.ts`** (line 20) — same pattern. Drop the local `userId` state and the `onAuthStateChange` subscription entirely; consume `useAuthSession()` directly.
-
-Net effect: one auth handshake per browser tab instead of N (where N = number of hooks × number of pages mounted). Eliminates a class of redundant calls we hadn't measured.
-
----
-
-## 4. Font loading trim (`index.html`)
-
-Current Google Fonts URL loads:
-- Sora 400/500/600/700/800 (5 weights)
-- Inter 400/500/600/700 (4 weights)
-- Cormorant Garamond 400/500/600/700 + italics (8 variants)
-- DM Mono 300/400/500
-- DM Sans 300/400/500
-- Instrument Serif regular + italic
-- JetBrains Mono 400/500/600
-
-That's ~25 font files. `font-display: swap` is already set (✓).
-
-**Action**: audit which weights are actually used in `tailwind.config.ts` font weight classes and `src/index.css`. Trim to the ones that ship — likely:
-- Sora 600/700 (headings only ever bold)
-- Inter 400/500/600 (body, medium emphasis, buttons)
-- Keep Cormorant / Instrument Serif / mono fonts only if they're actively referenced; otherwise drop them entirely.
-
-I'll grep for actual usage before cutting and report exactly what gets removed in the implementation message. Conservative — no font that's referenced anywhere in the codebase will be removed without flagging it.
-
-Also add `<link rel="preload" as="font" crossorigin>` for the 1-2 weights used above the fold (Sora 700 for the hero, Inter 400 for body).
+### What stays untouched
+- `src/pages/ApplicationTracker.tsx` only does 2 application queries (one for list, one is the same query refetched after mutation). Not worth an RPC. Skip.
+- `src/components/profile/ActivityHeatmap.tsx` already uses `get_profile_activity`. Done.
 
 ---
 
-## Out of scope (deferred to Batch B)
+## 2. Bundle analysis
 
-- SECURITY DEFINER RPCs to bundle multi-query pages (`/u/:username`, `/the-bar`, `/applications`)
-- `vite build` bundle analysis
-- Image optimization, hover-data-prefetch (deferred per Claude's ordering)
+Add `rollup-plugin-visualizer` to `vite.config.ts` (devDependency-only, gated by `--mode analyze`). One run of `bun run build -- --mode analyze` produces `dist/stats.html`. I'll open it, eyeball the top 10 chunks, and report:
+
+- Any single page chunk > 250 KB gzipped.
+- Any "common" chunk that's pulling admin-only deps (e.g. `mammoth`, `tiptap`) into pages non-admins load.
+- Any duplicate library copy (different import paths importing the same package twice).
+
+If anything looks bad, the fix is usually a `manualChunks` tweak in `vite.config.ts` or a dynamic import. I'll fix in the same pass if it's mechanical; flag for a follow-up if it's structural.
+
+---
+
+## Out of scope (deferred)
+
+- Image optimization (`loading="lazy"` + WebP) — not yet the LCP bottleneck per Claude's read.
+- Hover-data prefetch — premature; only worth it after measuring a specific route where chunk-load isn't the slow part.
+- `useFeatureVotes` 60s cache invalidation refinement — cosmetic, optimistic UI covers it.
 
 ---
 
 ## Verification after implementation
 
-1. Build succeeds (`bun run build`).
-2. Manually click through `/`, `/the-bar`, `/the-bar/browse`, `/playbook`, `/applications` — confirm no skeleton stalls and no console errors from the auth-hook refactor.
-3. DevTools → Network → filter `fonts.gstatic.com` → confirm reduced font requests.
-4. DevTools → Performance → record a tab-switch — confirm `background-paths` is no longer the top CPU consumer.
+1. `bun run build` succeeds; `supabase/types.ts` regenerates with the 3 new RPCs.
+2. Click through `/app`, `/u/<your-username>`, `/the-bar`, `/u/<some-other-user>` — confirm pages render correctly with the same data as before.
+3. DevTools → Network → filter `rest/v1` → confirm 1 RPC request per page instead of 4–6 table queries.
+4. Bundle report saved to `dist/stats.html`; summarize findings in chat.
 
-Approve and I'll ship all four in one pass.
+Approve and I'll ship the migration + the 3 page refactors + the bundle analyzer in one pass.
