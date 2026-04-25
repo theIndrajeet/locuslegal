@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { usePageMeta } from "@/hooks/usePageMeta";
-import { FileText, Download, ScanSearch, CalendarCheck, Eye } from "lucide-react";
+import { FileText, Download, ScanSearch, CalendarCheck, Eye, ArrowRight, Pin } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useFeatureVotes } from "@/hooks/useFeatureVotes";
 import { FeatureVoteButton } from "@/components/FeatureVoteButton";
 import {
