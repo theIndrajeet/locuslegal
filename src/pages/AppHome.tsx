@@ -6,6 +6,7 @@ import { usePageMeta } from "@/hooks/usePageMeta";
 
 import IdentityRow from "@/components/app/IdentityRow";
 import ProfileStrengthMeter, { computeStrength } from "@/components/profile/ProfileStrengthMeter";
+import ActivityHeatmap from "@/components/profile/ActivityHeatmap";
 import OnboardingChecklist from "@/components/app/OnboardingChecklist";
 import PracticePane from "@/components/app/PracticePane";
 import PipelinePane from "@/components/app/PipelinePane";
@@ -179,6 +180,13 @@ export default function AppHome() {
         />
 
         <ProfileStrengthMeter variant="full" {...meterInputs} />
+
+        <section className="border-2 border-border bg-card p-5 shadow-[3px_3px_0_0_hsl(var(--border))]">
+          <div className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-3">
+            Your activity
+          </div>
+          <ActivityHeatmap userId={data.userId} />
+        </section>
 
         {showOnboarding ? (
           <OnboardingChecklist items={items} score={score} />
