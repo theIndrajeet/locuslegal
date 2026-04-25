@@ -61,6 +61,15 @@ export default function IdentityRow({
             </span>
             <span className="font-mono text-xs text-muted-foreground">@{username}</span>
           </div>
+          {bio.trim().length < 40 && (
+            <Link
+              to="/profile/edit"
+              className="mt-1 inline-flex items-center gap-1 font-mono text-[10px] font-bold uppercase tracking-wider text-accent hover:underline"
+            >
+              <Pencil size={10} />
+              {bio.trim().length === 0 ? "Add a bio" : "Flesh out your bio"}
+            </Link>
+          )}
         </div>
 
         <button
