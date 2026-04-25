@@ -1,5 +1,6 @@
 import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
+import mdx from "@mdx-js/rollup";
 import path from "path";
 import { writeFileSync, mkdirSync } from "fs";
 import { componentTagger } from "lovable-tagger";
@@ -41,6 +42,7 @@ export default defineConfig(({ mode }) => ({
     __BUILD_VERSION__: JSON.stringify(BUILD_VERSION),
   },
   plugins: [
+    { enforce: "pre", ...mdx({ providerImportSource: "@mdx-js/react" }) },
     react(),
     mode === "development" && componentTagger(),
     writeVersionJsonPlugin(),
