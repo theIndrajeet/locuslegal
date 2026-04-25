@@ -25,8 +25,21 @@ const FEATURES = [
 
 export default function RotatingHero() {
   const [visible, setVisible] = useState(false);
+  const [animateHeadline, setAnimateHeadline] = useState(false);
   useEffect(() => {
     setVisible(true);
+    // Wait until after first paint + a beat of idle time before mounting
+    // the GooeyText animation. Keeps FCP/LCP fast without changing the UX.
+    const schedule =
+      (window as unknown as { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number })
+        .requestIdleCallback ?? ((cb: () => void) => window.setTimeout(cb, 1200));
+    const id = schedule(() => setAnimateHeadline(true), { timeout: 2500 });
+    return () => {
+      const cancel =
+        (window as unknown as { cancelIdleCallback?: (id: number) => void }).cancelIdleCallback ??
+        window.clearTimeout;
+      cancel(id as number);
+    };
   }, []);
 
   return (
