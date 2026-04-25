@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ExternalLink, User } from "lucide-react";
+import { ExternalLink, User, Pencil } from "lucide-react";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -11,6 +11,7 @@ interface Props {
   displayName: string;
   avatarUrl: string | null;
   openToOpportunities: boolean;
+  bio?: string;
 }
 
 export default function IdentityRow({
