@@ -547,7 +547,7 @@ export default function CvAnalyser() {
       {/* Hero */}
       <section className="container mx-auto px-4 md:px-8 max-w-5xl text-center mb-10">
         <div className="inline-flex items-center gap-2 text-[10px] uppercase tracking-widest text-accent border border-accent/30 bg-accent/5 px-3 py-1 rounded-full mb-4">
-          <Sparkles className="h-3 w-3" /> Indian Legal Blueprint v2 · 3-Vector Scoring
+          <Sparkles className="h-3 w-3" /> Built for Indian law students · Scored on 3 career tracks
         </div>
         <h1 className="font-heading text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight mb-4">
           The CV review you'd <span className="text-accent">never get</span> in person.
