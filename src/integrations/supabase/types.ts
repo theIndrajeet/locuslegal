@@ -473,6 +473,48 @@ export type Database = {
           },
         ]
       }
+      cv_analyses: {
+        Row: {
+          analysis: Json
+          completion_tokens: number | null
+          created_at: string
+          cv_storage_path: string
+          duration_ms: number | null
+          id: string
+          model: string
+          overall_score: number
+          prompt_tokens: number | null
+          user_id: string
+          verdict: string
+        }
+        Insert: {
+          analysis?: Json
+          completion_tokens?: number | null
+          created_at?: string
+          cv_storage_path: string
+          duration_ms?: number | null
+          id?: string
+          model: string
+          overall_score: number
+          prompt_tokens?: number | null
+          user_id: string
+          verdict: string
+        }
+        Update: {
+          analysis?: Json
+          completion_tokens?: number | null
+          created_at?: string
+          cv_storage_path?: string
+          duration_ms?: number | null
+          id?: string
+          model?: string
+          overall_score?: number
+          prompt_tokens?: number | null
+          user_id?: string
+          verdict?: string
+        }
+        Relationships: []
+      }
       feature_votes: {
         Row: {
           created_at: string
