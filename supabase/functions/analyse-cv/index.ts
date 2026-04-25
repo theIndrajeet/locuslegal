@@ -464,23 +464,9 @@ function bytesToBase64(bytes: Uint8Array): string {
   return btoa(binary);
 }
 
-async function callGemini(base64Pdf: string): Promise<{ analysis: any; usage: any }> {
+async function callGateway(body: any): Promise<any> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
-
-  const userContent: any[] = [
-    {
-      type: "file",
-      file: {
-        filename: "cv.pdf",
-        file_data: `data:application/pdf;base64,${base64Pdf}`,
-      },
-    },
-    {
-      type: "text",
-      text: "Analyse this CV under the Indian Legal Blueprint. Score against ALL THREE vectors (corporate, litigation, in-house) independently. Return via submit_cv_analysis. Brutally honest. Partner voice.",
-    },
-  ];
 
   const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
@@ -488,16 +474,7 @@ async function callGemini(base64Pdf: string): Promise<{ analysis: any; usage: an
       Authorization: `Bearer ${LOVABLE_API_KEY}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      model: MODEL,
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: userContent },
-      ],
-      tools: [TOOL],
-      tool_choice: { type: "function", function: { name: "submit_cv_analysis" } },
-      reasoning: { effort: "low" },
-    }),
+    body: JSON.stringify(body),
   });
 
   if (!response.ok) {
@@ -506,18 +483,57 @@ async function callGemini(base64Pdf: string): Promise<{ analysis: any; usage: an
     err.status = response.status;
     throw err;
   }
-  const data = await response.json();
+  return await response.json();
+}
+
+function parseToolCall(data: any, fnName: string): any {
   const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
   if (!toolCall?.function?.arguments) {
-    throw new Error("AI did not return a tool call");
+    throw new Error(`AI did not return a ${fnName} tool call`);
   }
-  let parsed: any;
   try {
-    parsed = JSON.parse(toolCall.function.arguments);
+    return JSON.parse(toolCall.function.arguments);
   } catch {
-    throw new Error("AI tool arguments were not valid JSON");
+    throw new Error(`AI ${fnName} arguments were not valid JSON`);
   }
-  return { analysis: parsed, usage: data.usage || {} };
+}
+
+// PASS 1: extract structured facts from the PDF using a fast model, no reasoning.
+async function extractFacts(base64Pdf: string): Promise<{ facts: any; usage: any }> {
+  const data = await callGateway({
+    model: EXTRACTION_MODEL,
+    messages: [
+      { role: "system", content: EXTRACTION_SYSTEM_PROMPT },
+      {
+        role: "user",
+        content: [
+          { type: "file", file: { filename: "cv.pdf", file_data: `data:application/pdf;base64,${base64Pdf}` } },
+          { type: "text", text: "Extract every fact from this CV via submit_cv_facts. Be exhaustive. Verbatim bullets." },
+        ],
+      },
+    ],
+    tools: [EXTRACTION_TOOL],
+    tool_choice: { type: "function", function: { name: "submit_cv_facts" } },
+  });
+  return { facts: parseToolCall(data, "submit_cv_facts"), usage: data.usage || {} };
+}
+
+// PASS 2: score the structured facts using a strong reasoning model on text only.
+async function scoreFromFacts(facts: any, effort: "high" | "medium" = "high"): Promise<{ analysis: any; usage: any }> {
+  const data = await callGateway({
+    model: SCORING_MODEL,
+    messages: [
+      { role: "system", content: SYSTEM_PROMPT },
+      {
+        role: "user",
+        content: `The following JSON is the verbatim, fully-extracted fact set from the candidate's CV (extracted by an upstream parser). Score this candidate against ALL THREE vectors under the Indian Legal Blueprint. Use ONLY these facts — do not invent additional information. Where a field is empty, treat it as genuinely absent. Return via submit_cv_analysis.\n\nCV_FACTS:\n${JSON.stringify(facts)}`,
+      },
+    ],
+    tools: [TOOL],
+    tool_choice: { type: "function", function: { name: "submit_cv_analysis" } },
+    reasoning: { effort },
+  });
+  return { analysis: parseToolCall(data, "submit_cv_analysis"), usage: data.usage || {} };
 }
 
 serve(async (req) => {
