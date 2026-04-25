@@ -185,8 +185,8 @@ function MultiStageLoader() {
               <Loader2 className="h-6 w-6 text-accent animate-spin" />
             </div>
             <div>
-              <p className="font-heading font-bold text-base">Three reviewers are reading your CV</p>
-              <p className="text-xs text-muted-foreground">Tier-1 recruiter · Litigation senior · NLU placement chair</p>
+              <p className="font-heading font-bold text-base">Your CV is being reviewed</p>
+              <p className="text-xs text-muted-foreground">Scored across Corporate, Litigation & In-house tracks</p>
             </div>
           </div>
           <div className="text-right">
