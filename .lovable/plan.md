@@ -1,37 +1,28 @@
-# Plan: Replace hero background with floating geometric shapes
+## Goal
+End the Legal Research Memo guide with an interactive "Before you send" checklist the reader can tick off when reviewing their own memo — converts passive advice into a usable working tool.
 
-## 1. Create `src/components/ui/shape-landing-bg.tsx`
-A background-only component (no copy, no badge) with 5 floating blurred pill shapes.
+## Change
+**File:** `src/content/playbook/legal-research-memo.mdx`
 
-- `ElegantShape` subcomponent: SVG-less approach — a rotated `div` with a gradient fill, blur, inner border, and a slow framer-motion `y` float (±15px, ~12s loop).
-- Restyle to **strict Black/White/Yellow** palette:
-  - 3 shapes use `bg-gradient-to-r from-white/[0.08] to-transparent`
-  - 2 shapes use `bg-gradient-to-r from-accent/[0.14] to-transparent` (yellow)
-  - **No** indigo/rose/violet/cyan/amber from original
-- Entry animation: rotate + opacity fade-in via framer-motion (staggered delays 0.3s–0.7s).
-- Honors `useReducedMotion`: static positions, no float loop.
-- `aria-hidden`, `pointer-events-none`, `absolute inset-0 overflow-hidden`.
-- Container has subtle `bg-gradient-to-br from-accent/[0.03] via-transparent to-white/[0.03]` overlay for depth.
+Replace the final `<Callout type="rule" title="Before you send">` block with:
 
-Shape positions (matching the original's asymmetric composition, adapted):
-| # | size | rotate | position | gradient |
-|---|------|--------|----------|----------|
-| 1 | 600×140 | -8° | left:-10%, top:15% | white |
-| 2 | 500×120 | 15° | right:-5%, top:70% | accent (yellow) |
-| 3 | 300×80  | -20° | left:5%, bottom:10% | white |
-| 4 | 200×60  | 25° | right:15%, top:10% | accent (yellow) |
-| 5 | 150×40  | -25° | left:20%, top:5% | white |
+1. A short H2 — `## Before you send` — so it reads as a real article section, not a tacked-on box.
+2. One-line lead sentence: *"Run every memo through this list before it leaves your outbox."*
+3. An interactive `<Checklist>` with these items (drawn directly from the lessons earlier in the article):
+   - Issue stated in one sentence, sharp enough to fit in a tweet
+   - Every cited judgment has been read in full (not just the headnote)
+   - Statute checked for amendments; leading case checked for overrulings
+   - Application section uses *these* facts, not facts in the abstract
+   - Counter-arguments and risks addressed in their own section
+   - Conclusion takes a position — hedged with reasoning, not vibes
+   - Re-read the partner's original instruction; memo's first and last sentence answer it
+   - Formatting clean: consistent fonts, working numbering, footnotes pointing to the right sources
 
-## 2. Update `src/components/home/RotatingHero.tsx`
-- Remove `import { FallingPattern } from "@/components/ui/falling-pattern"`.
-- Remove the `<FallingPattern>` element, the `bg-background/40` overlay, and the right-side yellow radial-gradient div (lines 30–39).
-- Add `import ShapeLandingBg from "@/components/ui/shape-landing-bg"` and render it as the first child of `<section>`.
-- Keep all copy, motion fades, and CTAs exactly as-is.
-- Keep `relative min-h-[88vh] flex items-center overflow-hidden` on the section.
+## Why this approach
+- `<Checklist>` already exists, already interactive, already registered in `mdxComponents.ts` — no new components.
+- A real H2 (vs another Callout box) gives the section weight and makes it part of the article's structure rather than a sidebar.
+- 8 items is the right size — comprehensive without being daunting. Each maps to a specific point made earlier in the guide.
+- Replaces the existing closing Callout (avoids redundancy).
 
-## 3. Don't touch
-- `FallingPattern` component file stays (in case used elsewhere later).
-- No other files change.
-
-## Result
-Hero gets a quiet, premium floating-shapes background in our Black/White/Yellow palette instead of the falling pattern + yellow blob. Reduced-motion users get static shapes. No layout shift, copy unchanged.
+## Out of scope
+No styling changes, no new components, no changes to other guides.
