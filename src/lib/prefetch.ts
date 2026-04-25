@@ -91,12 +91,22 @@ export function prefetchCommonRoutes() {
         fired.delete(key);
       }
       // Yield between chunks so the main thread stays responsive.
-      await new Promise((r) => setTimeout(r, 250));
+      await new Promise((r) => setTimeout(r, 400));
     }
   };
 
-  const ric = (window as unknown as { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number })
-    .requestIdleCallback;
-  if (ric) ric(() => run(), { timeout: 4000 });
-  else setTimeout(run, 3000);
+  // Wait until after the window load event so prefetch chunks never enter
+  // the LCP / initial critical request chain, then add a generous delay.
+  const schedule = () => {
+    const ric = (window as unknown as {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+    }).requestIdleCallback;
+    if (ric) ric(() => run(), { timeout: 8000 });
+    else setTimeout(run, 4000);
+  };
+
+  const start = () => setTimeout(schedule, 2500);
+
+  if (document.readyState === "complete") start();
+  else window.addEventListener("load", start, { once: true });
 }
