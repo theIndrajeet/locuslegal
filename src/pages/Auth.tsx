@@ -223,6 +223,25 @@ export default function Auth() {
             {isLogin ? "Sign up" : "Sign in"}
           </button>
         </p>
+
+        {/* Locus+ teaser — discreet, no signup required */}
+        <Link
+          to="/tools/cv-analyser"
+          className="group flex items-center justify-between gap-3 rounded-md border border-accent/30 bg-accent/5 px-3 py-2.5 transition-colors hover:border-accent/60 hover:bg-accent/10"
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-sm border border-accent/40 bg-accent/15 px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-[0.12em] text-accent">
+              <span className="h-1 w-1 rounded-[1px] bg-accent" />
+              Locus+
+            </span>
+            <span className="truncate text-xs text-foreground/80">
+              Get your CV scored — no signup needed
+            </span>
+          </div>
+          <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-accent opacity-70 group-hover:opacity-100">
+            Try →
+          </span>
+        </Link>
       </div>
     </div>
   );

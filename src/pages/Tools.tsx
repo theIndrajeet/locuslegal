@@ -25,12 +25,12 @@ const CATEGORIES: { id: CategoryType; label: string; count: number }[] = [
   { id: "SMBs", label: "Small Companies", count: 3 },
 ];
 
-const TOOL_CATALOG: { id: ToolType; num: string; label: string; description: string; tags: string[]; comingSoon?: boolean; href?: string; categories: CategoryType[] }[] = [
-  { id: "nda", num: "01", label: "NDA Generator", description: "Generate enforceable non-disclosure agreements across multiple jurisdictions", tags: ["APAC", "GDPR", "Multi-party"], categories: ["Firms", "Startups", "SMBs"] },
-  { id: "checklist", num: "02", label: "Data Protection Checklist", description: "Interactive compliance audit with risk-rated action items", tags: ["Interactive", "Risk-rated", "Multi-jurisdiction"], categories: ["Firms", "SMBs"] },
-  { id: "dpa", num: "03", label: "DPA Template", description: "Draft data processing agreements with cross-border transfer clauses", tags: ["GDPR", "DPDPA", "Cross-border"], categories: ["Firms", "SMBs"] },
-  { id: "internship", num: "04", label: "Internship Agreement", description: "Formalize legal internship terms with BCI-compliant templates", tags: ["Indian Law", "BCI Rules", "Structured"], categories: ["Firms", "Students"] },
-  { id: "nda", num: "05", label: "CV Analyser", description: "Brutally honest, partner-voice review of your legal CV — calibrated for Tier-1 firms, chambers & NLU placement", tags: ["AI", "Tier-1", "Indian Market"], href: "/tools/cv-analyser", categories: ["Students"] },
+const TOOL_CATALOG: { id: ToolType; num: string; label: string; description: string; tags: string[]; comingSoon?: boolean; href?: string; categories: CategoryType[]; featured?: boolean }[] = [
+  { id: "nda", num: "01", label: "CV Analyser", description: "Partner-voice review across 3 vectors — Corporate, Litigation, In-house. Calibrated to BCI Rule 25, NLU tiering & Elite Six benchmarks.", tags: ["Locus+", "3-Vector AI", "Indian Market"], href: "/tools/cv-analyser", categories: ["Students"], featured: true },
+  { id: "nda", num: "02", label: "NDA Generator", description: "Generate enforceable non-disclosure agreements across multiple jurisdictions", tags: ["APAC", "GDPR", "Multi-party"], categories: ["Firms", "Startups", "SMBs"] },
+  { id: "checklist", num: "03", label: "Data Protection Checklist", description: "Interactive compliance audit with risk-rated action items", tags: ["Interactive", "Risk-rated", "Multi-jurisdiction"], categories: ["Firms", "SMBs"] },
+  { id: "dpa", num: "04", label: "DPA Template", description: "Draft data processing agreements with cross-border transfer clauses", tags: ["GDPR", "DPDPA", "Cross-border"], categories: ["Firms", "SMBs"] },
+  { id: "internship", num: "05", label: "Internship Agreement", description: "Formalize legal internship terms with BCI-compliant templates", tags: ["Indian Law", "BCI Rules", "Structured"], categories: ["Firms", "Students"] },
   { id: "nda", num: "06", label: "Founder Agreement", description: "Co-founder equity splits, vesting schedules, and IP assignment clauses", tags: ["Startups", "Equity", "Vesting"], comingSoon: true, categories: ["Startups"] },
   { id: "nda", num: "07", label: "Freelancer Contract", description: "Service agreements with payment terms, IP ownership, and liability caps", tags: ["SMBs", "IP", "Payments"], comingSoon: true, categories: ["SMBs", "Startups"] },
   { id: "nda", num: "08", label: "Music Licensing Agreement", description: "Sync licensing, royalty splits, and territory-based distribution rights", tags: ["Artists", "Royalties", "Sync"], comingSoon: true, categories: ["Creators"] },
@@ -527,8 +527,26 @@ Include sections: Parties, Recitals, Term of Internship, Scope of Work, Supervis
             </div>
             <div className="lt-catalogue-grid">
               {TOOL_CATALOG.filter((t) => activeCategory === "All" || t.categories.includes(activeCategory)).map((tool) => (
-                <div key={tool.num} className={`lt-cat-card${tool.comingSoon ? " coming-soon" : ""}`} onClick={() => { if (tool.comingSoon) return; if (tool.href) { window.location.href = tool.href; } else { openTool(tool.id); } }}>
+                <div
+                  key={tool.num}
+                  className={`lt-cat-card${tool.comingSoon ? " coming-soon" : ""}`}
+                  onClick={() => { if (tool.comingSoon) return; if (tool.href) { window.location.href = tool.href; } else { openTool(tool.id); } }}
+                  style={tool.featured ? { borderColor: "hsl(var(--accent))", boxShadow: "4px 4px 0 0 hsl(var(--accent))" } : undefined}
+                >
                   {tool.comingSoon && <span className="lt-coming-badge">Coming Soon</span>}
+                  {tool.featured && (
+                    <span
+                      className="absolute top-3 right-3 z-10 inline-flex items-center gap-1 rounded-sm border-2 px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-[0.12em]"
+                      style={{
+                        borderColor: "hsl(var(--accent))",
+                        background: "hsl(var(--accent) / 0.15)",
+                        color: "hsl(var(--accent))",
+                      }}
+                    >
+                      <span className="h-1.5 w-1.5 rounded-[1px] bg-accent" />
+                      Locus+ · Featured
+                    </span>
+                  )}
                   <div className="lt-cat-top">
                     <span className="lt-cat-num">{tool.num}</span>
                   </div>
