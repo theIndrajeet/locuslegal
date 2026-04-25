@@ -90,22 +90,37 @@ export function prefetchCommonRoutes() {
       } catch {
         fired.delete(key);
       }
-      // Yield between chunks so the main thread stays responsive.
-      await new Promise((r) => setTimeout(r, 400));
+      // Yield generously between chunks so the main thread stays responsive
+      // and the network isn't competing with anything the user might do.
+      await new Promise((r) => setTimeout(r, 800));
     }
   };
 
-  // Wait until after the window load event so prefetch chunks never enter
-  // the LCP / initial critical request chain, then add a generous delay.
+  // Heuristic: skip prefetching entirely on a cold load over a slow connection
+  // or on devices with limited memory. These are the users where 40+ extra
+  // chunk downloads actually hurt — and they're also the users least likely
+  // to navigate deep into the app on first visit.
+  const nav = navigator as unknown as {
+    connection?: { effectiveType?: string; saveData?: boolean };
+    deviceMemory?: number;
+  };
+  const conn = nav.connection;
+  if (conn?.saveData) return;
+  if (conn?.effectiveType === "slow-2g" || conn?.effectiveType === "2g" || conn?.effectiveType === "3g") return;
+  if (typeof nav.deviceMemory === "number" && nav.deviceMemory < 4) return;
+
+  // Wait until well after the load event so prefetch chunks never enter
+  // the LCP / initial critical request chain. Using a long fixed delay
+  // (8 s) so the user can actually interact with the page first.
   const schedule = () => {
     const ric = (window as unknown as {
       requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
     }).requestIdleCallback;
-    if (ric) ric(() => run(), { timeout: 8000 });
-    else setTimeout(run, 4000);
+    if (ric) ric(() => run(), { timeout: 15000 });
+    else setTimeout(run, 8000);
   };
 
-  const start = () => setTimeout(schedule, 2500);
+  const start = () => setTimeout(schedule, 8000);
 
   if (document.readyState === "complete") start();
   else window.addEventListener("load", start, { once: true });
