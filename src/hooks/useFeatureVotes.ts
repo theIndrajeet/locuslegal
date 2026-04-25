@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { useAuthSession } from "@/hooks/useAuthSession";
 
 interface FeatureVote {
   id: string;
@@ -74,31 +75,9 @@ export function useFeatureVotes() {
   const [userVotes, setUserVotes] = useState<FeatureVote[]>(
     () => votesCache?.data ?? []
   );
-  const [userId, setUserId] = useState<string | null>(null);
+  const { userId } = useAuthSession();
   const [loading, setLoading] = useState(!countsCache);
   const navigate = useNavigate();
-  const lastUserIdRef = useRef<string | null>(null);
-
-  // Track auth — only react to actual sign-in/out, not token refreshes.
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "INITIAL_SESSION") {
-        const next = session?.user?.id ?? null;
-        if (next !== lastUserIdRef.current) {
-          lastUserIdRef.current = next;
-          setUserId(next);
-        }
-      }
-    });
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      const next = session?.user?.id ?? null;
-      if (next !== lastUserIdRef.current) {
-        lastUserIdRef.current = next;
-        setUserId(next);
-      }
-    });
-    return () => subscription.unsubscribe();
-  }, []);
 
   // Load counts (cached)
   useEffect(() => {
