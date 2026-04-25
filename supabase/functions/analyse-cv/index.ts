@@ -7,7 +7,132 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const MODEL = "google/gemini-3.1-pro-preview";
+const SCORING_MODEL = "google/gemini-3.1-pro-preview";
+const EXTRACTION_MODEL = "google/gemini-3-flash-preview";
+const MODEL = SCORING_MODEL; // persisted in cv_analyses.model for back-compat
+
+const EXTRACTION_SYSTEM_PROMPT = `You are a CV fact-extractor for an Indian legal hiring platform. Read the attached PDF and extract every concrete signal — DO NOT score, judge, or rewrite. Return strictly via the submit_cv_facts tool.
+
+Be exhaustive: capture EVERY internship, moot, publication, position of responsibility, certification, and skill. For each bullet point in the experience sections, copy the exact bullet text verbatim into bullets[] — do not paraphrase. We need the raw text for downstream semantic analysis.
+
+Date math: convert "Jun–Jul 2024" to duration_weeks (e.g. ~5). If only a month is given, estimate 4 weeks. If "ongoing", estimate to today.
+
+If a field is genuinely absent, use empty string or empty array. Never invent.`;
+
+const EXTRACTION_TOOL = {
+  type: "function",
+  function: {
+    name: "submit_cv_facts",
+    description: "Return the raw structured facts extracted from the CV. No scoring, no opinions.",
+    parameters: {
+      type: "object",
+      properties: {
+        identity: {
+          type: "object",
+          properties: {
+            name: { type: "string" },
+            college: { type: "string" },
+            programme: { type: "string", description: "5-year integrated, 3-year LLB, LLM, or unknown" },
+            graduation_year: { type: "string" },
+            current_year_of_study: { type: "string" },
+            cgpa_or_rank: { type: "string" },
+            email_present: { type: "boolean" },
+            phone_present: { type: "boolean" },
+            linkedin_present: { type: "boolean" },
+          },
+          required: ["name", "college", "programme", "graduation_year", "current_year_of_study", "cgpa_or_rank", "email_present", "phone_present", "linkedin_present"],
+          additionalProperties: false,
+        },
+        structural_signals: {
+          type: "object",
+          properties: {
+            page_count: { type: "number" },
+            font_family_guess: { type: "string" },
+            has_photo: { type: "boolean" },
+            has_dob_or_marital: { type: "boolean" },
+            uses_first_person: { type: "boolean" },
+            chronological_order: { type: "boolean" },
+            obvious_typos: { type: "array", items: { type: "string" } },
+            sections_present: { type: "array", items: { type: "string" } },
+          },
+          required: ["page_count", "font_family_guess", "has_photo", "has_dob_or_marital", "uses_first_person", "chronological_order", "obvious_typos", "sections_present"],
+          additionalProperties: false,
+        },
+        internships: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              firm_or_chamber: { type: "string" },
+              role: { type: "string" },
+              location: { type: "string" },
+              period_raw: { type: "string", description: "Verbatim date range from CV." },
+              duration_weeks: { type: "number" },
+              practice_areas_mentioned: { type: "array", items: { type: "string" } },
+              bullets: { type: "array", items: { type: "string" }, description: "Verbatim bullet points." },
+            },
+            required: ["firm_or_chamber", "role", "location", "period_raw", "duration_weeks", "practice_areas_mentioned", "bullets"],
+            additionalProperties: false,
+          },
+        },
+        moots: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              name: { type: "string" },
+              year: { type: "string" },
+              role_raw: { type: "string", description: "speaker, researcher, both, or as written." },
+              outcome_raw: { type: "string" },
+              awards: { type: "array", items: { type: "string" } },
+            },
+            required: ["name", "year", "role_raw", "outcome_raw", "awards"],
+            additionalProperties: false,
+          },
+        },
+        publications: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              title: { type: "string" },
+              venue: { type: "string" },
+              year: { type: "string" },
+              url_present: { type: "boolean" },
+              kind_hint: { type: "string", description: "journal, blog, magazine, book chapter, etc., or unknown." },
+            },
+            required: ["title", "venue", "year", "url_present", "kind_hint"],
+            additionalProperties: false,
+          },
+        },
+        positions_of_responsibility: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              title: { type: "string" },
+              organisation: { type: "string" },
+              period_raw: { type: "string" },
+              bullets: { type: "array", items: { type: "string" } },
+            },
+            required: ["title", "organisation", "period_raw", "bullets"],
+            additionalProperties: false,
+          },
+        },
+        awards_and_scholarships: { type: "array", items: { type: "string" } },
+        certifications: { type: "array", items: { type: "string" } },
+        skills: { type: "array", items: { type: "string" } },
+        languages: { type: "array", items: { type: "string" } },
+        databases_mentioned: { type: "array", items: { type: "string" }, description: "SCC Online, Manupatra, Westlaw, etc." },
+        ai_or_tech_mentioned: { type: "array", items: { type: "string" }, description: "Harvey, GenAI, CLM, prompt engineering, etc." },
+        commercial_vocabulary_hits: { type: "array", items: { type: "string" }, description: "Verbatim phrases like 'commercial implications', 'deal economics', etc." },
+        other_sections_raw: { type: "string", description: "Anything notable that did not fit above (interests, declarations). Trim aggressively." },
+      },
+      required: ["identity", "structural_signals", "internships", "moots", "publications", "positions_of_responsibility", "awards_and_scholarships", "certifications", "skills", "languages", "databases_mentioned", "ai_or_tech_mentioned", "commercial_vocabulary_hits", "other_sections_raw"],
+      additionalProperties: false,
+    },
+  },
+};
 
 const SYSTEM_PROMPT = `You are the INDIAN LEGAL CV ANALYSER, calibrated to the 2026 market. You speak as the consensus of three veterans:
 
