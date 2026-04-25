@@ -4,6 +4,7 @@ import { useTheme } from "next-themes";
 import { Link, useLocation } from "react-router-dom";
 import ProfileMenu from "./ProfileMenu";
 import { useAdminRole } from "@/hooks/useAdminRole";
+import { prefetchRoute } from "@/lib/prefetch";
 
 const navLinks = [
   { label: "Home", href: "/" },
@@ -48,11 +49,15 @@ export default function Navbar() {
 
         {/* Desktop nav */}
         <div className="hidden md:flex items-center gap-8">
-          {navLinks.map((l) =>
-            l.glitch ? (
+          {navLinks.map((l) => {
+            const prefetch = () => prefetchRoute(l.href);
+            return l.glitch ? (
               <Link
                 key={l.href}
                 to={l.href}
+                onMouseEnter={prefetch}
+                onFocus={prefetch}
+                onTouchStart={prefetch}
                 className={`relative text-sm font-bold transition-all duration-300 glitch-link ${
                   isActive(l.href) ? "text-accent" : "text-muted-foreground hover:text-accent"
                 }`}
@@ -64,6 +69,9 @@ export default function Navbar() {
               <Link
                 key={l.href}
                 to={l.href}
+                onMouseEnter={prefetch}
+                onFocus={prefetch}
+                onTouchStart={prefetch}
                 className={`text-sm font-medium transition-colors duration-300 ${
                   isActive(l.href)
                     ? "text-accent"
@@ -72,11 +80,13 @@ export default function Navbar() {
               >
                 {l.label}
               </Link>
-            )
-          )}
+            );
+          })}
           {isAdmin && (
             <Link
               to="/admin/bar"
+              onMouseEnter={() => prefetchRoute("/admin/bar")}
+              onFocus={() => prefetchRoute("/admin/bar")}
               className={`text-sm font-medium transition-colors duration-300 inline-flex items-center gap-1 ${
                 isActive("/admin/bar") ? "text-accent" : "text-muted-foreground hover:text-accent"
               }`}
