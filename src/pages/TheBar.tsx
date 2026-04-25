@@ -33,8 +33,7 @@ interface RecentAttempt {
 }
 
 export default function TheBar() {
-  const [authReady, setAuthReady] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
+  const { userId, ready: authReady } = useAuthSession();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<Stats | null>(null);
   const [recent, setRecent] = useState<RecentAttempt[]>([]);
@@ -50,71 +49,53 @@ export default function TheBar() {
   });
 
   useEffect(() => {
+    if (!authReady) return;
+    if (!userId) { setLoading(false); return; }
     let active = true;
-    supabase.auth.getSession().then(({ data }) => {
-      if (!active) return;
-      setUserId(data.session?.user?.id ?? null);
-      setAuthReady(true);
-    });
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
-      setUserId(session?.user?.id ?? null);
-      setAuthReady(true);
-    });
-    return () => { active = false; sub.subscription.unsubscribe(); };
-  }, []);
-
-  useEffect(() => {
-    if (!authReady || !userId) { setLoading(false); return; }
-    let active = true;
+    const timeout = setTimeout(() => { if (active) setLoading(false); }, 8000);
     (async () => {
       setLoading(true);
-      const [statsRes, recentRes, profileRes] = await Promise.all([
-        supabase.from("bar_user_stats").select("*").eq("user_id", userId).maybeSingle(),
-        supabase
-          .from("bar_attempts")
-          .select("id, is_correct, points_awarded, attempted_at, bar_challenges(title, question_type)")
-          .eq("user_id", userId)
-          .order("attempted_at", { ascending: false })
-          .limit(10),
-        supabase.from("profiles").select("bar_leaderboard_opt_out").eq("id", userId).maybeSingle(),
-      ]);
-      if (!active) return;
-      const resolvedStats = (statsRes.data as Stats | null) ?? {
-        total_points: 0,
-        accuracy_pct: 0,
-        current_streak: 0,
-        longest_streak: 0,
-        designation: "trainee",
-      };
-      setStats(resolvedStats);
-      setRecent((recentRes.data ?? []) as RecentAttempt[]);
-      setOptedOut(((profileRes.data as { bar_leaderboard_opt_out?: boolean } | null)?.bar_leaderboard_opt_out) ?? false);
+      try {
+        const [statsRes, recentRes, profileRes] = await Promise.all([
+          supabase.from("bar_user_stats").select("*").eq("user_id", userId).maybeSingle(),
+          supabase
+            .from("bar_attempts")
+            .select("id, is_correct, points_awarded, attempted_at, bar_challenges(title, question_type)")
+            .eq("user_id", userId)
+            .order("attempted_at", { ascending: false })
+            .limit(10),
+          supabase.from("profiles").select("bar_leaderboard_opt_out").eq("id", userId).maybeSingle(),
+        ]);
+        if (!active) return;
+        const resolvedStats = (statsRes.data as Stats | null) ?? {
+          total_points: 0,
+          accuracy_pct: 0,
+          current_streak: 0,
+          longest_streak: 0,
+          designation: "trainee",
+        };
+        setStats(resolvedStats);
+        setRecent((recentRes.data ?? []) as RecentAttempt[]);
+        setOptedOut(((profileRes.data as { bar_leaderboard_opt_out?: boolean } | null)?.bar_leaderboard_opt_out) ?? false);
 
-      // Compute overall rank only if user has attempts
-      if (resolvedStats.total_points > 0) {
-        const { count } = await supabase
-          .from("bar_user_stats")
-          .select("user_id", { count: "exact", head: true })
-          .gt("total_points", resolvedStats.total_points);
-        if (active) setOverallRank((count ?? 0) + 1);
-      } else {
-        setOverallRank(null);
+        if (resolvedStats.total_points > 0) {
+          const { count } = await supabase
+            .from("bar_user_stats")
+            .select("user_id", { count: "exact", head: true })
+            .gt("total_points", resolvedStats.total_points);
+          if (active) setOverallRank((count ?? 0) + 1);
+        } else {
+          setOverallRank(null);
+        }
+      } catch {
+        /* defaults render below */
+      } finally {
+        if (active) setLoading(false);
       }
-
-      setLoading(false);
     })();
-    return () => { active = false; };
+    return () => { active = false; clearTimeout(timeout); };
   }, [authReady, userId]);
 
-  if (!authReady) {
-    return (
-      <section className="min-h-screen pt-24 pb-16 bg-background">
-        <div className="container mx-auto px-4 max-w-5xl">
-          <Skeleton className="h-32 w-full" />
-        </div>
-      </section>
-    );
-  }
 
   const isGuest = !userId;
   const displayStats = stats ?? {
