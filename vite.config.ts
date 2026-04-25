@@ -42,7 +42,7 @@ export default defineConfig(({ mode }) => ({
     __BUILD_VERSION__: JSON.stringify(BUILD_VERSION),
   },
   plugins: [
-    { enforce: "pre", ...mdx({ providerImportSource: "@mdx-js/react" }) },
+    { enforce: "pre" as const, ...mdx({ providerImportSource: "@mdx-js/react" }) } as Plugin,
     react(),
     mode === "development" && componentTagger(),
     writeVersionJsonPlugin(),
