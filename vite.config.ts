@@ -67,6 +67,9 @@ export default defineConfig(({ mode }) => ({
     },
   },
   build: {
+    minify: "esbuild",
+    cssMinify: true,
+    sourcemap: false,
     rollupOptions: {
       output: {
         // Split heavy/stable vendor code into its own long-cacheable chunks

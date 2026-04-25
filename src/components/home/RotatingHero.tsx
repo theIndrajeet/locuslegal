@@ -94,16 +94,20 @@ export default function RotatingHero() {
 
       <div className="container mx-auto px-4 md:px-8 relative z-10 py-24">
         <div className="max-w-3xl mx-auto text-center">
-          <RainbowButton className="mb-8 font-heading text-sm font-semibold tracking-widest uppercase hero-fade-in">
+          {/*
+            Above-the-fold elements render at opacity:1 on first paint to
+            keep the LCP element from being delayed by entry animations.
+          */}
+          <RainbowButton className="mb-8 font-heading text-sm font-semibold tracking-widest uppercase">
             Your merit. Your internship.
           </RainbowButton>
 
-          <h1 className="font-heading text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold leading-[1.05] tracking-tight mb-8 text-foreground hero-fade-in hero-fade-in-delay-1">
+          <h1 className="font-heading text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold leading-[1.05] tracking-tight mb-8 text-foreground">
             Get the internship you deserve —{" "}
             <MorphingTagline />
           </h1>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-3xl mx-auto mb-12 hero-fade-in hero-fade-in-delay-2">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-3xl mx-auto mb-12">
             {FEATURES.map(({ icon: Icon, label }) => (
               <div
                 key={label}
@@ -117,7 +121,7 @@ export default function RotatingHero() {
             ))}
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center hero-fade-in hero-fade-in-delay-3">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/waitlist">
               <Button size="lg" className="font-heading text-base px-8 py-4">
                 Join the Waitlist
