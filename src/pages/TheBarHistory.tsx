@@ -127,7 +127,7 @@ export default function TheBarHistory() {
             <p className="text-muted-foreground mb-4">
               Sign in to see your attempt history.
             </p>
-            <Link to="/auth">
+            <Link to="/auth?next=/the-bar/history">
               <Button className="gap-2"><LogIn size={16} /> Sign in</Button>
             </Link>
           </Card>

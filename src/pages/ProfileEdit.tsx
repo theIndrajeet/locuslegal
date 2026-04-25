@@ -73,7 +73,7 @@ export default function ProfileEdit() {
           if (!mounted) return;
           if (!session) {
             console.log("[ProfileEdit] no session, redirecting");
-            navigate("/auth");
+            navigate("/auth?next=/profile/edit");
             return;
           }
           uid = session.user.id;
@@ -163,7 +163,7 @@ export default function ProfileEdit() {
     init();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session && mounted) navigate("/auth");
+      if (!session && mounted) navigate("/auth?next=/profile/edit");
     });
 
     return () => {
