@@ -19,10 +19,10 @@ export function KeyPoints({ title = "Remember this", children }: { title?: strin
       <p className="text-xs font-bold uppercase tracking-[0.14em] text-accent mb-4 font-mono">
         {title}
       </p>
-      <ul className="space-y-3 list-none p-0 m-0">
+      <ul className="keypoints-list space-y-3 list-none p-0 m-0">
         {items.length > 0
           ? items.map((content, i) => (
-              <li key={i} className="flex gap-3 items-start text-base leading-relaxed text-foreground/90 before:!hidden p-0 m-0">
+              <li key={i} className="flex gap-3 items-start text-base leading-relaxed text-foreground/90">
                 <Check className="h-5 w-5 text-accent shrink-0 mt-0.5" strokeWidth={2.5} />
                 <span>{content}</span>
               </li>
