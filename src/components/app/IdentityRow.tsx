@@ -20,6 +20,7 @@ export default function IdentityRow({
   displayName,
   avatarUrl,
   openToOpportunities: initialOTO,
+  bio = "",
 }: Props) {
   const [oto, setOto] = useState(initialOTO);
   const [saving, setSaving] = useState(false);
