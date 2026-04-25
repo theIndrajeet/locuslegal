@@ -74,6 +74,7 @@ const App = () => (
               <Route path="/playbook/:slug" element={<PlaybookGuide />} />
               <Route path="/resources" element={<Resources />} />
               <Route path="/tools" element={<Tools />} />
+              <Route path="/tools/cv-analyser" element={<CvAnalyser />} />
               <Route path="/the-bar" element={<TheBar />} />
               <Route path="/the-bar/preview" element={<TheBarPreview />} />
               <Route path="/the-bar/browse" element={<TheBarBrowse />} />
