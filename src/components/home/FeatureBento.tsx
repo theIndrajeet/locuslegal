@@ -35,7 +35,7 @@ function TileShell({ to, className = "", bg = "dark", texture = "none", index, c
     <TimelineContent index={index} className={className}>
       <Link
         to={to}
-        className={`group relative flex h-full flex-col justify-between overflow-hidden rounded-xl border-2 border-foreground p-6 shadow-[4px_4px_0_0_hsl(var(--foreground))] transition-all duration-200 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[8px_8px_0_0_hsl(var(--accent))] ${bgMap[bg]}`}
+        className={`group relative flex h-full min-h-[220px] w-full flex-col overflow-hidden rounded-xl border-2 border-foreground p-5 shadow-[4px_4px_0_0_hsl(var(--foreground))] transition-all duration-200 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[8px_8px_0_0_hsl(var(--accent))] ${bgMap[bg]}`}
       >
         {texture === "stripes" && (
           <div
