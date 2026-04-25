@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ExternalLink, User } from "lucide-react";
+import { ExternalLink, User, Pencil } from "lucide-react";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -11,6 +11,7 @@ interface Props {
   displayName: string;
   avatarUrl: string | null;
   openToOpportunities: boolean;
+  bio?: string;
 }
 
 export default function IdentityRow({
@@ -19,6 +20,7 @@ export default function IdentityRow({
   displayName,
   avatarUrl,
   openToOpportunities: initialOTO,
+  bio = "",
 }: Props) {
   const [oto, setOto] = useState(initialOTO);
   const [saving, setSaving] = useState(false);
@@ -59,6 +61,15 @@ export default function IdentityRow({
             </span>
             <span className="font-mono text-xs text-muted-foreground">@{username}</span>
           </div>
+          {bio.trim().length < 40 && (
+            <Link
+              to="/profile/edit"
+              className="mt-1 inline-flex items-center gap-1 font-mono text-[10px] font-bold uppercase tracking-wider text-accent hover:underline"
+            >
+              <Pencil size={10} />
+              {bio.trim().length === 0 ? "Add a bio" : "Flesh out your bio"}
+            </Link>
+          )}
         </div>
 
         <button
