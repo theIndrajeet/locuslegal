@@ -95,16 +95,18 @@ export default function PlaybookGuide() {
         <div className="max-w-7xl mx-auto px-4 lg:px-8 grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-10">
           {/* Left rail */}
           <aside className="hidden lg:block">
-            <div className="sticky top-24 space-y-6">
+            <div className="sticky top-24 space-y-5">
               <Link
                 to="/playbook"
-                className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                className="inline-flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground hover:text-foreground transition-colors"
               >
-                <ArrowLeft size={12} /> Back to Playbook
+                <ArrowLeft size={11} /> Back to Playbook
               </Link>
 
+              <div className="h-px bg-border/60" />
+
               <div className="space-y-2">
-                <span className="font-mono text-[10px] tracking-wider text-muted-foreground block">
+                <span className="font-mono text-[10px] tracking-[0.15em] text-muted-foreground block">
                   {guide.caseNumber}
                 </span>
                 <span
@@ -114,15 +116,18 @@ export default function PlaybookGuide() {
                 </span>
               </div>
 
+              <div className="h-px bg-border/60" />
+
               <ReaderTOC items={tocItems} />
 
               {userId && (
-                <div className="pt-4 border-t border-border">
+                <>
+                  <div className="h-px bg-border/60" />
                   <MarkCompleteButton
                     completed={completed}
                     onToggle={() => toggleComplete(slug)}
                   />
-                </div>
+                </>
               )}
             </div>
           </aside>
