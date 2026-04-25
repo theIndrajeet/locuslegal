@@ -928,6 +928,127 @@ Make it jurisdiction-appropriate. Reference specific statutory provisions where 
           </div>
         )}
 
+        {/* Freelancer */}
+        {activeTool === "freelancer" && (
+          <div className="lt-layout">
+            <div className="lt-form">
+              <div className="lt-panel-title">Freelancer Contract</div>
+              <div className="lt-panel-desc">Generate a service agreement with payment terms, IP ownership, liability caps and clean termination clauses.</div>
+              <div className="lt-divider">Parties</div>
+              <div className="lt-field"><label className="lt-label">Client Name</label><input className="lt-input" value={flClientName} onChange={(e) => setFlClientName(e.target.value)} placeholder="e.g. Apex Technologies Pvt. Ltd." /></div>
+              <div className="lt-field"><label className="lt-label">Client Entity Type</label><select className="lt-select" value={flClientType} onChange={(e) => setFlClientType(e.target.value)}>{ENTITY_TYPES.map((o) => <option key={o}>{o}</option>)}</select></div>
+              <div className="lt-field"><label className="lt-label">Freelancer Full Name</label><input className="lt-input" value={flFreelancerName} onChange={(e) => setFlFreelancerName(e.target.value)} placeholder="e.g. Rahul Nair" /></div>
+              <div className="lt-divider">Scope</div>
+              <div className="lt-field"><label className="lt-label">Service Type</label><select className="lt-select" value={flServiceType} onChange={(e) => setFlServiceType(e.target.value)}>{FL_SERVICE_TYPES.map((o) => <option key={o}>{o}</option>)}</select></div>
+              <div className="lt-field"><label className="lt-label">Scope of Services</label><textarea className="lt-textarea" value={flScope} onChange={(e) => setFlScope(e.target.value)} placeholder="e.g. Design and develop a 5-page marketing website with CMS integration..." /></div>
+              <div className="lt-field"><label className="lt-label">Deliverables</label><textarea className="lt-textarea" value={flDeliverables} onChange={(e) => setFlDeliverables(e.target.value)} placeholder="e.g. Final design files (Figma), deployed website, source code, 1-week handover support" /></div>
+              <div className="lt-row">
+                <div className="lt-field"><label className="lt-label">Start Date</label><input className="lt-input" type="date" value={flStart} onChange={(e) => setFlStart(e.target.value)} /></div>
+                <div className="lt-field"><label className="lt-label">End Date</label><input className="lt-input" type="date" value={flEnd} onChange={(e) => setFlEnd(e.target.value)} /></div>
+              </div>
+              <div className="lt-divider">Commercials</div>
+              <div className="lt-row">
+                <div className="lt-field"><label className="lt-label">Fee Structure</label><select className="lt-select" value={flFeeType} onChange={(e) => setFlFeeType(e.target.value)}>{FL_FEE_TYPES.map((o) => <option key={o}>{o}</option>)}</select></div>
+                <div className="lt-field"><label className="lt-label">Amount</label><input className="lt-input" value={flFeeAmount} onChange={(e) => setFlFeeAmount(e.target.value)} placeholder="e.g. ₹2,50,000 total" /></div>
+              </div>
+              <div className="lt-field"><label className="lt-label">Payment Terms</label><select className="lt-select" value={flPaymentTerms} onChange={(e) => setFlPaymentTerms(e.target.value)}>{FL_PAYMENT_TERMS.map((o) => <option key={o}>{o}</option>)}</select></div>
+              <div className="lt-divider">Legal Parameters</div>
+              <div className="lt-field"><label className="lt-label">Intellectual Property</label><select className="lt-select" value={flIp} onChange={(e) => setFlIp(e.target.value)}>{FL_IP_OWNERSHIP.map((o) => <option key={o}>{o}</option>)}</select></div>
+              <div className="lt-row">
+                <div className="lt-field"><label className="lt-label">Liability Cap</label><select className="lt-select" value={flLiability} onChange={(e) => setFlLiability(e.target.value)}>{FL_LIABILITY.map((o) => <option key={o}>{o}</option>)}</select></div>
+                <div className="lt-field"><label className="lt-label">Termination</label><select className="lt-select" value={flTermination} onChange={(e) => setFlTermination(e.target.value)}>{FL_TERMINATION.map((o) => <option key={o}>{o}</option>)}</select></div>
+              </div>
+              <div className="lt-field"><label className="lt-label">Governing Law</label><select className="lt-select" value={flGovLaw} onChange={(e) => setFlGovLaw(e.target.value)}>{FL_GOV_LAWS.map((o) => <option key={o}>{o}</option>)}</select></div>
+              <div className="lt-field"><label className="lt-label">Special Terms (optional)</label><textarea className="lt-textarea" value={flNotes} onChange={(e) => setFlNotes(e.target.value)} placeholder="e.g. Maximum 2 rounds of revisions per deliverable; kill fee of 25% on early termination..." /></div>
+              <button className="lt-gen-btn" disabled={loading.freelancer} onClick={generateFreelancer}>
+                {loading.freelancer ? <><div className="lt-spinner" /><span>Generating…</span></> : <span>Generate Contract</span>}
+              </button>
+            </div>
+            <div className="lt-output">
+              <div className="lt-toolbar">
+                <div className="lt-out-label"><div className={`lt-dot${loading.freelancer ? " loading" : hasOutput("freelancer") ? " ready" : ""}`} /><span>{loading.freelancer ? "Generating document…" : hasOutput("freelancer") ? "Document ready" : "Awaiting input"}</span></div>
+                <div className="lt-actions">
+                  <button className="lt-act-btn" disabled={!hasOutput("freelancer")} onClick={() => copyOutput("freelancer")}>Copy</button>
+                  <button className="lt-act-btn primary" disabled={!hasOutput("freelancer")} onClick={() => downloadOutput("freelancer")}>Download .txt</button>
+                </div>
+              </div>
+              <div className="lt-body">
+                {loading.freelancer ? (
+                  <div className="lt-placeholder"><div className="lt-streaming">Drafting Freelancer Contract <div className="lt-streaming-dots"><span>.</span><span>.</span><span>.</span></div></div></div>
+                ) : outputs.freelancer ? (
+                  <div dangerouslySetInnerHTML={{ __html: outputs.freelancer }} />
+                ) : (
+                  <div className="lt-placeholder"><p>Fill in the parties, scope and commercials to generate a complete freelance services agreement.</p></div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Terms of Service */}
+        {activeTool === "tos" && (
+          <div className="lt-layout">
+            <div className="lt-form">
+              <div className="lt-panel-title">Terms of Service Generator</div>
+              <div className="lt-panel-desc">Generate Terms and Conditions for your website or app with liability limits, refund policy and dispute resolution.</div>
+              <div className="lt-divider">Service Owner</div>
+              <div className="lt-field"><label className="lt-label">Company / Service Name</label><input className="lt-input" value={tosCompany} onChange={(e) => setTosCompany(e.target.value)} placeholder="e.g. Meridian Labs Pvt. Ltd." /></div>
+              <div className="lt-field"><label className="lt-label">Website / App URL</label><input className="lt-input" value={tosWebsite} onChange={(e) => setTosWebsite(e.target.value)} placeholder="e.g. https://meridian.app" /></div>
+              <div className="lt-divider">Service Profile</div>
+              <div className="lt-field"><label className="lt-label">Service Type</label><select className="lt-select" value={tosServiceType} onChange={(e) => setTosServiceType(e.target.value)}>{TOS_SERVICE_TYPES.map((o) => <option key={o}>{o}</option>)}</select></div>
+              <div className="lt-field"><label className="lt-label">Service Description</label><textarea className="lt-textarea" value={tosDescription} onChange={(e) => setTosDescription(e.target.value)} placeholder="e.g. A SaaS platform that helps small businesses manage invoices and tax filings..." /></div>
+              <div className="lt-row">
+                <div className="lt-field"><label className="lt-label">Target Users</label><select className="lt-select" value={tosUserType} onChange={(e) => setTosUserType(e.target.value)}>{TOS_USER_TYPES.map((o) => <option key={o}>{o}</option>)}</select></div>
+                <div className="lt-field"><label className="lt-label">Minimum Age</label><select className="lt-select" value={tosAge} onChange={(e) => setTosAge(e.target.value)}>{TOS_AGE.map((o) => <option key={o}>{o}</option>)}</select></div>
+              </div>
+              <div className="lt-divider">Commercials</div>
+              <div className="lt-row">
+                <div className="lt-field"><label className="lt-label">Payment Model</label><select className="lt-select" value={tosPayment} onChange={(e) => setTosPayment(e.target.value)}>{TOS_PAYMENT.map((o) => <option key={o}>{o}</option>)}</select></div>
+                <div className="lt-field"><label className="lt-label">Refund Policy</label><select className="lt-select" value={tosRefund} onChange={(e) => setTosRefund(e.target.value)}>{TOS_REFUND.map((o) => <option key={o}>{o}</option>)}</select></div>
+              </div>
+              <div className="lt-divider">Legal Parameters</div>
+              <div className="lt-field"><label className="lt-label">User-Generated Content</label><select className="lt-select" value={tosUgc} onChange={(e) => setTosUgc(e.target.value)}>{TOS_UGC.map((o) => <option key={o}>{o}</option>)}</select></div>
+              <div className="lt-row">
+                <div className="lt-field"><label className="lt-label">Dispute Resolution</label><select className="lt-select" value={tosDispute} onChange={(e) => setTosDispute(e.target.value)}>{TOS_DISPUTE.map((o) => <option key={o}>{o}</option>)}</select></div>
+                <div className="lt-field"><label className="lt-label">Governing Law</label><select className="lt-select" value={tosGovLaw} onChange={(e) => setTosGovLaw(e.target.value)}>{TOS_GOV_LAWS.map((o) => <option key={o}>{o}</option>)}</select></div>
+              </div>
+              <div className="lt-field">
+                <label className="lt-label">Compliance Frameworks</label>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 4 }}>
+                  {["DPDPA 2023", "GDPR", "CCPA", "PIPL", "PDPA (SG/MY)"].map((c) => (
+                    <label key={c} className="lt-jur-check">
+                      <input type="checkbox" checked={tosCompliance.includes(c)} onChange={(e) => setTosCompliance((p) => e.target.checked ? [...p, c] : p.filter((v) => v !== c))} /> {c}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div className="lt-field"><label className="lt-label">Special Clauses (optional)</label><textarea className="lt-textarea" value={tosNotes} onChange={(e) => setTosNotes(e.target.value)} placeholder="e.g. Include affiliate disclosure; specific cancellation flow for subscriptions..." /></div>
+              <button className="lt-gen-btn" disabled={loading.tos} onClick={generateTos}>
+                {loading.tos ? <><div className="lt-spinner" /><span>Generating…</span></> : <span>Generate Terms of Service</span>}
+              </button>
+            </div>
+            <div className="lt-output">
+              <div className="lt-toolbar">
+                <div className="lt-out-label"><div className={`lt-dot${loading.tos ? " loading" : hasOutput("tos") ? " ready" : ""}`} /><span>{loading.tos ? "Generating document…" : hasOutput("tos") ? "Document ready" : "Awaiting input"}</span></div>
+                <div className="lt-actions">
+                  <button className="lt-act-btn" disabled={!hasOutput("tos")} onClick={() => copyOutput("tos")}>Copy</button>
+                  <button className="lt-act-btn primary" disabled={!hasOutput("tos")} onClick={() => downloadOutput("tos")}>Download .txt</button>
+                </div>
+              </div>
+              <div className="lt-body">
+                {loading.tos ? (
+                  <div className="lt-placeholder"><div className="lt-streaming">Drafting Terms of Service <div className="lt-streaming-dots"><span>.</span><span>.</span><span>.</span></div></div></div>
+                ) : outputs.tos ? (
+                  <div dangerouslySetInnerHTML={{ __html: outputs.tos }} />
+                ) : (
+                  <div className="lt-placeholder"><p>Fill in your service profile, payment model and compliance needs to generate complete Terms of Service.</p></div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+
           </>
         )}
       </div>
