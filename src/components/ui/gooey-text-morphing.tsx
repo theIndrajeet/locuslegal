@@ -107,7 +107,7 @@ export function GooeyText({
     return () => {
       cancelAnimationFrame(animationId);
     };
-  }, [texts, morphTime, cooldownTime]);
+  }, [texts, morphTime, cooldownTime, animateReady]);
 
   React.useEffect(() => {
     // Defer SVG filter to avoid blocking LCP paint
