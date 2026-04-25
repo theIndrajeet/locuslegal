@@ -350,8 +350,8 @@ function ExhibitATile({ index }: { index: number }) {
         badgeClass="bg-black text-accent"
         arrowClass="text-black/60 group-hover:text-black"
       />
-      <div className="my-2">
-        <div className="font-heading text-[64px] md:text-[88px] font-black leading-none tracking-tight tabular-nums text-black">
+      <div className="mt-4 shrink-0">
+        <div className="font-heading text-[clamp(48px,9vw,88px)] font-black leading-[0.9] tracking-tight tabular-nums text-black">
           5,00,000
         </div>
         <div className="mt-2 font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-black/70">
@@ -359,17 +359,17 @@ function ExhibitATile({ index }: { index: number }) {
         </div>
       </div>
       <div className="my-4 h-[2px] w-full bg-black/80" />
-      <ul className="space-y-2.5 font-mono text-sm text-black">
+      <ul className="shrink-0 space-y-2.5 font-mono text-sm text-black">
         <li className="flex items-baseline gap-4">
-          <span className="font-heading text-2xl font-black tabular-nums w-20">26</span>
+          <span className="font-heading w-20 text-2xl font-black tabular-nums">26</span>
           <span className="opacity-80">NLUs in India</span>
         </li>
         <li className="flex items-baseline gap-4">
-          <span className="font-heading text-2xl font-black tabular-nums w-20">3,890</span>
+          <span className="font-heading w-20 text-2xl font-black tabular-nums">3,890</span>
           <span className="opacity-80">firms in our directory</span>
         </li>
         <li className="flex items-baseline gap-4">
-          <span className="font-heading text-2xl font-black tabular-nums w-20">1</span>
+          <span className="font-heading w-20 text-2xl font-black tabular-nums">1</span>
           <span className="opacity-80">platform for everyone else</span>
         </li>
       </ul>
