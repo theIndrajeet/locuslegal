@@ -366,9 +366,9 @@ html {
   font-weight: 600;
 }
 
-/* Italic */
+/* Italic — soft sky blue. Used for case names, statutes, foreign terms. */
 .playbook-prose em {
-  color: hsl(var(--foreground));
+  color: hsl(var(--prose-anchor));
   font-style: italic;
 }
 
