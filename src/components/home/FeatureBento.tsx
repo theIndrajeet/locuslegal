@@ -313,7 +313,7 @@ function ProfileTile({ index }: { index: number }) {
     <TileShell to="/profile/edit" bg="dark" texture="dots" index={index} className="md:col-span-2">
       <TileHeader Icon={UserCircle2} />
       <div className="my-3 flex items-center gap-2.5 rounded-lg border-2 border-foreground/15 bg-background/60 p-2.5">
-        <div className="font-heading flex h-11 w-11 items-center justify-center rounded-full border-2 border-foreground bg-accent text-base font-black text-accent-foreground">
+        <div className="font-heading flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border-2 border-foreground bg-accent text-sm font-black text-accent-foreground">
           RK
         </div>
         <div className="min-w-0 flex-1">
