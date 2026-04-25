@@ -407,6 +407,10 @@ html {
 .playbook-prose li > ul,
 .playbook-prose li > ol { margin: 0.5rem 0 0.5rem 0; }
 
+/* KeyPoints overrides — suppress prose bullet/padding inside the component */
+.playbook-prose .keypoints-list > li { padding-left: 0; margin-bottom: 0; }
+.playbook-prose .keypoints-list > li::before { display: none; content: none; }
+
 /* Inline code */
 .playbook-prose code {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
