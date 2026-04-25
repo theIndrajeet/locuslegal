@@ -313,14 +313,20 @@ html {
   margin-top: 0;
 }
 
-/* H3 — yellow accent, smaller. Distinct from H2 by COLOR not just size. */
+/* Editorial two-tone: soft sky blue for structural references / citations.
+   Scoped strictly to .playbook-prose — does not leak to marketing site. */
+.playbook-prose {
+  --prose-anchor: 211 56% 71%; /* #8AB8E0 — chalk-on-blackboard sky blue */
+}
+
+/* H3 — soft sky blue, smaller. Structural sub-heading. */
 .playbook-prose h3 {
   font-family: 'Sora', ui-sans-serif, system-ui, sans-serif;
   font-size: 1.125rem;
   font-weight: 600;
   line-height: 1.35;
   letter-spacing: -0.005em;
-  color: hsl(var(--accent));
+  color: hsl(var(--prose-anchor));
   margin-top: 2.25rem;
   margin-bottom: 0.75rem;
   scroll-margin-top: 6rem;
@@ -360,9 +366,9 @@ html {
   font-weight: 600;
 }
 
-/* Italic */
+/* Italic — soft sky blue. Used for case names, statutes, foreign terms. */
 .playbook-prose em {
-  color: hsl(var(--foreground));
+  color: hsl(var(--prose-anchor));
   font-style: italic;
 }
 
@@ -399,7 +405,7 @@ html {
   padding-left: 0.5rem;
 }
 .playbook-prose ol > li::marker {
-  color: hsl(var(--muted-foreground));
+  color: hsl(var(--prose-anchor));
   font-weight: 600;
 }
 .playbook-prose li > p { margin-bottom: 0.5rem; }
