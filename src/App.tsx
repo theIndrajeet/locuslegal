@@ -12,6 +12,7 @@ import Resources from "./pages/Resources";
 import Playbook from "./pages/Playbook";
 import PlaybookGuide from "./pages/PlaybookGuide";
 import Tools from "./pages/Tools";
+import CvAnalyser from "./pages/CvAnalyser";
 import TheBar from "./pages/TheBar";
 import AppHome from "./pages/AppHome";
 import TheBarPreview from "./pages/TheBarPreview";
@@ -73,6 +74,7 @@ const App = () => (
               <Route path="/playbook/:slug" element={<PlaybookGuide />} />
               <Route path="/resources" element={<Resources />} />
               <Route path="/tools" element={<Tools />} />
+              <Route path="/tools/cv-analyser" element={<CvAnalyser />} />
               <Route path="/the-bar" element={<TheBar />} />
               <Route path="/the-bar/preview" element={<TheBarPreview />} />
               <Route path="/the-bar/browse" element={<TheBarBrowse />} />
