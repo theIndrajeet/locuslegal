@@ -527,7 +527,7 @@ Include sections: Parties, Recitals, Term of Internship, Scope of Work, Supervis
             </div>
             <div className="lt-catalogue-grid">
               {TOOL_CATALOG.filter((t) => activeCategory === "All" || t.categories.includes(activeCategory)).map((tool) => (
-                <div key={tool.num} className={`lt-cat-card${tool.comingSoon ? " coming-soon" : ""}`} onClick={() => !tool.comingSoon && openTool(tool.id)}>
+                <div key={tool.num} className={`lt-cat-card${tool.comingSoon ? " coming-soon" : ""}`} onClick={() => { if (tool.comingSoon) return; if (tool.href) { window.location.href = tool.href; } else { openTool(tool.id); } }}>
                   {tool.comingSoon && <span className="lt-coming-badge">Coming Soon</span>}
                   <div className="lt-cat-top">
                     <span className="lt-cat-num">{tool.num}</span>
