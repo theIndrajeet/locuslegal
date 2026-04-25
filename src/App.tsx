@@ -38,7 +38,22 @@ const AdminBar = lazy(routeImports.adminBar as never);
 const ApplicationTracker = lazy(routeImports.applicationTracker as never);
 const NotFound = lazy(routeImports.notFound as never);
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Treat data as fresh for 30s — eliminates the burst of refetches
+      // that fire whenever a page remounts during navigation.
+      staleTime: 30_000,
+      // Keep cached data around for 5 minutes after last use, so back/forward
+      // navigation pulls from cache instead of re-querying Supabase.
+      gcTime: 5 * 60_000,
+      // Tab-switching back into the app shouldn't blast the network.
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: "always",
+      retry: 1,
+    },
+  },
+});
 
 const VersionWatcher = () => {
   useVersionCheck(() => {

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuthSession } from "@/hooks/useAuthSession";
 
 export interface PlaybookProgressRow {
   guide_slug: string;
@@ -9,19 +10,9 @@ export interface PlaybookProgressRow {
 }
 
 export function usePlaybookProgress() {
-  const [userId, setUserId] = useState<string | null>(null);
+  const { userId } = useAuthSession();
   const [rows, setRows] = useState<PlaybookProgressRow[]>([]);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => {
-      setUserId(s?.user?.id ?? null);
-    });
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUserId(session?.user?.id ?? null);
-    });
-    return () => subscription.unsubscribe();
-  }, []);
 
   const fetchRows = useCallback(async () => {
     if (!userId) {

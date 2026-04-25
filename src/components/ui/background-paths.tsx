@@ -1,6 +1,7 @@
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
+import { useEffect, useState } from "react";
 
-function FloatingPaths({ position }: { position: number }) {
+function FloatingPaths({ position, animate }: { position: number; animate: boolean }) {
   const paths = Array.from({ length: 36 }, (_, i) => ({
     id: i,
     d: `M-${380 - i * 5 * position} -${189 + i * 6}C-${
@@ -30,16 +31,24 @@ function FloatingPaths({ position }: { position: number }) {
             strokeWidth={path.width}
             strokeOpacity={0.1 + path.id * 0.02}
             initial={{ pathLength: 0.3, opacity: 0.6 }}
-            animate={{
-              pathLength: 1,
-              opacity: [0.3, 0.6, 0.3],
-              pathOffset: [0, 1, 0],
-            }}
-            transition={{
-              duration: 20 + Math.random() * 10,
-              repeat: Infinity,
-              ease: "linear",
-            }}
+            animate={
+              animate
+                ? {
+                    pathLength: 1,
+                    opacity: [0.3, 0.6, 0.3],
+                    pathOffset: [0, 1, 0],
+                  }
+                : { pathLength: 1, opacity: 0.45, pathOffset: 0 }
+            }
+            transition={
+              animate
+                ? {
+                    duration: 20 + Math.random() * 10,
+                    repeat: Infinity,
+                    ease: "linear",
+                  }
+                : { duration: 0 }
+            }
           />
         ))}
       </svg>
@@ -48,10 +57,26 @@ function FloatingPaths({ position }: { position: number }) {
 }
 
 export default function BackgroundPathsAnimation() {
+  const reduceMotion = useReducedMotion();
+  // Pause repaints when the tab is hidden so this background isn't burning
+  // CPU while the user is looking at another tab.
+  const [visible, setVisible] = useState(
+    typeof document === "undefined" ? true : !document.hidden
+  );
+
+  useEffect(() => {
+    if (reduceMotion) return;
+    const onVis = () => setVisible(!document.hidden);
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, [reduceMotion]);
+
+  const animate = !reduceMotion && visible;
+
   return (
     <div className="absolute inset-0 z-0">
-      <FloatingPaths position={1} />
-      <FloatingPaths position={-1} />
+      <FloatingPaths position={1} animate={animate} />
+      <FloatingPaths position={-1} animate={animate} />
     </div>
   );
 }
