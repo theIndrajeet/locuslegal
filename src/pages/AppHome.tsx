@@ -139,7 +139,7 @@ export default function AppHome() {
 
   if (loading || !data) {
     return (
-      <div className="min-h-screen px-4 py-10 max-w-6xl mx-auto space-y-6">
+      <div className="min-h-screen px-4 pt-24 pb-10 max-w-6xl mx-auto space-y-6">
         <Skeleton className="h-16 w-full" />
         <Skeleton className="h-40 w-full" />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -169,7 +169,7 @@ export default function AppHome() {
   const showOnboarding = score < 30;
 
   return (
-    <div className="min-h-screen px-4 py-8 md:py-10">
+    <div className="min-h-screen px-4 pt-24 pb-10 md:pt-28">
       <div className="max-w-6xl mx-auto space-y-6">
         <IdentityRow
           userId={data.userId}
