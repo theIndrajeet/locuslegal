@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 
@@ -25,26 +25,47 @@ export function useFeatureVotes() {
     return () => subscription.unsubscribe();
   }, []);
 
+  const countsInFlight = useRef(false);
+  const userVotesInFlight = useRef(false);
+
   // Fetch aggregate vote counts via RPC (no user data exposed)
   const fetchCounts = useCallback(async () => {
-    const { data } = await supabase.rpc("get_feature_vote_counts");
-    if (data) {
-      const counts: Record<string, number> = {};
-      (data as { feature_key: string; vote_count: number }[]).forEach((row) => {
-        counts[row.feature_key] = row.vote_count;
-      });
-      setVoteCounts(counts);
+    if (countsInFlight.current) return;
+    countsInFlight.current = true;
+    try {
+      const { data, error } = await supabase.rpc("get_feature_vote_counts");
+      if (error) return;
+      if (data) {
+        const counts: Record<string, number> = {};
+        (data as { feature_key: string; vote_count: number }[]).forEach((row) => {
+          counts[row.feature_key] = row.vote_count;
+        });
+        setVoteCounts(counts);
+      }
+    } catch {
+      // swallow — avoid retry storms
+    } finally {
+      countsInFlight.current = false;
     }
   }, []);
 
   // Fetch user's votes
   const fetchUserVotes = useCallback(async () => {
     if (!userId) { setUserVotes([]); return; }
-    const { data } = await supabase
-      .from("feature_votes")
-      .select("id, feature_key")
-      .eq("user_id", userId);
-    if (data) setUserVotes(data);
+    if (userVotesInFlight.current) return;
+    userVotesInFlight.current = true;
+    try {
+      const { data, error } = await supabase
+        .from("feature_votes")
+        .select("id, feature_key")
+        .eq("user_id", userId);
+      if (error) return;
+      if (data) setUserVotes(data);
+    } catch {
+      // swallow
+    } finally {
+      userVotesInFlight.current = false;
+    }
   }, [userId]);
 
   useEffect(() => {
