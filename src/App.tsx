@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner, toast } from "@/components/ui/sonner";
@@ -7,40 +7,38 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Layout from "./components/Layout";
 import Index from "./pages/Index";
+import TopProgressBar from "./components/TopProgressBar";
 import { useVersionCheck } from "@/hooks/useVersionCheck";
+import { routeImports, prefetchCommonRoutes } from "@/lib/prefetch";
 
 // Lazy-load every non-landing route so the home page ships only what it needs.
-const Waitlist = lazy(() => import("./pages/Waitlist"));
-const Directory = lazy(() => import("./pages/Directory"));
-const Resources = lazy(() => import("./pages/Resources"));
-const Playbook = lazy(() => import("./pages/Playbook"));
-const PlaybookGuide = lazy(() => import("./pages/PlaybookGuide"));
-const Tools = lazy(() => import("./pages/Tools"));
-const CvAnalyser = lazy(() => import("./pages/CvAnalyser"));
-const TheBar = lazy(() => import("./pages/TheBar"));
-const AppHome = lazy(() => import("./pages/AppHome"));
-const TheBarPreview = lazy(() => import("./pages/TheBarPreview"));
-const TheBarBrowse = lazy(() => import("./pages/TheBarBrowse"));
-const TheBarChallenge = lazy(() => import("./pages/TheBarChallenge"));
-const TheBarHistory = lazy(() => import("./pages/TheBarHistory"));
-const TheBarLeaderboard = lazy(() => import("./pages/TheBarLeaderboard"));
-const Auth = lazy(() => import("./pages/Auth"));
-const ResetPassword = lazy(() => import("./pages/ResetPassword"));
-const ChooseUsername = lazy(() => import("./pages/ChooseUsername"));
-const ProfileEdit = lazy(() => import("./pages/ProfileEdit"));
-const PublicProfile = lazy(() => import("./pages/PublicProfile"));
-const AdminWaitlist = lazy(() => import("./pages/AdminWaitlist"));
-const AdminBar = lazy(() => import("./pages/AdminBar"));
-const ApplicationTracker = lazy(() => import("./pages/ApplicationTracker"));
-const NotFound = lazy(() => import("./pages/NotFound"));
+// All importers live in `lib/prefetch.ts` so hover/idle prefetching shares the
+// exact same module promise as React.lazy() — chunks are downloaded only once.
+const Waitlist = lazy(routeImports.waitlist as never);
+const Directory = lazy(routeImports.directory as never);
+const Resources = lazy(routeImports.resources as never);
+const Playbook = lazy(routeImports.playbook as never);
+const PlaybookGuide = lazy(routeImports.playbookGuide as never);
+const Tools = lazy(routeImports.tools as never);
+const CvAnalyser = lazy(routeImports.cvAnalyser as never);
+const TheBar = lazy(routeImports.theBar as never);
+const AppHome = lazy(routeImports.appHome as never);
+const TheBarPreview = lazy(routeImports.theBarPreview as never);
+const TheBarBrowse = lazy(routeImports.theBarBrowse as never);
+const TheBarChallenge = lazy(routeImports.theBarChallenge as never);
+const TheBarHistory = lazy(routeImports.theBarHistory as never);
+const TheBarLeaderboard = lazy(routeImports.theBarLeaderboard as never);
+const Auth = lazy(routeImports.auth as never);
+const ResetPassword = lazy(routeImports.resetPassword as never);
+const ChooseUsername = lazy(routeImports.chooseUsername as never);
+const ProfileEdit = lazy(routeImports.profileEdit as never);
+const PublicProfile = lazy(routeImports.publicProfile as never);
+const AdminWaitlist = lazy(routeImports.adminWaitlist as never);
+const AdminBar = lazy(routeImports.adminBar as never);
+const ApplicationTracker = lazy(routeImports.applicationTracker as never);
+const NotFound = lazy(routeImports.notFound as never);
 
 const queryClient = new QueryClient();
-
-const RouteFallback = () => (
-  <div className="min-h-[60vh] flex items-center justify-center">
-    <div className="h-8 w-8 rounded-full border-2 border-foreground/20 border-t-foreground animate-spin" />
-  </div>
-);
 
 const VersionWatcher = () => {
   useVersionCheck(() => {
@@ -65,6 +63,13 @@ const VersionWatcher = () => {
   return null;
 };
 
+const IdlePrefetcher = () => {
+  useEffect(() => {
+    prefetchCommonRoutes();
+  }, []);
+  return null;
+};
+
 const App = () => (
   <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
     <QueryClientProvider client={queryClient}>
@@ -72,8 +77,9 @@ const App = () => (
         <Toaster />
         <Sonner />
         <VersionWatcher />
+        <IdlePrefetcher />
         <BrowserRouter>
-          <Suspense fallback={<RouteFallback />}>
+          <Suspense fallback={<TopProgressBar />}>
             <Routes>
               <Route element={<Layout />}>
                 <Route path="/" element={<Index />} />

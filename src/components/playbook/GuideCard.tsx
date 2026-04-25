@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { Clock, Layers, Check, Lock, ArrowRight } from "lucide-react";
 import type { GuideMeta, Audience } from "@/content/playbook";
+import { prefetchRoute } from "@/lib/prefetch";
 
 const audienceTagStyles: Record<Audience, string> = {
   Students: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
@@ -117,7 +118,13 @@ export function GuideCard({
   }
 
   return (
-    <Link to={`/playbook/${guide.slug}`} className="block h-full">
+    <Link
+      to={`/playbook/${guide.slug}`}
+      onMouseEnter={() => prefetchRoute(`/playbook/${guide.slug}`)}
+      onFocus={() => prefetchRoute(`/playbook/${guide.slug}`)}
+      onTouchStart={() => prefetchRoute(`/playbook/${guide.slug}`)}
+      className="block h-full"
+    >
       {inner}
     </Link>
   );
@@ -136,7 +143,13 @@ function HeroCard({
   heroLabel: "START HERE" | "CONTINUE READING";
 }) {
   return (
-    <Link to={`/playbook/${guide.slug}`} className="block h-full group">
+    <Link
+      to={`/playbook/${guide.slug}`}
+      onMouseEnter={() => prefetchRoute(`/playbook/${guide.slug}`)}
+      onFocus={() => prefetchRoute(`/playbook/${guide.slug}`)}
+      onTouchStart={() => prefetchRoute(`/playbook/${guide.slug}`)}
+      className="block h-full group"
+    >
       <article className="relative h-full rounded-xl border-2 border-accent bg-card p-6 sm:p-8 transition-all hover:shadow-[6px_6px_0_0_hsl(var(--accent))] hover:-translate-y-0.5 overflow-hidden">
         {/* Subtle accent corner glow */}
         <div className="pointer-events-none absolute -top-20 -right-20 w-60 h-60 rounded-full bg-accent/10 blur-3xl" />

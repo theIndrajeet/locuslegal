@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Home, Building2, BookOpen, Library, Wrench, Gavel } from "lucide-react";
+import { prefetchRoute } from "@/lib/prefetch";
 
 const NAV_ITEMS = [
   { to: "/", icon: Home, label: "Home" },
@@ -41,6 +42,8 @@ export default function MobileBottomDock() {
               key={to}
               to={to}
               aria-label={label}
+              onTouchStart={() => prefetchRoute(to)}
+              onMouseEnter={() => prefetchRoute(to)}
               className="relative w-10 h-10 flex items-center justify-center transition-transform duration-150 active:scale-90"
             >
               <Icon
