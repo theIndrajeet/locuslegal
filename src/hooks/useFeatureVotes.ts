@@ -7,74 +7,119 @@ interface FeatureVote {
   feature_key: string;
 }
 
-export function useFeatureVotes() {
-  const [voteCounts, setVoteCounts] = useState<Record<string, number>>({});
-  const [userVotes, setUserVotes] = useState<FeatureVote[]>([]);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
+// Module-level cache shared across pages so navigating Tools <-> Resources
+// doesn't re-query Supabase every time. 60s TTL keeps numbers fresh enough.
+const TTL_MS = 60_000;
+type CountsCache = { data: Record<string, number>; ts: number } | null;
+type VotesCache = { userId: string; data: FeatureVote[]; ts: number } | null;
+let countsCache: CountsCache = null;
+let votesCache: VotesCache = null;
+let countsPromise: Promise<Record<string, number> | null> | null = null;
+let votesPromise: Promise<FeatureVote[] | null> | null = null;
 
-  // Get auth state
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUserId(session?.user?.id ?? null);
-    });
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUserId(session?.user?.id ?? null);
-    });
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const countsInFlight = useRef(false);
-  const userVotesInFlight = useRef(false);
-
-  // Fetch aggregate vote counts via RPC (no user data exposed)
-  const fetchCounts = useCallback(async () => {
-    if (countsInFlight.current) return;
-    countsInFlight.current = true;
+async function loadCounts(): Promise<Record<string, number> | null> {
+  if (countsCache && Date.now() - countsCache.ts < TTL_MS) return countsCache.data;
+  if (countsPromise) return countsPromise;
+  countsPromise = (async () => {
     try {
       const { data, error } = await supabase.rpc("get_feature_vote_counts");
-      if (error) return;
-      if (data) {
-        const counts: Record<string, number> = {};
-        (data as { feature_key: string; vote_count: number }[]).forEach((row) => {
-          counts[row.feature_key] = row.vote_count;
-        });
-        setVoteCounts(counts);
-      }
+      if (error || !data) return countsCache?.data ?? null;
+      const counts: Record<string, number> = {};
+      (data as { feature_key: string; vote_count: number }[]).forEach((row) => {
+        counts[row.feature_key] = row.vote_count;
+      });
+      countsCache = { data: counts, ts: Date.now() };
+      return counts;
     } catch {
-      // swallow — avoid retry storms
+      return countsCache?.data ?? null;
     } finally {
-      countsInFlight.current = false;
+      countsPromise = null;
     }
-  }, []);
+  })();
+  return countsPromise;
+}
 
-  // Fetch user's votes
-  const fetchUserVotes = useCallback(async () => {
-    if (!userId) { setUserVotes([]); return; }
-    if (userVotesInFlight.current) return;
-    userVotesInFlight.current = true;
+async function loadUserVotes(userId: string): Promise<FeatureVote[] | null> {
+  if (votesCache && votesCache.userId === userId && Date.now() - votesCache.ts < TTL_MS) {
+    return votesCache.data;
+  }
+  if (votesPromise) return votesPromise;
+  votesPromise = (async () => {
     try {
       const { data, error } = await supabase
         .from("feature_votes")
         .select("id, feature_key")
         .eq("user_id", userId);
-      if (error) return;
-      if (data) setUserVotes(data);
+      if (error || !data) return votesCache?.data ?? null;
+      votesCache = { userId, data, ts: Date.now() };
+      return data;
     } catch {
-      // swallow
+      return votesCache?.data ?? null;
     } finally {
-      userVotesInFlight.current = false;
+      votesPromise = null;
     }
+  })();
+  return votesPromise;
+}
+
+function invalidateVotesCache() {
+  votesCache = null;
+  countsCache = null;
+}
+
+export function useFeatureVotes() {
+  const [voteCounts, setVoteCounts] = useState<Record<string, number>>(
+    () => countsCache?.data ?? {}
+  );
+  const [userVotes, setUserVotes] = useState<FeatureVote[]>(
+    () => votesCache?.data ?? []
+  );
+  const [userId, setUserId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(!countsCache);
+  const navigate = useNavigate();
+  const lastUserIdRef = useRef<string | null>(null);
+
+  // Track auth — only react to actual sign-in/out, not token refreshes.
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "INITIAL_SESSION") {
+        const next = session?.user?.id ?? null;
+        if (next !== lastUserIdRef.current) {
+          lastUserIdRef.current = next;
+          setUserId(next);
+        }
+      }
+    });
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const next = session?.user?.id ?? null;
+      if (next !== lastUserIdRef.current) {
+        lastUserIdRef.current = next;
+        setUserId(next);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Load counts (cached)
+  useEffect(() => {
+    let cancelled = false;
+    loadCounts().then((data) => {
+      if (cancelled) return;
+      if (data) setVoteCounts(data);
+      setLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  // Load user votes (cached, per userId)
+  useEffect(() => {
+    if (!userId) { setUserVotes([]); return; }
+    let cancelled = false;
+    loadUserVotes(userId).then((data) => {
+      if (!cancelled && data) setUserVotes(data);
+    });
+    return () => { cancelled = true; };
   }, [userId]);
-
-  useEffect(() => {
-    fetchCounts().then(() => setLoading(false));
-  }, [fetchCounts]);
-
-  useEffect(() => {
-    fetchUserVotes();
-  }, [fetchUserVotes]);
 
   const hasVoted = useCallback(
     (featureKey: string) => userVotes.some((v) => v.feature_key === featureKey),
@@ -95,6 +140,7 @@ export function useFeatureVotes() {
           ...prev,
           [featureKey]: Math.max(0, (prev[featureKey] || 1) - 1),
         }));
+        invalidateVotesCache();
       } else {
         const { data } = await supabase
           .from("feature_votes")
@@ -107,6 +153,7 @@ export function useFeatureVotes() {
             ...prev,
             [featureKey]: (prev[featureKey] || 0) + 1,
           }));
+          invalidateVotesCache();
         }
       }
     },

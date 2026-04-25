@@ -42,25 +42,39 @@ export function useVersionCheck(
 
     // Defensive cleanup: kill any service worker / cache that a previous
     // version of the app (or a browser extension) may have installed.
-    // This is a one-shot, runs on mount.
-    (async () => {
-      try {
-        if ("serviceWorker" in navigator) {
-          const regs = await navigator.serviceWorker.getRegistrations();
-          await Promise.all(regs.map((r) => r.unregister().catch(() => {})));
-        }
-      } catch {
-        /* ignore */
+    // ONE-SHOT EVER per browser — gated by localStorage so we don't nuke
+    // the HTTP cache on every page load (that was causing massive cache
+    // thrash and slow re-loads on mobile).
+    const CLEANUP_FLAG = "locus_sw_cleaned_v1";
+    try {
+      if (!localStorage.getItem(CLEANUP_FLAG)) {
+        (async () => {
+          try {
+            if ("serviceWorker" in navigator) {
+              const regs = await navigator.serviceWorker.getRegistrations();
+              await Promise.all(regs.map((r) => r.unregister().catch(() => {})));
+            }
+          } catch {
+            /* ignore */
+          }
+          try {
+            if (typeof caches !== "undefined" && caches?.keys) {
+              const keys = await caches.keys();
+              await Promise.all(keys.map((k) => caches.delete(k).catch(() => {})));
+            }
+          } catch {
+            /* ignore */
+          }
+          try {
+            localStorage.setItem(CLEANUP_FLAG, "1");
+          } catch {
+            /* ignore */
+          }
+        })();
       }
-      try {
-        if (typeof caches !== "undefined" && caches?.keys) {
-          const keys = await caches.keys();
-          await Promise.all(keys.map((k) => caches.delete(k).catch(() => {})));
-        }
-      } catch {
-        /* ignore */
-      }
-    })();
+    } catch {
+      /* localStorage unavailable — skip cleanup entirely */
+    }
 
     const currentVersion =
       typeof __BUILD_VERSION__ !== "undefined" ? __BUILD_VERSION__ : null;
