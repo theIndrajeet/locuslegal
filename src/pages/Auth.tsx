@@ -115,12 +115,12 @@ export default function Auth() {
             </span>
           </Link>
           <h1 className="text-2xl font-bold text-foreground font-heading">
-            {isLogin ? "Sign in to The Bar" : "Join The Bar"}
+            {isLogin ? "Welcome back" : "Join Locus"}
           </h1>
           <p className="text-muted-foreground mt-2 text-sm">
             {isLogin
-              ? "Welcome back, counselor."
-              : "Create an account to ask & answer questions."}
+              ? "Sign in to continue."
+              : "Create your account to get started."}
           </p>
         </div>
 
