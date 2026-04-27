@@ -473,6 +473,39 @@ export type Database = {
           },
         ]
       }
+      beta_feedback: {
+        Row: {
+          created_at: string
+          general_notes: string | null
+          id: string
+          overall_score: number | null
+          responses: Json
+          tester_email: string | null
+          tester_name: string
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string
+          general_notes?: string | null
+          id?: string
+          overall_score?: number | null
+          responses?: Json
+          tester_email?: string | null
+          tester_name: string
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string
+          general_notes?: string | null
+          id?: string
+          overall_score?: number | null
+          responses?: Json
+          tester_email?: string | null
+          tester_name?: string
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       cv_analyses: {
         Row: {
           analysis: Json

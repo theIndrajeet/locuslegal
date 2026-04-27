@@ -1,46 +1,87 @@
-## Locus Closed-Beta Tester Checklist (PDF)
+# Interactive Beta Tester Page
 
-A one-time generated PDF for your 6 closed testers. No app code changes — pure artifact, delivered to `/mnt/documents/`.
+Turn the PDF checklist into a live, shareable, fillable page at `/beta`. Testers open one link, walk the 7-stage journey, mark each task Pass / Fail / Blocked, drop bug notes + screenshots, and submit. Every response lands in your database, viewable in a private admin dashboard.
 
-### Format
-- US Letter, neobrutalist styling (black borders, yellow accent, mono labels) to match Locus brand
-- ~6–7 pages, structured by **user journey** (the way a real student would experience Locus day 1 → day 7)
-- Each task row has: task description, steps, expected result, and three tickboxes — **PASS / FAIL / BLOCKED** + a "Bug + screenshot ref" line
-- Cover page: tester name, date, device/browser, build URL (locuslegal.lovable.app)
-- Final page: overall impressions, top 3 frustrations, top 3 delights, "would you recommend to a friend?" 1–10
+## What testers will see
 
-### Journey structure (covers what's actually live)
+A single dedicated route — **`/beta`** — styled in the Locus neobrutalist look (black borders, yellow accents, Sora headings, Inter body, zero emojis).
 
-**Stage 1 — First impression (5 min)**
-Land on home, scroll, click around hero, navigate to Directory, Playbook, Tools as a guest.
+```text
+┌──────────────────────────────────────────────┐
+│  LOCUS · CLOSED BETA                         │
+│  Tester checklist · ~30 min                  │
+│  [Progress bar: 7 of 24 tasks]               │
+├──────────────────────────────────────────────┤
+│  STAGE 1 — FIRST IMPRESSION  (collapsible)   │
+│   ▸ Task 1.1  Land on locus.legal …          │
+│       ◉ Pass  ◯ Fail  ◯ Blocked              │
+│       [bug notes textarea]                   │
+│       [+ attach screenshot]                  │
+│   ▸ Task 1.2  …                              │
+├──────────────────────────────────────────────┤
+│  STAGE 2 — SIGN UP & PROFILE                 │
+│  …                                           │
+├──────────────────────────────────────────────┤
+│  Your name   [______]  Email (optional) [__] │
+│  Overall vibe (1–10) [slider]                │
+│  Anything else?  [textarea]                  │
+│  [ SUBMIT FEEDBACK ]                         │
+└──────────────────────────────────────────────┘
+```
 
-**Stage 2 — Sign up & profile (5 min)**
-Email + Google + Apple signup paths, choose username, complete profile (avatar, bio, academics, CGPA, subjects, internships, moots, CV upload), watch Profile Strength meter climb.
+Key UX behaviours:
+- **Auto-save draft to localStorage** on every change — testers can close the tab and resume.
+- **Sticky progress bar** showing `X of 24` complete.
+- **Collapsible stages** so the page isn't a wall of text.
+- **Screenshot upload** per task (optional, private bucket).
+- **One final submit** — locks the response, shows a thank-you screen.
+- **No login required** — anyone with the link can fill it.
 
-**Stage 3 — Get discovered (3 min)**
-Visit own public profile at `/u/:username`, share the link, toggle "Open to opportunities".
+## How sharing works
 
-**Stage 4 — Practice law: The Bar (8 min)**
-Open `/the-bar`, attempt one of each: MCQ, Issue Spotter, Speed Round, Brief Builder, Client Counseling. Chat with Rit. Check leaderboard + history.
+- Page lives at `/beta` and is **not linked from navbar, footer, or sitemap** — discoverable only via the URL you share.
+- `robots.txt` updated to exclude `/beta` so it isn't indexed.
+- Light gate: a `?code=LOCUS-CB-2026` query check. Missing/wrong code shows a neutral "link looks broken" screen. Stops crawlers, zero friction for your 6 testers.
 
-**Stage 5 — Hunt internships (5 min)**
-Browse Directory, filter, open firm drawer, compare 2 firms, log an application in Tracker, check insights + nudge banner.
+## What you'll see (admin only)
 
-**Stage 6 — Learn & level up (3 min)**
-Open one Playbook guide, mark sections complete, download a Resources template, run CV Analyser, try one document drafter (NDA).
+A new admin route **`/admin/beta`** — protected by your existing `useAdminRole` hook (only `heyjeetttt@gmail.com`):
+- Table of every submission: tester name, timestamp, overall score, % pass.
+- Click a row to expand → full per-task breakdown with status, bug notes, and inline screenshot thumbnails.
+- **Export to CSV** button for offline triage.
+- Headline counters at top: total submissions, total bugs reported, most-failed task.
 
-**Stage 7 — Wrap (1 min)**
-Mobile bottom dock, log out, log back in, password reset.
+## Technical details
 
-### Technical approach
-- Generate with Python + ReportLab (Platypus flowables for clean tables/checkboxes)
-- Brand: black borders 2pt, hard shadow offset, Locus yellow `#FACC15` for accents, Inter/Helvetica fallback
-- Output: `/mnt/documents/locus-beta-checklist.pdf`
-- Mandatory QA: render every page to JPEG, inspect for clipping/overlap/contrast, fix and re-render until clean
-- Deliver via `<lov-artifact>` so you can download and forward to all 6 testers
+**Routes**
+- `src/pages/BetaChecklist.tsx` — the form (lazy-loaded in `App.tsx`, registered in `lib/prefetch.ts`).
+- `src/pages/AdminBeta.tsx` — admin response viewer.
 
-### What I will NOT do
-- No new app routes, no `/beta` page, no DB tables — pure downloadable artifact
-- No editable docx version unless you ask after seeing the PDF
+**Database (one new table via migration)**
+```sql
+create table public.beta_feedback (
+  id uuid primary key default gen_random_uuid(),
+  tester_name text not null,
+  tester_email text,
+  overall_score int,
+  general_notes text,
+  responses jsonb not null,    -- { "1.1": { status, notes, screenshot_path }, ... }
+  user_agent text,
+  created_at timestamptz not null default now()
+);
+```
 
-Approve and I'll generate it.
+RLS:
+- `INSERT` — `anon` + `authenticated` (link works without login).
+- `SELECT` / `DELETE` — admin only via `is_admin(auth.uid())`.
+
+**Storage**
+- New private bucket `beta-screenshots`. Anon `INSERT` allowed; `SELECT` admin-only. Files at `{submissionId}/{taskId}-{filename}`.
+
+**Content source of truth**
+- `src/content/beta-checklist.ts` — the same 24 tasks across 7 stages from the PDF, exported as a typed array. The page renders from this so future edits are one-file changes.
+
+## Out of scope (easy to add later)
+- Per-tester unique invite codes.
+- Email notifications on new submission.
+- Edit-after-submit.
