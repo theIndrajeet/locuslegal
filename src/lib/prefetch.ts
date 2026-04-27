@@ -27,6 +27,8 @@ export const routeImports = {
   adminWaitlist: () => import("@/pages/AdminWaitlist"),
   adminBar: () => import("@/pages/AdminBar"),
   applicationTracker: () => import("@/pages/ApplicationTracker"),
+  betaChecklist: () => import("@/pages/BetaChecklist"),
+  adminBeta: () => import("@/pages/AdminBeta"),
   notFound: () => import("@/pages/NotFound"),
 } satisfies Record<string, Importer>;
 
