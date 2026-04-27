@@ -522,34 +522,49 @@ export type Database = {
       }
       beta_testers: {
         Row: {
-          code: string
+          claimed_at: string
+          code: string | null
           created_at: string
           display_name: string
+          email: string | null
           feedback_id: string | null
           id: string
+          intro_line_index: number
+          is_public: boolean
           personal_note: string | null
           slot_number: number
           submitted_at: string | null
+          user_id: string | null
         }
         Insert: {
-          code: string
+          claimed_at?: string
+          code?: string | null
           created_at?: string
           display_name: string
+          email?: string | null
           feedback_id?: string | null
           id?: string
+          intro_line_index?: number
+          is_public?: boolean
           personal_note?: string | null
           slot_number: number
           submitted_at?: string | null
+          user_id?: string | null
         }
         Update: {
-          code?: string
+          claimed_at?: string
+          code?: string | null
           created_at?: string
           display_name?: string
+          email?: string | null
           feedback_id?: string | null
           id?: string
+          intro_line_index?: number
+          is_public?: boolean
           personal_note?: string | null
           slot_number?: number
           submitted_at?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -998,6 +1013,35 @@ export type Database = {
       }
     }
     Functions: {
+      claim_beta_slot: {
+        Args: {
+          p_email: string
+          p_is_public: boolean
+          p_name: string
+          p_user_id: string
+        }
+        Returns: {
+          claimed_at: string
+          code: string | null
+          created_at: string
+          display_name: string
+          email: string | null
+          feedback_id: string | null
+          id: string
+          intro_line_index: number
+          is_public: boolean
+          personal_note: string | null
+          slot_number: number
+          submitted_at: string | null
+          user_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "beta_testers"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       get_app_dashboard: { Args: { p_user_id: string }; Returns: Json }
       get_bar_dashboard: { Args: { p_user_id: string }; Returns: Json }
       get_email_by_username: { Args: { p_username: string }; Returns: string }
