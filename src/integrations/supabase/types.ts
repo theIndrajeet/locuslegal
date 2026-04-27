@@ -480,7 +480,9 @@ export type Database = {
           id: string
           overall_score: number | null
           responses: Json
+          tester_code: string | null
           tester_email: string | null
+          tester_id: string | null
           tester_name: string
           user_agent: string | null
         }
@@ -490,7 +492,9 @@ export type Database = {
           id?: string
           overall_score?: number | null
           responses?: Json
+          tester_code?: string | null
           tester_email?: string | null
+          tester_id?: string | null
           tester_name: string
           user_agent?: string | null
         }
@@ -500,9 +504,52 @@ export type Database = {
           id?: string
           overall_score?: number | null
           responses?: Json
+          tester_code?: string | null
           tester_email?: string | null
+          tester_id?: string | null
           tester_name?: string
           user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "beta_feedback_tester_id_fkey"
+            columns: ["tester_id"]
+            isOneToOne: false
+            referencedRelation: "beta_testers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      beta_testers: {
+        Row: {
+          code: string
+          created_at: string
+          display_name: string
+          feedback_id: string | null
+          id: string
+          personal_note: string | null
+          slot_number: number
+          submitted_at: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          display_name: string
+          feedback_id?: string | null
+          id?: string
+          personal_note?: string | null
+          slot_number: number
+          submitted_at?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          display_name?: string
+          feedback_id?: string | null
+          id?: string
+          personal_note?: string | null
+          slot_number?: number
+          submitted_at?: string | null
         }
         Relationships: []
       }

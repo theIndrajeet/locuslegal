@@ -25,6 +25,15 @@ type FeedbackRow = {
   responses: Record<string, TaskResponse>;
   user_agent: string | null;
   created_at: string;
+  tester_code: string | null;
+};
+
+type TesterRow = {
+  id: string;
+  slot_number: number;
+  display_name: string;
+  code: string;
+  submitted_at: string | null;
 };
 
 const ALL_TASKS = BETA_STAGES.flatMap((s) =>
@@ -41,6 +50,7 @@ export default function AdminBeta() {
   const isAdmin = useAdminRole();
   const navigate = useNavigate();
   const [rows, setRows] = useState<FeedbackRow[]>([]);
+  const [testers, setTesters] = useState<TesterRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
@@ -53,16 +63,20 @@ export default function AdminBeta() {
     if (!isAdmin) return;
     let mounted = true;
     (async () => {
-      const { data, error } = await supabase
-        .from("beta_feedback")
-        .select("*")
-        .order("created_at", { ascending: false });
+      const [feedbackRes, testersRes] = await Promise.all([
+        supabase.from("beta_feedback").select("*").order("created_at", { ascending: false }),
+        supabase
+          .from("beta_testers")
+          .select("id, slot_number, display_name, code, submitted_at")
+          .order("slot_number", { ascending: true }),
+      ]);
       if (!mounted) return;
-      if (error) {
-        toast("Failed to load submissions", { description: error.message });
+      if (feedbackRes.error) {
+        toast("Failed to load submissions", { description: feedbackRes.error.message });
       } else {
-        setRows((data as FeedbackRow[]) ?? []);
+        setRows((feedbackRes.data as FeedbackRow[]) ?? []);
       }
+      if (testersRes.data) setTesters(testersRes.data as TesterRow[]);
       setLoading(false);
     })();
     return () => {
@@ -231,9 +245,70 @@ export default function AdminBeta() {
           />
         </div>
 
+        {/* Tester roster with shareable links */}
+        {testers.length > 0 && (
+          <section className="mb-8 border-2 border-foreground bg-card p-5 shadow-[4px_4px_0_0_hsl(var(--foreground))]">
+            <div className="flex items-center justify-between gap-4 mb-4 flex-wrap">
+              <h2 className="font-[Sora] text-lg font-black">
+                Founding 7 · {testers.filter((t) => t.submitted_at).length}/{testers.length} submitted
+              </h2>
+              <button
+                type="button"
+                onClick={() => {
+                  const lines = testers.map((t) =>
+                    `#${String(t.slot_number).padStart(3, "0")} ${t.display_name} → ${window.location.origin}/beta?code=${t.code}`,
+                  );
+                  navigator.clipboard.writeText(lines.join("\n"));
+                  toast("All 7 links copied");
+                }}
+                className="text-xs font-bold uppercase tracking-wider px-3 py-1.5 border-2 border-foreground hover:bg-muted transition"
+              >
+                Copy all links
+              </button>
+            </div>
+            <div className="grid sm:grid-cols-2 gap-2">
+              {testers.map((t) => {
+                const link = `${window.location.origin}/beta?code=${t.code}`;
+                return (
+                  <div
+                    key={t.id}
+                    className="flex items-center gap-3 p-2 border border-foreground/20 bg-background"
+                  >
+                    <span className="font-mono text-[10px] text-muted-foreground w-10 shrink-0">
+                      #{String(t.slot_number).padStart(3, "0")}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-bold truncate">{t.display_name}</p>
+                      <p className="font-mono text-[10px] text-muted-foreground truncate">
+                        {t.code}
+                      </p>
+                    </div>
+                    <span
+                      className={cn(
+                        "w-2 h-2 rounded-full shrink-0",
+                        t.submitted_at ? "bg-emerald-400" : "bg-foreground/15",
+                      )}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(link);
+                        toast(`${t.display_name.split(" ")[0]}'s link copied`);
+                      }}
+                      className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 border border-foreground hover:bg-muted transition shrink-0"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
         {rows.length === 0 ? (
           <div className="border-2 border-dashed border-foreground/30 p-12 text-center text-muted-foreground">
-            No submissions yet. Share <code className="px-2 py-0.5 bg-muted">/beta?code=LOCUS-CB-2026</code> with your testers.
+            No submissions yet. Share each tester's personal link from the roster above.
           </div>
         ) : (
           <div className="space-y-3">
