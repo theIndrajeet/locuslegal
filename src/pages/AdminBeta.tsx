@@ -245,9 +245,70 @@ export default function AdminBeta() {
           />
         </div>
 
+        {/* Tester roster with shareable links */}
+        {testers.length > 0 && (
+          <section className="mb-8 border-2 border-foreground bg-card p-5 shadow-[4px_4px_0_0_hsl(var(--foreground))]">
+            <div className="flex items-center justify-between gap-4 mb-4 flex-wrap">
+              <h2 className="font-[Sora] text-lg font-black">
+                Founding 7 · {testers.filter((t) => t.submitted_at).length}/{testers.length} submitted
+              </h2>
+              <button
+                type="button"
+                onClick={() => {
+                  const lines = testers.map((t) =>
+                    `#${String(t.slot_number).padStart(3, "0")} ${t.display_name} → ${window.location.origin}/beta?code=${t.code}`,
+                  );
+                  navigator.clipboard.writeText(lines.join("\n"));
+                  toast("All 7 links copied");
+                }}
+                className="text-xs font-bold uppercase tracking-wider px-3 py-1.5 border-2 border-foreground hover:bg-muted transition"
+              >
+                Copy all links
+              </button>
+            </div>
+            <div className="grid sm:grid-cols-2 gap-2">
+              {testers.map((t) => {
+                const link = `${window.location.origin}/beta?code=${t.code}`;
+                return (
+                  <div
+                    key={t.id}
+                    className="flex items-center gap-3 p-2 border border-foreground/20 bg-background"
+                  >
+                    <span className="font-mono text-[10px] text-muted-foreground w-10 shrink-0">
+                      #{String(t.slot_number).padStart(3, "0")}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-bold truncate">{t.display_name}</p>
+                      <p className="font-mono text-[10px] text-muted-foreground truncate">
+                        {t.code}
+                      </p>
+                    </div>
+                    <span
+                      className={cn(
+                        "w-2 h-2 rounded-full shrink-0",
+                        t.submitted_at ? "bg-emerald-400" : "bg-foreground/15",
+                      )}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(link);
+                        toast(`${t.display_name.split(" ")[0]}'s link copied`);
+                      }}
+                      className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 border border-foreground hover:bg-muted transition shrink-0"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
         {rows.length === 0 ? (
           <div className="border-2 border-dashed border-foreground/30 p-12 text-center text-muted-foreground">
-            No submissions yet. Share <code className="px-2 py-0.5 bg-muted">/beta?code=LOCUS-CB-2026</code> with your testers.
+            No submissions yet. Share each tester's personal link from the roster above.
           </div>
         ) : (
           <div className="space-y-3">
