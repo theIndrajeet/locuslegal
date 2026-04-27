@@ -48,8 +48,24 @@ export default function BetaChecklist() {
     title: "Locus · Closed Beta Checklist",
     description: "Private checklist for Locus closed-beta testers.",
     path: "/beta",
-    noindex: true,
   });
+
+  // Block search engines from indexing this private page.
+  useEffect(() => {
+    let el = document.querySelector('meta[name="robots"]') as HTMLMetaElement | null;
+    const created = !el;
+    if (!el) {
+      el = document.createElement("meta");
+      el.setAttribute("name", "robots");
+      document.head.appendChild(el);
+    }
+    const prev = el.getAttribute("content");
+    el.setAttribute("content", "noindex, nofollow");
+    return () => {
+      if (created) el?.remove();
+      else if (prev !== null) el?.setAttribute("content", prev);
+    };
+  }, []);
 
   const [search] = useSearchParams();
   const codeParam = search.get("code")?.trim() ?? "";
