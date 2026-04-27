@@ -322,7 +322,7 @@ export default function AdminBeta() {
 
         {rows.length === 0 ? (
           <div className="border-2 border-dashed border-foreground/30 p-12 text-center text-muted-foreground">
-            No submissions yet. Share each tester's personal link from the roster above.
+            No submissions yet. Share the public beta link above.
           </div>
         ) : (
           <div className="space-y-3">
