@@ -55,7 +55,9 @@ const pathToKey: Array<[RegExp, keyof typeof routeImports]> = [
   [/^\/u\//, "publicProfile"],
   [/^\/admin\/waitlist/, "adminWaitlist"],
   [/^\/admin\/bar/, "adminBar"],
+  [/^\/admin\/beta/, "adminBeta"],
   [/^\/applications/, "applicationTracker"],
+  [/^\/beta/, "betaChecklist"],
 ];
 
 const fired = new Set<string>();
