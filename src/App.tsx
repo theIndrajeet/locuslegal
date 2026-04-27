@@ -119,10 +119,12 @@ const App = () => (
                 <Route path="/u/:username" element={<PublicProfile />} />
                 <Route path="/admin/waitlist" element={<AdminWaitlist />} />
                 <Route path="/admin/bar" element={<AdminBar />} />
+                <Route path="/admin/beta" element={<AdminBeta />} />
               </Route>
               <Route path="/auth" element={<Auth />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/choose-username" element={<ChooseUsername />} />
+              <Route path="/beta" element={<BetaChecklist />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
