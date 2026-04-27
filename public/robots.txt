@@ -1,8 +1,12 @@
 User-agent: Googlebot
 Allow: /
+Disallow: /beta
+Disallow: /admin/
 
 User-agent: Bingbot
 Allow: /
+Disallow: /beta
+Disallow: /admin/
 
 User-agent: Twitterbot
 Allow: /
@@ -12,5 +16,7 @@ Allow: /
 
 User-agent: *
 Allow: /
+Disallow: /beta
+Disallow: /admin/
 
 Sitemap: https://locus.legal/sitemap.xml

@@ -35,7 +35,9 @@ const ProfileEdit = lazy(routeImports.profileEdit as never);
 const PublicProfile = lazy(routeImports.publicProfile as never);
 const AdminWaitlist = lazy(routeImports.adminWaitlist as never);
 const AdminBar = lazy(routeImports.adminBar as never);
+const AdminBeta = lazy(routeImports.adminBeta as never);
 const ApplicationTracker = lazy(routeImports.applicationTracker as never);
+const BetaChecklist = lazy(routeImports.betaChecklist as never);
 const NotFound = lazy(routeImports.notFound as never);
 
 const queryClient = new QueryClient({
@@ -117,10 +119,12 @@ const App = () => (
                 <Route path="/u/:username" element={<PublicProfile />} />
                 <Route path="/admin/waitlist" element={<AdminWaitlist />} />
                 <Route path="/admin/bar" element={<AdminBar />} />
+                <Route path="/admin/beta" element={<AdminBeta />} />
               </Route>
               <Route path="/auth" element={<Auth />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/choose-username" element={<ChooseUsername />} />
+              <Route path="/beta" element={<BetaChecklist />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
