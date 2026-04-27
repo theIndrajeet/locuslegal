@@ -32,7 +32,10 @@ type TesterRow = {
   id: string;
   slot_number: number;
   display_name: string;
-  code: string;
+  code: string | null;
+  email: string | null;
+  is_public: boolean;
+  claimed_at: string | null;
   submitted_at: string | null;
 };
 
