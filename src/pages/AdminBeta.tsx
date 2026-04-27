@@ -32,7 +32,10 @@ type TesterRow = {
   id: string;
   slot_number: number;
   display_name: string;
-  code: string;
+  code: string | null;
+  email: string | null;
+  is_public: boolean;
+  claimed_at: string | null;
   submitted_at: string | null;
 };
 
@@ -67,7 +70,7 @@ export default function AdminBeta() {
         supabase.from("beta_feedback").select("*").order("created_at", { ascending: false }),
         supabase
           .from("beta_testers")
-          .select("id, slot_number, display_name, code, submitted_at")
+          .select("id, slot_number, display_name, code, email, is_public, claimed_at, submitted_at")
           .order("slot_number", { ascending: true }),
       ]);
       if (!mounted) return;
@@ -245,70 +248,81 @@ export default function AdminBeta() {
           />
         </div>
 
-        {/* Tester roster with shareable links */}
+        {/* Single shareable beta link */}
+        <section className="mb-6 border-2 border-foreground bg-card p-5 shadow-[4px_4px_0_0_hsl(var(--foreground))]">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div className="min-w-0">
+              <h2 className="font-[Sora] text-lg font-black mb-1">Public beta link</h2>
+              <p className="font-mono text-xs text-muted-foreground truncate">
+                {`${window.location.origin}/beta`}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                navigator.clipboard.writeText(`${window.location.origin}/beta`);
+                toast("Link copied");
+              }}
+              className="text-xs font-bold uppercase tracking-wider px-3 py-1.5 border-2 border-foreground hover:bg-muted transition shrink-0"
+            >
+              Copy link
+            </button>
+          </div>
+        </section>
+
+        {/* Tester roster */}
         {testers.length > 0 && (
           <section className="mb-8 border-2 border-foreground bg-card p-5 shadow-[4px_4px_0_0_hsl(var(--foreground))]">
-            <div className="flex items-center justify-between gap-4 mb-4 flex-wrap">
-              <h2 className="font-[Sora] text-lg font-black">
-                Founding 7 · {testers.filter((t) => t.submitted_at).length}/{testers.length} submitted
-              </h2>
-              <button
-                type="button"
-                onClick={() => {
-                  const lines = testers.map((t) =>
-                    `#${String(t.slot_number).padStart(3, "0")} ${t.display_name} → ${window.location.origin}/beta?code=${t.code}`,
-                  );
-                  navigator.clipboard.writeText(lines.join("\n"));
-                  toast("All 7 links copied");
-                }}
-                className="text-xs font-bold uppercase tracking-wider px-3 py-1.5 border-2 border-foreground hover:bg-muted transition"
-              >
-                Copy all links
-              </button>
-            </div>
-            <div className="grid sm:grid-cols-2 gap-2">
-              {testers.map((t) => {
-                const link = `${window.location.origin}/beta?code=${t.code}`;
-                return (
-                  <div
-                    key={t.id}
-                    className="flex items-center gap-3 p-2 border border-foreground/20 bg-background"
-                  >
-                    <span className="font-mono text-[10px] text-muted-foreground w-10 shrink-0">
-                      #{String(t.slot_number).padStart(3, "0")}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-bold truncate">{t.display_name}</p>
-                      <p className="font-mono text-[10px] text-muted-foreground truncate">
-                        {t.code}
-                      </p>
-                    </div>
-                    <span
-                      className={cn(
-                        "w-2 h-2 rounded-full shrink-0",
-                        t.submitted_at ? "bg-emerald-400" : "bg-foreground/15",
-                      )}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        navigator.clipboard.writeText(link);
-                        toast(`${t.display_name.split(" ")[0]}'s link copied`);
-                      }}
-                      className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 border border-foreground hover:bg-muted transition shrink-0"
-                    >
-                      Copy
-                    </button>
-                  </div>
-                );
-              })}
+            <h2 className="font-[Sora] text-lg font-black mb-4">
+              Founding Testers · {testers.filter((t) => t.submitted_at).length}/{testers.length} submitted
+            </h2>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="text-left text-muted-foreground uppercase tracking-wider font-mono text-[10px] border-b border-foreground/20">
+                    <th className="py-2 pr-3">#</th>
+                    <th className="py-2 pr-3">Name</th>
+                    <th className="py-2 pr-3">Email</th>
+                    <th className="py-2 pr-3">Public</th>
+                    <th className="py-2 pr-3">Claimed</th>
+                    <th className="py-2 pr-3">Submitted</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {testers.map((t) => (
+                    <tr key={t.id} className="border-b border-foreground/10">
+                      <td className="py-2 pr-3 font-mono text-muted-foreground">
+                        #{String(t.slot_number).padStart(3, "0")}
+                      </td>
+                      <td className="py-2 pr-3 font-bold">{t.display_name}</td>
+                      <td className="py-2 pr-3 text-muted-foreground truncate max-w-[180px]">
+                        {t.email ?? "—"}
+                      </td>
+                      <td className="py-2 pr-3">{t.is_public ? "Yes" : "No"}</td>
+                      <td className="py-2 pr-3 text-muted-foreground">
+                        {t.claimed_at ? new Date(t.claimed_at).toLocaleDateString() : "—"}
+                      </td>
+                      <td className="py-2 pr-3">
+                        {t.submitted_at ? (
+                          <span className="inline-flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                            {new Date(t.submitted_at).toLocaleDateString()}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">pending</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </section>
         )}
 
         {rows.length === 0 ? (
           <div className="border-2 border-dashed border-foreground/30 p-12 text-center text-muted-foreground">
-            No submissions yet. Share each tester's personal link from the roster above.
+            No submissions yet. Share the public beta link above.
           </div>
         ) : (
           <div className="space-y-3">
