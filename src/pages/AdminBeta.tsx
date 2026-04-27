@@ -25,6 +25,15 @@ type FeedbackRow = {
   responses: Record<string, TaskResponse>;
   user_agent: string | null;
   created_at: string;
+  tester_code: string | null;
+};
+
+type TesterRow = {
+  id: string;
+  slot_number: number;
+  display_name: string;
+  code: string;
+  submitted_at: string | null;
 };
 
 const ALL_TASKS = BETA_STAGES.flatMap((s) =>
