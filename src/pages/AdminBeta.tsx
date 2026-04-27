@@ -70,7 +70,7 @@ export default function AdminBeta() {
         supabase.from("beta_feedback").select("*").order("created_at", { ascending: false }),
         supabase
           .from("beta_testers")
-          .select("id, slot_number, display_name, code, submitted_at")
+          .select("id, slot_number, display_name, code, email, is_public, claimed_at, submitted_at")
           .order("slot_number", { ascending: true }),
       ]);
       if (!mounted) return;
