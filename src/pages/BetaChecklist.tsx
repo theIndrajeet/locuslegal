@@ -10,6 +10,8 @@ import {
   XCircle,
   AlertOctagon,
   X,
+  Award,
+  Users,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { usePageMeta } from "@/hooks/usePageMeta";
@@ -19,7 +21,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { toast } from "@/components/ui/sonner";
 import { cn } from "@/lib/utils";
-import { ACCESS_CODE, BETA_STAGES, TOTAL_TASKS } from "@/content/beta-checklist";
+import { BETA_STAGES, TOTAL_TASKS } from "@/content/beta-checklist";
 
 type TaskStatus = "pass" | "fail" | "blocked";
 
@@ -32,7 +34,23 @@ type TaskResponse = {
 
 type Responses = Record<string, TaskResponse>;
 
-const DRAFT_KEY = "locus-beta-draft-v1";
+type Tester = {
+  id: string;
+  slot_number: number;
+  display_name: string;
+  code: string;
+  personal_note: string | null;
+  submitted_at: string | null;
+};
+
+type RosterEntry = {
+  slot_number: number;
+  display_name: string;
+  submitted: boolean;
+  isYou: boolean;
+};
+
+const TOTAL_TESTERS = 7;
 
 const statusMeta: Record<
   TaskStatus,
@@ -42,6 +60,8 @@ const statusMeta: Record<
   fail: { label: "Fail", icon: XCircle, color: "text-red-400 border-red-400 bg-red-400/10" },
   blocked: { label: "Blocked", icon: AlertOctagon, color: "text-yellow-400 border-yellow-400 bg-yellow-400/10" },
 };
+
+const pad = (n: number) => String(n).padStart(3, "0");
 
 export default function BetaChecklist() {
   usePageMeta({
@@ -68,8 +88,53 @@ export default function BetaChecklist() {
   }, []);
 
   const [search] = useSearchParams();
-  const codeParam = search.get("code")?.trim() ?? "";
-  const accessGranted = codeParam.toUpperCase() === ACCESS_CODE;
+  const codeParam = (search.get("code")?.trim() ?? "").toUpperCase();
+
+  // Tester lookup
+  const [tester, setTester] = useState<Tester | null>(null);
+  const [roster, setRoster] = useState<RosterEntry[]>([]);
+  const [lookupLoading, setLookupLoading] = useState(true);
+  const [introDismissed, setIntroDismissed] = useState(false);
+
+  const DRAFT_KEY = useMemo(
+    () => (codeParam ? `locus-beta-draft-${codeParam}` : "locus-beta-draft-v1"),
+    [codeParam],
+  );
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      if (!codeParam) {
+        setLookupLoading(false);
+        return;
+      }
+      const [{ data: meRow }, { data: allRows }] = await Promise.all([
+        supabase.from("beta_testers").select("*").eq("code", codeParam).maybeSingle(),
+        supabase
+          .from("beta_testers")
+          .select("slot_number, display_name, submitted_at")
+          .order("slot_number", { ascending: true }),
+      ]);
+      if (!active) return;
+      if (meRow) setTester(meRow as Tester);
+      if (allRows) {
+        setRoster(
+          allRows.map((r) => ({
+            slot_number: r.slot_number,
+            display_name: r.display_name,
+            submitted: !!r.submitted_at,
+            isYou: meRow ? r.slot_number === (meRow as Tester).slot_number : false,
+          })),
+        );
+      }
+      setLookupLoading(false);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [codeParam]);
+
+  const accessGranted = !!tester;
 
   const [openStage, setOpenStage] = useState<string>(BETA_STAGES[0].id);
   const [name, setName] = useState("");
@@ -80,6 +145,12 @@ export default function BetaChecklist() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [uploadingTaskId, setUploadingTaskId] = useState<string | null>(null);
+
+  // Pre-fill name from tester record once it's loaded
+  useEffect(() => {
+    if (tester && !name) setName(tester.display_name);
+    if (tester?.submitted_at) setSubmitted(true);
+  }, [tester, name]);
 
   // Load draft
   useEffect(() => {
@@ -96,7 +167,7 @@ export default function BetaChecklist() {
     } catch {
       /* ignore */
     }
-  }, [accessGranted]);
+  }, [accessGranted, DRAFT_KEY]);
 
   // Save draft
   useEffect(() => {
@@ -107,14 +178,14 @@ export default function BetaChecklist() {
     } catch {
       /* ignore quota */
     }
-  }, [accessGranted, submitted, name, email, score, generalNotes, responses]);
+  }, [accessGranted, submitted, name, email, score, generalNotes, responses, DRAFT_KEY]);
 
   const completedCount = useMemo(
-    () =>
-      Object.values(responses).filter((r) => r.status !== undefined).length,
+    () => Object.values(responses).filter((r) => r.status !== undefined).length,
     [responses],
   );
   const progressPct = Math.round((completedCount / TOTAL_TASKS) * 100);
+  const submittedCount = roster.filter((r) => r.submitted).length;
 
   const updateResponse = (taskId: string, patch: Partial<TaskResponse>) => {
     setResponses((prev) => ({
@@ -157,15 +228,33 @@ export default function BetaChecklist() {
     }
     setSubmitting(true);
     try {
-      const { error } = await supabase.from("beta_feedback").insert({
-        tester_name: name.trim(),
-        tester_email: email.trim() || null,
-        overall_score: score,
-        general_notes: generalNotes.trim() || null,
-        responses: responses as never,
-        user_agent: navigator.userAgent,
-      });
+      const { data: inserted, error } = await supabase
+        .from("beta_feedback")
+        .insert({
+          tester_name: name.trim(),
+          tester_email: email.trim() || null,
+          overall_score: score,
+          general_notes: generalNotes.trim() || null,
+          responses: responses as never,
+          user_agent: navigator.userAgent,
+          tester_id: tester?.id ?? null,
+          tester_code: tester?.code ?? null,
+        })
+        .select("id")
+        .maybeSingle();
       if (error) throw error;
+
+      // Mark tester as submitted (best-effort; RLS guards re-submission)
+      if (tester) {
+        await supabase
+          .from("beta_testers")
+          .update({
+            submitted_at: new Date().toISOString(),
+            feedback_id: inserted?.id ?? null,
+          })
+          .eq("id", tester.id);
+      }
+
       localStorage.removeItem(DRAFT_KEY);
       setSubmitted(true);
     } catch (err) {
@@ -176,6 +265,16 @@ export default function BetaChecklist() {
     }
   };
 
+  // ---- Loading ----
+  if (lookupLoading) {
+    return (
+      <main className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="w-6 h-6 animate-spin" />
+      </main>
+    );
+  }
+
+  // ---- Invalid / missing code ----
   if (!accessGranted) {
     return (
       <main className="min-h-screen flex items-center justify-center px-6 py-20 bg-background">
@@ -183,40 +282,108 @@ export default function BetaChecklist() {
           <Lock className="w-8 h-8 mb-4" />
           <h1 className="font-[Sora] text-2xl font-black mb-2">This link looks broken</h1>
           <p className="text-muted-foreground text-sm leading-relaxed">
-            The access code is missing or wrong. Check the link you were sent — it should look like
-            <code className="block mt-3 px-3 py-2 bg-muted text-xs break-all">
-              /beta?code=...
-            </code>
+            Your personal tester code is missing or wrong. Each of the 7 testers gets a unique
+            link — check yours and try again.
           </p>
         </div>
       </main>
     );
   }
 
+  // ---- Cinematic intro ----
+  if (!introDismissed && !submitted) {
+    return (
+      <main className="min-h-screen flex items-center justify-center px-6 py-20 bg-background relative overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none opacity-[0.04]" style={{
+          backgroundImage: "radial-gradient(circle at 1px 1px, hsl(var(--foreground)) 1px, transparent 0)",
+          backgroundSize: "24px 24px",
+        }} />
+        <div className="relative max-w-xl w-full text-center animate-fade-in">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 border-2 border-foreground bg-card mb-8 shadow-[3px_3px_0_0_hsl(var(--primary))]">
+            <Award className="w-3.5 h-3.5 text-primary" strokeWidth={2.5} />
+            <span className="font-mono text-[10px] font-bold uppercase tracking-[0.2em]">
+              Founding Tester · #{pad(tester!.slot_number)}/{pad(TOTAL_TESTERS)}
+            </span>
+          </div>
+
+          <h1 className="font-[Sora] text-4xl md:text-6xl font-black leading-[1.05] mb-6">
+            Tester {pad(tester!.slot_number)} of {pad(TOTAL_TESTERS)}.
+            <br />
+            <span className="text-primary">Locus is in your hands</span>
+            <br />
+            for the next 30 minutes.
+          </h1>
+
+          <p className="text-muted-foreground text-base md:text-lg leading-relaxed mb-2">
+            Hey {tester!.display_name.split(" ")[0]} — you're one of seven people on the planet who
+            sees Locus before anyone else does.
+          </p>
+          <p className="text-muted-foreground text-sm leading-relaxed mb-10 max-w-md mx-auto">
+            Walk through it like a real student would. Mark what works, flag what doesn't.
+            Whatever you say next shapes what we ship.
+          </p>
+
+          <Button
+            onClick={() => setIntroDismissed(true)}
+            className="bg-primary text-primary-foreground hover:bg-primary/90 border-2 border-foreground shadow-[5px_5px_0_0_hsl(var(--foreground))] hover:shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-x-[3px] hover:translate-y-[3px] transition-all font-[Sora] font-black text-base h-12 px-8"
+          >
+            Begin
+          </Button>
+
+          <p className="mt-8 font-mono text-[10px] text-muted-foreground uppercase tracking-widest">
+            {submittedCount} of {TOTAL_TESTERS} have submitted
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  // ---- Submitted ----
   if (submitted) {
     return (
       <main className="min-h-screen flex items-center justify-center px-6 py-20 bg-background">
         <div className="max-w-lg w-full border-2 border-foreground bg-card p-10 shadow-[6px_6px_0_0_hsl(var(--foreground))] text-center">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 border-2 border-foreground bg-background mb-6 shadow-[3px_3px_0_0_hsl(var(--primary))]">
+            <Award className="w-3.5 h-3.5 text-primary" strokeWidth={2.5} />
+            <span className="font-mono text-[10px] font-bold uppercase tracking-[0.2em]">
+              Founding Tester · #{pad(tester!.slot_number)}/{pad(TOTAL_TESTERS)}
+            </span>
+          </div>
           <CheckCircle2 className="w-12 h-12 mx-auto mb-6 text-primary" strokeWidth={2.5} />
-          <h1 className="font-[Sora] text-3xl font-black mb-3">Thank you, {name.split(" ")[0] || "tester"}.</h1>
-          <p className="text-muted-foreground leading-relaxed">
-            Your feedback is in. We'll triage every bug and reply if anything needs follow-up.
+          <h1 className="font-[Sora] text-3xl font-black mb-3">
+            Thank you, {tester!.display_name.split(" ")[0]}.
+          </h1>
+          <p className="text-muted-foreground leading-relaxed mb-6">
+            Your feedback is in. The Founding Tester badge is now permanent on your Locus
+            profile — that won't ever come off.
+          </p>
+          <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">
+            {submittedCount} of {TOTAL_TESTERS} have submitted
           </p>
         </div>
       </main>
     );
   }
 
+  // ---- Main checklist ----
   return (
     <main className="min-h-screen bg-background pb-24">
       {/* Sticky progress */}
       <div className="sticky top-0 z-30 bg-background border-b-2 border-foreground">
-        <div className="max-w-3xl mx-auto px-6 py-4">
+        <div className="max-w-6xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between gap-4 mb-2">
-            <p className="font-[Sora] text-xs font-bold tracking-widest uppercase">
-              Locus · Closed Beta
-            </p>
-            <p className="text-xs font-mono">
+            <div className="flex items-center gap-3 min-w-0">
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 border border-foreground bg-card shrink-0">
+                <Award className="w-3 h-3 text-primary" strokeWidth={2.5} />
+                <span className="font-mono text-[10px] font-bold tracking-widest">
+                  #{pad(tester!.slot_number)}/{pad(TOTAL_TESTERS)}
+                </span>
+              </span>
+              <p className="font-[Sora] text-xs font-bold tracking-widest uppercase truncate">
+                Locus · Closed Beta
+              </p>
+            </div>
+            <p className="text-xs font-mono shrink-0">
               {completedCount} / {TOTAL_TASKS} tasks
             </p>
           </div>
@@ -229,246 +396,290 @@ export default function BetaChecklist() {
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto px-6 pt-10">
-        <h1 className="font-[Sora] text-4xl md:text-5xl font-black leading-tight mb-3">
-          Tester checklist
-        </h1>
-        <p className="text-muted-foreground leading-relaxed mb-2">
-          Walk through Locus the way a real student would. ~30 minutes. Mark each task,
-          drop notes for anything weird, attach screenshots when it helps.
-        </p>
-        <p className="text-xs text-muted-foreground mb-10">
-          Your progress auto-saves on this device. You can close the tab and come back.
-        </p>
+      <div className="max-w-6xl mx-auto px-6 pt-10 grid lg:grid-cols-[1fr_260px] gap-10">
+        {/* Main column */}
+        <div className="min-w-0">
+          <h1 className="font-[Sora] text-4xl md:text-5xl font-black leading-tight mb-3">
+            Hey {tester!.display_name.split(" ")[0]}.
+          </h1>
+          <p className="text-muted-foreground leading-relaxed mb-2">
+            Walk through Locus the way a real student would. ~30 minutes. Mark each task,
+            drop notes for anything weird, attach screenshots when it helps.
+          </p>
+          <p className="text-xs text-muted-foreground mb-10">
+            Your progress auto-saves on this device. You can close the tab and come back.
+          </p>
 
-        {/* Stages */}
-        <div className="space-y-5">
-          {BETA_STAGES.map((stage) => {
-            const isOpen = openStage === stage.id;
-            const stageDone = stage.tasks.filter(
-              (t) => responses[t.id]?.status !== undefined,
-            ).length;
-            return (
-              <section
-                key={stage.id}
-                className="border-2 border-foreground bg-card shadow-[4px_4px_0_0_hsl(var(--foreground))]"
-              >
-                <button
-                  type="button"
-                  onClick={() => setOpenStage(isOpen ? "" : stage.id)}
-                  className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left hover:bg-muted/40 transition"
+          {/* Stages */}
+          <div className="space-y-5">
+            {BETA_STAGES.map((stage) => {
+              const isOpen = openStage === stage.id;
+              const stageDone = stage.tasks.filter(
+                (t) => responses[t.id]?.status !== undefined,
+              ).length;
+              return (
+                <section
+                  key={stage.id}
+                  className="border-2 border-foreground bg-card shadow-[4px_4px_0_0_hsl(var(--foreground))]"
                 >
-                  <div className="flex items-center gap-4 min-w-0">
-                    <span className="font-[Sora] text-2xl font-black text-primary shrink-0">
-                      0{stage.number}
-                    </span>
-                    <div className="min-w-0">
-                      <h2 className="font-[Sora] text-lg font-bold truncate">
-                        {stage.title}
-                      </h2>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {stage.subtitle} · ~{stage.estMinutes} min
-                      </p>
+                  <button
+                    type="button"
+                    onClick={() => setOpenStage(isOpen ? "" : stage.id)}
+                    className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left hover:bg-muted/40 transition"
+                  >
+                    <div className="flex items-center gap-4 min-w-0">
+                      <span className="font-[Sora] text-2xl font-black text-primary shrink-0">
+                        0{stage.number}
+                      </span>
+                      <div className="min-w-0">
+                        <h2 className="font-[Sora] text-lg font-bold truncate">
+                          {stage.title}
+                        </h2>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {stage.subtitle} · ~{stage.estMinutes} min
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-3 shrink-0">
-                    <span className="text-xs font-mono text-muted-foreground">
-                      {stageDone}/{stage.tasks.length}
-                    </span>
-                    {isOpen ? (
-                      <ChevronUp className="w-5 h-5" />
-                    ) : (
-                      <ChevronDown className="w-5 h-5" />
-                    )}
-                  </div>
-                </button>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <span className="text-xs font-mono text-muted-foreground">
+                        {stageDone}/{stage.tasks.length}
+                      </span>
+                      {isOpen ? (
+                        <ChevronUp className="w-5 h-5" />
+                      ) : (
+                        <ChevronDown className="w-5 h-5" />
+                      )}
+                    </div>
+                  </button>
 
-                {isOpen && (
-                  <div className="border-t-2 border-foreground divide-y-2 divide-foreground">
-                    {stage.tasks.map((task) => {
-                      const r = responses[task.id] ?? {};
-                      return (
-                        <div key={task.id} className="p-5 space-y-4">
-                          <div>
-                            <div className="flex items-baseline gap-3 mb-1">
-                              <span className="font-mono text-xs text-muted-foreground">
-                                {task.id}
-                              </span>
-                              <h3 className="font-[Sora] font-bold">{task.title}</h3>
-                            </div>
-                            <p className="text-sm text-muted-foreground leading-relaxed">
-                              {task.detail}
-                            </p>
-                          </div>
-
-                          {/* Status pills */}
-                          <div className="flex flex-wrap gap-2">
-                            {(Object.keys(statusMeta) as TaskStatus[]).map((s) => {
-                              const meta = statusMeta[s];
-                              const Icon = meta.icon;
-                              const active = r.status === s;
-                              return (
-                                <button
-                                  key={s}
-                                  type="button"
-                                  onClick={() => updateResponse(task.id, { status: s })}
-                                  className={cn(
-                                    "inline-flex items-center gap-2 px-3 py-1.5 border-2 text-xs font-bold uppercase tracking-wider transition",
-                                    active
-                                      ? meta.color
-                                      : "border-foreground/30 text-muted-foreground hover:border-foreground hover:text-foreground",
-                                  )}
-                                >
-                                  <Icon className="w-3.5 h-3.5" strokeWidth={2.5} />
-                                  {meta.label}
-                                </button>
-                              );
-                            })}
-                          </div>
-
-                          {/* Notes + screenshot */}
-                          <Textarea
-                            placeholder="Bug, friction, idea — anything you noticed."
-                            value={r.notes ?? ""}
-                            onChange={(e) =>
-                              updateResponse(task.id, { notes: e.target.value })
-                            }
-                            className="border-2 border-foreground bg-background min-h-[70px] text-sm"
-                          />
-
-                          <div className="flex items-center gap-3 flex-wrap">
-                            <label
-                              className={cn(
-                                "inline-flex items-center gap-2 px-3 py-1.5 border-2 border-foreground bg-background text-xs font-bold cursor-pointer hover:bg-muted transition",
-                                uploadingTaskId === task.id &&
-                                  "opacity-50 cursor-not-allowed",
-                              )}
-                            >
-                              {uploadingTaskId === task.id ? (
-                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                              ) : (
-                                <Paperclip className="w-3.5 h-3.5" />
-                              )}
-                              {r.screenshotPath ? "Replace screenshot" : "Attach screenshot"}
-                              <input
-                                type="file"
-                                accept="image/*"
-                                className="hidden"
-                                disabled={uploadingTaskId === task.id}
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) handleScreenshot(task.id, file);
-                                  e.target.value = "";
-                                }}
-                              />
-                            </label>
-                            {r.screenshotName && (
-                              <div className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-                                <span className="truncate max-w-[180px]">
-                                  {r.screenshotName}
+                  {isOpen && (
+                    <div className="border-t-2 border-foreground divide-y-2 divide-foreground">
+                      {stage.tasks.map((task) => {
+                        const r = responses[task.id] ?? {};
+                        return (
+                          <div key={task.id} className="p-5 space-y-4">
+                            <div>
+                              <div className="flex items-baseline gap-3 mb-1">
+                                <span className="font-mono text-xs text-muted-foreground">
+                                  {task.id}
                                 </span>
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    updateResponse(task.id, {
-                                      screenshotPath: undefined,
-                                      screenshotName: undefined,
-                                    })
-                                  }
-                                  className="hover:text-foreground"
-                                  aria-label="Remove screenshot"
-                                >
-                                  <X className="w-3.5 h-3.5" />
-                                </button>
+                                <h3 className="font-[Sora] font-bold">{task.title}</h3>
                               </div>
-                            )}
+                              <p className="text-sm text-muted-foreground leading-relaxed">
+                                {task.detail}
+                              </p>
+                            </div>
+
+                            <div className="flex flex-wrap gap-2">
+                              {(Object.keys(statusMeta) as TaskStatus[]).map((s) => {
+                                const meta = statusMeta[s];
+                                const Icon = meta.icon;
+                                const active = r.status === s;
+                                return (
+                                  <button
+                                    key={s}
+                                    type="button"
+                                    onClick={() => updateResponse(task.id, { status: s })}
+                                    className={cn(
+                                      "inline-flex items-center gap-2 px-3 py-1.5 border-2 text-xs font-bold uppercase tracking-wider transition",
+                                      active
+                                        ? meta.color
+                                        : "border-foreground/30 text-muted-foreground hover:border-foreground hover:text-foreground",
+                                    )}
+                                  >
+                                    <Icon className="w-3.5 h-3.5" strokeWidth={2.5} />
+                                    {meta.label}
+                                  </button>
+                                );
+                              })}
+                            </div>
+
+                            <Textarea
+                              placeholder="Bug, friction, idea — anything you noticed."
+                              value={r.notes ?? ""}
+                              onChange={(e) =>
+                                updateResponse(task.id, { notes: e.target.value })
+                              }
+                              className="border-2 border-foreground bg-background min-h-[70px] text-sm"
+                            />
+
+                            <div className="flex items-center gap-3 flex-wrap">
+                              <label
+                                className={cn(
+                                  "inline-flex items-center gap-2 px-3 py-1.5 border-2 border-foreground bg-background text-xs font-bold cursor-pointer hover:bg-muted transition",
+                                  uploadingTaskId === task.id &&
+                                    "opacity-50 cursor-not-allowed",
+                                )}
+                              >
+                                {uploadingTaskId === task.id ? (
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                ) : (
+                                  <Paperclip className="w-3.5 h-3.5" />
+                                )}
+                                {r.screenshotPath ? "Replace screenshot" : "Attach screenshot"}
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  className="hidden"
+                                  disabled={uploadingTaskId === task.id}
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) handleScreenshot(task.id, file);
+                                    e.target.value = "";
+                                  }}
+                                />
+                              </label>
+                              {r.screenshotName && (
+                                <div className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                                  <span className="truncate max-w-[180px]">
+                                    {r.screenshotName}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      updateResponse(task.id, {
+                                        screenshotPath: undefined,
+                                        screenshotName: undefined,
+                                      })
+                                    }
+                                    className="hover:text-foreground"
+                                    aria-label="Remove screenshot"
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </section>
-            );
-          })}
+                        );
+                      })}
+                    </div>
+                  )}
+                </section>
+              );
+            })}
+          </div>
+
+          {/* Wrap-up form */}
+          <section className="mt-10 border-2 border-foreground bg-card p-6 shadow-[4px_4px_0_0_hsl(var(--foreground))] space-y-5">
+            <h2 className="font-[Sora] text-xl font-black">A couple last things</h2>
+
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider mb-2">
+                  Your name <span className="text-primary">*</span>
+                </label>
+                <Input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="border-2 border-foreground bg-background"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider mb-2">
+                  Email (optional)
+                </label>
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="So we can follow up"
+                  className="border-2 border-foreground bg-background"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider mb-3">
+                Overall, how did Locus feel? · {score}/10
+              </label>
+              <Slider
+                min={1}
+                max={10}
+                step={1}
+                value={[score]}
+                onValueChange={(v) => setScore(v[0])}
+              />
+              <div className="flex justify-between text-[10px] text-muted-foreground mt-1.5 font-mono">
+                <span>Painful</span>
+                <span>Loved it</span>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider mb-2">
+                Anything else
+              </label>
+              <Textarea
+                value={generalNotes}
+                onChange={(e) => setGeneralNotes(e.target.value)}
+                placeholder="What's the one thing you wish was different? What surprised you?"
+                className="border-2 border-foreground bg-background min-h-[100px]"
+              />
+            </div>
+
+            <Button
+              onClick={handleSubmit}
+              disabled={submitting}
+              className="w-full bg-primary text-primary-foreground hover:bg-primary/90 border-2 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-x-[2px] hover:translate-y-[2px] transition-all font-[Sora] font-black text-base h-12"
+            >
+              {submitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Submitting…
+                </>
+              ) : (
+                "Submit feedback"
+              )}
+            </Button>
+            <p className="text-[10px] text-muted-foreground text-center">
+              One submission per tester. Drafts auto-save until you submit.
+            </p>
+          </section>
         </div>
 
-        {/* Wrap-up form */}
-        <section className="mt-10 border-2 border-foreground bg-card p-6 shadow-[4px_4px_0_0_hsl(var(--foreground))] space-y-5">
-          <h2 className="font-[Sora] text-xl font-black">Tell us who you are</h2>
-
-          <div className="grid sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider mb-2">
-                Your name <span className="text-primary">*</span>
-              </label>
-              <Input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Aanya Sharma"
-                className="border-2 border-foreground bg-background"
-              />
+        {/* Roster sidebar */}
+        <aside className="lg:sticky lg:top-24 lg:self-start">
+          <div className="border-2 border-foreground bg-card p-5 shadow-[4px_4px_0_0_hsl(var(--foreground))]">
+            <div className="flex items-center gap-2 mb-1">
+              <Users className="w-3.5 h-3.5" />
+              <h3 className="font-[Sora] text-xs font-black uppercase tracking-widest">
+                Founding 7
+              </h3>
             </div>
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider mb-2">
-                Email (optional)
-              </label>
-              <Input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="So we can follow up"
-                className="border-2 border-foreground bg-background"
-              />
-            </div>
+            <p className="font-[Sora] text-3xl font-black mb-1">
+              {submittedCount}<span className="text-muted-foreground">/{TOTAL_TESTERS}</span>
+            </p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-mono mb-5">
+              have submitted
+            </p>
+            <ul className="space-y-2">
+              {roster.map((r) => (
+                <li
+                  key={r.slot_number}
+                  className={cn(
+                    "flex items-center gap-3 text-xs",
+                    r.isYou && "font-bold",
+                  )}
+                >
+                  <span className="font-mono text-[10px] text-muted-foreground w-8">
+                    #{pad(r.slot_number)}
+                  </span>
+                  <span className="flex-1 truncate">
+                    {r.display_name}
+                    {r.isYou && <span className="text-primary"> (you)</span>}
+                  </span>
+                  <span
+                    className={cn(
+                      "w-2 h-2 rounded-full shrink-0",
+                      r.submitted ? "bg-primary" : "bg-foreground/15",
+                    )}
+                    aria-label={r.submitted ? "submitted" : "pending"}
+                  />
+                </li>
+              ))}
+            </ul>
           </div>
-
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider mb-3">
-              Overall, how did Locus feel? · {score}/10
-            </label>
-            <Slider
-              min={1}
-              max={10}
-              step={1}
-              value={[score]}
-              onValueChange={(v) => setScore(v[0])}
-            />
-            <div className="flex justify-between text-[10px] text-muted-foreground mt-1.5 font-mono">
-              <span>Painful</span>
-              <span>Loved it</span>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider mb-2">
-              Anything else
-            </label>
-            <Textarea
-              value={generalNotes}
-              onChange={(e) => setGeneralNotes(e.target.value)}
-              placeholder="What's the one thing you wish was different? What surprised you?"
-              className="border-2 border-foreground bg-background min-h-[100px]"
-            />
-          </div>
-
-          <Button
-            onClick={handleSubmit}
-            disabled={submitting}
-            className="w-full bg-primary text-primary-foreground hover:bg-primary/90 border-2 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-x-[2px] hover:translate-y-[2px] transition-all font-[Sora] font-black text-base h-12"
-          >
-            {submitting ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Submitting…
-              </>
-            ) : (
-              "Submit feedback"
-            )}
-          </Button>
-          <p className="text-[10px] text-muted-foreground text-center">
-            One submission per tester. Drafts auto-save until you submit.
-          </p>
-        </section>
+        </aside>
       </div>
     </main>
   );
