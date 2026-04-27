@@ -1,41 +1,46 @@
-# Self-host Sora (Option C)
+## Locus Closed-Beta Tester Checklist (PDF)
 
-Goal: remove Sora from the Google Fonts request so the LCP H1 paints in-brand on the first frame, with no swap and no extra round-trip.
+A one-time generated PDF for your 6 closed testers. No app code changes — pure artifact, delivered to `/mnt/documents/`.
 
-## Changes
+### Format
+- US Letter, neobrutalist styling (black borders, yellow accent, mono labels) to match Locus brand
+- ~6–7 pages, structured by **user journey** (the way a real student would experience Locus day 1 → day 7)
+- Each task row has: task description, steps, expected result, and three tickboxes — **PASS / FAIL / BLOCKED** + a "Bug + screenshot ref" line
+- Cover page: tester name, date, device/browser, build URL (locuslegal.lovable.app)
+- Final page: overall impressions, top 3 frustrations, top 3 delights, "would you recommend to a friend?" 1–10
 
-### 1. Add Sora `.woff2` files to `/public/fonts/`
-Download the three weights actually used in the codebase:
-- `sora-600.woff2` (semibold)
-- `sora-700.woff2` (bold — used by H1, the LCP element)
-- `sora-800.woff2` (extrabold)
+### Journey structure (covers what's actually live)
 
-Source: Google Fonts API `woff2` files (latin subset only — keeps each file ~12–18 KB).
+**Stage 1 — First impression (5 min)**
+Land on home, scroll, click around hero, navigate to Directory, Playbook, Tools as a guest.
 
-### 2. Update `index.html`
-- **Remove** Sora from the existing Google Fonts `<link>`. Keep Inter on Google Fonts (it's body text, not the LCP, and removing it would mean shipping 3 more woff2 files for marginal gain).
-  - Before: `family=Sora:wght@600;700;800&family=Inter:wght@400;500;600`
-  - After: `family=Inter:wght@400;500;600`
-- **Add** a `<link rel="preload">` for `sora-700.woff2` (the H1 weight) before the stylesheet links so it starts downloading in the very first network burst.
-  ```html
-  <link rel="preload" href="/fonts/sora-700.woff2" as="font" type="font/woff2" crossorigin />
-  ```
-- **Add** an inline `<style>` block with `@font-face` declarations for all three Sora weights, using `font-display: swap` (safe because the file will already be cached/preloaded by the time text paints).
+**Stage 2 — Sign up & profile (5 min)**
+Email + Google + Apple signup paths, choose username, complete profile (avatar, bio, academics, CGPA, subjects, internships, moots, CV upload), watch Profile Strength meter climb.
 
-### 3. No changes to `tailwind.config.ts` or `index.css`
-The `font-sora` Tailwind utility already references `'Sora', sans-serif` by family name — once the `@font-face` is registered, every existing `font-sora` class picks it up automatically. Zero component changes needed.
+**Stage 3 — Get discovered (3 min)**
+Visit own public profile at `/u/:username`, share the link, toggle "Open to opportunities".
 
-## Expected impact
-- **Removes** one render-blocking external CSS request (Google Fonts `css2?family=Sora...` shaves ~80–150 ms on slow 4G).
-- **Sora 700 arrives before first paint** for ~all visitors → LCP H1 renders in brand font on frame 1, no swap, no CLS.
-- **Estimated Lighthouse mobile gain:** +3 to +5 points (mostly via FCP/LCP improvement).
-- **Bundle cost:** ~14 KB (one woff2) added to critical path, but it replaces a ~20 KB Google Fonts CSS + font-file chain — net win.
+**Stage 4 — Practice law: The Bar (8 min)**
+Open `/the-bar`, attempt one of each: MCQ, Issue Spotter, Speed Round, Brief Builder, Client Counseling. Chat with Rit. Check leaderboard + history.
 
-## Verification after deploy
-1. DevTools → Network: confirm `sora-700.woff2` loads from `/fonts/` in the first wave, no Google Fonts request for Sora.
-2. DevTools → Performance: H1 paints with Sora on the first frame (no fallback flash).
-3. Run mobile Lighthouse 2× on `https://locuslegal.lovable.app` and report median FCP / LCP / score.
+**Stage 5 — Hunt internships (5 min)**
+Browse Directory, filter, open firm drawer, compare 2 firms, log an application in Tracker, check insights + nudge banner.
 
-## Out of scope (per your instruction)
-- Inter stays on Google Fonts.
-- No changes to `prefetch.ts`, Supabase code, or anything else.
+**Stage 6 — Learn & level up (3 min)**
+Open one Playbook guide, mark sections complete, download a Resources template, run CV Analyser, try one document drafter (NDA).
+
+**Stage 7 — Wrap (1 min)**
+Mobile bottom dock, log out, log back in, password reset.
+
+### Technical approach
+- Generate with Python + ReportLab (Platypus flowables for clean tables/checkboxes)
+- Brand: black borders 2pt, hard shadow offset, Locus yellow `#FACC15` for accents, Inter/Helvetica fallback
+- Output: `/mnt/documents/locus-beta-checklist.pdf`
+- Mandatory QA: render every page to JPEG, inspect for clipping/overlap/contrast, fix and re-render until clean
+- Deliver via `<lov-artifact>` so you can download and forward to all 6 testers
+
+### What I will NOT do
+- No new app routes, no `/beta` page, no DB tables — pure downloadable artifact
+- No editable docx version unless you ask after seeing the PDF
+
+Approve and I'll generate it.
