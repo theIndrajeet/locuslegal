@@ -17,6 +17,19 @@ export type BetaStage = {
   tasks: BetaTask[];
 };
 
+// Rotating intro lines — one is randomly assigned at slot-claim time so
+// each tester sees a different headline on their cinematic intro screen.
+export const INTRO_LINES: string[] = [
+  "Locus is in your hands for the next 30 minutes.",
+  "You're seeing this before the world does.",
+  "Your notes shape the launch. No filter.",
+  "Built for law students. Tested by you first.",
+  "The bench is open. Take a seat.",
+  "Break it. We'd rather know now.",
+  "First in. Last to leave the credits.",
+  "Founding means founding. Forever.",
+];
+
 export const BETA_STAGES: BetaStage[] = [
   {
     id: "first-impression",
