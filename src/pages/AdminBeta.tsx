@@ -50,6 +50,7 @@ export default function AdminBeta() {
   const isAdmin = useAdminRole();
   const navigate = useNavigate();
   const [rows, setRows] = useState<FeedbackRow[]>([]);
+  const [testers, setTesters] = useState<TesterRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
@@ -62,16 +63,20 @@ export default function AdminBeta() {
     if (!isAdmin) return;
     let mounted = true;
     (async () => {
-      const { data, error } = await supabase
-        .from("beta_feedback")
-        .select("*")
-        .order("created_at", { ascending: false });
+      const [feedbackRes, testersRes] = await Promise.all([
+        supabase.from("beta_feedback").select("*").order("created_at", { ascending: false }),
+        supabase
+          .from("beta_testers")
+          .select("id, slot_number, display_name, code, submitted_at")
+          .order("slot_number", { ascending: true }),
+      ]);
       if (!mounted) return;
-      if (error) {
-        toast("Failed to load submissions", { description: error.message });
+      if (feedbackRes.error) {
+        toast("Failed to load submissions", { description: feedbackRes.error.message });
       } else {
-        setRows((data as FeedbackRow[]) ?? []);
+        setRows((feedbackRes.data as FeedbackRow[]) ?? []);
       }
+      if (testersRes.data) setTesters(testersRes.data as TesterRow[]);
       setLoading(false);
     })();
     return () => {
