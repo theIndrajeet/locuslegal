@@ -1,10 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
 import {
   ChevronDown,
   ChevronUp,
   Loader2,
-  Lock,
   Paperclip,
   CheckCircle2,
   XCircle,
@@ -12,16 +10,18 @@ import {
   X,
   Award,
   Users,
+  ArrowRight,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { usePageMeta } from "@/hooks/usePageMeta";
+import { useAuthSession } from "@/hooks/useAuthSession";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { toast } from "@/components/ui/sonner";
 import { cn } from "@/lib/utils";
-import { BETA_STAGES, TOTAL_TASKS } from "@/content/beta-checklist";
+import { BETA_STAGES, INTRO_LINES, TOTAL_TASKS } from "@/content/beta-checklist";
 
 type TaskStatus = "pass" | "fail" | "blocked";
 
@@ -38,8 +38,9 @@ type Tester = {
   id: string;
   slot_number: number;
   display_name: string;
-  code: string;
-  personal_note: string | null;
+  email: string | null;
+  is_public: boolean;
+  intro_line_index: number;
   submitted_at: string | null;
 };
 
@@ -50,7 +51,7 @@ type RosterEntry = {
   isYou: boolean;
 };
 
-const TOTAL_TESTERS = 7;
+const TESTER_STORAGE_KEY = "locus-beta-tester-id-v2";
 
 const statusMeta: Record<
   TaskStatus,
@@ -65,8 +66,8 @@ const pad = (n: number) => String(n).padStart(3, "0");
 
 export default function BetaChecklist() {
   usePageMeta({
-    title: "Locus · Closed Beta Checklist",
-    description: "Private checklist for Locus closed-beta testers.",
+    title: "Locus · Founding Tester Checklist",
+    description: "Help shape Locus before launch. Founding-tester checklist.",
     path: "/beta",
   });
 
@@ -87,58 +88,93 @@ export default function BetaChecklist() {
     };
   }, []);
 
-  const [search] = useSearchParams();
-  const codeParam = (search.get("code")?.trim() ?? "").toUpperCase();
+  const { session, userId } = useAuthSession();
 
-  // Tester lookup
   const [tester, setTester] = useState<Tester | null>(null);
   const [roster, setRoster] = useState<RosterEntry[]>([]);
-  const [lookupLoading, setLookupLoading] = useState(true);
+  const [totalClaimed, setTotalClaimed] = useState(0);
+  const [totalSubmitted, setTotalSubmitted] = useState(0);
+  const [bootLoading, setBootLoading] = useState(true);
   const [introDismissed, setIntroDismissed] = useState(false);
 
+  // Claim form state
+  const [claimName, setClaimName] = useState("");
+  const [claimEmail, setClaimEmail] = useState("");
+  const [claimPublic, setClaimPublic] = useState(true);
+  const [claiming, setClaiming] = useState(false);
+
   const DRAFT_KEY = useMemo(
-    () => (codeParam ? `locus-beta-draft-${codeParam}` : "locus-beta-draft-v1"),
-    [codeParam],
+    () => (tester ? `locus-beta-draft-${tester.id}` : null),
+    [tester],
   );
+
+  // Load roster + totals + restore tester from localStorage
+  const refreshRoster = async () => {
+    const { data: publicRows } = await supabase
+      .from("beta_testers")
+      .select("slot_number, display_name, submitted_at")
+      .eq("is_public", true)
+      .order("slot_number", { ascending: true });
+    if (publicRows) {
+      setRoster(
+        publicRows.map((r) => ({
+          slot_number: r.slot_number,
+          display_name: r.display_name,
+          submitted: !!r.submitted_at,
+          isYou: false,
+        })),
+      );
+    }
+    // Aggregate counts (public + private). count: 'exact' returns total rows w/o data.
+    const { count: claimed } = await supabase
+      .from("beta_testers")
+      .select("id", { count: "exact", head: true });
+    const { count: submitted } = await supabase
+      .from("beta_testers")
+      .select("id", { count: "exact", head: true })
+      .not("submitted_at", "is", null);
+    setTotalClaimed(claimed ?? 0);
+    setTotalSubmitted(submitted ?? 0);
+  };
 
   useEffect(() => {
     let active = true;
     (async () => {
-      if (!codeParam) {
-        setLookupLoading(false);
-        return;
-      }
-      const [{ data: meRow }, { data: allRows }] = await Promise.all([
-        supabase.from("beta_testers").select("*").eq("code", codeParam).maybeSingle(),
-        supabase
+      const storedId = typeof window !== "undefined" ? localStorage.getItem(TESTER_STORAGE_KEY) : null;
+      if (storedId) {
+        const { data } = await supabase
           .from("beta_testers")
-          .select("slot_number, display_name, submitted_at")
-          .order("slot_number", { ascending: true }),
-      ]);
-      if (!active) return;
-      if (meRow) setTester(meRow as Tester);
-      if (allRows) {
-        setRoster(
-          allRows.map((r) => ({
-            slot_number: r.slot_number,
-            display_name: r.display_name,
-            submitted: !!r.submitted_at,
-            isYou: meRow ? r.slot_number === (meRow as Tester).slot_number : false,
-          })),
-        );
+          .select("id, slot_number, display_name, email, is_public, intro_line_index, submitted_at")
+          .eq("id", storedId)
+          .maybeSingle();
+        if (active && data) {
+          setTester(data as Tester);
+          if (data.submitted_at) setSubmitted(true);
+        }
       }
-      setLookupLoading(false);
+      await refreshRoster();
+      if (active) setBootLoading(false);
     })();
     return () => {
       active = false;
     };
-  }, [codeParam]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const accessGranted = !!tester;
+  // Pre-fill claim email from session if signed in
+  useEffect(() => {
+    if (session?.user?.email && !claimEmail) {
+      setClaimEmail(session.user.email);
+    }
+  }, [session, claimEmail]);
+
+  // Mark roster "isYou"
+  const rosterDisplay = useMemo(() => {
+    if (!tester) return roster;
+    return roster.map((r) => ({ ...r, isYou: r.slot_number === tester.slot_number }));
+  }, [roster, tester]);
 
   const [openStage, setOpenStage] = useState<string>(BETA_STAGES[0].id);
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
   const [score, setScore] = useState<number>(7);
   const [generalNotes, setGeneralNotes] = useState("");
   const [responses, setResponses] = useState<Responses>({});
@@ -146,52 +182,66 @@ export default function BetaChecklist() {
   const [submitted, setSubmitted] = useState(false);
   const [uploadingTaskId, setUploadingTaskId] = useState<string | null>(null);
 
-  // Pre-fill name from tester record once it's loaded
+  // Load draft when tester is known
   useEffect(() => {
-    if (tester && !name) setName(tester.display_name);
-    if (tester?.submitted_at) setSubmitted(true);
-  }, [tester, name]);
-
-  // Load draft
-  useEffect(() => {
-    if (!accessGranted) return;
+    if (!DRAFT_KEY) return;
     try {
       const raw = localStorage.getItem(DRAFT_KEY);
       if (!raw) return;
       const parsed = JSON.parse(raw);
-      if (parsed.name) setName(parsed.name);
-      if (parsed.email) setEmail(parsed.email);
       if (typeof parsed.score === "number") setScore(parsed.score);
       if (parsed.generalNotes) setGeneralNotes(parsed.generalNotes);
       if (parsed.responses) setResponses(parsed.responses);
     } catch {
       /* ignore */
     }
-  }, [accessGranted, DRAFT_KEY]);
+  }, [DRAFT_KEY]);
 
   // Save draft
   useEffect(() => {
-    if (!accessGranted || submitted) return;
-    const draft = { name, email, score, generalNotes, responses };
+    if (!DRAFT_KEY || submitted) return;
     try {
-      localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({ score, generalNotes, responses }));
     } catch {
-      /* ignore quota */
+      /* ignore */
     }
-  }, [accessGranted, submitted, name, email, score, generalNotes, responses, DRAFT_KEY]);
+  }, [DRAFT_KEY, submitted, score, generalNotes, responses]);
 
   const completedCount = useMemo(
     () => Object.values(responses).filter((r) => r.status !== undefined).length,
     [responses],
   );
   const progressPct = Math.round((completedCount / TOTAL_TASKS) * 100);
-  const submittedCount = roster.filter((r) => r.submitted).length;
 
   const updateResponse = (taskId: string, patch: Partial<TaskResponse>) => {
-    setResponses((prev) => ({
-      ...prev,
-      [taskId]: { ...prev[taskId], ...patch },
-    }));
+    setResponses((prev) => ({ ...prev, [taskId]: { ...prev[taskId], ...patch } }));
+  };
+
+  const handleClaim = async () => {
+    const name = claimName.trim();
+    if (!name) {
+      toast("Add your name to claim a slot");
+      return;
+    }
+    setClaiming(true);
+    try {
+      const { data, error } = await supabase.rpc("claim_beta_slot", {
+        p_name: name,
+        p_email: claimEmail.trim() || null,
+        p_user_id: userId,
+        p_is_public: claimPublic,
+      });
+      if (error) throw error;
+      const row = data as Tester;
+      setTester(row);
+      try { localStorage.setItem(TESTER_STORAGE_KEY, row.id); } catch { /* ignore */ }
+      await refreshRoster();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Could not claim a slot";
+      toast("Something went wrong", { description: msg });
+    } finally {
+      setClaiming(false);
+    }
   };
 
   const handleScreenshot = async (taskId: string, file: File) => {
@@ -218,10 +268,7 @@ export default function BetaChecklist() {
   };
 
   const handleSubmit = async () => {
-    if (!name.trim()) {
-      toast("Please add your name first");
-      return;
-    }
+    if (!tester) return;
     if (completedCount === 0) {
       toast("Mark at least one task before submitting");
       return;
@@ -231,32 +278,29 @@ export default function BetaChecklist() {
       const { data: inserted, error } = await supabase
         .from("beta_feedback")
         .insert({
-          tester_name: name.trim(),
-          tester_email: email.trim() || null,
+          tester_name: tester.display_name,
+          tester_email: tester.email,
           overall_score: score,
           general_notes: generalNotes.trim() || null,
           responses: responses as never,
           user_agent: navigator.userAgent,
-          tester_id: tester?.id ?? null,
-          tester_code: tester?.code ?? null,
+          tester_id: tester.id,
         })
         .select("id")
         .maybeSingle();
       if (error) throw error;
 
-      // Mark tester as submitted (best-effort; RLS guards re-submission)
-      if (tester) {
-        await supabase
-          .from("beta_testers")
-          .update({
-            submitted_at: new Date().toISOString(),
-            feedback_id: inserted?.id ?? null,
-          })
-          .eq("id", tester.id);
-      }
+      await supabase
+        .from("beta_testers")
+        .update({
+          submitted_at: new Date().toISOString(),
+          feedback_id: inserted?.id ?? null,
+        })
+        .eq("id", tester.id);
 
-      localStorage.removeItem(DRAFT_KEY);
+      if (DRAFT_KEY) localStorage.removeItem(DRAFT_KEY);
       setSubmitted(true);
+      await refreshRoster();
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Submission failed";
       toast("Submission failed", { description: msg });
@@ -266,7 +310,7 @@ export default function BetaChecklist() {
   };
 
   // ---- Loading ----
-  if (lookupLoading) {
+  if (bootLoading) {
     return (
       <main className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="w-6 h-6 animate-spin" />
@@ -274,21 +318,96 @@ export default function BetaChecklist() {
     );
   }
 
-  // ---- Invalid / missing code ----
-  if (!accessGranted) {
+  // ---- Claim screen (no tester yet) ----
+  if (!tester) {
     return (
-      <main className="min-h-screen flex items-center justify-center px-6 py-20 bg-background">
-        <div className="max-w-md w-full border-2 border-foreground bg-card p-8 shadow-[6px_6px_0_0_hsl(var(--foreground))]">
-          <Lock className="w-8 h-8 mb-4" />
-          <h1 className="font-[Sora] text-2xl font-black mb-2">This link looks broken</h1>
-          <p className="text-muted-foreground text-sm leading-relaxed">
-            Your personal tester code is missing or wrong. Each of the 7 testers gets a unique
-            link — check yours and try again.
+      <main className="min-h-screen flex items-center justify-center px-6 py-20 bg-background relative overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none opacity-[0.04]" style={{
+          backgroundImage: "radial-gradient(circle at 1px 1px, hsl(var(--foreground)) 1px, transparent 0)",
+          backgroundSize: "24px 24px",
+        }} />
+        <div className="relative max-w-md w-full">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 border-2 border-foreground bg-card mb-6 shadow-[3px_3px_0_0_hsl(var(--primary))]">
+            <Award className="w-3.5 h-3.5 text-primary" strokeWidth={2.5} />
+            <span className="font-mono text-[10px] font-bold uppercase tracking-[0.2em]">
+              Closed Beta · Founding Testers
+            </span>
+          </div>
+
+          <h1 className="font-[Sora] text-4xl font-black leading-[1.05] mb-4">
+            Claim your slot.
+          </h1>
+          <p className="text-muted-foreground text-sm leading-relaxed mb-8">
+            You're about to become Founding Tester #{pad(totalClaimed + 1)}. Walk through Locus
+            for ~30 minutes, mark what works, flag what doesn't. Your notes ship the launch.
+          </p>
+
+          <div className="border-2 border-foreground bg-card p-6 shadow-[5px_5px_0_0_hsl(var(--foreground))] space-y-5">
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider mb-2">
+                Your name <span className="text-primary">*</span>
+              </label>
+              <Input
+                value={claimName}
+                onChange={(e) => setClaimName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") handleClaim(); }}
+                placeholder="e.g. Anam Khan"
+                className="border-2 border-foreground bg-background"
+                maxLength={80}
+                autoFocus
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider mb-2">
+                Email <span className="text-muted-foreground font-normal normal-case">(optional — so we can follow up)</span>
+              </label>
+              <Input
+                type="email"
+                value={claimEmail}
+                onChange={(e) => setClaimEmail(e.target.value)}
+                placeholder="you@example.com"
+                className="border-2 border-foreground bg-background"
+                maxLength={160}
+              />
+            </div>
+
+            <label className="flex items-start gap-3 cursor-pointer group">
+              <input
+                type="checkbox"
+                checked={claimPublic}
+                onChange={(e) => setClaimPublic(e.target.checked)}
+                className="mt-0.5 w-4 h-4 border-2 border-foreground accent-primary cursor-pointer"
+              />
+              <span className="text-sm leading-snug">
+                <span className="font-bold">Show my name on the public Founding Tester board.</span>
+                <span className="block text-xs text-muted-foreground mt-0.5">
+                  Uncheck to stay anonymous. You'll still get the badge.
+                </span>
+              </span>
+            </label>
+
+            <Button
+              onClick={handleClaim}
+              disabled={claiming || !claimName.trim()}
+              className="w-full bg-primary text-primary-foreground hover:bg-primary/90 border-2 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-x-[2px] hover:translate-y-[2px] transition-all font-[Sora] font-black h-12"
+            >
+              {claiming ? (
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Claiming…</>
+              ) : (
+                <>Claim my slot <ArrowRight className="w-4 h-4 ml-2" /></>
+              )}
+            </Button>
+          </div>
+
+          <p className="mt-6 font-mono text-[10px] text-muted-foreground uppercase tracking-widest text-center">
+            {totalClaimed} claimed · {totalSubmitted} submitted
           </p>
         </div>
       </main>
     );
   }
+
+  const introLine = INTRO_LINES[tester.intro_line_index % INTRO_LINES.length] ?? INTRO_LINES[0];
 
   // ---- Cinematic intro ----
   if (!introDismissed && !submitted) {
@@ -302,25 +421,20 @@ export default function BetaChecklist() {
           <div className="inline-flex items-center gap-2 px-3 py-1.5 border-2 border-foreground bg-card mb-8 shadow-[3px_3px_0_0_hsl(var(--primary))]">
             <Award className="w-3.5 h-3.5 text-primary" strokeWidth={2.5} />
             <span className="font-mono text-[10px] font-bold uppercase tracking-[0.2em]">
-              Founding Tester · #{pad(tester!.slot_number)}/{pad(TOTAL_TESTERS)}
+              Founding Tester · #{pad(tester.slot_number)}
             </span>
           </div>
 
           <h1 className="font-[Sora] text-4xl md:text-6xl font-black leading-[1.05] mb-6">
-            Tester {pad(tester!.slot_number)} of {pad(TOTAL_TESTERS)}.
+            Welcome, {tester.display_name.split(" ")[0]}.
             <br />
-            <span className="text-primary">Locus is in your hands</span>
+            <span className="text-primary">You're Founding Tester</span>
             <br />
-            for the next 30 minutes.
+            #{pad(tester.slot_number)}.
           </h1>
 
-          <p className="text-muted-foreground text-base md:text-lg leading-relaxed mb-2">
-            Hey {tester!.display_name.split(" ")[0]} — you're one of seven people on the planet who
-            sees Locus before anyone else does.
-          </p>
-          <p className="text-muted-foreground text-sm leading-relaxed mb-10 max-w-md mx-auto">
-            Walk through it like a real student would. Mark what works, flag what doesn't.
-            Whatever you say next shapes what we ship.
+          <p className="text-muted-foreground text-base md:text-lg leading-relaxed mb-10 max-w-md mx-auto">
+            {introLine}
           </p>
 
           <Button
@@ -331,7 +445,7 @@ export default function BetaChecklist() {
           </Button>
 
           <p className="mt-8 font-mono text-[10px] text-muted-foreground uppercase tracking-widest">
-            {submittedCount} of {TOTAL_TESTERS} have submitted
+            {totalSubmitted} of {totalClaimed} have submitted
           </p>
         </div>
       </main>
@@ -346,19 +460,20 @@ export default function BetaChecklist() {
           <div className="inline-flex items-center gap-2 px-3 py-1.5 border-2 border-foreground bg-background mb-6 shadow-[3px_3px_0_0_hsl(var(--primary))]">
             <Award className="w-3.5 h-3.5 text-primary" strokeWidth={2.5} />
             <span className="font-mono text-[10px] font-bold uppercase tracking-[0.2em]">
-              Founding Tester · #{pad(tester!.slot_number)}/{pad(TOTAL_TESTERS)}
+              Founding Tester · #{pad(tester.slot_number)}
             </span>
           </div>
           <CheckCircle2 className="w-12 h-12 mx-auto mb-6 text-primary" strokeWidth={2.5} />
           <h1 className="font-[Sora] text-3xl font-black mb-3">
-            Thank you, {tester!.display_name.split(" ")[0]}.
+            Thank you, {tester.display_name.split(" ")[0]}.
           </h1>
           <p className="text-muted-foreground leading-relaxed mb-6">
-            Your feedback is in. The Founding Tester badge is now permanent on your Locus
-            profile — that won't ever come off.
+            Your feedback is in. {tester.is_public
+              ? "Your name's on the Founding Tester board — that won't ever come off."
+              : "You stayed anonymous, but the badge is still yours."}
           </p>
           <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">
-            {submittedCount} of {TOTAL_TESTERS} have submitted
+            {totalSubmitted} of {totalClaimed} have submitted
           </p>
         </div>
       </main>
@@ -376,11 +491,11 @@ export default function BetaChecklist() {
               <span className="inline-flex items-center gap-1.5 px-2 py-0.5 border border-foreground bg-card shrink-0">
                 <Award className="w-3 h-3 text-primary" strokeWidth={2.5} />
                 <span className="font-mono text-[10px] font-bold tracking-widest">
-                  #{pad(tester!.slot_number)}/{pad(TOTAL_TESTERS)}
+                  #{pad(tester.slot_number)}
                 </span>
               </span>
               <p className="font-[Sora] text-xs font-bold tracking-widest uppercase truncate">
-                Locus · Closed Beta
+                Locus · Founding Tester
               </p>
             </div>
             <p className="text-xs font-mono shrink-0">
@@ -400,7 +515,7 @@ export default function BetaChecklist() {
         {/* Main column */}
         <div className="min-w-0">
           <h1 className="font-[Sora] text-4xl md:text-5xl font-black leading-tight mb-3">
-            Hey {tester!.display_name.split(" ")[0]}.
+            Hey {tester.display_name.split(" ")[0]}.
           </h1>
           <p className="text-muted-foreground leading-relaxed mb-2">
             Walk through Locus the way a real student would. ~30 minutes. Mark each task,
@@ -564,31 +679,6 @@ export default function BetaChecklist() {
           <section className="mt-10 border-2 border-foreground bg-card p-6 shadow-[4px_4px_0_0_hsl(var(--foreground))] space-y-5">
             <h2 className="font-[Sora] text-xl font-black">A couple last things</h2>
 
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider mb-2">
-                  Your name <span className="text-primary">*</span>
-                </label>
-                <Input
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="border-2 border-foreground bg-background"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider mb-2">
-                  Email (optional)
-                </label>
-                <Input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="So we can follow up"
-                  className="border-2 border-foreground bg-background"
-                />
-              </div>
-            </div>
-
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider mb-3">
                 Overall, how did Locus feel? · {score}/10
@@ -643,17 +733,17 @@ export default function BetaChecklist() {
             <div className="flex items-center gap-2 mb-1">
               <Users className="w-3.5 h-3.5" />
               <h3 className="font-[Sora] text-xs font-black uppercase tracking-widest">
-                Founding 7
+                Founding Testers
               </h3>
             </div>
             <p className="font-[Sora] text-3xl font-black mb-1">
-              {submittedCount}<span className="text-muted-foreground">/{TOTAL_TESTERS}</span>
+              {totalSubmitted}<span className="text-muted-foreground">/{totalClaimed}</span>
             </p>
             <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-mono mb-5">
               have submitted
             </p>
             <ul className="space-y-2">
-              {roster.map((r) => (
+              {rosterDisplay.map((r) => (
                 <li
                   key={r.slot_number}
                   className={cn(
@@ -677,6 +767,11 @@ export default function BetaChecklist() {
                   />
                 </li>
               ))}
+              {tester && !tester.is_public && (
+                <li className="text-[10px] text-muted-foreground italic pt-2 border-t border-foreground/10">
+                  You chose to stay off the public board.
+                </li>
+              )}
             </ul>
           </div>
         </aside>
