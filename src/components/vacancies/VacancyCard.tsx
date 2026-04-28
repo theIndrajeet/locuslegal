@@ -1,20 +1,31 @@
 import { useState } from "react";
-import { Briefcase, MapPin, Coins, GraduationCap, Mail, AlertTriangle, Clock, ChevronDown } from "lucide-react";
+import { Briefcase, MapPin, Coins, GraduationCap, Mail, AlertTriangle, Clock, ChevronDown, Check, RotateCw } from "lucide-react";
+import { format, parseISO } from "date-fns";
 import { Button } from "@/components/ui/button";
-import { type Vacancy, daysLeft, urgencyTone, formatExpiry } from "@/lib/vacancies";
+import {
+  type Vacancy,
+  daysLeft,
+  urgencyTone,
+  formatExpiry,
+  type VacancyApplication,
+  applicationStateFor,
+} from "@/lib/vacancies";
 import { cn } from "@/lib/utils";
 
 interface Props {
   vacancy: Vacancy;
-  onApply?: (v: Vacancy) => void;
+  onApply?: (v: Vacancy, opts?: { followup?: boolean }) => void;
   archived?: boolean;
+  application?: VacancyApplication | null;
 }
 
-export default function VacancyCard({ vacancy, onApply, archived = false }: Props) {
+export default function VacancyCard({ vacancy, onApply, archived = false, application }: Props) {
   const [expanded, setExpanded] = useState(false);
   const days = daysLeft(vacancy.expires_at);
   const tone = urgencyTone(days);
   const isClosed = archived || tone === "expired";
+
+  const { state: appState, daysUntilFollowup, lastActionOn } = applicationStateFor(application);
 
   return (
     <div
@@ -23,6 +34,8 @@ export default function VacancyCard({ vacancy, onApply, archived = false }: Prop
         "relative bg-card border-2 rounded-2xl p-5 md:p-6 transition-all",
         isClosed
           ? "border-border/40 opacity-60 grayscale"
+          : appState === "applied" || appState === "followed_up"
+          ? "border-accent/70 bg-accent/5 shadow-[3px_3px_0_0_hsl(var(--accent)/0.4)]"
           : "border-foreground/80 shadow-[4px_4px_0_0_hsl(var(--accent))] hover:shadow-[6px_6px_0_0_hsl(var(--accent))] hover:-translate-y-0.5",
       )}
     >
@@ -88,15 +101,65 @@ export default function VacancyCard({ vacancy, onApply, archived = false }: Prop
       {/* Footer */}
       <div className="flex items-center justify-between gap-3 pt-3 border-t border-border/50">
         <div className="text-xs text-muted-foreground truncate">
-          {vacancy.source_credit ? <span>{vacancy.source_credit}</span> : <span>Apply by email</span>}
+          {appState === "applied" && lastActionOn ? (
+            <span className="inline-flex items-center gap-1.5 font-semibold text-accent">
+              <Check size={12} /> Applied {format(parseISO(lastActionOn), "d MMM")}
+            </span>
+          ) : appState === "followed_up" && lastActionOn ? (
+            <span className="inline-flex items-center gap-1.5 font-semibold text-accent">
+              <Check size={12} /> Followed up {format(parseISO(lastActionOn), "d MMM")}
+            </span>
+          ) : appState === "followup_ready" && lastActionOn ? (
+            <span className="inline-flex items-center gap-1.5 text-foreground/80">
+              Sent {format(parseISO(lastActionOn), "d MMM")} · time to nudge
+            </span>
+          ) : vacancy.source_credit ? (
+            <span>{vacancy.source_credit}</span>
+          ) : (
+            <span>Apply by email</span>
+          )}
         </div>
-        {!isClosed && onApply && (
+
+        {!isClosed && onApply && appState === "idle" && (
           <Button
             onClick={() => onApply(vacancy)}
             className="font-bold border-2 border-foreground/80 shadow-[3px_3px_0_0_hsl(var(--foreground))] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_0_hsl(var(--foreground))] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
           >
             <Mail size={14} className="mr-1.5" />
             Draft application
+          </Button>
+        )}
+
+        {!isClosed && appState === "applied" && (
+          <Button
+            disabled
+            variant="outline"
+            className="font-bold border-2 border-accent/60 bg-accent/10 text-accent disabled:opacity-100 cursor-not-allowed"
+          >
+            <Check size={14} className="mr-1.5" />
+            Follow up in {daysUntilFollowup}d
+          </Button>
+        )}
+
+        {!isClosed && appState === "followed_up" && (
+          <Button
+            disabled
+            variant="outline"
+            className="font-bold border-2 border-accent/60 bg-accent/10 text-accent disabled:opacity-100 cursor-not-allowed"
+          >
+            <Check size={14} className="mr-1.5" />
+            Followed up
+          </Button>
+        )}
+
+        {!isClosed && onApply && appState === "followup_ready" && (
+          <Button
+            onClick={() => onApply(vacancy, { followup: true })}
+            variant="outline"
+            className="font-bold border-2 border-accent text-foreground bg-background hover:bg-accent hover:text-accent-foreground shadow-[3px_3px_0_0_hsl(var(--accent))] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_0_hsl(var(--accent))]"
+          >
+            <RotateCw size={14} className="mr-1.5" />
+            Draft follow-up
           </Button>
         )}
       </div>

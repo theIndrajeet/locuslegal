@@ -36,3 +36,35 @@ export function formatExpiry(expiresAt: string): string {
   if (d === 1) return "Closes in 1 day";
   return `Closes in ${d} days`;
 }
+
+// ----- User application state per vacancy -----
+export interface VacancyApplication {
+  id: string;
+  appliedOn: string; // ISO date
+  lastFollowupOn: string | null; // ISO date or null
+}
+
+export type VacancyAppState = "idle" | "applied" | "followup_ready" | "followed_up";
+
+const FOLLOWUP_AFTER_DAYS = 3;
+
+export function applicationStateFor(
+  app: VacancyApplication | undefined | null,
+  now: Date = new Date(),
+): { state: VacancyAppState; daysUntilFollowup: number; lastActionOn: string | null } {
+  if (!app) return { state: "idle", daysUntilFollowup: 0, lastActionOn: null };
+  const lastAction = app.lastFollowupOn ?? app.appliedOn;
+  const lastMs = new Date(lastAction).getTime();
+  const diffDays = Math.floor((now.getTime() - lastMs) / (1000 * 60 * 60 * 24));
+  if (app.lastFollowupOn && diffDays < FOLLOWUP_AFTER_DAYS) {
+    return { state: "followed_up", daysUntilFollowup: 0, lastActionOn: app.lastFollowupOn };
+  }
+  if (diffDays >= FOLLOWUP_AFTER_DAYS) {
+    return { state: "followup_ready", daysUntilFollowup: 0, lastActionOn: lastAction };
+  }
+  return {
+    state: "applied",
+    daysUntilFollowup: Math.max(1, FOLLOWUP_AFTER_DAYS - diffDays),
+    lastActionOn: app.appliedOn,
+  };
+}
