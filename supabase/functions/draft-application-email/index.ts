@@ -146,6 +146,7 @@ function validateBody(b: any): { ok: true; data: Body } | { ok: false; error: st
       role: String(b.role).trim().slice(0, 100),
       tone,
       extra_note: b.extra_note ? String(b.extra_note).slice(0, 300) : null,
+      brief: sanitizeBrief(b.brief),
       user: {
         display_name: b.user.display_name ? String(b.user.display_name).slice(0, 100) : null,
         college: b.user.college ? String(b.user.college).slice(0, 200) : null,
