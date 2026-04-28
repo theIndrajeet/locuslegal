@@ -49,7 +49,7 @@ function getActiveKey(pathname: string): string {
 export default function MobileBottomDock() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
-  const { open: openSearch } = useCommandPalette();
+  const { setOpen: setSearchOpen } = useCommandPalette();
 
   const [scrolledPastHero, setScrolledPastHero] = useState(false);
   const [hasCompareBar, setHasCompareBar] = useState(false);
@@ -136,7 +136,7 @@ export default function MobileBottomDock() {
   };
 
   const handleSearch = () => {
-    openSearch(true);
+    setSearchOpen(true);
     resetIdle();
   };
 
