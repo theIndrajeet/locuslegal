@@ -1,65 +1,52 @@
-# Dock Lab — Demo Playground
+# Morph Dock — 9th variant in `/dock-lab`
 
-A hidden, link-only page at **`/dock-lab`** where you can preview all 7 mobile-dock concepts live, switch between them with a top selector, and feel the interactions on a real mobile viewport. Nothing on this page touches the production `MobileBottomDock` — it's a pure sandbox.
+A single shape-shifting dock that morphs between 5 forms based on context. Built as a sandbox variant first so you can feel each state before promoting to production.
 
-## What you'll see
+## The morph states
 
-A single scrollable page (so scroll-based behaviors actually fire) with:
+One dock, five moods. Identity is preserved by keeping the **2px black border + hard yellow shadow** constant across every state — only shape, width, and contents morph.
 
-- **Top control panel** (sticky): pill selector to swap between concepts + a short description of the active one + a "view on mobile" hint.
-- **Fake page content** below: hero, a few cards, a long list — enough scroll length to trigger auto-hide and feel real.
-- **Active concept** rendered fixed at the bottom (or wherever it lives), fully interactive.
-- All 7 concepts share the same nav targets (Home, Directory, Playbook, Resources, Tools, The Bar) but route to `#` so you stay on the lab page.
+| State    | Looks like                                | Triggered by (in /dock-lab via section toggle) |
+|----------|-------------------------------------------|------------------------------------------------|
+| `hidden` | Vanished entirely (translateY off-screen) | "Hero" toggle — simulates home hero in view    |
+| `pill`   | Compact pill, 6 nav icons (today's dock)  | "Browse" toggle — neutral browsing             |
+| `split`  | Two pills: 3 nav + Join Waitlist CTA      | "Convert" toggle — conversion mode             |
+| `search` | Wide search bar with `/` shortcut chip    | "Directory" toggle — search-first surface      |
+| `orb`    | 64px FAB bottom-right, fans out icons     | "Practice" toggle — The Bar style              |
 
-## The 7 concepts (each as its own component)
+The dock-lab section toggle becomes the *driver* for the morph state, so you can flip between all 5 forms and watch the animation between any pair.
 
-1. **Current Dock** (baseline) — the existing glassmorphic pill, for comparison
-2. **Locus Orb** — yellow neobrutalist FAB bottom-right, taps fan icons in an arc
-3. **Command Bar** — single `[ Search Locus… ]` pill, opens a full-screen sheet
-4. **Swipeable Dock** — pill showing 4 icons at a time, swipe to reveal more
-5. **Contextual Dock** — content adapts to a fake "current section" toggle
-6. **Pull-up Drawer** — grab handle at bottom, drag/tap to reveal full menu sheet
-7. **Split Dock** — left nav pill + right contextual action pill
-8. **Edge Tab Bar** — full-width iOS-style bar flush to bottom with center "+" FAB
+## Animation
 
-## How concepts are organized
+`framer-motion` with `layout` + `LayoutGroup`:
+- Border-radius, width, height, position, and contents all tween via `motion.div layout`.
+- Duration ~280ms, `ease: [0.32, 0.72, 0, 1]` (Apple-style spring-ish ease).
+- Contents inside crossfade with `AnimatePresence mode="wait"` so icons don't smear during the morph.
+- The `hidden` state = `animate={{ y: 100, opacity: 0 }}` — slides down out of view.
+- The `orb` state moves anchor from `left:50% center` to `right:24px`, animated as part of the same layout transition.
 
-```text
-src/pages/DockLab.tsx                  ← the demo page
-src/components/dock-lab/
-  DockLabShell.tsx                     ← selector + fake content
-  variants/
-    CurrentDock.tsx
-    OrbDock.tsx
-    CommandBarDock.tsx
-    SwipeableDock.tsx
-    ContextualDock.tsx
-    PullUpDrawerDock.tsx
-    SplitDock.tsx
-    EdgeTabBarDock.tsx
-  shared/navItems.ts                   ← single source for icons/labels
-```
+`framer-motion` is not currently in the project — this plan adds it as a dependency (`bun add framer-motion`). It's ~30kb gzipped and lazy-loadable; only the Morph Dock variant imports it, so it doesn't bloat the production bundle.
 
-Each variant is self-contained (own state, own animations) so swapping is instant and they can't interfere with each other.
+## Files
 
-## Access & safety
+**New: `src/components/dock-lab/variants/MorphDock.tsx`**
+- Self-contained component.
+- Accepts no props; reads its current state from a local `useState<"hidden"|"pill"|"split"|"search"|"orb">`, defaults to `pill`.
+- Renders a row of 5 small chip buttons above the dock to toggle between morph states (sandbox-only control, gives you a single page to feel every transition).
+- Renders the morphing dock itself using `motion.div` with `layout` and a switch on the active state.
 
-- Route added to `src/App.tsx` as `/dock-lab` — **not linked anywhere** in the app, only reachable by typing the URL.
-- `usePageMeta` sets `noindex` so it never hits search.
-- The real `MobileBottomDock` is **hidden** on this route (same regex pattern we already use for CompareBar) so it doesn't fight the demo.
-- Desktop shows a "best viewed on mobile / resize your window" notice but still renders so you can preview from your laptop.
+**Edit: `src/components/dock-lab/DockLabShell.tsx`**
+- Import `MorphDock`.
+- Add as 9th entry in `VARIANTS` at the top of the list (above "Current Dock") with description: *"Single dock that morphs shape based on context — pill, split, search, orb, or hidden."*
 
-## Visual spec (consistent across variants)
+**No changes to:**
+- Production `MobileBottomDock` — untouched.
+- `App.tsx`, `Layout.tsx`, routing, anything else.
+- The 8 existing dock-lab variants.
 
-- Neobrutalist: 2px black borders, hard `4px 4px 0 0` yellow shadows where it fits the variant
-- Yellow `#FACC15` accent for active/CTA, white icons on black, Sora for any labels
-- All transitions 150–250ms, no bouncy springs
-- Zero emojis (Lucide only): Home, Building2, BookOpen, Library, Wrench, Gavel, Search, Plus, Bell, User
+## Out of scope (next round, after you pick this)
+- Wiring real route → state mapping (e.g. Directory auto-triggers `search`, The Bar auto-triggers `orb`).
+- Auto-vanish on input focus or hero-in-view.
+- Promoting Morph Dock to replace `MobileBottomDock` site-wide.
 
-## Out of scope (intentionally)
-
-- No analytics / no persistence of "selected concept"
-- No swap into production — that's a separate decision after you pick a winner
-- No new auth, DB, or routes beyond `/dock-lab`
-
-Approve and I'll build it.
+Once you've played with it in `/dock-lab` and it feels right, we can do the production wiring in a focused follow-up.
