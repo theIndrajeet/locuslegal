@@ -70,8 +70,9 @@ export default function Directory() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode]);
 
-  const [searchInput, setSearchInput] = useState("");
-  const [search, setSearch] = useState("");
+  const initialQ = searchParams.get("q") ?? "";
+  const [searchInput, setSearchInput] = useState(initialQ);
+  const [search, setSearch] = useState(initialQ);
   const [city, setCity] = useState("");
   const [area, setArea] = useState("");
   const [tier, setTier] = useState("");
