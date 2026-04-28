@@ -166,9 +166,23 @@ export default function StartupDrawer({ startup, open, onOpenChange }: Props) {
 
           {/* Actions */}
           <div className="space-y-2">
+            {draftTarget && (
+              <button
+                type="button"
+                onClick={() => setDraftOpen(true)}
+                className="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-xl bg-accent text-accent-foreground font-medium text-sm hover:opacity-90 transition-opacity"
+              >
+                <Sparkles size={14} />
+                Draft Application Email
+              </button>
+            )}
             <Link
               to={logHref}
-              className="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-xl bg-accent text-accent-foreground font-medium text-sm hover:opacity-90 transition-opacity"
+              className={`flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl font-medium text-sm transition-colors ${
+                draftTarget
+                  ? "bg-card border border-border text-foreground hover:border-accent/40"
+                  : "bg-accent text-accent-foreground hover:opacity-90"
+              }`}
             >
               <ClipboardList size={14} />
               Log as Application
