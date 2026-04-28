@@ -20,6 +20,8 @@ export interface DraftEmailTarget {
   sector?: string | null;
   practice_areas?: string | null;
   legal_needs?: string | null;
+  // Optional: pre-fill brief.role with the canonical role from the source (e.g. vacancy).
+  roleHint?: string | null;
   // When set, switches the dialog into "follow-up" mode.
   followup?: {
     originalAppliedOn: string; // ISO date
