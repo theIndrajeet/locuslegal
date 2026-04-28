@@ -13,7 +13,8 @@ const ACTION_PRESETS: { id: ActionKind; label: string }[] = [
   { id: "none", label: "The Bar / Playbook" },
 ];
 
-const EASE: [number, number, number, number] = [0.32, 0.72, 0, 1];
+const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
+const MORPH_SPRING = { type: "spring" as const, stiffness: 520, damping: 38, mass: 0.7 };
 
 export default function TwoPillDock() {
   const [activeKey, setActiveKey] = useState("home");
