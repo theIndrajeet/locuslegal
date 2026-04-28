@@ -38,6 +38,25 @@ TONE OPTIONS:
 
 Always output via the draft_email tool.`;
 
+const FOLLOWUP_SYSTEM_PROMPT = `You draft a SHORT, polite follow-up email from an Indian law student who already sent an application to a law firm / chamber / company a few days ago and has not heard back.
+
+You will receive: TARGET (firm), SENDER (student), and ORIGINAL (when they wrote and the role they applied for).
+
+HARD RULES:
+- Output only via the draft_email tool. Never use placeholders like [Your Name], [Firm Name], [Date].
+- Body length: 60–90 words. THREE short sentences plus salutation and sign-off. No more.
+- No emojis. No exclamation marks. No "I hope this email finds you well." No "Just following up". No "Per my last email".
+- Sentence 1: gently reference that the sender wrote on <original.applied_on> regarding the <original.role> position.
+- Sentence 2: briefly reiterate genuine interest in the target (one specific reason — sector/practice/city).
+- Sentence 3: offer to share additional materials (writing samples, transcripts) and thank them for their time.
+- Salutation: "Dear <Target Short Name> Team," or "Dear Hiring Team,".
+- Sign off with the sender's display name on its own line. If missing, end with "Best regards,".
+- Subject line: 5–8 words, format like: "Following up — Legal Internship Application" or "Following up on my application — <Sender Name>".
+- Do NOT re-pitch the entire CV. Do NOT repeat the original email. Do NOT mention attaching the CV again.
+- Tone: courteous, low-pressure, brief.
+
+Always output via the draft_email tool.`;
+
 interface Internship {
   firm_name: string;
   role: string;
@@ -75,6 +94,8 @@ interface Body {
   tone: "formal" | "warm" | "concise";
   extra_note?: string | null;
   brief?: Brief | null;
+  mode?: "initial" | "followup";
+  original?: { applied_on: string; role: string } | null;
   user: {
     display_name: string | null;
     college: string | null;
@@ -147,6 +168,14 @@ function validateBody(b: any): { ok: true; data: Body } | { ok: false; error: st
       tone,
       extra_note: b.extra_note ? String(b.extra_note).slice(0, 300) : null,
       brief: sanitizeBrief(b.brief),
+      mode: b.mode === "followup" ? "followup" : "initial",
+      original:
+        b.original && typeof b.original === "object" && b.original.applied_on
+          ? {
+              applied_on: String(b.original.applied_on).slice(0, 30),
+              role: String(b.original.role ?? "Legal Internship").slice(0, 100),
+            }
+          : null,
       user: {
         display_name: b.user.display_name ? String(b.user.display_name).slice(0, 100) : null,
         college: b.user.college ? String(b.user.college).slice(0, 200) : null,
@@ -209,17 +238,31 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-    const briefBlock = v.data.brief
+    const isFollowup = v.data.mode === "followup";
+
+    const briefBlock = v.data.brief && !isFollowup
       ? `\n\nBRIEF (sender's guided answers — prioritise these):\n${JSON.stringify(v.data.brief, null, 2)}`
       : "";
 
-    const userPrompt = `TARGET:\n${JSON.stringify(v.data.target, null, 2)}\n\nSENDER:\n${JSON.stringify(
-      v.data.user,
-      null,
-      2,
-    )}\n\nROLE: ${v.data.role}\nTONE: ${v.data.tone}${briefBlock}\n${
-      v.data.extra_note ? `\nEXTRA NOTE FROM SENDER (try to weave naturally): ${v.data.extra_note}` : ""
-    }\n\nDraft the email now via the draft_email tool.`;
+    const originalBlock = isFollowup && v.data.original
+      ? `\n\nORIGINAL APPLICATION:\n${JSON.stringify(v.data.original, null, 2)}`
+      : "";
+
+    const userPrompt = isFollowup
+      ? `TARGET:\n${JSON.stringify(v.data.target, null, 2)}\n\nSENDER:\n${JSON.stringify(
+          { display_name: v.data.user.display_name, college: v.data.user.college, degree: v.data.user.degree },
+          null,
+          2,
+        )}${originalBlock}\n\nDraft the SHORT follow-up email now via the draft_email tool.`
+      : `TARGET:\n${JSON.stringify(v.data.target, null, 2)}\n\nSENDER:\n${JSON.stringify(
+          v.data.user,
+          null,
+          2,
+        )}\n\nROLE: ${v.data.role}\nTONE: ${v.data.tone}${briefBlock}\n${
+          v.data.extra_note ? `\nEXTRA NOTE FROM SENDER (try to weave naturally): ${v.data.extra_note}` : ""
+        }\n\nDraft the email now via the draft_email tool.`;
+
+    const activeSystemPrompt = isFollowup ? FOLLOWUP_SYSTEM_PROMPT : SYSTEM_PROMPT;
 
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -230,7 +273,7 @@ serve(async (req) => {
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
         messages: [
-          { role: "system", content: SYSTEM_PROMPT },
+          { role: "system", content: activeSystemPrompt },
           { role: "user", content: userPrompt },
         ],
         tools: [

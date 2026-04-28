@@ -20,12 +20,19 @@ export interface DraftEmailTarget {
   sector?: string | null;
   practice_areas?: string | null;
   legal_needs?: string | null;
+  // When set, switches the dialog into "follow-up" mode.
+  followup?: {
+    originalAppliedOn: string; // ISO date
+    originalRole: string;
+    applicationId?: string; // existing profile_applications row to update
+  } | null;
 }
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   target: DraftEmailTarget | null;
+  onSent?: () => void;
 }
 
 interface UserContext {
@@ -192,7 +199,7 @@ function buildGmailUrl(to: string, subject: string, body: string): string {
   )}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
-export default function DraftEmailDialog({ open, onOpenChange, target }: Props) {
+export default function DraftEmailDialog({ open, onOpenChange, target, onSent }: Props) {
   const navigate = useNavigate();
   const location = useLocation();
   const { userId, ready } = useAuthSession();
@@ -347,6 +354,8 @@ export default function DraftEmailDialog({ open, onOpenChange, target }: Props) 
     return payload;
   };
 
+  const isFollowup = !!target?.followup;
+
   const generate = async () => {
     if (!target || !user) return;
     setGenerating(true);
@@ -360,9 +369,13 @@ export default function DraftEmailDialog({ open, onOpenChange, target }: Props) 
         practice_areas: target.practice_areas,
         legal_needs: target.legal_needs,
       },
-      role: brief.role,
+      role: isFollowup ? target.followup!.originalRole : brief.role,
       tone,
-      brief: buildBriefPayload(),
+      brief: isFollowup ? null : buildBriefPayload(),
+      mode: isFollowup ? "followup" : "initial",
+      original: isFollowup
+        ? { applied_on: target.followup!.originalAppliedOn, role: target.followup!.originalRole }
+        : null,
       user,
     };
 
@@ -410,6 +423,14 @@ export default function DraftEmailDialog({ open, onOpenChange, target }: Props) 
     }
   };
 
+  // Auto-generate when entering follow-up mode (skip the brief wizard).
+  useEffect(() => {
+    if (!open || !isFollowup || !user || generating) return;
+    if (subject.trim() || body.trim()) return; // already drafted/cached
+    void generate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, isFollowup, user]);
+
   const copyAll = async () => {
     const text = `Subject: ${subject}\n\n${body}`;
     try {
@@ -452,24 +473,48 @@ export default function DraftEmailDialog({ open, onOpenChange, target }: Props) 
     if (userId) {
       const today = new Date().toISOString().slice(0, 10);
       const noteExcerpt = body.length > 500 ? body.slice(0, 497) + "…" : body;
-      void supabase
-        .from("profile_applications")
-        .insert({
-          user_id: userId,
-          firm_name_snapshot: target.name,
-          role: brief.role,
-          applied_on: today,
-          method: "email",
-          status: "sent",
-          notes: `Drafted via Locus AI\n\n${noteExcerpt}`,
-        })
-        .then(({ error: logErr }) => {
+      if (isFollowup && target.followup?.applicationId) {
+        // Append a follow-up entry to the existing application's notes.
+        void (async () => {
+          const { data: existing } = await supabase
+            .from("profile_applications")
+            .select("notes")
+            .eq("id", target.followup!.applicationId!)
+            .maybeSingle();
+          const prevNotes = existing?.notes ?? "";
+          const newNotes = `${prevNotes}\n\n--- Follow-up sent on ${today} ---\n${noteExcerpt}`.trim();
+          const { error: logErr } = await supabase
+            .from("profile_applications")
+            .update({ notes: newNotes, status_updated_at: new Date().toISOString() })
+            .eq("id", target.followup!.applicationId!);
           if (logErr) {
-            toast.error("Email opened, but couldn't log to your tracker.");
+            toast.error("Email opened, but couldn't log the follow-up.");
           } else {
-            toast.success("Logged to your Application Tracker.", { duration: 4000 });
+            toast.success("Follow-up logged to your tracker.", { duration: 4000 });
+            onSent?.();
           }
-        });
+        })();
+      } else {
+        void supabase
+          .from("profile_applications")
+          .insert({
+            user_id: userId,
+            firm_name_snapshot: target.name,
+            role: brief.role,
+            applied_on: today,
+            method: "email",
+            status: "sent",
+            notes: `Drafted via Locus AI\n\n${noteExcerpt}`,
+          })
+          .then(({ error: logErr }) => {
+            if (logErr) {
+              toast.error("Email opened, but couldn't log to your tracker.");
+            } else {
+              toast.success("Logged to your Application Tracker.", { duration: 4000 });
+              onSent?.();
+            }
+          });
+      }
     }
 
     onOpenChange(false);
@@ -497,8 +542,21 @@ export default function DraftEmailDialog({ open, onOpenChange, target }: Props) 
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* Follow-up banner */}
+          {isFollowup && target?.followup && (
+            <div className="flex items-start gap-2.5 rounded-lg border-2 border-accent bg-accent/10 px-3 py-2.5 text-sm">
+              <Sparkles size={16} className="shrink-0 mt-0.5 text-accent" />
+              <div className="flex-1">
+                <p className="font-semibold">Drafting a polite follow-up</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Referencing your application sent on {target.followup.originalAppliedOn}. Short, no re-pitch.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* CV banner */}
-          {user && !user.has_cv && (
+          {!isFollowup && user && !user.has_cv && (
             <div className="flex items-start gap-2.5 rounded-lg border border-accent/40 bg-accent/10 px-3 py-2.5 text-sm">
               <AlertCircle size={16} className="shrink-0 mt-0.5 text-accent" />
               <div className="flex-1">
@@ -517,29 +575,31 @@ export default function DraftEmailDialog({ open, onOpenChange, target }: Props) 
             </div>
           )}
 
-          {/* Tone (always visible above stepper) */}
-          <div className="space-y-1.5">
-            <Label className="font-mono text-[10px] uppercase tracking-widest">Tone</Label>
-            <div className="flex gap-1.5">
-              {TONES.map((t) => (
-                <button
-                  key={t.value}
-                  type="button"
-                  onClick={() => setTone(t.value)}
-                  className={`px-3 py-2 rounded-md border text-xs font-semibold transition-colors ${
-                    tone === t.value
-                      ? "border-accent bg-accent text-accent-foreground"
-                      : "border-border bg-muted/30 text-muted-foreground hover:bg-muted"
-                  }`}
-                >
-                  {t.label}
-                </button>
-              ))}
+          {/* Tone (hidden in follow-up mode — always formal-courteous) */}
+          {!isFollowup && (
+            <div className="space-y-1.5">
+              <Label className="font-mono text-[10px] uppercase tracking-widest">Tone</Label>
+              <div className="flex gap-1.5">
+                {TONES.map((t) => (
+                  <button
+                    key={t.value}
+                    type="button"
+                    onClick={() => setTone(t.value)}
+                    className={`px-3 py-2 rounded-md border text-xs font-semibold transition-colors ${
+                      tone === t.value
+                        ? "border-accent bg-accent text-accent-foreground"
+                        : "border-border bg-muted/30 text-muted-foreground hover:bg-muted"
+                    }`}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Brief Builder Stepper */}
-          {!hasDraft && (
+          {!hasDraft && !isFollowup && (
             <div className="rounded-lg border-2 border-border bg-muted/20 p-3 space-y-3 shadow-[3px_3px_0_0_hsl(var(--border))]">
               {/* Progress indicator */}
               <div className="flex items-center gap-1.5">
@@ -837,6 +897,13 @@ export default function DraftEmailDialog({ open, onOpenChange, target }: Props) 
               <Loader2 className="h-3 w-3 animate-spin inline mr-1" />
               Loading your profile…
             </p>
+          )}
+
+          {isFollowup && !hasDraft && !loadingUser && (
+            <div className="flex items-center justify-center py-6 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin mr-2 text-accent" />
+              Drafting your follow-up…
+            </div>
           )}
 
           {/* Draft */}

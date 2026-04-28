@@ -1,47 +1,63 @@
-# Directory filters — one-line bar
+## Goal
 
-Collapse the current 3-row filter panel (search row + type pills + active chips) into a **single horizontal bar** that matches Locus's neobrutalist style.
+When a signed-in user applies to a vacancy, the card should immediately reflect that state (color + "Applied" marker), the action button should disable itself for **3 days**, and after 72 hours auto-reactivate as **"Draft follow-up"** — generating a polite, AI-written follow-up email referencing the original application.
 
-## The line
+## Behavior
 
 ```text
-[🔍 Search firms………] [City ▾] [Area ▾] [Tier ▾] [Type ▾] [Sort ▾] [▦|Map]
+[Apply] -> click & send email -> [Applied · awaiting reply]   (3 days, disabled)
+                                          |
+                                72 hrs later
+                                          v
+                                 [Draft follow-up]   (re-enabled, accent border)
+                                          |
+                                 click -> follow-up email draft
+                                          v
+                              [Followed up · 7 May]   (terminal pill)
 ```
 
-- One row, full container width, no surrounding card panel.
-- Black `border-2`, rounded, hard yellow shadow `shadow-[4px_4px_0_0_hsl(var(--accent))]` — same language as Vacancies / The Bar.
-- Search flexes to fill leftover space; everything else is fixed-width.
-- Active filter count appears as a small yellow dot on the relevant dropdown trigger (no separate chips row).
-- "Clear all" appears as a tiny X button at the far right, only when any filter is active.
+A user can always still re-apply / re-draft from inside the dialog — we only gate the **card's primary CTA** to prevent accidental duplicate cold emails.
 
-## Behaviour
+## Changes
 
-- **Dropdowns** — replaced with shadcn `Popover` + `Command` (searchable). No more native `<select>`.
-- **Type filter** — moves into a "Type ▾" dropdown (was a separate pill row).
-- **Sort + View toggle** — pulled into the same line (was a separate row below).
-- **Active filter chips row** — removed; selection is shown inside each dropdown trigger ("City: Mumbai" instead of "City ▾").
-- All existing filter logic, debounced search, URL sync, and pagination reset stay identical.
+### 1. Per-user vacancy application lookup (`src/pages/Vacancies.tsx`)
 
-## Mobile (≤640px)
+- After loading vacancies, if `userId` is present, fetch the user's `profile_applications` rows whose `firm_name_snapshot` matches any loaded vacancy's `firm_name`. Build a `Map<vacancyId, { appliedOn: string; lastFollowupOn: string | null }>` keyed by vacancy id (matched on firm_name + role).
+- Pass this map down to each `VacancyCard` as a new `application` prop.
+- Re-fetch (or optimistically update) after the dialog closes so the card transitions instantly.
 
-The same one line, but compacted:
-```text
-[🔍 Search………………]  [Filters ▾]  [▦|Map]
-```
-- All dropdowns + sort collapse behind one **"Filters"** button that opens a bottom `Sheet`.
-- Active filter count shown as a yellow badge on the Filters button.
+### 2. `VacancyCard` state-driven CTA (`src/components/vacancies/VacancyCard.tsx`)
 
-## Startups mode
+Add `application?: { appliedOn: string; lastFollowupOn: string | null }` prop. Compute one of three states:
 
-Same one-line bar; the four dropdowns swap to Sector / Stage / Size / Legal Need.
+- **`idle`** — no application logged → existing yellow "Draft application" button.
+- **`applied`** — applied within last 3 days (and no follow-up since) → button **disabled**, label "Applied · follow up in N day(s)", green check icon, card gets a soft accent ring (`border-accent/60 bg-accent/5`) instead of the bold yellow shadow.
+- **`followup_ready`** — 3+ days since last apply/follow-up → button re-enabled, label "Draft follow-up", uses an outlined accent style + `Mail` icon. Clicking calls `onApply(v, { followup: true })`.
+- **`followed_up`** — follow-up sent within last 3 days → disabled, label "Followed up · {date}".
 
-## Files
+### 3. Follow-up draft mode in `DraftEmailDialog`
 
-- `src/pages/Directory.tsx` — replace the `<section>` filter block (lines ~297–408) with the new bar.
-- New `src/components/directory/FilterBar.tsx` — the one-line bar (handles both modes).
-- New `src/components/directory/FilterDropdown.tsx` — Popover+Command trigger.
-- New `src/components/directory/MobileFilterSheet.tsx` — bottom sheet for mobile.
+- Extend `DraftEmailTarget` with optional `followup?: { originalAppliedOn: string; originalRole: string }`.
+- When `followup` is set:
+  - Skip the multi-step brief wizard — open directly to the generated draft.
+  - Auto-call `generate()` on open with a new payload flag `mode: "followup"`.
+  - On send, log a **new** `profile_applications` row only if not already present, OR (preferred) update the existing row's `notes` with a `\n\n--- Follow-up sent on YYYY-MM-DD ---\n` block and bump `status_updated_at` (DB trigger handles `status_updated_at` on status change; we also explicitly stamp it). We use `status = 'sent'` still and store the follow-up timestamp inside `notes` since the schema has no dedicated column.
 
-No data, schema, or routing changes.
+### 4. Edge function (`supabase/functions/draft-application-email/index.ts`)
 
-Approve and I'll build it.
+- Accept new optional `mode: "initial" | "followup"` and `original?: { applied_on: string; role: string }` in body schema.
+- When `mode === "followup"`, swap the system prompt to instruct the model to write a **short, polite, 3-sentence follow-up** that:
+  - References the original email date and role naturally ("I wrote to you on …")
+  - Reiterates interest in one line
+  - Offers to share additional materials
+  - Avoids re-pitching the full CV
+- Return the same `{ subject, body }` shape so the existing UI just renders.
+
+### 5. Detection helper (`src/lib/vacancies.ts`)
+
+Add a small util `applicationStateFor(vacancy, app, now)` returning `'idle' | 'applied' | 'followup_ready' | 'followed_up'` and `daysUntilFollowup` so the card and any future surfaces share the same logic.
+
+## Out of scope
+
+- No new database columns or migrations — we reuse `profile_applications.notes` to record follow-up timestamps and match by `firm_name_snapshot + role`. (If we later want richer follow-up history, we'd add a `profile_application_followups` table.)
+- The Application Tracker page's pill stays as `sent` — only the Vacancies card surfaces the follow-up state. We can extend the tracker in a follow-up task if you want.
