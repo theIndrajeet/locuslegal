@@ -20,12 +20,19 @@ export interface DraftEmailTarget {
   sector?: string | null;
   practice_areas?: string | null;
   legal_needs?: string | null;
+  // When set, switches the dialog into "follow-up" mode.
+  followup?: {
+    originalAppliedOn: string; // ISO date
+    originalRole: string;
+    applicationId?: string; // existing profile_applications row to update
+  } | null;
 }
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   target: DraftEmailTarget | null;
+  onSent?: () => void;
 }
 
 interface UserContext {
@@ -192,7 +199,7 @@ function buildGmailUrl(to: string, subject: string, body: string): string {
   )}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
-export default function DraftEmailDialog({ open, onOpenChange, target }: Props) {
+export default function DraftEmailDialog({ open, onOpenChange, target, onSent }: Props) {
   const navigate = useNavigate();
   const location = useLocation();
   const { userId, ready } = useAuthSession();
