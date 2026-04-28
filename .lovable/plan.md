@@ -1,64 +1,37 @@
-# Generate BIND Zone File to Add NS Records via Hostinger Import
+# Demo: two-pill scroll-collapsing dock
 
-## Why this approach
+Add a new variant to Dock Lab so you can play with it before we ship it as the real dock.
 
-Hostinger's "Manage DNS records" form does not expose an `NS` record type for subdomains (only A, AAAA, CNAME, MX, SRV, TXT, CAA). The "Child nameservers" tab is for glue records, which is not what we need.
+## What gets built
 
-The **Import DNS zone file** dialog accepts BIND format (RFC 1035), which natively supports NS records. This is the only way to add the email subdomain delegation through Hostinger's UI.
+A new `TwoPillDock` variant on `/dock-lab`:
 
-## Steps
-
-### 1. Diagnostic (read-only)
-
-Run `email_domain--check_email_domain_status` to retrieve:
-- Exact email subdomain Lovable assigned (likely `notify.locus.legal`)
-- Current verification status
-- Confirmed NS targets (`ns3.lovable.cloud` / `ns4.lovable.cloud`)
-
-### 2. Generate `locus.legal.zone` file at `/mnt/documents/locus.legal.zone`
-
-Will include:
-- Existing A records for `@` and `www` → `185.158.133.1` (preserve website)
-- Existing TXT verification records (`_lovable`, `_lovable.www`) — preserve
-- New NS records for the email subdomain → Lovable nameservers
-- Standard TTL of 14400
-
-Sample structure:
 ```text
-$ORIGIN locus.legal.
-$TTL 14400
-@               IN  A      185.158.133.1
-www             IN  A      185.158.133.1
-_lovable        IN  TXT    "lovable_verify=..."
-_lovable.www    IN  TXT    "lovable_verify=..."
-notify          IN  NS     ns3.lovable.cloud.
-notify          IN  NS     ns4.lovable.cloud.
+At rest:
+┌──────────────────────────────────┐  ┌──────────┐
+│  🏠  🏢  📖  📚  🔧  ⚖️          │  │  + Log   │
+└── left pill (full nav, 6 icons) ─┘  └ right ───┘
+
+Scrolling down:
+┌──────┐                              ┌──────────┐
+│  🏠  │ ← collapses to active icon   │  + Log   │
+└──────┘                              └──────────┘
+
+Scroll stops or scrolls up → left pill expands back.
 ```
 
-Deliver as a downloadable artifact via `<lov-artifact>`.
+## Behaviour
 
-### 3. User action at Hostinger
+- **Left pill**: always present, all 6 nav icons. Active icon highlighted in accent.
+- **Collapse trigger**: scroll down >8px → collapse to a circle showing only the active icon. Scroll up OR 600ms scroll-idle → expand. Tapping the collapsed circle also expands.
+- **Right pill**: shows a contextual action. In the lab, a small chip-row above the dock lets you preview each route's action: `Join` (home), `Search` (directory), `Log` (app), `none` (the bar / playbook / resources / tools).
+- **Search action**: tapping it opens a Radix `Sheet` from the bottom with an autofocused input (demo only — doesn't route anywhere).
+- **Styling**: neobrutalist — `border-2 border-foreground`, `shadow-[3px_3px_0_0_hsl(var(--accent))]` on both pills.
+- **Animations**: `framer-motion` `layout` for the width-shrink, fade for icons hiding/showing.
 
-- Open **Import DNS zone file** dialog
-- **Leave "Replace existing DNS records" UNCHECKED** (critical — checking it would wipe MX records or anything else)
-- Upload the generated `.zone` file
-- Confirm import
+## Files
 
-### 4. Wait & verify
+- `src/components/dock-lab/variants/TwoPillDock.tsx` — new variant.
+- `src/components/dock-lab/DockLabShell.tsx` — register `TwoPillDock` at the top of the variants list so it's the default selection.
 
-- 15–60 min propagation
-- Re-run email status check
-- Test signup/password reset on `/auth`
-
-## Fallback
-
-If Hostinger rejects NS records on import (some registrars restrict subdomain NS for security), the alternative is to disable Lovable Emails entirely. Auth still works, just falls back to default Lovable-branded sender. Not blocking for launch.
-
-## Mode requirement
-
-Need default mode to:
-1. Call `email_domain--check_email_domain_status` (deferred tool)
-2. Write the zone file to `/mnt/documents/`
-3. Surface the artifact for download
-
-Approve to proceed.
+No changes to the real `MobileBottomDock` yet — once you approve the demo feel, I'll port it to production in a follow-up.
