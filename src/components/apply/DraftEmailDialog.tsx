@@ -43,7 +43,7 @@ interface UserContext {
     end_date: string | null;
     description: string | null;
   }>;
-  moots: Array<{ competition_name: string; year: number; result: string }>;
+  moots: Array<{ competition_name: string; year: number; role: string | null; result: string | null }>;
   publications: Array<{ title: string; publisher: string }>;
   has_cv: boolean;
 }
