@@ -423,6 +423,14 @@ export default function DraftEmailDialog({ open, onOpenChange, target, onSent }:
     }
   };
 
+  // Auto-generate when entering follow-up mode (skip the brief wizard).
+  useEffect(() => {
+    if (!open || !isFollowup || !user || generating) return;
+    if (subject.trim() || body.trim()) return; // already drafted/cached
+    void generate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, isFollowup, user]);
+
   const copyAll = async () => {
     const text = `Subject: ${subject}\n\n${body}`;
     try {
