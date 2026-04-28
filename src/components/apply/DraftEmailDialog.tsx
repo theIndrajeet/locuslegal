@@ -502,7 +502,7 @@ export default function DraftEmailDialog({ open, onOpenChange, target, onSent }:
           .insert({
             user_id: userId,
             firm_name_snapshot: target.name,
-            role: brief.role,
+            role: (target.roleHint?.trim() || brief.role),
             applied_on: today,
             method: "email",
             status: "sent",
