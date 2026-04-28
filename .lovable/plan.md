@@ -1,23 +1,32 @@
-## Add iOS-style glass texture to Two-Pill Dock
+## Goal
 
-Make both pills feel like translucent liquid glass — frosted blur, subtle inner highlight, soft outer glow — while keeping the neobrutalist border + hard shadow as the base identity (so it still reads as Locus, not generic iOS).
+Flip the Two-Pill Dock's idle behavior: when the screen is stable (no scroll/interaction), the left pill collapses to a compact pill showing the **active page icon + label**. Any scroll or tap expands it back to the full nav, then it re-collapses after a short idle period.
 
-### Visual recipe (per pill)
+## Changes (single file)
 
-- **Background**: `bg-background/55` + `backdrop-blur-2xl backdrop-saturate-150` so content behind shows through with a frosted tint.
-- **Inner highlight**: a top inset white-glow ring (`shadow-[inset_0_1px_0_0_hsl(0_0%_100%/0.18)]`) to mimic the glass meniscus.
-- **Outer glow**: soft accent halo (`shadow-[0_8px_32px_-8px_hsl(var(--accent)/0.35)]`) layered with the existing hard neobrutalist shadow.
-- **Border**: keep `border-2 border-foreground` but drop opacity to `border-foreground/70` so light passes through the edge.
-- **Active accent pill (right)**: `bg-accent/80 backdrop-blur-xl` so the yellow becomes a translucent jelly button instead of a flat block.
-- **Collapsed circle**: same glass treatment — looks like a floating liquid pill on scroll.
+**`src/components/dock-lab/variants/TwoPillDock.tsx`**
 
-### Where it changes
+1. **Default state**: `collapsed` starts as `true` (currently `false`).
+2. **Idle timer rewrite**: replace the current scroll handler with:
+   - On any scroll (up or down) → `setCollapsed(false)` and reset idle timer.
+   - Idle timer (≈1500ms) → `setCollapsed(true)`.
+   - On mount → start idle timer so the dock collapses after first paint.
+   - Tapping the collapsed pill expands it and resets the idle timer.
+   - Tapping a nav item resets the idle timer (so users can navigate without it snapping shut mid-tap).
+3. **Collapsed pill content**: change the collapsed view from a 48×48 icon-only square to a horizontal pill showing:
+   - Active item's Lucide icon (accent color)
+   - Active item's label in Sora bold, text-xs
+   - Padding `px-4 py-2.5`, same rounded-full + glass styling as the expanded pill
+4. **Right action pill**: keep current behavior; it already animates independently and looks correct alongside both states.
 
-- `src/components/dock-lab/variants/TwoPillDock.tsx` — update className strings on the left pill, right action pill, and the search sheet input row. No structural changes.
+## Technical details
 
-### What stays the same
+- Idle timer stored in a `useRef<number | null>`, cleared on unmount and on every reset.
+- Use a single `resetIdle()` helper to DRY the "expand + restart timer" logic across scroll, tap-to-expand, and nav-item clicks.
+- Keep the existing `LayoutGroup` + `motion.div layout` so width animates smoothly between the two states (Framer handles the morph).
+- Keep `AnimatePresence mode="wait"` for the inner content swap; just replace the collapsed branch's JSX.
+- No changes to `ACTION_PRESETS`, `ActionPill`, `Sheet`, or `navItems`.
 
-- Two-pill layout, scroll-collapse logic, contextual action behavior, lab chip row.
-- Neobrutalist hard shadow stays — just layered under the glass glow so the dock still has weight.
+## Out of scope
 
-Once approved, I'll apply it to the lab variant only. The production `MobileBottomDock` swap happens in a separate step.
+- Production `MobileBottomDock.tsx` is untouched — this is lab-only iteration. Once you approve the feel, we can port to the real dock in a follow-up.

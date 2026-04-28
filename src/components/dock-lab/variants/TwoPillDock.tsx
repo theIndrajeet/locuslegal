@@ -18,25 +18,23 @@ const EASE: [number, number, number, number] = [0.32, 0.72, 0, 1];
 export default function TwoPillDock() {
   const [activeKey, setActiveKey] = useState("home");
   const [action, setAction] = useState<ActionKind>("log");
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
   const [searchOpen, setSearchOpen] = useState(false);
 
-  // Scroll-direction collapse
-  const lastY = useRef(0);
+  // Idle-collapse: pill when stable, expand on activity
   const idleTimer = useRef<number | null>(null);
+  const IDLE_MS = 1500;
+
+  const resetIdle = () => {
+    setCollapsed(false);
+    if (idleTimer.current) window.clearTimeout(idleTimer.current);
+    idleTimer.current = window.setTimeout(() => setCollapsed(true), IDLE_MS);
+  };
+
   useEffect(() => {
-    lastY.current = window.scrollY;
-    const onScroll = () => {
-      const y = window.scrollY;
-      const dy = y - lastY.current;
-      if (Math.abs(dy) > 8) {
-        if (dy > 0 && y > 60) setCollapsed(true);
-        else setCollapsed(false);
-        lastY.current = y;
-      }
-      if (idleTimer.current) window.clearTimeout(idleTimer.current);
-      idleTimer.current = window.setTimeout(() => setCollapsed(false), 600);
-    };
+    // Start idle countdown on mount so dock collapses after first paint
+    idleTimer.current = window.setTimeout(() => setCollapsed(true), IDLE_MS);
+    const onScroll = () => resetIdle();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => {
       window.removeEventListener("scroll", onScroll);
