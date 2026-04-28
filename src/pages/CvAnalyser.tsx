@@ -320,7 +320,7 @@ function MootTierPill({ tier }: { tier: Moot["tier"] }) {
     national_t2: { tone: "bg-muted text-muted-foreground border-border", label: "National T2" },
     tier3: { tone: "bg-destructive/10 text-destructive border-destructive/30", label: "T3" },
   };
-  return <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded border ${map[tier].tone}`}>{map[tier].label}</span>;
+  return <span className={`inline-block text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded border ${map[tier].tone}`}>{map[tier].label}</span>;
 }
 
 function PubTierPill({ tier }: { tier: Publication["tier"] }) {
