@@ -1,90 +1,73 @@
-# Add Startups & SMEs to the Directory
+## One-Tap Apply: AI-Drafted Application Email
 
-Your spreadsheet has **506 startups, SMEs and corporates** across India — Bangalore (127), Delhi (55), Mumbai (37), Hyderabad (37), Gurgaon (35) etc. Sectors span Fintech (90), SaaS (33+), EdTech (33), HealthTech (29), LegalTech (19), and 100+ more. 502/506 have a contact email. Stages range from Seed → Series K → Listed/IPO/NASDAQ.
+Add a "Draft Application Email" action in the Firm and Startup drawers that uses the user's profile/CV to generate a personalised email, opens Gmail with subject + body pre-filled, reminds the user to attach their CV, and auto-logs the application to the tracker.
 
-This is a fundamentally different dataset from law firms (different fields, different student intent: **cold-outreach for in-house/legal-ops internships** rather than chambers research). So instead of mixing them into one list, we'll add a **second mode** to the Directory.
+---
 
-## What we're building
-
-A new top-level toggle on `/directory` that switches between two universes:
+### Flow
 
 ```text
-┌─────────────────────────────────────────────────────┐
-│  [ Law Firms (5,000+) ]  [ Startups & SMEs (506) ]  │
-└─────────────────────────────────────────────────────┘
+Firm/Startup drawer
+   └─ "Draft Application Email" button (only if target email exists)
+        ▼
+   AI Email Composer Dialog
+   ├─ Target context: name, type, city, sector, practice areas (from existing data)
+   ├─ Your context: name, college, degree, year, bio, top 3 internships, subjects
+   ├─ Banner if no CV: "Add your CV for a stronger, more personalised email" → link to /profile/edit
+   ├─ Tone selector: Formal / Warm / Concise (default Formal)
+   ├─ Role field: defaults "Legal Internship" — user editable
+   ├─ Optional 1-line "anything to add" input (e.g. "available May–July")
+   ├─ [Generate] → calls draft-application-email edge function (non-streaming)
+   ├─ Shows editable Subject + Body, character count, [Regenerate] [Copy]
+   └─ [Open in Gmail] (primary)
+        ├─ Opens mailto: with to/subject/body pre-filled
+        ├─ Toast: "Don't forget to attach your CV before sending"
+        └─ Auto-inserts row in profile_applications (status=sent, method=email, notes=body excerpt)
 ```
 
-When "Startups & SMEs" is active, the page swaps in a tailored filter bar, card grid, and detail drawer — keeping the same neobrutalist aesthetic, search-as-you-type, pagination, and Cmd+K integration.
+---
 
-### Startup card (grid view)
+### What changes
 
-```text
-┌───────────────────────────────────────────────┐
-│ Razorpay                          [ Series F ]│
-│ Bangalore · Fintech                           │
-│                                               │
-│ 1001-5000 employees · Has Legal Dept          │
-│ Key needs: RBI, Payments, Privacy, IP         │
-│                                               │
-│ [Visit website]   [Copy email]   [Save]       │
-└───────────────────────────────────────────────┘
-```
+1. **New edge function `draft-application-email`**
+   - Inputs: `target` (name, type, sector/practice, city), `role`, `tone`, `extra_note`, `user` (display_name, college, degree, graduation_year, bio, subjects_of_interest, top 3 internships)
+   - Calls Lovable AI Gateway (`google/gemini-3-flash-preview`) with a structured tool-call returning `{ subject, body }`
+   - System prompt enforces: Indian legal context, professional tone, mentions one specific reason the user is interested in this firm/company (uses sector/practice), references 1-2 most relevant internships if any, ends with availability + CV attached note, no emojis, no placeholders like `[Your Name]`
+   - Returns 429/402 errors cleanly to the client
 
-Click a card → drawer opens with website, email, sector, stage, employee band, legal needs, notes, and a one-click **"Log this as an application"** button that pre-fills the existing Application Tracker.
+2. **New component `src/components/apply/DraftEmailDialog.tsx`**
+   - Loads profile + internships + bar/cv flag via single Supabase round-trip on open
+   - Banner if `cv_url` is null linking to `/profile/edit`
+   - Tone tabs, role input, extra-note input, Generate button
+   - Editable subject + body textareas after generation
+   - Copy button (clipboard) + "Open in Gmail" button (uses `mailto:` — works on mobile Gmail app and desktop)
+   - On send: inserts into `profile_applications` and shows success toast
 
-### Filters for startup mode
+3. **Wire the button into both drawers**
+   - `src/components/FirmDrawer.tsx`: add "Draft Application Email" button (primary action) above "Open in Google Maps" when `firm.email` exists. Pass firm context.
+   - `src/components/StartupDrawer.tsx`: add same button when `startup.email` exists, above "Log as Application". Pass startup context (sector, stage, legal needs become "practice areas").
 
-- **Search** (name, sector, notes)
-- **City** — top 15 cities + "All"
-- **Sector** — grouped: Fintech, SaaS, HealthTech, EdTech, LegalTech, Logistics, EV/CleanTech, Other
-- **Stage** — grouped: Early (Seed–A), Growth (B–D), Late (E+), Listed/IPO, Acquired
-- **Employee size** — 1–50, 51–200, 201–1000, 1001–5000, 5000+
-- **Has legal team?** — Yes / No / Either (useful signal for "they need an intern" vs "they have one already")
-- **Sort** — Name A→Z, Stage (early → late), Most recently funded
+4. **Auth gate**
+   - If user not signed in, button shows but tapping it triggers redirect to `/auth?redirect=<current path>` with toast "Sign in to draft a personalised application email".
 
-## How it slots into the existing app
+5. **Cache (lightweight)**
+   - In-component memo: cache the last `{ targetId → { subject, body } }` in component state so re-opening the same firm in a session doesn't re-bill. No DB persistence — keeps it cheap and avoids stale drafts after profile updates.
 
-- **Directory page** (`src/pages/Directory.tsx`) gets a mode toggle at the top. Existing law-firm code stays untouched and behind the "Law Firms" tab. Map view stays law-firms-only (startups don't have lat/long).
-- **CompareBar** stays law-firms-only for now (chambers comparison is the differentiated use case).
-- **Universal Search** (Cmd+K) gets the 506 startups added to its index, so a search for "Razorpay" or "Fintech Bangalore" surfaces them site-wide.
-- **Application Tracker** already has a "Log application" flow — startup drawer's "Apply" button deep-links into it with the firm name pre-filled.
-- **SEO** — page meta updates to reflect both ("5,000+ law firms · 500+ startups hiring legal interns").
+---
 
-## Technical details
+### Technical notes
 
-**Data file** — Convert the xlsx to `src/data/startups.json` at build time (one-off script, then committed). Schema:
-```ts
-{ name, city, sector, sectorGroup, stage, stageGroup, website, email,
-  employees, employeesBand, hasLegalDept, legalNeeds, notes }
-```
-Pre-compute `sectorGroup`, `stageGroup`, `employeesBand` so filter dropdowns stay snappy without runtime parsing.
+- **Mailto limits**: most clients (Gmail web, iOS Mail, Android Gmail) accept ~2000 char `body` reliably. We'll cap body at ~1800 chars and URL-encode properly. If over, we still copy full body to clipboard and toast "Body copied — paste into Gmail if truncated".
+- **Gmail compose deep link** (better on desktop): we'll try `https://mail.google.com/mail/?view=cm&fs=1&to=...&su=...&body=...` with a fallback to plain `mailto:` for mobile. Detect via `navigator.userAgent` quick check; on mobile use `mailto:` (opens native Gmail app).
+- **Auto-log**: insert `{ user_id, firm_name_snapshot: target.name, role, applied_on: today, method: 'email', status: 'sent', notes: 'Drafted via Locus AI — ' + body.slice(0, 500) }`. Failure to log shouldn't block the email open — show non-blocking toast.
+- **Profile data fetch**: one query to `profiles` + `profile_internships` (limit 3, order by start_date desc). No need to read CV file itself — the parsed profile fields already represent it.
+- **No streaming** — use `supabase.functions.invoke` with structured tool output for `{subject, body}`.
 
-**Component structure**:
-- `src/data/startups.json` — 506 entries (~80 KB, ships with bundle, no DB needed)
-- `src/components/directory/StartupCard.tsx` — card UI
-- `src/components/directory/StartupDrawer.tsx` — detail drawer (mirrors FirmDrawer styling)
-- `src/components/directory/DirectoryModeToggle.tsx` — the firms/startups switch
-- `src/pages/Directory.tsx` — refactor to read `mode` state and conditionally render filter bar + grid
+---
 
-**State**: `mode` lives in URL query (`?mode=startups`) so links and Cmd+K results land in the right view.
+### Out of scope (explicitly)
 
-**Search index update**: `src/components/search/searchEngine.ts` — append startup entries with `type: 'startup'` and a distinct icon/color in the palette.
-
-**Privacy / abuse concern**: 502 contact emails ship to the client. Per our memory rule (no pricing/payment/early-access language in firms section), I'll keep the framing strictly factual: "Contact email" + Copy button, no auto-mail-to bulk-send affordance, no "outreach campaigns" language anywhere user-facing. The internal spreadsheet's "Judgy-Helmet outreach priority" columns will NOT be exposed — we strip them out during the JSON conversion.
-
-## Out of scope (for this pass)
-
-- Map view for startups (no coordinates in source data)
-- Compare mode for startups (chambers comparison is the existing differentiated use case)
-- User-submitted startups (would need DB + moderation)
-- Personalized "best match" scoring against the user's profile
-
-We can layer any of these on later if you want.
-
-## Approve and I'll build
-
-Once you say go, I'll:
-1. Generate `src/data/startups.json` from the spreadsheet (strip internal columns)
-2. Build the mode toggle, startup card, drawer, and filter bar
-3. Wire startups into the universal Cmd+K search
-4. Update page meta + the homepage stats bar count if it references "500+ firms"
+- Uploading the CV directly into Gmail (browsers can't do this — user must attach manually; we just remind them).
+- Persisting drafts to DB.
+- Multi-language support.
+- Bulk apply.
