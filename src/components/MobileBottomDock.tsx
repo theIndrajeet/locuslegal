@@ -43,17 +43,23 @@ function getContextAction(pathname: string, scrolledPastHero: boolean): ContextA
   return null;
 }
 
-function getActiveKey(pathname: string): string {
-  const match = ALL_NAV.find((n) =>
-    n.to === "/" ? pathname === "/" : pathname.startsWith(n.to),
-  );
-  return match?.to ?? "/";
+function getActiveKey(pathname: string, homeHref: string): string {
+  // Home pill should highlight on both `/` and `/app` (the auth-aware target).
+  if (pathname === "/" || pathname.startsWith("/app")) return homeHref;
+  const match = ALL_NAV.find((n) => n.to !== "/" && pathname.startsWith(n.to));
+  return match?.to ?? homeHref;
 }
 
 export default function MobileBottomDock() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const { setOpen: setSearchOpen } = useCommandPalette();
+  const { userId } = useAuthSession();
+
+  const homeHref = userId ? "/app" : "/";
+  const navItems: NavItem[] = ALL_NAV.map((n) =>
+    n.label === "Home" ? { ...n, to: homeHref } : n,
+  );
 
   const [scrolledPastHero, setScrolledPastHero] = useState(false);
   const [hasCompareBar, setHasCompareBar] = useState(false);
