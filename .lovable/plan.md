@@ -1,81 +1,66 @@
-# Fix: Beta testers hitting "Submission failed"
+## Root-cause findings from beta CSV + codebase
 
-## What's actually broken
+| # | Issue | Real root cause |
+|---|---|---|
+| 1 | Signup / password-reset emails not arriving | No email domain or `auth-email-hook` configured. Default Lovable auth emails are sent from a generic sender → testers' Gmail/Outlook treats them as spam or drops them silently. |
+| 2 | "Invalid session" / random logouts on profile edit + The Bar | `Layout.tsx` reacts to **every** `SIGNED_IN` event (which also fires on `TOKEN_REFRESHED`) and runs an async profile query → if it returns no row in time, it bounces user to `/choose-username`. Three separate `onAuthStateChange` listeners (Layout, ProfileMenu, useAuthSession) fire concurrent profile fetches. |
+| 3 | CV upload crash in profile + CV Analyser | `parse-cv` uses `google/gemini-3-flash-preview` which is preview-tier and rate-limits aggressively → returns 429/500 on real CVs. Frontend `runParse` swallows errors but the `CvSection` upload itself succeeds; the crash testers reported is the analyser page on big PDFs (`bytesToBase64` builds a giant string in memory for 5 MB files). |
+| 4 | Mobile dock overlaps CompareBar / hides content | Dock is `fixed bottom-5 z-50`, CompareBar is `fixed bottom-0 z-40`. On directory page on mobile, the dock floats *over* the CompareBar's "Compare" button, blocking clicks. |
 
-Testers (Suha, Aditi, etc.) successfully claim slots but every submission fails with **"Submission failed"**. The root cause is **not** networking, validation, or the tester's data — it's a Supabase RLS interaction bug in our submit code.
+---
 
-### Diagnosis (confirmed via direct API test)
+## Plan
 
-In `BetaChecklist.tsx` `handleSubmit`:
+### 1. Set up branded auth emails (fixes signup + password reset delivery)
 
-```ts
-const { data: inserted, error } = await supabase
-  .from("beta_feedback")
-  .insert({...})
-  .select("id")          // ← this is the problem
-  .maybeSingle();
-```
+- Set up an email domain via Lovable Cloud (`notify.locus.legal` subdomain on the existing `locus.legal` domain).
+- Scaffold `auth-email-hook` with branded templates (Locus dark theme, yellow accent).
+- Deploy the hook so signup confirmation, password reset, and magic-link emails are sent from `notify.locus.legal` instead of the generic Lovable sender → ends up in inbox, not spam.
+- Note: setup dialog + DNS verification is needed; emails activate once DNS propagates.
 
-The `.select("id")` after `.insert()` makes PostgREST add `Prefer: return=representation`, which forces Postgres to read the just-inserted row back. That read is checked against the **SELECT** policy on `beta_feedback`, which is admin-only:
+### 2. Fix session race / "invalid session" logouts
 
-```
-"Admins can view beta feedback"  USING (is_admin(auth.uid()))
-```
+- In `Layout.tsx`: change the auth listener to only act on **`SIGNED_IN`** events when `event === "SIGNED_IN"` AND coming from `/auth` or `/choose-username` (filter out `TOKEN_REFRESHED` and `INITIAL_SESSION`). Drop the `profiles` lookup on every event — `handle_new_user` already guarantees a username, so the safety-net query is causing more breakage than it prevents.
+- In `ProfileMenu.tsx`: skip the profile re-fetch on `TOKEN_REFRESHED` events too.
+- Consolidate to use the shared `useAuthSession` hook in `Layout` and `ProfileMenu` so we have one listener instead of three concurrent ones.
 
-For an anonymous/non-admin tester this returns **42501 "new row violates row-level security policy"**. Postgres rolls the insert back atomically, the client sees an error, toast shows "Submission failed", and `beta_feedback` stays empty (verified: 0 real rows in the table).
+### 3. Fix CV upload + analyser crashes
 
-A minimal insert *without* `.select()` succeeds (verified end-to-end with the anon key).
+- In `parse-cv` and `analyse-cv` edge functions: switch model from `google/gemini-3-flash-preview` (preview, low rate-limit) to `google/gemini-2.5-flash` (stable, higher rate-limit, same multimodal PDF support).
+- In `CvAnalyser.tsx`: stream PDF bytes to base64 in chunks via `FileReader.readAsDataURL` instead of building the whole string in JS memory — prevents tab freeze on 4-5 MB CVs.
+- Improve the error toast in `CvSection.tsx` to surface the actual server message (rate-limit vs. invalid-PDF vs. timeout) instead of the generic "fill manually" fallback so testers know what to retry.
+- Add a 60s client-side timeout with retry button (currently if Gemini hangs, the spinner spins forever).
 
-## The fix
+### 4. Fix mobile dock vs CompareBar overlap
 
-Two small, surgical changes — no schema changes, no policy changes.
+- In `MobileBottomDock.tsx`: detect when CompareBar is mounted (via a small zustand-style flag, or simpler: check `document.querySelector("[data-compare-bar]")` on render) and shift the dock up by ~70px, OR hide it entirely on `/directory` when comparing.
+- Add `data-compare-bar` attribute on CompareBar's outer div for the dock to detect.
+- Ensure z-index ordering is consistent: CompareBar `z-50`, dock `z-40` on `/directory` so CompareBar wins.
 
-### 1. `src/pages/BetaChecklist.tsx` — `handleSubmit`
+---
 
-- Drop `.select("id").maybeSingle()` from the `beta_feedback` insert.
-- Drop `feedback_id` from the subsequent `beta_testers` update (we never read it back to admin anyway, and the row is matched via `tester_id` on the feedback row).
-- Keep the rest of the flow identical (mark `submitted_at`, clear draft, show success screen).
+## Technical details
 
-Resulting shape:
+**Files touched**
+- `supabase/functions/auth-email-hook/*` (new, via scaffold tool)
+- `supabase/functions/_shared/email-templates/*.tsx` (new, via scaffold tool — then brand-styled)
+- `supabase/functions/parse-cv/index.ts` (model swap)
+- `supabase/functions/analyse-cv/index.ts` (model swap)
+- `src/components/Layout.tsx` (listener cleanup)
+- `src/components/ProfileMenu.tsx` (listener cleanup)
+- `src/pages/CvAnalyser.tsx` (chunked base64, timeout, better errors)
+- `src/components/profile/CvSection.tsx` (better error surfacing)
+- `src/components/CompareBar.tsx` (data attribute)
+- `src/components/MobileBottomDock.tsx` (dynamic offset/hide)
 
-```ts
-const { error } = await supabase.from("beta_feedback").insert({
-  tester_name: tester.display_name,
-  tester_email: tester.email,
-  overall_score: score,
-  general_notes: generalNotes.trim() || null,
-  responses: responses as never,
-  user_agent: navigator.userAgent,
-  tester_id: tester.id,
-});
-if (error) throw error;
+**Order of execution**
+1. Email domain setup (requires user action in dialog — DNS propagates in background while we ship rest)
+2. Auth listener fixes (highest user-facing impact, unblocks profile editing)
+3. CV upload fixes (model swap is one line; chunked base64 ~10 lines)
+4. Mobile dock fix (purely CSS/JS, smallest)
 
-await supabase
-  .from("beta_testers")
-  .update({ submitted_at: new Date().toISOString() })
-  .eq("id", tester.id);
-```
+**Out of scope for this fix pass** (revisit after re-test):
+- General leaderboard nits, copy issues, and minor UI polish from the CSV — these aren't blockers.
+- Building a tester-feedback dashboard — admin already exports CSV.
 
-### 2. Database cleanup (one-line migration)
-
-Remove the diagnostic row I created while debugging so the admin dashboard isn't polluted:
-
-```sql
-DELETE FROM public.beta_feedback WHERE tester_name = 'diag2';
-```
-
-## Why we don't change RLS
-
-Opening a SELECT policy on `beta_feedback` to non-admins would leak everyone's feedback to anyone with the link. The clean fix is client-side: don't ask Postgres to read back a row the tester isn't allowed to see.
-
-## Verification after the fix
-
-1. Open `/beta` in a private window, claim a slot, mark a couple of tasks Pass/Fail, hit Submit.
-2. Confirm the success screen appears (no toast error).
-3. In `/admin/beta`, confirm the new row shows up under that tester with `submitted_at` set.
-
-## Out of scope
-
-- Aditi already claimed slot #003 with the original 7-row CHECK constraint (now relaxed via the post-wipe migration); slot numbering is fine.
-- Screenshot uploads use a different code path and aren't affected.
-- The "Indrajeet Singh (You)" WhatsApp note is unrelated — that's the broadcast message I sent.
+Approve this plan and I'll start with step 1 (email domain setup dialog) so DNS propagation runs in parallel with the rest of the fixes.

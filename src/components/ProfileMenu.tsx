@@ -22,7 +22,11 @@ export default function ProfileMenu() {
       if (session?.user) fetchProfile(session.user.id);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      // Only react to actual sign-in / sign-out — TOKEN_REFRESHED and
+      // INITIAL_SESSION fire frequently and would otherwise trigger redundant
+      // profile fetches that race the rest of the app.
+      if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
       setSession(session);
       if (session?.user) fetchProfile(session.user.id);
       else { setDisplayName(null); setUsername(null); }
