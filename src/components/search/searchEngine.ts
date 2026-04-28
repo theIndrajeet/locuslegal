@@ -197,13 +197,14 @@ export function runSearch(rawQuery: string, firms: Firm[] | null): SearchOutput 
   }
   pageHits.sort((a, b) => b.score - a.score);
 
-  const groups: SearchGroup[] = [
+  const allGroups: SearchGroup[] = [
     { kind: "firm", label: "Firms", icon: Building2, results: firmHits },
     { kind: "guide", label: "Playbook", icon: BookOpen, results: guideHits.slice(0, 6) },
     { kind: "tool", label: "Tools", icon: Wrench, results: toolHits.slice(0, 6) },
     { kind: "resource", label: "Resources", icon: Library, results: resourceHits.slice(0, 6) },
     { kind: "page", label: "Pages", icon: Compass, results: pageHits.slice(0, 5) },
-  ].filter((g) => g.results.length > 0);
+  ];
+  const groups = allGroups.filter((g) => g.results.length > 0);
 
   const total = groups.reduce((sum, g) => sum + g.results.length, 0);
   return { groups, total };
