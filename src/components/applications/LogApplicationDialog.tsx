@@ -36,6 +36,9 @@ interface Props {
   userId: string;
   editing?: Application | null;
   onSaved: () => void;
+  prefillFirm?: string | null;
+  prefillRole?: string | null;
+  prefillNotes?: string | null;
 }
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
