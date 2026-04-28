@@ -46,6 +46,21 @@ interface Internship {
   description: string | null;
 }
 
+interface BriefHighlight {
+  kind: string;
+  label: string;
+  detail?: string | null;
+}
+
+interface Brief {
+  fit_reason?: string | null;
+  availability?: string | null;
+  duration?: string | null;
+  signature_line?: string | null;
+  work_mode?: string | null;
+  highlights?: BriefHighlight[];
+}
+
 interface Body {
   target: {
     name: string;
@@ -59,6 +74,7 @@ interface Body {
   role: string;
   tone: "formal" | "warm" | "concise";
   extra_note?: string | null;
+  brief?: Brief | null;
   user: {
     display_name: string | null;
     college: string | null;
@@ -69,6 +85,41 @@ interface Body {
     internships: Internship[];
     has_cv: boolean;
   };
+}
+
+const ALLOWED_HIGHLIGHT_KINDS = new Set([
+  "internship",
+  "subject",
+  "education",
+  "moot",
+  "publication",
+  "cgpa",
+  "bio",
+]);
+
+function sanitizeBrief(b: any): Brief | null {
+  if (!b || typeof b !== "object") return null;
+  const out: Brief = {};
+  if (typeof b.fit_reason === "string" && b.fit_reason.trim()) out.fit_reason = b.fit_reason.trim().slice(0, 120);
+  if (typeof b.availability === "string" && b.availability.trim()) out.availability = b.availability.trim().slice(0, 120);
+  if (typeof b.duration === "string" && b.duration.trim()) out.duration = b.duration.trim().slice(0, 60);
+  if (typeof b.signature_line === "string" && b.signature_line.trim()) out.signature_line = b.signature_line.trim().slice(0, 200);
+  if (typeof b.work_mode === "string" && b.work_mode.trim()) out.work_mode = b.work_mode.trim().slice(0, 30);
+  if (Array.isArray(b.highlights)) {
+    out.highlights = b.highlights
+      .filter((h: any) => h && typeof h === "object" && ALLOWED_HIGHLIGHT_KINDS.has(h.kind) && typeof h.label === "string")
+      .slice(0, 4)
+      .map((h: any) => ({
+        kind: String(h.kind),
+        label: String(h.label).slice(0, 120),
+        detail: h.detail ? String(h.detail).slice(0, 200) : null,
+      }));
+  }
+  // Empty brief => null
+  if (!out.fit_reason && !out.availability && !out.duration && !out.signature_line && !out.work_mode && !(out.highlights && out.highlights.length)) {
+    return null;
+  }
+  return out;
 }
 
 function validateBody(b: any): { ok: true; data: Body } | { ok: false; error: string } {
