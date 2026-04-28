@@ -1,45 +1,61 @@
-# Directory teaser on /vacancies — fill the empty side
+# Directory teaser — show the *full* directory, not just firms
 
-## What you'll get
+## What changes
 
-When the live-vacancies grid has empty space (e.g. only 1 or 3 live vacancies on desktop, leaving a half-row blank), I'll drop a **Directory Teaser card** into that empty slot. It's a sibling card in the same grid, so it inherits the neobrutalist treatment and never breaks the layout.
+The current teaser only mentions "500+ firms". Reality: the directory also covers **startups & SMEs** (with sectors, stages, sizes, legal-team flag) plus **chambers, individual advocates, cities, practice areas, tiers**. The teaser will be redesigned to convey that breadth and let people jump into any of those slices in one tap.
 
-The teaser reads as a confident invitation, not a filler:
+## New teaser anatomy (both `cell` and `strip` variants)
 
 ```text
-┌─────────────────────────────────┐
-│ [icon] DIRECTORY                │
-│                                 │
-│ Can't find a fit?               │
-│ Search 500+ firms.              │
-│                                 │
-│ [ Search firms by name… ]   →  │
-│                                 │
-│ Popular: Tier 1 · Mumbai · IP   │
-│ ──────────────────────────────  │
-│ Browse the full directory  →   │
-└─────────────────────────────────┘
+┌───────────────────────────────────────────┐
+│ [icon] DIRECTORY                          │
+│                                           │
+│ Beyond this list.                         │
+│ 500+ firms · 200+ startups · all India.   │
+│                                           │
+│ [ Firms ] [ Startups & SMEs ]   ← toggle  │
+│                                           │
+│ [ Search by name…              ]   →     │
+│                                           │
+│ Browse by:                                │
+│   Tier 1   Mumbai   IP   Chambers         │  ← when "Firms"
+│   Fintech  Series A  Has legal team       │  ← when "Startups"
+│ ────────────────────────────────────────  │
+│ Open the full directory  →               │
+└───────────────────────────────────────────┘
 ```
 
-- Big bold heading: **"Can't find a fit?"** with **"Search 500+ firms."** below in accent.
-- A working search input — typing a firm name and pressing Enter (or tapping the arrow) navigates to `/directory?q=<query>` with the search pre-filled.
-- Three clickable "Popular" chips that deep-link into pre-filtered Directory views (`/directory?tier=Tier+1`, `/directory?city=Mumbai`, `/directory?area=IP`).
-- A bottom "Browse the full directory →" link for users who don't want to type.
-- Card uses the same `border-2 border-foreground/80` + `shadow-[4px_4px_0_0_hsl(var(--accent))]` brutalist styling so it sits naturally next to a vacancy card.
+Key updates:
 
-## Where it appears
+1. **Headline rewritten** to convey breadth, not just count:
+   - Line 1 (foreground): *"Beyond this list."*
+   - Line 2 (accent): *"500+ firms · 200+ startups · all India."*
+2. **Mode toggle** (Firms / Startups & SMEs) — neobrutalist segmented control identical to the one used inside Directory itself. Selecting a mode swaps the chip set below.
+3. **Search input** posts to `/directory?q=…&mode=<firms|startups>` so the user lands inside the right tab with their query pre-applied.
+4. **Dynamic chip rows**:
+   - **Firms mode**: `Tier 1` → `?tier=Tier 1` · `Mumbai` → `?city=Mumbai` · `IP` → `?area=IP` · `Chambers` → `?type=Chamber`
+   - **Startups mode**: `Fintech` → `?mode=startups&sSector=Fintech` · `Series A` → `?mode=startups&sStage=Series A` · `Has legal team` → `?mode=startups&sLegal=yes`
+5. **Footer link** *"Open the full directory →"* always lands on `/directory?mode=<currentMode>`.
 
-- **Desktop (md+)**: Inserted as the **last item** in the live grid only when `live.length` is odd (1, 3, 5…) — so it always lands in the otherwise-empty cell. If the grid is already full (2, 4 cards), it appears as a single full-width strip below the grid in a slimmer horizontal layout.
-- **Mobile**: Always renders as a full-width card immediately after the live vacancies, before the "Recently closed" section. (The empty space the user mentioned doesn't exist on mobile — adding a teaser strip here is still useful but stays compact.)
-- Hidden entirely when there are zero live vacancies (the existing empty-state already covers that case).
+## Directory side — wire up the new params
+
+`src/pages/Directory.tsx` already reads `?q=` and `?mode=`. I'll extend the URL-param seeding to also pre-fill (one-time on mount):
+
+- Firms: `tier`, `city`, `area`, `type`
+- Startups: `sCity`, `sSector`, `sStage`, `sSize`, `sLegal`
+
+This means every chip in the teaser produces a real, filtered Directory view, not just a vanilla page load.
+
+## Where it appears (unchanged)
+
+- Desktop odd-count: fills the empty grid cell (`cell` variant).
+- Desktop even-count: full-width strip below the grid (`strip` variant).
+- Mobile: full-width strip below the grid.
+
+The `strip` variant gets the same mode toggle + dynamic chips, just laid out horizontally so it doesn't grow tall.
 
 ## Technical bits
 
-1. New component `src/components/vacancies/DirectoryTeaser.tsx` — controlled `<input>`, `useNavigate` to `/directory?q=...&mode=firms` on submit. Two layout variants: `"cell"` (square, fits a grid cell) and `"strip"` (full-width, 2-row layout for below the grid).
-2. In `src/pages/Vacancies.tsx`:
-   - Compute `liveIsOdd = live.length % 2 === 1`.
-   - When odd, render `<DirectoryTeaser variant="cell" />` as the final grid child.
-   - When even (and `live.length > 0`), render `<DirectoryTeaser variant="strip" />` below the grid.
-3. Update `src/pages/Directory.tsx` to read `?q=` on mount and seed `searchInput`/`search` (one-time effect, uses existing state — no refactor).
-
-No DB changes, no new routes, no backend work. Pure UI + a tiny query-param read.
+- Edit `src/components/vacancies/DirectoryTeaser.tsx`: add a `mode` local state + chip arrays per mode, swap chips and submit-target accordingly.
+- Edit `src/pages/Directory.tsx`: extend the existing one-time URL-param hydration to seed all firm + startup filters from the search params on mount.
+- No new files, no DB changes.
