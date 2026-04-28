@@ -15,6 +15,7 @@ const NAV_ITEMS = [
 export default function MobileBottomDock() {
   const { pathname } = useLocation();
   const [visible, setVisible] = useState(false);
+  const [hasCompareBar, setHasCompareBar] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout>>(null);
 
   useEffect(() => {
@@ -32,8 +33,22 @@ export default function MobileBottomDock() {
     };
   }, []);
 
+  // Watch for the CompareBar mounting/unmounting so the dock can yield to it
+  // on mobile (both are fixed-bottom elements that would otherwise overlap).
+  useEffect(() => {
+    const check = () => setHasCompareBar(!!document.querySelector('[data-compare-bar="true"]'));
+    check();
+    const observer = new MutationObserver(check);
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, []);
+
+  // When CompareBar is visible, hide the dock entirely on mobile — the
+  // CompareBar's own actions take priority on the directory page.
+  if (hasCompareBar) return null;
+
   return (
-    <nav className={`fixed bottom-5 left-1/2 -translate-x-1/2 z-50 md:hidden transition-all duration-700 ease-in-out ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"}`}>
+    <nav className={`fixed bottom-5 left-1/2 -translate-x-1/2 z-40 md:hidden transition-all duration-700 ease-in-out ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"}`}>
       <div className="flex items-center gap-4 px-6 py-3 rounded-full bg-background/60 backdrop-blur-xl border border-border/40 shadow-xl shadow-black/10">
         {NAV_ITEMS.map(({ to, icon: Icon, label }) => {
           const isActive = to === "/" ? pathname === "/" : pathname.startsWith(to);
