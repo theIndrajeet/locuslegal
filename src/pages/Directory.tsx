@@ -191,6 +191,47 @@ export default function Directory() {
     });
   }, []);
 
+  // ===== Startup filtering =====
+  const startupFiltered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return startups.filter((s) => {
+      if (q && !s.name.toLowerCase().includes(q) && !(s.sector ?? "").toLowerCase().includes(q)) return false;
+      if (sCity && s.city !== sCity) return false;
+      if (sSector && s.sector !== sSector) return false;
+      if (sStage && s.stage !== sStage) return false;
+      if (sSize && s.employees !== sSize) return false;
+      if (sLegal && (s.hasLegalDept ?? "").toLowerCase() !== sLegal) return false;
+      return true;
+    });
+  }, [search, sCity, sSector, sStage, sSize, sLegal]);
+
+  const startupSorted = useMemo(() => {
+    const arr = [...startupFiltered];
+    switch (sort) {
+      case "name-asc": return arr.sort((a, b) => a.name.localeCompare(b.name));
+      case "name-desc": return arr.sort((a, b) => b.name.localeCompare(a.name));
+      default: return arr;
+    }
+  }, [startupFiltered, sort]);
+
+  const startupTotalPages = Math.ceil(startupSorted.length / PAGE_SIZE);
+  const startupPaginated = startupSorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  // Reset page when startup filters change
+  useEffect(() => { setPage(1); }, [search, sCity, sSector, sStage, sSize, sLegal]);
+
+  // Active filter chips for startups
+  const startupActiveFilters: { label: string; key: string; clear: () => void }[] = [];
+  if (sCity) startupActiveFilters.push({ label: `City: ${sCity}`, key: "sCity", clear: () => setSCity("") });
+  if (sSector) startupActiveFilters.push({ label: `Sector: ${sSector}`, key: "sSector", clear: () => setSSector("") });
+  if (sStage) startupActiveFilters.push({ label: `Stage: ${sStage}`, key: "sStage", clear: () => setSStage("") });
+  if (sSize) startupActiveFilters.push({ label: `Size: ${sSize}`, key: "sSize", clear: () => setSSize("") });
+  if (sLegal) startupActiveFilters.push({ label: sLegal === "yes" ? "Has legal team" : "No legal team", key: "sLegal", clear: () => setSLegal("") });
+
+  const clearAllStartups = useCallback(() => {
+    setSearchInput(""); setSCity(""); setSSector(""); setSStage(""); setSSize(""); setSLegal(""); setSort("relevance");
+  }, []);
+
   const selectClass =
     "bg-card border border-border rounded-lg px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent/50 transition-colors";
 
