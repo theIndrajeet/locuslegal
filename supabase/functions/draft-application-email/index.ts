@@ -209,12 +209,16 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
+    const briefBlock = v.data.brief
+      ? `\n\nBRIEF (sender's guided answers — prioritise these):\n${JSON.stringify(v.data.brief, null, 2)}`
+      : "";
+
     const userPrompt = `TARGET:\n${JSON.stringify(v.data.target, null, 2)}\n\nSENDER:\n${JSON.stringify(
       v.data.user,
       null,
       2,
-    )}\n\nROLE: ${v.data.role}\nTONE: ${v.data.tone}\n${
-      v.data.extra_note ? `EXTRA NOTE FROM SENDER (try to weave naturally): ${v.data.extra_note}` : ""
+    )}\n\nROLE: ${v.data.role}\nTONE: ${v.data.tone}${briefBlock}\n${
+      v.data.extra_note ? `\nEXTRA NOTE FROM SENDER (try to weave naturally): ${v.data.extra_note}` : ""
     }\n\nDraft the email now via the draft_email tool.`;
 
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
