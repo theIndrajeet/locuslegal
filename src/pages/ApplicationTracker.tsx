@@ -95,6 +95,24 @@ export default function ApplicationTracker() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authReady, userId]);
 
+  // Prefill from query params (e.g. from Directory startup drawer)
+  useEffect(() => {
+    if (!authReady) return;
+    const firm = searchParams.get("logFirm");
+    if (!firm) return;
+    setEditing(null);
+    setPrefill({
+      firm,
+      role: searchParams.get("logRole"),
+      notes: searchParams.get("logNotes"),
+    });
+    setDialogOpen(true);
+    // strip params so it doesn't re-trigger
+    const next = new URLSearchParams(searchParams);
+    ["logFirm", "logRole", "logNotes"].forEach((k) => next.delete(k));
+    setSearchParams(next, { replace: true });
+  }, [authReady, searchParams, setSearchParams]);
+
   // Stats
   const stats = useMemo(() => {
     const total = apps.length;
@@ -281,10 +299,13 @@ export default function ApplicationTracker() {
       {userId && (
         <LogApplicationDialog
           open={dialogOpen}
-          onOpenChange={setDialogOpen}
+          onOpenChange={(o) => { setDialogOpen(o); if (!o) setPrefill({}); }}
           userId={userId}
           editing={editing}
           onSaved={refresh}
+          prefillFirm={prefill.firm}
+          prefillRole={prefill.role}
+          prefillNotes={prefill.notes}
         />
       )}
     </div>
