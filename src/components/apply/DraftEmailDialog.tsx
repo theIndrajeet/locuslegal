@@ -203,47 +203,56 @@ export default function DraftEmailDialog({ open, onOpenChange, target }: Props) 
     }
   };
 
-  const openInGmail = async () => {
+  const openInGmail = () => {
     if (!target || !subject.trim() || !body.trim()) return;
     const truncated = body.length > 1800;
     const sendBody = truncated ? body.slice(0, 1800) : body;
+    const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+    const url = buildGmailUrl(target.email, subject, sendBody);
 
-    // Always copy full body to clipboard as backup
-    try {
-      await navigator.clipboard.writeText(`Subject: ${subject}\n\n${body}`);
-    } catch {
-      // ignore
+    // CRITICAL: trigger the open synchronously inside the user gesture — no awaits before this.
+    if (isMobile) {
+      // mailto: must use location assignment so iOS/Android route to the default mail app.
+      window.location.href = url;
+    } else {
+      window.open(url, "_blank", "noopener,noreferrer");
     }
 
-    const url = buildGmailUrl(target.email, subject, sendBody);
-    window.open(url, "_blank", "noopener,noreferrer");
+    // Background: clipboard backup (non-blocking, ignore failures)
+    void navigator.clipboard
+      ?.writeText(`Subject: ${subject}\n\n${body}`)
+      .catch(() => {});
 
     if (truncated) {
-      toast.info("Body was long — full version copied to clipboard. Paste if Gmail truncates.", {
+      toast.info("Body was long — full version copied to clipboard. Paste if it truncates.", {
         duration: 6000,
       });
     } else {
       toast.success("Don't forget to attach your CV before sending.", { duration: 6000 });
     }
 
-    // Auto-log to tracker (best-effort, non-blocking)
+    // Background: auto-log to tracker (fire-and-forget, never blocks the open)
     if (userId) {
       const today = new Date().toISOString().slice(0, 10);
       const noteExcerpt = body.length > 500 ? body.slice(0, 497) + "…" : body;
-      const { error: logErr } = await supabase.from("profile_applications").insert({
-        user_id: userId,
-        firm_name_snapshot: target.name,
-        role,
-        applied_on: today,
-        method: "email",
-        status: "sent",
-        notes: `Drafted via Locus AI\n\n${noteExcerpt}`,
-      });
-      if (logErr) {
-        toast.error("Email opened, but couldn't log to your tracker.");
-      } else {
-        toast.success("Logged to your Application Tracker.", { duration: 4000 });
-      }
+      void supabase
+        .from("profile_applications")
+        .insert({
+          user_id: userId,
+          firm_name_snapshot: target.name,
+          role,
+          applied_on: today,
+          method: "email",
+          status: "sent",
+          notes: `Drafted via Locus AI\n\n${noteExcerpt}`,
+        })
+        .then(({ error: logErr }) => {
+          if (logErr) {
+            toast.error("Email opened, but couldn't log to your tracker.");
+          } else {
+            toast.success("Logged to your Application Tracker.", { duration: 4000 });
+          }
+        });
     }
 
     onOpenChange(false);
