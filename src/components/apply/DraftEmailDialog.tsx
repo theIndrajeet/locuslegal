@@ -462,7 +462,7 @@ export default function DraftEmailDialog({ open, onOpenChange, target }: Props) 
     onOpenChange(false);
   };
 
-  const canGenerate = !generating && !loadingUser && !!user && role.trim().length > 0;
+  const canGenerate = !generating && !loadingUser && !!user && brief.role.trim().length > 0;
   const hasDraft = subject.trim().length > 0 && body.trim().length > 0;
 
   const wordCount = useMemo(
