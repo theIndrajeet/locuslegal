@@ -282,6 +282,13 @@ export default function DraftEmailDialog({ open, onOpenChange, target }: Props) 
   }, [open, userId]);
 
   // Reset / restore draft when target changes
+  // Compute highlight chips from user + target
+  const highlights = useMemo<HighlightChip[]>(
+    () => (user && target ? buildHighlights(user, target) : []),
+    [user, target],
+  );
+
+  // Reset / restore draft + brief when target changes
   useEffect(() => {
     if (!open || !target) return;
     const cached = draftCache.get(target.id);
@@ -292,9 +299,33 @@ export default function DraftEmailDialog({ open, onOpenChange, target }: Props) 
       setSubject("");
       setBody("");
     }
-    setExtraNote("");
-    setRole("Legal Internship");
+    const cachedBrief = briefCache.get(target.id);
+    if (cachedBrief) {
+      setBrief(cachedBrief);
+    } else {
+      setBrief({
+        fit_reason: null,
+        role: "Legal Internship",
+        availability: null,
+        availability_custom: "",
+        duration: null,
+        signature_line: "",
+        work_mode: null,
+        highlight_ids: [],
+      });
+    }
+    setStep(0);
   }, [open, target]);
+
+  // Smart-default highlight selection once chips are computed (only if user hasn't picked any yet)
+  useEffect(() => {
+    if (!target || !highlights.length) return;
+    const cached = briefCache.get(target.id);
+    if (cached && cached.highlight_ids.length) return;
+    const matching = highlights.filter((h) => h.matches).slice(0, 2).map((h) => h.id);
+    const fillers = highlights.filter((h) => !matching.includes(h.id)).slice(0, 3 - matching.length).map((h) => h.id);
+    setBrief((b) => (b.highlight_ids.length ? b : { ...b, highlight_ids: [...matching, ...fillers].slice(0, 3) }));
+  }, [highlights, target]);
 
   const generate = async () => {
     if (!target || !user) return;
