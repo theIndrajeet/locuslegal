@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
 import { Search, X, ArrowRight, Clock, Sparkles, CornerDownLeft } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useCommandPalette } from "./useCommandPalette";
@@ -105,8 +104,7 @@ export default function CommandPalette() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent
-        showClose={false}
-        className="p-0 gap-0 max-w-2xl w-[95vw] sm:w-full top-[10vh] sm:top-1/2 translate-y-0 sm:-translate-y-1/2 border-2 border-foreground/70 bg-background/85 backdrop-blur-2xl backdrop-saturate-150 shadow-[inset_0_1px_0_0_hsl(0_0%_100%/0.18),0_24px_64px_-12px_hsl(var(--accent)/0.4),4px_4px_0_0_hsl(var(--accent))] rounded-2xl overflow-hidden"
+        className="p-0 gap-0 max-w-2xl w-[95vw] sm:w-full top-[10vh] sm:top-1/2 translate-y-0 sm:-translate-y-1/2 border-2 border-foreground/70 bg-background/85 backdrop-blur-2xl backdrop-saturate-150 shadow-[inset_0_1px_0_0_hsl(0_0%_100%/0.18),0_24px_64px_-12px_hsl(var(--accent)/0.4),4px_4px_0_0_hsl(var(--accent))] rounded-2xl overflow-hidden [&>button]:hidden"
         style={{ WebkitBackdropFilter: "blur(24px) saturate(160%)" }}
       >
         {/* Input bar */}
