@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Briefcase, Loader2, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { usePageMeta } from "@/hooks/usePageMeta";
+import { useAuthSession } from "@/hooks/useAuthSession";
 import VacancyCard from "@/components/vacancies/VacancyCard";
 import DraftEmailDialog, { type DraftEmailTarget } from "@/components/apply/DraftEmailDialog";
-import { type Vacancy } from "@/lib/vacancies";
+import { type Vacancy, type VacancyApplication } from "@/lib/vacancies";
 
 export default function Vacancies() {
   usePageMeta({
@@ -13,10 +14,13 @@ export default function Vacancies() {
     path: "/vacancies",
   });
 
+  const { userId } = useAuthSession();
   const [vacancies, setVacancies] = useState<Vacancy[]>([]);
   const [loading, setLoading] = useState(true);
-  const [draftFor, setDraftFor] = useState<Vacancy | null>(null);
+  const [draftFor, setDraftFor] = useState<{ vacancy: Vacancy; followup: boolean } | null>(null);
   const [draftOpen, setDraftOpen] = useState(false);
+  // Map vacancy.id -> latest application meta for the signed-in user
+  const [appMap, setAppMap] = useState<Map<string, VacancyApplication>>(new Map());
 
   useEffect(() => {
     let cancelled = false;
@@ -36,6 +40,50 @@ export default function Vacancies() {
     return () => { cancelled = true; };
   }, []);
 
+  const refreshApplications = useCallback(async () => {
+    if (!userId || vacancies.length === 0) {
+      setAppMap(new Map());
+      return;
+    }
+    const firmNames = Array.from(new Set(vacancies.map((v) => v.firm_name)));
+    const { data } = await supabase
+      .from("profile_applications")
+      .select("id, firm_name_snapshot, role, applied_on, notes, status_updated_at")
+      .eq("user_id", userId)
+      .in("firm_name_snapshot", firmNames)
+      .order("applied_on", { ascending: false });
+
+    const map = new Map<string, VacancyApplication>();
+    (data ?? []).forEach((row) => {
+      // Match application -> vacancy by firm_name + role (case-insensitive)
+      const v = vacancies.find(
+        (x) =>
+          x.firm_name.toLowerCase() === (row.firm_name_snapshot ?? "").toLowerCase() &&
+          x.role.toLowerCase() === (row.role ?? "").toLowerCase(),
+      );
+      if (!v || map.has(v.id)) return; // keep latest only
+      // Detect follow-up timestamp from notes marker
+      let lastFollowupOn: string | null = null;
+      if (row.notes) {
+        const m = row.notes.match(/Follow-up sent on (\d{4}-\d{2}-\d{2})/g);
+        if (m && m.length > 0) {
+          const last = m[m.length - 1].match(/(\d{4}-\d{2}-\d{2})/);
+          if (last) lastFollowupOn = last[1];
+        }
+      }
+      map.set(v.id, {
+        id: row.id,
+        appliedOn: row.applied_on,
+        lastFollowupOn,
+      });
+    });
+    setAppMap(map);
+  }, [userId, vacancies]);
+
+  useEffect(() => {
+    void refreshApplications();
+  }, [refreshApplications]);
+
   // After load: if URL hash points at a vacancy, scroll to it.
   useEffect(() => {
     if (loading) return;
@@ -54,23 +102,35 @@ export default function Vacancies() {
     [vacancies],
   );
 
-  const handleApply = (v: Vacancy) => {
-    setDraftFor(v);
+  const handleApply = (v: Vacancy, opts?: { followup?: boolean }) => {
+    setDraftFor({ vacancy: v, followup: !!opts?.followup });
     setDraftOpen(true);
   };
 
   const draftTarget: DraftEmailTarget | null = draftFor
-    ? {
-        id: `vacancy-${draftFor.id}`,
-        name: draftFor.firm_name,
-        email: draftFor.application_email,
-        kind: "firm",
-        type: null,
-        city: draftFor.location,
-        sector: null,
-        practice_areas: null,
-        legal_needs: draftFor.description,
-      }
+    ? (() => {
+        const v = draftFor.vacancy;
+        const existing = appMap.get(v.id);
+        return {
+          id: `vacancy-${v.id}${draftFor.followup ? "-followup" : ""}`,
+          name: v.firm_name,
+          email: v.application_email,
+          kind: "firm",
+          type: null,
+          city: v.location,
+          sector: null,
+          practice_areas: null,
+          legal_needs: v.description,
+          followup:
+            draftFor.followup && existing
+              ? {
+                  originalAppliedOn: existing.appliedOn,
+                  originalRole: v.role,
+                  applicationId: existing.id,
+                }
+              : null,
+        };
+      })()
     : null;
 
   return (
@@ -109,7 +169,12 @@ export default function Vacancies() {
             <section className="container mx-auto px-4 md:px-8 mb-12">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
                 {live.map((v) => (
-                  <VacancyCard key={v.id} vacancy={v} onApply={handleApply} />
+                  <VacancyCard
+                    key={v.id}
+                    vacancy={v}
+                    onApply={handleApply}
+                    application={appMap.get(v.id) ?? null}
+                  />
                 ))}
               </div>
             </section>
@@ -131,7 +196,12 @@ export default function Vacancies() {
         </>
       )}
 
-      <DraftEmailDialog open={draftOpen} onOpenChange={setDraftOpen} target={draftTarget} />
+      <DraftEmailDialog
+        open={draftOpen}
+        onOpenChange={setDraftOpen}
+        target={draftTarget}
+        onSent={() => void refreshApplications()}
+      />
     </main>
   );
 }
