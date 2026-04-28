@@ -653,6 +653,13 @@ export default function Directory() {
         onOpenChange={setDrawerOpen}
       />
 
+      {/* Startup detail drawer */}
+      <StartupDrawer
+        startup={drawerStartup}
+        open={startupDrawerOpen}
+        onOpenChange={setStartupDrawerOpen}
+      />
+
       {/* Compare bar */}
       <CompareBar
         selected={compareList}
