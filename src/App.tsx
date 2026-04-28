@@ -39,6 +39,7 @@ const AdminBeta = lazy(routeImports.adminBeta as never);
 const ApplicationTracker = lazy(routeImports.applicationTracker as never);
 const BetaChecklist = lazy(routeImports.betaChecklist as never);
 const NotFound = lazy(routeImports.notFound as never);
+const DockLab = lazy(() => import("./pages/DockLab"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
