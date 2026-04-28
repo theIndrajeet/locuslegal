@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import VacancyCard from "@/components/vacancies/VacancyCard";
+import DirectoryTeaser from "@/components/vacancies/DirectoryTeaser";
 import DraftEmailDialog, { type DraftEmailTarget } from "@/components/apply/DraftEmailDialog";
 import { type Vacancy, type VacancyApplication } from "@/lib/vacancies";
 
