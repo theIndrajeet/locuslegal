@@ -192,7 +192,8 @@ function ActionPill({
       <button
         onClick={onSearch}
         aria-label="Search"
-        className="w-12 h-12 flex items-center justify-center bg-background border-2 border-foreground rounded-full shadow-[3px_3px_0_0_hsl(var(--accent))] active:translate-x-[1px] active:translate-y-[1px] transition-transform"
+        style={{ WebkitBackdropFilter: "blur(24px) saturate(160%)" }}
+        className="w-12 h-12 flex items-center justify-center bg-background/55 backdrop-blur-2xl backdrop-saturate-150 border-2 border-foreground/70 rounded-full shadow-[inset_0_1px_0_0_hsl(0_0%_100%/0.18),0_8px_32px_-8px_hsl(var(--accent)/0.35),3px_3px_0_0_hsl(var(--accent))] active:translate-x-[1px] active:translate-y-[1px] transition-transform"
       >
         <Icon size={18} strokeWidth={2.2} className="text-foreground" />
       </button>
@@ -201,7 +202,8 @@ function ActionPill({
 
   return (
     <button
-      className="flex items-center gap-1.5 h-12 px-4 bg-accent text-foreground border-2 border-foreground rounded-full shadow-[3px_3px_0_0_hsl(var(--foreground))] active:translate-x-[1px] active:translate-y-[1px] transition-transform"
+      style={{ WebkitBackdropFilter: "blur(20px) saturate(180%)" }}
+      className="flex items-center gap-1.5 h-12 px-4 bg-accent/80 backdrop-blur-xl backdrop-saturate-150 text-foreground border-2 border-foreground/70 rounded-full shadow-[inset_0_1px_0_0_hsl(0_0%_100%/0.35),0_8px_28px_-8px_hsl(var(--accent)/0.6),3px_3px_0_0_hsl(var(--foreground))] active:translate-x-[1px] active:translate-y-[1px] transition-transform"
     >
       <Icon size={14} strokeWidth={2.5} />
       <span className="font-sora text-xs font-bold">{meta.label}</span>
