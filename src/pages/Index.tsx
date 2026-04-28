@@ -5,6 +5,7 @@ import FeatureBento from "@/components/home/FeatureBento";
 import AudienceMiniRow from "@/components/home/AudienceMiniRow";
 import FinalCTA from "@/components/home/FinalCTA";
 import { usePageMeta } from "@/hooks/usePageMeta";
+import { prefetchRoute } from "@/lib/prefetch";
 
 /**
  * The home page is a public marketing landing — anonymous visitors are the
