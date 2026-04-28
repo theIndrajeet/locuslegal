@@ -270,6 +270,7 @@ export default function Directory() {
         </div>
       </section>
 
+      {mode === "firms" && (<>
       {/* Bar leaderboard callout */}
       <section className="container mx-auto px-4 md:px-8 mb-6">
         <Link
