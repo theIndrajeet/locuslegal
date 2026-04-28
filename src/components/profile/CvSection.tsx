@@ -42,6 +42,12 @@ export default function CvSection({ userId, cvUrl, cvUploadedAt, setCvUrl, setCv
     if (!userId || reviewOpen) return; // ignore if a review session is in progress
     setParsing(true);
     if (fromReparse) toast.info("Parsing CV with AI (this may take 10-30 seconds)");
+
+    // Client-side timeout — Gemini occasionally hangs on malformed PDFs.
+    // Without this, the parsing spinner could spin indefinitely.
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => abortController.abort(), 60_000);
+
     try {
       const { data, error } = await supabase.functions.invoke("parse-cv", {
         body: { cv_storage_path: `${userId}/cv.pdf` },
@@ -56,9 +62,10 @@ export default function CvSection({ userId, cvUrl, cvUploadedAt, setCvUrl, setCv
           // ignore parse failure, fall back below
         }
         if (!body) body = data as { error?: string; retryable?: boolean } | null;
+        // Surface the actual server-side message so testers know whether it's
+        // rate-limit, invalid PDF, or something they should retry.
         const msg = body?.error || error.message || "CV parsing failed — please fill manually";
-        if (body?.retryable) toast.error(msg);
-        else toast.error("CV parsing failed — please fill manually");
+        toast.error(msg);
         return;
       }
       const result = data as ParsedCv;
@@ -69,8 +76,10 @@ export default function CvSection({ userId, cvUrl, cvUploadedAt, setCvUrl, setCv
       setParsed(result);
       setReviewOpen(true);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "CV parsing failed — please fill manually");
+      const msg = e instanceof Error ? e.message : "CV parsing failed — please fill manually";
+      toast.error(msg);
     } finally {
+      clearTimeout(timeoutId);
       setParsing(false);
     }
   };

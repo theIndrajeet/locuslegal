@@ -41,8 +41,8 @@ export default function CompareBar({ selected, onRemove, onClear }: CompareBarPr
 
   return (
     <>
-      {/* Sticky bottom bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-md border-t border-border shadow-2xl animate-fade-in">
+      {/* Sticky bottom bar — data attribute lets MobileBottomDock detect & yield */}
+      <div data-compare-bar="true" className="fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-md border-t border-border shadow-2xl animate-fade-in">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 flex-wrap min-w-0">
             <span className="text-sm font-medium text-muted-foreground shrink-0">Compare:</span>
