@@ -136,6 +136,7 @@ export default function Vacancies() {
           sector: null,
           practice_areas: null,
           legal_needs: v.description,
+          roleHint: v.role,
           followup:
             draftFor.followup && existing
               ? {
