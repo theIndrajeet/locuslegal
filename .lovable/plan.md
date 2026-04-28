@@ -1,51 +1,55 @@
-# Fix: Home button flashes marketing page → black screen → dashboard for logged-in users
+# Fix the Home glitch on mobile dock too
 
-## What's happening
+## What the recording shows
 
-When a logged-in user clicks **Home** in the navbar, they see three states in quick succession:
+The video is from the published site (`locus.legal`) on mobile. Sequence:
+1. Dashboard at `/app`.
+2. User taps the **Home** icon in the bottom mobile dock.
+3. Marketing page renders fully ("Get the internship you deserve…", waitlist buttons).
+4. Brief blank/skeleton state.
+5. Dashboard renders.
 
-1. The marketing landing page (intended for logged-out visitors) — a "for ~1 second" flash.
-2. A black/blank screen.
-3. The actual logged-in dashboard at `/app`.
+So the glitch is still present on mobile.
 
-## Root cause
+## Why my last fix didn't cover this
 
-Two design choices currently combine to produce the glitch:
+The previous fix retargeted the **desktop Navbar** "Home" link (and the brand logo) to `/app` when the user is logged in, plus added `/app` chunk prefetch in `Index.tsx`. That works for desktop and for any redirect-from-`/` flow.
 
-- **Navbar "Home" link always points to `/`** for everyone, logged in or not (`src/components/Navbar.tsx`).
-- **`/` (Index page) defers the auth check** behind `requestIdleCallback` with up to a 4-second timeout (`src/pages/Index.tsx` → `DeferredAuthRedirect`). This was done intentionally to keep the Supabase chunk out of the home page's first paint for anonymous visitors. The trade-off is that returning logged-in users:
-  1. See the marketing hero render first (flash 1).
-  2. Then idle-time fires, auth resolves, and `navigate("/app")` runs.
-  3. `/app` is `React.lazy`-loaded → its chunk hasn't downloaded yet → blank screen (flash 2).
-  4. Dashboard finally renders (final state).
+But the mobile bottom dock (`src/components/MobileBottomDock.tsx`) — which is what the user actually taps on phones — still hardcodes Home → `/`:
 
-So the glitch is by design for cold visitors, but it's wrong for users who are already authenticated.
+```ts
+const ALL_NAV: NavItem[] = [
+  { to: "/", icon: Home, label: "Home" },
+  ...
+];
+```
+
+So mobile users tapping Home still hit `/`, see the marketing flash, then get redirected to `/app` after the deferred auth check fires. Same triple-state glitch.
 
 ## Fix
 
-Two small, complementary changes:
+Make the dock auth-aware too. The dock is already lazy-loaded (`Layout.tsx` wraps it in `Suspense`), so importing `useAuthSession` here is free for the home critical bundle.
 
-### 1. Make the Navbar "Home" link auth-aware
-In `src/components/Navbar.tsx`, when the cached auth session shows the user is logged in, the **Home** link should point to `/app` instead of `/`. The auth state is already cached at module scope by `useAuthSession`, so reading it is free and adds no Supabase weight to first paint (the navbar already lazy-loads `ProfileMenu`, which pulls Supabase the same way).
+### Change 1 — `src/components/MobileBottomDock.tsx`
+1. Import `useAuthSession`.
+2. Inside the component, read `userId` from the hook.
+3. Replace the hardcoded `ALL_NAV` Home entry with a derived list where the Home item's `to` is `/app` when `userId` is truthy, else `/`.
+4. Update `getActiveKey` so `/app` matches the Home pill (so the Home icon stays highlighted on the dashboard for logged-in users — it currently matches `/` only).
+5. Prefetch `/app` once we know the user is logged in (mirrors the Navbar fix).
 
-To preserve the home-page bundle optimization for cold loads, we won't import `useAuthSession` eagerly. Instead, we'll use the same deferred-import pattern already used by `Index.tsx` and `AdminNavLink.tsx`: render the link as `/` initially, then swap to `/app` once the session hook has loaded and confirms a user.
+### Change 2 — verify no regressions
+- `getContextAction` already handles `/app` (returns `"log"`), so the contextual "+ Log" pill still appears on the dashboard. No change needed there.
+- The `pathname === "/"` checks for hiding the dock and computing `scrolledPastHero` are still correct because anonymous users on `/` are unaffected.
 
-This means:
-- Anonymous visitors: link stays at `/` (no behavior change, no extra JS on first paint).
-- Logged-in users: after the idle import (which is already happening because of `ProfileMenu`), the Home link silently retargets to `/app`. Clicking it goes straight to the dashboard.
+## Result
 
-### 2. Eager-prefetch `/app` for authenticated users
-In `src/pages/Index.tsx`, when `DeferredAuthRedirect` discovers a session, kick off `prefetchRoute("/app")` **before** calling `navigate("/app")`. This guarantees the dashboard chunk is already in cache by the time the redirect fires, eliminating the black-screen flash (flash 2) for any user who still lands on `/` while logged in (e.g. typing the URL, external link, browser back button).
+Logged-in mobile user taps Home in the dock → goes directly to `/app`, dashboard chunk already prefetched, no marketing flash, no skeleton.
 
-`prefetchRoute` already exists in `src/lib/prefetch.ts` and shares its module promise with `React.lazy`, so this is a one-line addition with no duplicate downloads.
-
-### Result
-- **Logged-in user clicks Home** → goes directly to `/app`, dashboard chunk is already prefetched, single clean transition. No marketing flash, no black screen.
-- **Anonymous user clicks Home** → no change, marketing page renders instantly with zero Supabase in the critical bundle.
-- **Logged-in user lands on `/` directly** (URL, bookmark) → still sees a brief landing render (unavoidable without shipping Supabase in the critical bundle), but the redirect to `/app` is now seamless because the chunk is prefetched.
+Anonymous mobile user taps Home → still goes to `/`, no behavior change.
 
 ## Files to edit
-- `src/components/Navbar.tsx` — deferred-import `useAuthSession`, conditionally retarget the Home link to `/app` when a session exists.
-- `src/pages/Index.tsx` — in `AuthRedirectInner`, call `prefetchRoute("/app")` as soon as a session is detected, before `navigate`.
+- `src/components/MobileBottomDock.tsx` — auth-aware Home target + prefetch + active-key match for `/app`.
 
-No new dependencies, no DB or auth changes, no impact on the cold-visitor bundle.
+## Important note about the recording
+
+The video was recorded on `locus.legal` (the published site). My previous fix is in the **preview** build only. **The published site will continue to show the glitch until you click Publish to push the latest preview live.** After this dock fix, both the desktop and mobile flows will be glitch-free in the preview, then publishing rolls it out to `locus.legal`.

@@ -15,9 +15,13 @@ import {
 } from "lucide-react";
 import { prefetchRoute } from "@/lib/prefetch";
 import { useCommandPalette } from "@/components/search/useCommandPalette";
+import { useAuthSession } from "@/hooks/useAuthSession";
 
 type NavItem = { to: string; label: string; icon: LucideIcon };
 
+// The Home item's `to` is overridden at render-time to `/app` for logged-in
+// users so tapping Home from any other route goes straight to the dashboard
+// instead of flashing the marketing page through the deferred-redirect path.
 const ALL_NAV: NavItem[] = [
   { to: "/", icon: Home, label: "Home" },
   { to: "/directory", icon: Building2, label: "Directory" },
