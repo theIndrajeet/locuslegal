@@ -1,20 +1,34 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import { usePageMeta } from "@/hooks/usePageMeta";
-import { Search, Building2, MapPin, Star, Phone, Mail, X, ArrowUpDown, LayoutGrid, Map as MapIcon, GitCompareArrows, Trophy, ArrowRight } from "lucide-react";
+import { Search, Building2, MapPin, Star, Phone, Mail, X, ArrowUpDown, LayoutGrid, Map as MapIcon, GitCompareArrows, Trophy, ArrowRight, Rocket, Globe, Users, Scale } from "lucide-react";
 import { Link } from "react-router-dom";
 import firms from "@/data/firms.json";
+import startupsData from "@/data/startups.json";
 import FirmDrawer from "@/components/FirmDrawer";
 import CompareBar from "@/components/CompareBar";
 import DirectoryMap from "@/components/DirectoryMap";
+import StartupDrawer, { type Startup } from "@/components/StartupDrawer";
+
+const startups = startupsData as Startup[];
 
 const allCities = [...new Set(firms.map((f) => f.city).filter(Boolean))].sort();
 const allAreas = [...new Set(firms.map((f) => f.area).filter(Boolean))].sort();
 const allTiers = [...new Set(firms.map((f) => f.tier).filter(Boolean))].sort();
 
+// Startup filter facets (precomputed once at module load for snappy filtering)
+const startupCities = [...new Set(startups.map((s) => s.city).filter(Boolean) as string[])].sort();
+const startupSectors = [...new Set(startups.map((s) => s.sector).filter(Boolean) as string[])].sort();
+const startupStages = [...new Set(startups.map((s) => s.stage).filter(Boolean) as string[])].sort();
+const startupSizes = [
+  "11-50", "51-100", "101-200", "201-500", "501-1000", "1001-5000", "5001-10000", "10000+",
+].filter((sz) => startups.some((s) => s.employees === sz));
+
 const PAGE_SIZE = 30;
 
 type FirmType = "Law Firm" | "Chamber" | "Individual Advocate";
 type SortOption = "relevance" | "rating-desc" | "name-asc" | "name-desc" | "tier";
+type Mode = "firms" | "startups";
 
 const typeFilters: { label: string; value: FirmType | "" }[] = [
   { label: "All", value: "" },
@@ -41,6 +55,19 @@ function getType(firm: (typeof firms)[0]): FirmType {
 
 export default function Directory() {
   usePageMeta({ title: "Firm Directory", description: "Browse 500+ verified law firms, chambers, and advocates across India. Filter by city, practice area, and tier.", path: "/directory" });
+
+  // Mode (URL-synced)
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialMode: Mode = searchParams.get("mode") === "startups" ? "startups" : "firms";
+  const [mode, setMode] = useState<Mode>(initialMode);
+  useEffect(() => {
+    const next = new URLSearchParams(searchParams);
+    if (mode === "startups") next.set("mode", "startups");
+    else next.delete("mode");
+    setSearchParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode]);
+
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [city, setCity] = useState("");
@@ -51,11 +78,23 @@ export default function Directory() {
   const [page, setPage] = useState(1);
   const [view, setView] = useState<"grid" | "map">("grid");
 
+  // Startup-specific filters
+  const [sCity, setSCity] = useState("");
+  const [sSector, setSSector] = useState("");
+  const [sStage, setSStage] = useState("");
+  const [sSize, setSSize] = useState("");
+  const [sLegal, setSLegal] = useState<"" | "yes" | "no">("");
+
+  // Reset page on mode switch
+  useEffect(() => { setPage(1); setView("grid"); }, [mode]);
+
   // Drawer
   const [drawerFirm, setDrawerFirm] = useState<(typeof firms)[0] | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerStartup, setDrawerStartup] = useState<Startup | null>(null);
+  const [startupDrawerOpen, setStartupDrawerOpen] = useState(false);
 
-  // Compare
+  // Compare (firms only)
   const [compareList, setCompareList] = useState<(typeof firms)[0][]>([]);
 
   // Debounced search
@@ -152,22 +191,86 @@ export default function Directory() {
     });
   }, []);
 
+  // ===== Startup filtering =====
+  const startupFiltered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return startups.filter((s) => {
+      if (q && !s.name.toLowerCase().includes(q) && !(s.sector ?? "").toLowerCase().includes(q)) return false;
+      if (sCity && s.city !== sCity) return false;
+      if (sSector && s.sector !== sSector) return false;
+      if (sStage && s.stage !== sStage) return false;
+      if (sSize && s.employees !== sSize) return false;
+      if (sLegal && (s.hasLegalDept ?? "").toLowerCase() !== sLegal) return false;
+      return true;
+    });
+  }, [search, sCity, sSector, sStage, sSize, sLegal]);
+
+  const startupSorted = useMemo(() => {
+    const arr = [...startupFiltered];
+    switch (sort) {
+      case "name-asc": return arr.sort((a, b) => a.name.localeCompare(b.name));
+      case "name-desc": return arr.sort((a, b) => b.name.localeCompare(a.name));
+      default: return arr;
+    }
+  }, [startupFiltered, sort]);
+
+  const startupTotalPages = Math.ceil(startupSorted.length / PAGE_SIZE);
+  const startupPaginated = startupSorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  // Reset page when startup filters change
+  useEffect(() => { setPage(1); }, [search, sCity, sSector, sStage, sSize, sLegal]);
+
+  // Active filter chips for startups
+  const startupActiveFilters: { label: string; key: string; clear: () => void }[] = [];
+  if (sCity) startupActiveFilters.push({ label: `City: ${sCity}`, key: "sCity", clear: () => setSCity("") });
+  if (sSector) startupActiveFilters.push({ label: `Sector: ${sSector}`, key: "sSector", clear: () => setSSector("") });
+  if (sStage) startupActiveFilters.push({ label: `Stage: ${sStage}`, key: "sStage", clear: () => setSStage("") });
+  if (sSize) startupActiveFilters.push({ label: `Size: ${sSize}`, key: "sSize", clear: () => setSSize("") });
+  if (sLegal) startupActiveFilters.push({ label: sLegal === "yes" ? "Has legal team" : "No legal team", key: "sLegal", clear: () => setSLegal("") });
+
+  const clearAllStartups = useCallback(() => {
+    setSearchInput(""); setSCity(""); setSSector(""); setSStage(""); setSSize(""); setSLegal(""); setSort("relevance");
+  }, []);
+
   const selectClass =
     "bg-card border border-border rounded-lg px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent/50 transition-colors";
 
   return (
     <main className="pt-24 pb-16">
       {/* Hero */}
-      <section className="container mx-auto px-4 md:px-8 mb-12 text-center">
+      <section className="container mx-auto px-4 md:px-8 mb-8 text-center">
         <h1 className="font-heading text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight mb-4">
           Find Firms, Chambers{" "}
           <span className="text-accent">&amp; Companies</span>
         </h1>
-        <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-          Explore {firms.length.toLocaleString()} law firms, chambers, and legal practices across India.
+        <p className="text-muted-foreground text-lg max-w-2xl mx-auto mb-6">
+          {mode === "firms"
+            ? `Explore ${firms.length.toLocaleString()} law firms, chambers, and legal practices across India.`
+            : `Browse ${startups.length.toLocaleString()} startups & SMEs hiring legal talent across India.`}
         </p>
+
+        {/* Mode toggle */}
+        <div className="inline-flex items-center bg-card border border-border rounded-full p-1">
+          <button
+            onClick={() => setMode("firms")}
+            className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-full transition-all ${
+              mode === "firms" ? "bg-accent text-accent-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Building2 size={14} /> Law Firms
+          </button>
+          <button
+            onClick={() => setMode("startups")}
+            className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-full transition-all ${
+              mode === "startups" ? "bg-accent text-accent-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Rocket size={14} /> Startups &amp; SMEs
+          </button>
+        </div>
       </section>
 
+      {mode === "firms" && (<>
       {/* Bar leaderboard callout */}
       <section className="container mx-auto px-4 md:px-8 mb-6">
         <Link
@@ -408,6 +511,139 @@ export default function Directory() {
           </>
         )}
       </section>
+      </>)}
+
+      {/* ===== Startups & SMEs branch ===== */}
+      {mode === "startups" && (<>
+        <section className="container mx-auto px-4 md:px-8 mb-6">
+          <div className="bg-card/60 backdrop-blur-sm border border-border/50 rounded-2xl p-4 md:p-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+              <div className="relative lg:col-span-2">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
+                <input
+                  type="text"
+                  placeholder="Search by company or sector..."
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  className="w-full bg-card border border-border rounded-lg pl-9 pr-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent/50 transition-colors"
+                />
+              </div>
+              <select value={sCity} onChange={(e) => setSCity(e.target.value)} className={selectClass}>
+                <option value="">All Cities</option>
+                {startupCities.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+              <select value={sSector} onChange={(e) => setSSector(e.target.value)} className={selectClass}>
+                <option value="">All Sectors</option>
+                {startupSectors.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+              <select value={sStage} onChange={(e) => setSStage(e.target.value)} className={selectClass}>
+                <option value="">All Stages</option>
+                {startupStages.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+              <select value={sSize} onChange={(e) => setSSize(e.target.value)} className={selectClass}>
+                <option value="">Any Team Size</option>
+                {startupSizes.map((sz) => <option key={sz} value={sz}>{sz} employees</option>)}
+              </select>
+              <select value={sLegal} onChange={(e) => setSLegal(e.target.value as "" | "yes" | "no")} className={selectClass}>
+                <option value="">Legal Team: Any</option>
+                <option value="yes">Has in-house legal team</option>
+                <option value="no">No in-house legal team</option>
+              </select>
+            </div>
+            {startupActiveFilters.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2 mt-4 animate-fade-in">
+                {startupActiveFilters.map((af) => (
+                  <span key={af.key} className="inline-flex items-center gap-1.5 bg-accent/10 text-accent text-xs font-medium px-3 py-1.5 rounded-full">
+                    {af.label}
+                    <button onClick={af.clear} className="hover:text-foreground transition-colors">
+                      <X size={12} />
+                    </button>
+                  </span>
+                ))}
+                <button onClick={clearAllStartups} className="text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 underline underline-offset-2">
+                  Clear all
+                </button>
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section className="container mx-auto px-4 md:px-8 mb-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-muted-foreground">
+              <span className="font-semibold text-foreground">{startupSorted.length.toLocaleString()}</span> startups &amp; SMEs
+            </p>
+            <div className="flex items-center gap-1.5">
+              <ArrowUpDown size={14} className="text-muted-foreground" />
+              <select value={sort} onChange={(e) => setSort(e.target.value as SortOption)} className="bg-transparent border-none text-sm text-foreground focus:outline-none cursor-pointer">
+                <option value="relevance">Relevance</option>
+                <option value="name-asc">Name (A → Z)</option>
+                <option value="name-desc">Name (Z → A)</option>
+              </select>
+            </div>
+          </div>
+        </section>
+
+        <section className="container mx-auto px-4 md:px-8">
+          {startupSorted.length === 0 ? (
+            <div className="text-center py-20 text-muted-foreground">
+              <Rocket className="mx-auto mb-4 opacity-40" size={48} />
+              <p className="text-lg">No startups match your filters.</p>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {startupPaginated.map((s, i) => (
+                  <div
+                    key={`${s.name}-${i}`}
+                    className="group bg-card border border-border/50 rounded-2xl p-6 hover:border-accent/40 hover:shadow-lg hover:shadow-accent/5 transition-all duration-300 cursor-pointer animate-fade-in"
+                    style={{ animationDelay: `${Math.min(i * 30, 300)}ms`, animationFillMode: "both" }}
+                    onClick={() => { setDrawerStartup(s); setStartupDrawerOpen(true); }}
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-3">
+                      <h3 className="font-heading text-base font-bold leading-tight group-hover:text-accent transition-colors line-clamp-2">{s.name}</h3>
+                      {s.hasLegalDept?.toLowerCase() === "yes" && (
+                        <span className="flex items-center gap-1 text-[10px] font-semibold bg-secondary text-secondary-foreground px-2 py-1 rounded-full whitespace-nowrap shrink-0">
+                          <Scale size={10} /> Legal
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {s.stage && <span className="text-[11px] font-medium bg-secondary text-secondary-foreground px-2 py-0.5 rounded-full">{s.stage}</span>}
+                      {s.sector && <span className="text-[11px] font-medium bg-accent/10 text-accent px-2 py-0.5 rounded-full">{s.sector}</span>}
+                    </div>
+                    {s.legalNeeds && (
+                      <p className="text-xs text-muted-foreground mb-3 line-clamp-2 leading-relaxed">{s.legalNeeds}</p>
+                    )}
+                    <div className="flex flex-col gap-1.5 mt-auto pt-2 border-t border-border/30">
+                      {s.city && (
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground"><MapPin size={12} className="shrink-0" /><span>{s.city}</span></div>
+                      )}
+                      {s.employees && (
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground"><Users size={12} className="shrink-0" /><span>{s.employees}</span></div>
+                      )}
+                      {s.website && (
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground"><Globe size={12} className="shrink-0" /><span className="truncate">{s.website}</span></div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {startupTotalPages > 1 && (
+                <div className="flex items-center justify-center gap-2 mt-10">
+                  <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="px-4 py-2 text-sm font-medium rounded-lg bg-card border border-border hover:bg-accent hover:text-accent-foreground transition-colors disabled:opacity-30 disabled:cursor-not-allowed">Previous</button>
+                  <span className="text-sm text-muted-foreground px-3">Page {page} of {startupTotalPages}</span>
+                  <button onClick={() => setPage((p) => Math.min(startupTotalPages, p + 1))} disabled={page === startupTotalPages} className="px-4 py-2 text-sm font-medium rounded-lg bg-card border border-border hover:bg-accent hover:text-accent-foreground transition-colors disabled:opacity-30 disabled:cursor-not-allowed">Next</button>
+                </div>
+              )}
+            </>
+          )}
+        </section>
+      </>)}
+
 
       {/* Firm detail drawer */}
       <FirmDrawer
@@ -415,6 +651,13 @@ export default function Directory() {
         type={drawerFirm ? getType(drawerFirm) : "Law Firm"}
         open={drawerOpen}
         onOpenChange={setDrawerOpen}
+      />
+
+      {/* Startup detail drawer */}
+      <StartupDrawer
+        startup={drawerStartup}
+        open={startupDrawerOpen}
+        onOpenChange={setStartupDrawerOpen}
       />
 
       {/* Compare bar */}

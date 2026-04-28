@@ -1,6 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 
-export type ResultKind = "firm" | "guide" | "tool" | "resource" | "page";
+export type ResultKind = "firm" | "startup" | "guide" | "tool" | "resource" | "page";
 
 export type SearchResult = {
   id: string;

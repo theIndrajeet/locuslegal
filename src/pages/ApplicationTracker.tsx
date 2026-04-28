@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Plus, Search, Briefcase } from "lucide-react";
 import { differenceInDays, parseISO } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
@@ -51,6 +51,8 @@ export default function ApplicationTracker() {
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<App | null>(null);
+  const [prefill, setPrefill] = useState<{ firm?: string | null; role?: string | null; notes?: string | null }>({});
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Auth
   useEffect(() => {
@@ -92,6 +94,24 @@ export default function ApplicationTracker() {
     if (authReady && userId) refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authReady, userId]);
+
+  // Prefill from query params (e.g. from Directory startup drawer)
+  useEffect(() => {
+    if (!authReady) return;
+    const firm = searchParams.get("logFirm");
+    if (!firm) return;
+    setEditing(null);
+    setPrefill({
+      firm,
+      role: searchParams.get("logRole"),
+      notes: searchParams.get("logNotes"),
+    });
+    setDialogOpen(true);
+    // strip params so it doesn't re-trigger
+    const next = new URLSearchParams(searchParams);
+    ["logFirm", "logRole", "logNotes"].forEach((k) => next.delete(k));
+    setSearchParams(next, { replace: true });
+  }, [authReady, searchParams, setSearchParams]);
 
   // Stats
   const stats = useMemo(() => {
@@ -279,10 +299,13 @@ export default function ApplicationTracker() {
       {userId && (
         <LogApplicationDialog
           open={dialogOpen}
-          onOpenChange={setDialogOpen}
+          onOpenChange={(o) => { setDialogOpen(o); if (!o) setPrefill({}); }}
           userId={userId}
           editing={editing}
           onSaved={refresh}
+          prefillFirm={prefill.firm}
+          prefillRole={prefill.role}
+          prefillNotes={prefill.notes}
         />
       )}
     </div>
