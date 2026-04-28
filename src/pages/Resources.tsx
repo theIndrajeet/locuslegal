@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { FileText, Download, ScanSearch, CalendarCheck, Eye, ArrowRight, Pin } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useFeatureVotes } from "@/hooks/useFeatureVotes";
 import { FeatureVoteButton } from "@/components/FeatureVoteButton";
 import {
@@ -123,8 +123,21 @@ const resources = [
 export default function Resources() {
   usePageMeta({ title: "Resources", description: "CV templates, cold email scripts, trackers, and mentorship for law students building their legal career in India.", path: "/resources" });
   const [previewResource, setPreviewResource] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
   const { voteCounts, hasVoted, toggleVote } = useFeatureVotes();
   const activeResource = resources.find((r) => r.hasPreview && r.previewKey === previewResource);
+
+  // Honor ?open=<previewKey> from global search
+  useEffect(() => {
+    const openKey = searchParams.get("open");
+    if (!openKey) return;
+    const match = resources.find((r) => r.hasPreview && r.previewKey === openKey);
+    if (match) setPreviewResource(openKey);
+    // Strip the query param so refresh doesn't re-open
+    const next = new URLSearchParams(searchParams);
+    next.delete("open");
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   return (
     <main className="pt-24 pb-16">
