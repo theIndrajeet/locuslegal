@@ -20,6 +20,8 @@ export interface DraftEmailTarget {
   sector?: string | null;
   practice_areas?: string | null;
   legal_needs?: string | null;
+  // Optional: pre-fill brief.role with the canonical role from the source (e.g. vacancy).
+  roleHint?: string | null;
   // When set, switches the dialog into "follow-up" mode.
   followup?: {
     originalAppliedOn: string; // ISO date
@@ -312,7 +314,7 @@ export default function DraftEmailDialog({ open, onOpenChange, target, onSent }:
     } else {
       setBrief({
         fit_reason: null,
-        role: "Legal Internship",
+        role: target.roleHint?.trim() || "Legal Internship",
         availability: null,
         availability_custom: "",
         duration: null,
@@ -500,7 +502,7 @@ export default function DraftEmailDialog({ open, onOpenChange, target, onSent }:
           .insert({
             user_id: userId,
             firm_name_snapshot: target.name,
-            role: brief.role,
+            role: (target.roleHint?.trim() || brief.role),
             applied_on: today,
             method: "email",
             status: "sent",

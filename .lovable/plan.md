@@ -1,63 +1,33 @@
-## Goal
+# Fix: Vacancy card stays "Draft application" after applying
 
-When a signed-in user applies to a vacancy, the card should immediately reflect that state (color + "Applied" marker), the action button should disable itself for **3 days**, and after 72 hours auto-reactivate as **"Draft follow-up"** — generating a polite, AI-written follow-up email referencing the original application.
+## What's actually broken
 
-## Behavior
+I checked the database. The Lexmanus vacancy has `role = "Legal Intern"`, but your two logged applications have `role = "Legal Internship"`. The matching logic in `src/pages/Vacancies.tsx` requires **both** firm name AND role to match exactly, so the card never finds the application and stays in the `idle` state — that's why the UI doesn't change after you apply.
 
-```text
-[Apply] -> click & send email -> [Applied · awaiting reply]   (3 days, disabled)
-                                          |
-                                72 hrs later
-                                          v
-                                 [Draft follow-up]   (re-enabled, accent border)
-                                          |
-                                 click -> follow-up email draft
-                                          v
-                              [Followed up · 7 May]   (terminal pill)
-```
+Two things caused this:
 
-A user can always still re-apply / re-draft from inside the dialog — we only gate the **card's primary CTA** to prevent accidental duplicate cold emails.
+1. The Brief Builder lets the user edit the role free-text. When you drafted, the role got typed as "Legal Internship" instead of the vacancy's "Legal Intern".
+2. The vacancy's actual role is never passed into the dialog as a hint, so the AI/user starts from a blank-ish guess.
 
-## Changes
+## The fix
 
-### 1. Per-user vacancy application lookup (`src/pages/Vacancies.tsx`)
+**1. `src/components/apply/DraftEmailDialog.tsx` — `DraftEmailTarget`**
+- Add an optional `roleHint?: string | null` field on the target.
+- When the brief is initialised (or when followup mode runs), prefer `target.roleHint` over a blank/auto guess so the logged role matches the vacancy.
+- When inserting into `profile_applications`, also store the vacancy's role verbatim (use `target.roleHint ?? brief.role`) so future matches are exact.
 
-- After loading vacancies, if `userId` is present, fetch the user's `profile_applications` rows whose `firm_name_snapshot` matches any loaded vacancy's `firm_name`. Build a `Map<vacancyId, { appliedOn: string; lastFollowupOn: string | null }>` keyed by vacancy id (matched on firm_name + role).
-- Pass this map down to each `VacancyCard` as a new `application` prop.
-- Re-fetch (or optimistically update) after the dialog closes so the card transitions instantly.
+**2. `src/pages/Vacancies.tsx`**
+- Pass `roleHint: v.role` into the `draftTarget` so the draft starts from the correct role string.
+- Loosen the matching in `refreshApplications`: match **by firm name only** when there's a single live vacancy from that firm; otherwise prefer exact role match, then fall back to a normalized contains match (`"legal intern"` ⊂ `"legal internship"`). This handles both the existing bad rows and any future drift.
 
-### 2. `VacancyCard` state-driven CTA (`src/components/vacancies/VacancyCard.tsx`)
+**3. One-time data heal (no migration, just a normalization helper)**
+- In the matching loop, after firm match, normalize both sides by lowercasing and stripping the suffix `"ship"`/`"s"` so `"Legal Internship"` ↔ `"Legal Intern"` resolves. This is a pure client-side compare, no DB write.
 
-Add `application?: { appliedOn: string; lastFollowupOn: string | null }` prop. Compute one of three states:
+## What you'll see after the fix
 
-- **`idle`** — no application logged → existing yellow "Draft application" button.
-- **`applied`** — applied within last 3 days (and no follow-up since) → button **disabled**, label "Applied · follow up in N day(s)", green check icon, card gets a soft accent ring (`border-accent/60 bg-accent/5`) instead of the bold yellow shadow.
-- **`followup_ready`** — 3+ days since last apply/follow-up → button re-enabled, label "Draft follow-up", uses an outlined accent style + `Mail` icon. Clicking calls `onApply(v, { followup: true })`.
-- **`followed_up`** — follow-up sent within last 3 days → disabled, label "Followed up · {date}".
+- The Lexmanus card immediately flips to the "applied" treatment (accent ring, accent-tinted background, soft accent shadow) with the pill **"✓ Applied 28 Apr"** in the footer.
+- The button becomes a disabled accent-outlined chip: **"✓ Follow up in 3d"**.
+- After 3 days, that same button re-enables as **"⟲ Draft follow-up"** (white-on-yellow neobrutalist style) and opens the dialog directly into followup mode — no Brief Builder wizard, just the AI-generated 60–90 word nudge.
+- The vacancy stays on the page (not hidden, not removed) — only the visual state changes.
 
-### 3. Follow-up draft mode in `DraftEmailDialog`
-
-- Extend `DraftEmailTarget` with optional `followup?: { originalAppliedOn: string; originalRole: string }`.
-- When `followup` is set:
-  - Skip the multi-step brief wizard — open directly to the generated draft.
-  - Auto-call `generate()` on open with a new payload flag `mode: "followup"`.
-  - On send, log a **new** `profile_applications` row only if not already present, OR (preferred) update the existing row's `notes` with a `\n\n--- Follow-up sent on YYYY-MM-DD ---\n` block and bump `status_updated_at` (DB trigger handles `status_updated_at` on status change; we also explicitly stamp it). We use `status = 'sent'` still and store the follow-up timestamp inside `notes` since the schema has no dedicated column.
-
-### 4. Edge function (`supabase/functions/draft-application-email/index.ts`)
-
-- Accept new optional `mode: "initial" | "followup"` and `original?: { applied_on: string; role: string }` in body schema.
-- When `mode === "followup"`, swap the system prompt to instruct the model to write a **short, polite, 3-sentence follow-up** that:
-  - References the original email date and role naturally ("I wrote to you on …")
-  - Reiterates interest in one line
-  - Offers to share additional materials
-  - Avoids re-pitching the full CV
-- Return the same `{ subject, body }` shape so the existing UI just renders.
-
-### 5. Detection helper (`src/lib/vacancies.ts`)
-
-Add a small util `applicationStateFor(vacancy, app, now)` returning `'idle' | 'applied' | 'followup_ready' | 'followed_up'` and `daysUntilFollowup` so the card and any future surfaces share the same logic.
-
-## Out of scope
-
-- No new database columns or migrations — we reuse `profile_applications.notes` to record follow-up timestamps and match by `firm_name_snapshot + role`. (If we later want richer follow-up history, we'd add a `profile_application_followups` table.)
-- The Application Tracker page's pill stays as `sent` — only the Vacancies card surfaces the follow-up state. We can extend the tracker in a follow-up task if you want.
+No DB changes, no new migrations. Pure UI + matching-logic patch.
