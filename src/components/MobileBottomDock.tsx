@@ -4,6 +4,7 @@ import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import {
   Home,
   Building2,
+  Briefcase,
   BookOpen,
   Library,
   Wrench,
@@ -25,6 +26,7 @@ type NavItem = { to: string; label: string; icon: LucideIcon };
 const ALL_NAV: NavItem[] = [
   { to: "/", icon: Home, label: "Home" },
   { to: "/directory", icon: Building2, label: "Directory" },
+  { to: "/vacancies", icon: Briefcase, label: "Vacancies" },
   { to: "/playbook", icon: BookOpen, label: "Playbook" },
   { to: "/resources", icon: Library, label: "Resources" },
   { to: "/tools", icon: Wrench, label: "Tools" },

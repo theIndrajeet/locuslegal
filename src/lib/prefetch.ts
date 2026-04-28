@@ -29,6 +29,8 @@ export const routeImports = {
   applicationTracker: () => import("@/pages/ApplicationTracker"),
   betaChecklist: () => import("@/pages/BetaChecklist"),
   adminBeta: () => import("@/pages/AdminBeta"),
+  vacancies: () => import("@/pages/Vacancies"),
+  adminVacancies: () => import("@/pages/AdminVacancies"),
   notFound: () => import("@/pages/NotFound"),
 } satisfies Record<string, Importer>;
 
@@ -56,6 +58,8 @@ const pathToKey: Array<[RegExp, keyof typeof routeImports]> = [
   [/^\/admin\/waitlist/, "adminWaitlist"],
   [/^\/admin\/bar/, "adminBar"],
   [/^\/admin\/beta/, "adminBeta"],
+  [/^\/admin\/vacancies/, "adminVacancies"],
+  [/^\/vacancies/, "vacancies"],
   [/^\/applications/, "applicationTracker"],
   [/^\/beta/, "betaChecklist"],
 ];
