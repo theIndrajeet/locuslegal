@@ -584,7 +584,7 @@ export default function DraftEmailDialog({ open, onOpenChange, target, onSent }:
           </div>
 
           {/* Brief Builder Stepper */}
-          {!hasDraft && (
+          {!hasDraft && !isFollowup && (
             <div className="rounded-lg border-2 border-border bg-muted/20 p-3 space-y-3 shadow-[3px_3px_0_0_hsl(var(--border))]">
               {/* Progress indicator */}
               <div className="flex items-center gap-1.5">
