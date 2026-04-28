@@ -200,11 +200,20 @@ export default function DraftEmailDialog({ open, onOpenChange, target }: Props) 
   const [user, setUser] = useState<UserContext | null>(null);
   const [loadingUser, setLoadingUser] = useState(false);
   const [tone, setTone] = useState<"formal" | "warm" | "concise">("formal");
-  const [role, setRole] = useState("Legal Internship");
-  const [extraNote, setExtraNote] = useState("");
   const [generating, setGenerating] = useState(false);
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
+  const [step, setStep] = useState(0); // 0..3
+  const [brief, setBrief] = useState<BriefState>({
+    fit_reason: null,
+    role: "Legal Internship",
+    availability: null,
+    availability_custom: "",
+    duration: null,
+    signature_line: "",
+    work_mode: null,
+    highlight_ids: [],
+  });
 
   // Auth gate — redirect when needed.
   useEffect(() => {
