@@ -138,10 +138,10 @@ export default function TwoPillDock() {
               <motion.div
                 key={action}
                 layout
-                initial={{ opacity: 0, y: 12, scale: 0.9 }}
+                initial={{ opacity: 0, y: 8, scale: 0.92 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 12, scale: 0.9 }}
-                transition={{ duration: 0.22, ease: EASE }}
+                exit={{ opacity: 0, y: 8, scale: 0.92 }}
+                transition={MORPH_SPRING}
                 className="pointer-events-auto"
               >
                 <ActionPill kind={action} onSearch={() => setSearchOpen(true)} />
