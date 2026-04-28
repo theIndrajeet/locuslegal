@@ -99,8 +99,8 @@ export default function TwoPillDock() {
                 <motion.div
                   key="full"
                   initial={{ opacity: 0 }}
-                  animate={{ opacity: 1, transition: { delay: 0.08, duration: 0.18 } }}
-                  exit={{ opacity: 0, transition: { duration: 0.1 } }}
+                  animate={{ opacity: 1, transition: { delay: 0.04, duration: 0.12, ease: EASE } }}
+                  exit={{ opacity: 0, transition: { duration: 0.08, ease: EASE } }}
                   className="flex items-center gap-2.5 px-3.5 py-2.5"
                 >
                   {NAV_ITEMS.map(({ key, label, icon: Icon }) => {
