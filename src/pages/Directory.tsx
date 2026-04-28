@@ -94,6 +94,9 @@ export default function Directory() {
   const [drawerStartup, setDrawerStartup] = useState<Startup | null>(null);
   const [startupDrawerOpen, setStartupDrawerOpen] = useState(false);
 
+  // Compare (firms only)
+  const [compareList, setCompareList] = useState<(typeof firms)[0][]>([]);
+
   // Debounced search
   useEffect(() => {
     const t = setTimeout(() => setSearch(searchInput), 200);
