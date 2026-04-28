@@ -320,7 +320,7 @@ function MootTierPill({ tier }: { tier: Moot["tier"] }) {
     national_t2: { tone: "bg-muted text-muted-foreground border-border", label: "National T2" },
     tier3: { tone: "bg-destructive/10 text-destructive border-destructive/30", label: "T3" },
   };
-  return <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded border ${map[tier].tone}`}>{map[tier].label}</span>;
+  return <span className={`inline-block text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded border ${map[tier].tone}`}>{map[tier].label}</span>;
 }
 
 function PubTierPill({ tier }: { tier: Publication["tier"] }) {
@@ -331,7 +331,7 @@ function PubTierPill({ tier }: { tier: Publication["tier"] }) {
     student_blog: { tone: "bg-muted text-muted-foreground border-border", label: "Student Blog" },
     predatory: { tone: "bg-destructive/10 text-destructive border-destructive/30", label: "Predatory" },
   };
-  return <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded border ${map[tier].tone}`}>{map[tier].label}</span>;
+  return <span className={`inline-block text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded border ${map[tier].tone}`}>{map[tier].label}</span>;
 }
 
 function FixCard({ fix }: { fix: Fix }) {
@@ -752,59 +752,115 @@ export default function CvAnalyser() {
           )}
 
           {/* Moots + Publications */}
-          <div className="grid md:grid-cols-2 gap-6">
-            <Card className="border-border">
-              <CardHeader>
-                <CardTitle className="font-heading flex items-center gap-2 text-base">
-                  <Trophy className="h-4 w-4 text-accent" /> Moots
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {analysis.moots.length ? (
-                  <ul className="space-y-3">
-                    {analysis.moots.map((m, i) => (
-                      <li key={i} className="border border-border rounded-lg p-3">
-                        <div className="flex flex-wrap items-center gap-2 mb-1">
-                          <span className="font-medium text-sm">{m.name}</span>
-                          <MootTierPill tier={m.tier} />
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {m.role} · {m.outcome}
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-sm text-muted-foreground italic">No moots detected.</p>
-                )}
-              </CardContent>
-            </Card>
+          {(() => {
+            const hasMoots = analysis.moots.length > 0;
+            const hasPubs = analysis.publications.length > 0;
+            // If only one is populated, give it the full row.
+            const fullWidth = hasMoots !== hasPubs;
+            const gridClass = fullWidth ? "grid grid-cols-1 gap-6" : "grid md:grid-cols-2 gap-6";
 
-            <Card className="border-border">
-              <CardHeader>
-                <CardTitle className="font-heading flex items-center gap-2 text-base">
-                  <BookOpen className="h-4 w-4 text-accent" /> Publications
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {analysis.publications.length ? (
-                  <ul className="space-y-3">
-                    {analysis.publications.map((p, i) => (
-                      <li key={i} className="border border-border rounded-lg p-3">
-                        <div className="flex flex-wrap items-center gap-2 mb-1">
-                          <span className="font-medium text-sm truncate">{p.title}</span>
-                          <PubTierPill tier={p.tier} />
-                        </div>
-                        <div className="text-xs text-muted-foreground">{p.venue}</div>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-sm text-muted-foreground italic">No publications detected.</p>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+            const MootsCard = (
+              <Card className="border-2 border-border">
+                <CardHeader>
+                  <CardTitle className="font-heading flex items-center gap-2 text-sm uppercase tracking-wider">
+                    <Trophy className="h-4 w-4 text-accent" /> Moots
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {hasMoots ? (
+                    <ul className="space-y-2.5">
+                      {analysis.moots.map((m, i) => (
+                        <li
+                          key={i}
+                          className="border-2 border-foreground/15 rounded-xl p-3 bg-card transition-colors hover:border-accent/40"
+                        >
+                          <div className="mb-1.5">
+                            <MootTierPill tier={m.tier} />
+                          </div>
+                          <p className="font-heading text-sm font-semibold leading-snug break-words text-foreground">
+                            {m.name}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {m.role} · {m.outcome}
+                          </p>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-muted-foreground italic py-6 text-center">
+                      No moots detected.
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            );
+
+            const PubsCard = (
+              <Card className="border-2 border-border">
+                <CardHeader>
+                  <CardTitle className="font-heading flex items-center gap-2 text-sm uppercase tracking-wider">
+                    <BookOpen className="h-4 w-4 text-accent" /> Publications
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {hasPubs ? (
+                    <ul className="space-y-2.5">
+                      {analysis.publications.map((p, i) => (
+                        <li
+                          key={i}
+                          className="border-2 border-foreground/15 rounded-xl p-3 bg-card transition-colors hover:border-accent/40"
+                        >
+                          <div className="mb-1.5">
+                            <PubTierPill tier={p.tier} />
+                          </div>
+                          <p className="font-heading text-sm font-semibold leading-snug break-words text-foreground">
+                            {p.title}
+                          </p>
+                          {p.venue && (
+                            <p className="text-xs text-muted-foreground mt-1 break-words">
+                              {p.venue}
+                            </p>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-muted-foreground italic py-6 text-center">
+                      No publications detected.
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            );
+
+            // Both empty → render a single combined empty card
+            if (!hasMoots && !hasPubs) {
+              return (
+                <Card className="border-2 border-border">
+                  <CardHeader>
+                    <CardTitle className="font-heading flex items-center gap-2 text-sm uppercase tracking-wider">
+                      <Trophy className="h-4 w-4 text-accent" /> Moots & Publications
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground italic py-6 text-center">
+                      No moots or publications detected.
+                    </p>
+                  </CardContent>
+                </Card>
+              );
+            }
+
+            return (
+              <div className={gridClass}>
+                {hasMoots && MootsCard}
+                {hasPubs && PubsCard}
+                {/* When both populated, render in original order */}
+                {!hasMoots && !fullWidth && MootsCard}
+                {!hasPubs && !fullWidth && PubsCard}
+              </div>
+            );
+          })()}
 
           {/* Semantic quality */}
           <Card className="border-border">
