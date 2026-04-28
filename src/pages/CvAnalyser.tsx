@@ -331,7 +331,7 @@ function PubTierPill({ tier }: { tier: Publication["tier"] }) {
     student_blog: { tone: "bg-muted text-muted-foreground border-border", label: "Student Blog" },
     predatory: { tone: "bg-destructive/10 text-destructive border-destructive/30", label: "Predatory" },
   };
-  return <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded border ${map[tier].tone}`}>{map[tier].label}</span>;
+  return <span className={`inline-block text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded border ${map[tier].tone}`}>{map[tier].label}</span>;
 }
 
 function FixCard({ fix }: { fix: Fix }) {
