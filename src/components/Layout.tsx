@@ -2,6 +2,7 @@ import { lazy, Suspense } from "react";
 import { Outlet } from "react-router-dom";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
+import BetaBanner from "./BetaBanner";
 
 // Defer the mobile dock — it's a fixed-position overlay that only appears on
 // scroll, so it doesn't need to be in the home-page critical bundle.
@@ -17,6 +18,7 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen">
+      <BetaBanner />
       <Navbar />
       <Outlet />
       <Footer />
