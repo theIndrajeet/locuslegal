@@ -94,6 +94,8 @@ interface Body {
   tone: "formal" | "warm" | "concise";
   extra_note?: string | null;
   brief?: Brief | null;
+  mode?: "initial" | "followup";
+  original?: { applied_on: string; role: string } | null;
   user: {
     display_name: string | null;
     college: string | null;
@@ -166,6 +168,14 @@ function validateBody(b: any): { ok: true; data: Body } | { ok: false; error: st
       tone,
       extra_note: b.extra_note ? String(b.extra_note).slice(0, 300) : null,
       brief: sanitizeBrief(b.brief),
+      mode: b.mode === "followup" ? "followup" : "initial",
+      original:
+        b.original && typeof b.original === "object" && b.original.applied_on
+          ? {
+              applied_on: String(b.original.applied_on).slice(0, 30),
+              role: String(b.original.role ?? "Legal Internship").slice(0, 100),
+            }
+          : null,
       user: {
         display_name: b.user.display_name ? String(b.user.display_name).slice(0, 100) : null,
         college: b.user.college ? String(b.user.college).slice(0, 200) : null,
