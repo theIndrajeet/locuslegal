@@ -511,6 +511,139 @@ export default function Directory() {
           </>
         )}
       </section>
+      </>)}
+
+      {/* ===== Startups & SMEs branch ===== */}
+      {mode === "startups" && (<>
+        <section className="container mx-auto px-4 md:px-8 mb-6">
+          <div className="bg-card/60 backdrop-blur-sm border border-border/50 rounded-2xl p-4 md:p-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+              <div className="relative lg:col-span-2">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
+                <input
+                  type="text"
+                  placeholder="Search by company or sector..."
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  className="w-full bg-card border border-border rounded-lg pl-9 pr-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent/50 transition-colors"
+                />
+              </div>
+              <select value={sCity} onChange={(e) => setSCity(e.target.value)} className={selectClass}>
+                <option value="">All Cities</option>
+                {startupCities.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+              <select value={sSector} onChange={(e) => setSSector(e.target.value)} className={selectClass}>
+                <option value="">All Sectors</option>
+                {startupSectors.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+              <select value={sStage} onChange={(e) => setSStage(e.target.value)} className={selectClass}>
+                <option value="">All Stages</option>
+                {startupStages.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+              <select value={sSize} onChange={(e) => setSSize(e.target.value)} className={selectClass}>
+                <option value="">Any Team Size</option>
+                {startupSizes.map((sz) => <option key={sz} value={sz}>{sz} employees</option>)}
+              </select>
+              <select value={sLegal} onChange={(e) => setSLegal(e.target.value as "" | "yes" | "no")} className={selectClass}>
+                <option value="">Legal Team: Any</option>
+                <option value="yes">Has in-house legal team</option>
+                <option value="no">No in-house legal team</option>
+              </select>
+            </div>
+            {startupActiveFilters.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2 mt-4 animate-fade-in">
+                {startupActiveFilters.map((af) => (
+                  <span key={af.key} className="inline-flex items-center gap-1.5 bg-accent/10 text-accent text-xs font-medium px-3 py-1.5 rounded-full">
+                    {af.label}
+                    <button onClick={af.clear} className="hover:text-foreground transition-colors">
+                      <X size={12} />
+                    </button>
+                  </span>
+                ))}
+                <button onClick={clearAllStartups} className="text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 underline underline-offset-2">
+                  Clear all
+                </button>
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section className="container mx-auto px-4 md:px-8 mb-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-muted-foreground">
+              <span className="font-semibold text-foreground">{startupSorted.length.toLocaleString()}</span> startups &amp; SMEs
+            </p>
+            <div className="flex items-center gap-1.5">
+              <ArrowUpDown size={14} className="text-muted-foreground" />
+              <select value={sort} onChange={(e) => setSort(e.target.value as SortOption)} className="bg-transparent border-none text-sm text-foreground focus:outline-none cursor-pointer">
+                <option value="relevance">Relevance</option>
+                <option value="name-asc">Name (A → Z)</option>
+                <option value="name-desc">Name (Z → A)</option>
+              </select>
+            </div>
+          </div>
+        </section>
+
+        <section className="container mx-auto px-4 md:px-8">
+          {startupSorted.length === 0 ? (
+            <div className="text-center py-20 text-muted-foreground">
+              <Rocket className="mx-auto mb-4 opacity-40" size={48} />
+              <p className="text-lg">No startups match your filters.</p>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {startupPaginated.map((s, i) => (
+                  <div
+                    key={`${s.name}-${i}`}
+                    className="group bg-card border border-border/50 rounded-2xl p-6 hover:border-accent/40 hover:shadow-lg hover:shadow-accent/5 transition-all duration-300 cursor-pointer animate-fade-in"
+                    style={{ animationDelay: `${Math.min(i * 30, 300)}ms`, animationFillMode: "both" }}
+                    onClick={() => { setDrawerStartup(s); setStartupDrawerOpen(true); }}
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-3">
+                      <h3 className="font-heading text-base font-bold leading-tight group-hover:text-accent transition-colors line-clamp-2">{s.name}</h3>
+                      {s.hasLegalDept?.toLowerCase() === "yes" && (
+                        <span className="flex items-center gap-1 text-[10px] font-semibold bg-secondary text-secondary-foreground px-2 py-1 rounded-full whitespace-nowrap shrink-0">
+                          <Scale size={10} /> Legal
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {s.stage && <span className="text-[11px] font-medium bg-secondary text-secondary-foreground px-2 py-0.5 rounded-full">{s.stage}</span>}
+                      {s.sector && <span className="text-[11px] font-medium bg-accent/10 text-accent px-2 py-0.5 rounded-full">{s.sector}</span>}
+                    </div>
+                    {s.legalNeeds && (
+                      <p className="text-xs text-muted-foreground mb-3 line-clamp-2 leading-relaxed">{s.legalNeeds}</p>
+                    )}
+                    <div className="flex flex-col gap-1.5 mt-auto pt-2 border-t border-border/30">
+                      {s.city && (
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground"><MapPin size={12} className="shrink-0" /><span>{s.city}</span></div>
+                      )}
+                      {s.employees && (
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground"><Users size={12} className="shrink-0" /><span>{s.employees}</span></div>
+                      )}
+                      {s.website && (
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground"><Globe size={12} className="shrink-0" /><span className="truncate">{s.website}</span></div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {startupTotalPages > 1 && (
+                <div className="flex items-center justify-center gap-2 mt-10">
+                  <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="px-4 py-2 text-sm font-medium rounded-lg bg-card border border-border hover:bg-accent hover:text-accent-foreground transition-colors disabled:opacity-30 disabled:cursor-not-allowed">Previous</button>
+                  <span className="text-sm text-muted-foreground px-3">Page {page} of {startupTotalPages}</span>
+                  <button onClick={() => setPage((p) => Math.min(startupTotalPages, p + 1))} disabled={page === startupTotalPages} className="px-4 py-2 text-sm font-medium rounded-lg bg-card border border-border hover:bg-accent hover:text-accent-foreground transition-colors disabled:opacity-30 disabled:cursor-not-allowed">Next</button>
+                </div>
+              )}
+            </>
+          )}
+        </section>
+      </>)}
+
 
       {/* Firm detail drawer */}
       <FirmDrawer
