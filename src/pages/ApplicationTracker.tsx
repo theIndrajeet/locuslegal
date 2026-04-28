@@ -51,6 +51,8 @@ export default function ApplicationTracker() {
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<App | null>(null);
+  const [prefill, setPrefill] = useState<{ firm?: string | null; role?: string | null; notes?: string | null }>({});
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Auth
   useEffect(() => {
