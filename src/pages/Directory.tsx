@@ -55,6 +55,19 @@ function getType(firm: (typeof firms)[0]): FirmType {
 
 export default function Directory() {
   usePageMeta({ title: "Firm Directory", description: "Browse 500+ verified law firms, chambers, and advocates across India. Filter by city, practice area, and tier.", path: "/directory" });
+
+  // Mode (URL-synced)
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialMode: Mode = searchParams.get("mode") === "startups" ? "startups" : "firms";
+  const [mode, setMode] = useState<Mode>(initialMode);
+  useEffect(() => {
+    const next = new URLSearchParams(searchParams);
+    if (mode === "startups") next.set("mode", "startups");
+    else next.delete("mode");
+    setSearchParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode]);
+
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [city, setCity] = useState("");
@@ -65,12 +78,21 @@ export default function Directory() {
   const [page, setPage] = useState(1);
   const [view, setView] = useState<"grid" | "map">("grid");
 
+  // Startup-specific filters
+  const [sCity, setSCity] = useState("");
+  const [sSector, setSSector] = useState("");
+  const [sStage, setSStage] = useState("");
+  const [sSize, setSSize] = useState("");
+  const [sLegal, setSLegal] = useState<"" | "yes" | "no">("");
+
+  // Reset page on mode switch
+  useEffect(() => { setPage(1); setView("grid"); }, [mode]);
+
   // Drawer
   const [drawerFirm, setDrawerFirm] = useState<(typeof firms)[0] | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
-
-  // Compare
-  const [compareList, setCompareList] = useState<(typeof firms)[0][]>([]);
+  const [drawerStartup, setDrawerStartup] = useState<Startup | null>(null);
+  const [startupDrawerOpen, setStartupDrawerOpen] = useState(false);
 
   // Debounced search
   useEffect(() => {
