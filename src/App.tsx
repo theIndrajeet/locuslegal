@@ -39,6 +39,7 @@ const AdminBeta = lazy(routeImports.adminBeta as never);
 const ApplicationTracker = lazy(routeImports.applicationTracker as never);
 const BetaChecklist = lazy(routeImports.betaChecklist as never);
 const NotFound = lazy(routeImports.notFound as never);
+const DockLab = lazy(() => import("./pages/DockLab"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -120,6 +121,7 @@ const App = () => (
                 <Route path="/admin/waitlist" element={<AdminWaitlist />} />
                 <Route path="/admin/bar" element={<AdminBar />} />
                 <Route path="/admin/beta" element={<AdminBeta />} />
+                <Route path="/dock-lab" element={<DockLab />} />
               </Route>
               <Route path="/auth" element={<Auth />} />
               <Route path="/reset-password" element={<ResetPassword />} />
