@@ -33,6 +33,7 @@ interface UserContext {
   college: string | null;
   degree: string | null;
   graduation_year: number | null;
+  cgpa: number | null;
   bio: string | null;
   subjects_of_interest: string[];
   internships: Array<{
@@ -42,8 +43,56 @@ interface UserContext {
     end_date: string | null;
     description: string | null;
   }>;
+  moots: Array<{ competition_name: string; year: number; result: string }>;
+  publications: Array<{ title: string; publisher: string }>;
   has_cv: boolean;
 }
+
+type HighlightKind = "internship" | "subject" | "education" | "moot" | "publication" | "cgpa" | "bio";
+interface HighlightChip {
+  id: string;
+  kind: HighlightKind;
+  label: string;
+  detail?: string | null;
+  matches?: boolean; // overlaps with target
+}
+
+interface BriefState {
+  fit_reason: string | null;
+  role: string;
+  availability: string | null;
+  availability_custom: string;
+  duration: string | null;
+  signature_line: string;
+  work_mode: string | null;
+  highlight_ids: string[];
+}
+
+const FIT_OPTIONS = [
+  { value: "Practice area match", label: "Practice area match" },
+  { value: "Reputation", label: "Reputation" },
+  { value: "Location", label: "Location" },
+  { value: "Recent matter", label: "Recent matter" },
+  { value: "Other", label: "Other" },
+];
+const AVAIL_OPTIONS = [
+  { value: "this summer", label: "This summer" },
+  { value: "winter break", label: "Winter break" },
+  { value: "specific", label: "Specific months" },
+  { value: "flexible", label: "Flexible" },
+];
+const DURATION_OPTIONS = [
+  { value: "2-4 weeks", label: "2–4 weeks" },
+  { value: "1 month", label: "1 month" },
+  { value: "2 months", label: "2 months" },
+  { value: "3+ months", label: "3+ months" },
+];
+const MODE_OPTIONS = [
+  { value: "in-office", label: "In-office" },
+  { value: "remote", label: "Remote" },
+  { value: "hybrid", label: "Hybrid" },
+  { value: "either", label: "Either" },
+];
 
 const TONES: Array<{ value: "formal" | "warm" | "concise"; label: string }> = [
   { value: "formal", label: "Formal" },
@@ -53,6 +102,85 @@ const TONES: Array<{ value: "formal" | "warm" | "concise"; label: string }> = [
 
 // In-module cache per target id, keeps drafts during a session.
 const draftCache = new Map<string, { subject: string; body: string }>();
+const briefCache = new Map<string, BriefState>();
+
+function firstNoun(text: string | null | undefined): string {
+  if (!text) return "";
+  const stop = new Set(["the", "a", "an", "and", "or", "of", "for", "in", "on", "at", "with", "to", "i", "we", "did", "was", "were", "is", "are", "as"]);
+  const words = text.toLowerCase().replace(/[^a-z\s]/g, " ").split(/\s+/).filter(Boolean);
+  return words.find((w) => !stop.has(w) && w.length > 3) || "";
+}
+
+function buildHighlights(user: UserContext, target: DraftEmailTarget | null): HighlightChip[] {
+  const chips: HighlightChip[] = [];
+  const targetText = [target?.practice_areas, target?.legal_needs, target?.sector, target?.type]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  // Internships
+  user.internships.forEach((it, i) => {
+    const noun = firstNoun(it.description) || firstNoun(it.role);
+    const label = noun ? `${noun.charAt(0).toUpperCase() + noun.slice(1)} at ${it.firm_name}` : `Intern at ${it.firm_name}`;
+    const detail = `${it.role}${it.description ? " — " + it.description.slice(0, 140) : ""}`;
+    const matches = !!targetText && (targetText.includes(noun) || targetText.includes(it.firm_name.toLowerCase().split(" ")[0]));
+    chips.push({ id: `int-${i}`, kind: "internship", label, detail, matches });
+  });
+
+  // Subjects of interest
+  user.subjects_of_interest.forEach((s, i) => {
+    const matches = !!targetText && targetText.includes(s.toLowerCase());
+    chips.push({
+      id: `sub-${i}`,
+      kind: "subject",
+      label: `Interested in ${s}`,
+      detail: s,
+      matches,
+    });
+  });
+
+  // Education
+  if (user.college) {
+    chips.push({
+      id: "edu",
+      kind: "education",
+      label: `${user.degree ?? "Law student"} at ${user.college}`,
+      detail: `${user.degree ?? ""} ${user.college}${user.graduation_year ? `, graduating ${user.graduation_year}` : ""}`.trim(),
+    });
+  }
+
+  // Moots
+  user.moots.forEach((m, i) => {
+    chips.push({
+      id: `moot-${i}`,
+      kind: "moot",
+      label: `${m.competition_name} (${m.year})`,
+      detail: `${m.role ?? ""} — ${m.result ?? ""}`.trim(),
+    });
+  });
+
+  // Publications
+  user.publications.forEach((p, i) => {
+    chips.push({
+      id: `pub-${i}`,
+      kind: "publication",
+      label: `Published "${p.title.slice(0, 60)}"`,
+      detail: `${p.title} — ${p.publisher}`,
+    });
+  });
+
+  // CGPA (only if strong)
+  if (user.cgpa && user.cgpa >= 7.5) {
+    chips.push({
+      id: "cgpa",
+      kind: "cgpa",
+      label: `CGPA ${user.cgpa.toFixed(2)}`,
+      detail: `Current CGPA ${user.cgpa.toFixed(2)}`,
+    });
+  }
+
+  return chips;
+}
 
 function buildGmailUrl(to: string, subject: string, body: string): string {
   const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
