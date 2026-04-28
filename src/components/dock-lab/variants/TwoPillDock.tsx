@@ -18,25 +18,23 @@ const EASE: [number, number, number, number] = [0.32, 0.72, 0, 1];
 export default function TwoPillDock() {
   const [activeKey, setActiveKey] = useState("home");
   const [action, setAction] = useState<ActionKind>("log");
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
   const [searchOpen, setSearchOpen] = useState(false);
 
-  // Scroll-direction collapse
-  const lastY = useRef(0);
+  // Idle-collapse: pill when stable, expand on activity
   const idleTimer = useRef<number | null>(null);
+  const IDLE_MS = 1500;
+
+  const resetIdle = () => {
+    setCollapsed(false);
+    if (idleTimer.current) window.clearTimeout(idleTimer.current);
+    idleTimer.current = window.setTimeout(() => setCollapsed(true), IDLE_MS);
+  };
+
   useEffect(() => {
-    lastY.current = window.scrollY;
-    const onScroll = () => {
-      const y = window.scrollY;
-      const dy = y - lastY.current;
-      if (Math.abs(dy) > 8) {
-        if (dy > 0 && y > 60) setCollapsed(true);
-        else setCollapsed(false);
-        lastY.current = y;
-      }
-      if (idleTimer.current) window.clearTimeout(idleTimer.current);
-      idleTimer.current = window.setTimeout(() => setCollapsed(false), 600);
-    };
+    // Start idle countdown on mount so dock collapses after first paint
+    idleTimer.current = window.setTimeout(() => setCollapsed(true), IDLE_MS);
+    const onScroll = () => resetIdle();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => {
       window.removeEventListener("scroll", onScroll);
@@ -74,7 +72,7 @@ export default function TwoPillDock() {
           <motion.div
             layout
             transition={{ duration: 0.32, ease: EASE }}
-            onClick={() => collapsed && setCollapsed(false)}
+            onClick={() => collapsed && resetIdle()}
             style={{ WebkitBackdropFilter: "blur(24px) saturate(160%)" }}
             className={`pointer-events-auto bg-background/55 backdrop-blur-2xl backdrop-saturate-150 border-2 border-foreground/70 rounded-full overflow-hidden shadow-[inset_0_1px_0_0_hsl(0_0%_100%/0.18),0_8px_32px_-8px_hsl(var(--accent)/0.35),3px_3px_0_0_hsl(var(--accent))] ${
               collapsed ? "cursor-pointer" : ""
@@ -88,10 +86,13 @@ export default function TwoPillDock() {
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.15 }}
-                  className="w-12 h-12 flex items-center justify-center"
+                  className="flex items-center gap-2 px-4 py-2.5"
                   aria-label="Expand navigation"
                 >
-                  <ActiveIcon size={20} strokeWidth={2.5} className="text-accent" />
+                  <ActiveIcon size={18} strokeWidth={2.5} className="text-accent" />
+                  <span className="font-sora text-xs font-bold text-foreground">
+                    {NAV_ITEMS.find((n) => n.key === activeKey)?.label ?? "Home"}
+                  </span>
                 </motion.div>
               ) : (
                 <motion.div
@@ -110,6 +111,7 @@ export default function TwoPillDock() {
                         onClick={(e) => {
                           e.stopPropagation();
                           setActiveKey(key);
+                          resetIdle();
                         }}
                         className="relative w-9 h-9 flex items-center justify-center active:scale-90 transition-transform"
                       >
