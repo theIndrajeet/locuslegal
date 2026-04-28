@@ -15,9 +15,13 @@ import {
 } from "lucide-react";
 import { prefetchRoute } from "@/lib/prefetch";
 import { useCommandPalette } from "@/components/search/useCommandPalette";
+import { useAuthSession } from "@/hooks/useAuthSession";
 
 type NavItem = { to: string; label: string; icon: LucideIcon };
 
+// The Home item's `to` is overridden at render-time to `/app` for logged-in
+// users so tapping Home from any other route goes straight to the dashboard
+// instead of flashing the marketing page through the deferred-redirect path.
 const ALL_NAV: NavItem[] = [
   { to: "/", icon: Home, label: "Home" },
   { to: "/directory", icon: Building2, label: "Directory" },
@@ -39,17 +43,23 @@ function getContextAction(pathname: string, scrolledPastHero: boolean): ContextA
   return null;
 }
 
-function getActiveKey(pathname: string): string {
-  const match = ALL_NAV.find((n) =>
-    n.to === "/" ? pathname === "/" : pathname.startsWith(n.to),
-  );
-  return match?.to ?? "/";
+function getActiveKey(pathname: string, homeHref: string): string {
+  // Home pill should highlight on both `/` and `/app` (the auth-aware target).
+  if (pathname === "/" || pathname.startsWith("/app")) return homeHref;
+  const match = ALL_NAV.find((n) => n.to !== "/" && pathname.startsWith(n.to));
+  return match?.to ?? homeHref;
 }
 
 export default function MobileBottomDock() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const { setOpen: setSearchOpen } = useCommandPalette();
+  const { userId } = useAuthSession();
+
+  const homeHref = userId ? "/app" : "/";
+  const navItems: NavItem[] = ALL_NAV.map((n) =>
+    n.label === "Home" ? { ...n, to: homeHref } : n,
+  );
 
   const [scrolledPastHero, setScrolledPastHero] = useState(false);
   const [hasCompareBar, setHasCompareBar] = useState(false);
@@ -85,6 +95,12 @@ export default function MobileBottomDock() {
     idleTimer.current = window.setTimeout(() => setCollapsed(true), IDLE_MS);
   }, [pathname]);
 
+  // Prefetch /app the moment we know the user is authenticated, so tapping
+  // Home (now retargeted to /app) doesn't hit the lazy-load skeleton.
+  useEffect(() => {
+    if (userId) prefetchRoute("/app");
+  }, [userId]);
+
   useEffect(() => {
     const check = () => setHasCompareBar(!!document.querySelector('[data-compare-bar="true"]'));
     check();
@@ -115,8 +131,8 @@ export default function MobileBottomDock() {
   if (hasCompareBar) return null;
 
   const contextAction = getContextAction(pathname, scrolledPastHero);
-  const activeKey = getActiveKey(pathname);
-  const activeItem = ALL_NAV.find((n) => n.to === activeKey) ?? ALL_NAV[0];
+  const activeKey = getActiveKey(pathname, homeHref);
+  const activeItem = navItems.find((n) => n.to === activeKey) ?? navItems[0];
   const ActiveIcon = activeItem.icon;
 
   const hidden = inputFocused || (pathname === "/" && !scrolledPastHero);
@@ -187,7 +203,7 @@ export default function MobileBottomDock() {
                     exit={{ opacity: 0, transition: { duration: 0.08, ease: EASE } }}
                     className="flex items-center gap-2.5 px-3.5 py-2.5"
                   >
-                    {ALL_NAV.map(({ to, label, icon: Icon }) => {
+                    {navItems.map(({ to, label, icon: Icon }) => {
                       const isActive = activeKey === to;
                       return (
                         <Link
