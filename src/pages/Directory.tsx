@@ -1,20 +1,34 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import { usePageMeta } from "@/hooks/usePageMeta";
-import { Search, Building2, MapPin, Star, Phone, Mail, X, ArrowUpDown, LayoutGrid, Map as MapIcon, GitCompareArrows, Trophy, ArrowRight } from "lucide-react";
+import { Search, Building2, MapPin, Star, Phone, Mail, X, ArrowUpDown, LayoutGrid, Map as MapIcon, GitCompareArrows, Trophy, ArrowRight, Rocket, Globe, Users, Scale } from "lucide-react";
 import { Link } from "react-router-dom";
 import firms from "@/data/firms.json";
+import startupsData from "@/data/startups.json";
 import FirmDrawer from "@/components/FirmDrawer";
 import CompareBar from "@/components/CompareBar";
 import DirectoryMap from "@/components/DirectoryMap";
+import StartupDrawer, { type Startup } from "@/components/StartupDrawer";
+
+const startups = startupsData as Startup[];
 
 const allCities = [...new Set(firms.map((f) => f.city).filter(Boolean))].sort();
 const allAreas = [...new Set(firms.map((f) => f.area).filter(Boolean))].sort();
 const allTiers = [...new Set(firms.map((f) => f.tier).filter(Boolean))].sort();
 
+// Startup filter facets (precomputed once at module load for snappy filtering)
+const startupCities = [...new Set(startups.map((s) => s.city).filter(Boolean) as string[])].sort();
+const startupSectors = [...new Set(startups.map((s) => s.sector).filter(Boolean) as string[])].sort();
+const startupStages = [...new Set(startups.map((s) => s.stage).filter(Boolean) as string[])].sort();
+const startupSizes = [
+  "11-50", "51-100", "101-200", "201-500", "501-1000", "1001-5000", "5001-10000", "10000+",
+].filter((sz) => startups.some((s) => s.employees === sz));
+
 const PAGE_SIZE = 30;
 
 type FirmType = "Law Firm" | "Chamber" | "Individual Advocate";
 type SortOption = "relevance" | "rating-desc" | "name-asc" | "name-desc" | "tier";
+type Mode = "firms" | "startups";
 
 const typeFilters: { label: string; value: FirmType | "" }[] = [
   { label: "All", value: "" },
