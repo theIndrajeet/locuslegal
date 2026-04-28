@@ -504,70 +504,327 @@ export default function DraftEmailDialog({ open, onOpenChange, target }: Props) 
             </div>
           )}
 
-          {/* Inputs */}
-          <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3">
-            <div className="space-y-1.5">
-              <Label className="font-mono text-[10px] uppercase tracking-widest">Role</Label>
-              <Input
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
-                placeholder="Legal Internship"
-                maxLength={100}
-              />
+          {/* Tone (always visible above stepper) */}
+          <div className="space-y-1.5">
+            <Label className="font-mono text-[10px] uppercase tracking-widest">Tone</Label>
+            <div className="flex gap-1.5">
+              {TONES.map((t) => (
+                <button
+                  key={t.value}
+                  type="button"
+                  onClick={() => setTone(t.value)}
+                  className={`px-3 py-2 rounded-md border text-xs font-semibold transition-colors ${
+                    tone === t.value
+                      ? "border-accent bg-accent text-accent-foreground"
+                      : "border-border bg-muted/30 text-muted-foreground hover:bg-muted"
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
             </div>
-            <div className="space-y-1.5">
-              <Label className="font-mono text-[10px] uppercase tracking-widest">Tone</Label>
-              <div className="flex gap-1.5">
-                {TONES.map((t) => (
+          </div>
+
+          {/* Brief Builder Stepper */}
+          {!hasDraft && (
+            <div className="rounded-lg border-2 border-border bg-muted/20 p-3 space-y-3 shadow-[3px_3px_0_0_hsl(var(--border))]">
+              {/* Progress indicator */}
+              <div className="flex items-center gap-1.5">
+                {[0, 1, 2, 3].map((i) => (
                   <button
-                    key={t.value}
+                    key={i}
                     type="button"
-                    onClick={() => setTone(t.value)}
-                    className={`px-3 py-2 rounded-md border text-xs font-semibold transition-colors ${
-                      tone === t.value
-                        ? "border-accent bg-accent text-accent-foreground"
-                        : "border-border bg-muted/30 text-muted-foreground hover:bg-muted"
+                    onClick={() => setStep(i)}
+                    className={`flex-1 h-1.5 rounded-full transition-colors ${
+                      i <= step ? "bg-accent" : "bg-border"
                     }`}
-                  >
-                    {t.label}
-                  </button>
+                    aria-label={`Step ${i + 1}`}
+                  />
                 ))}
+                <span className="font-mono text-[10px] text-muted-foreground ml-2 shrink-0">
+                  {step + 1}/4
+                </span>
+              </div>
+
+              {/* Step 1: Fit */}
+              {step === 0 && (
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-sm font-semibold mb-2">What draws you to {target?.name ?? "them"}?</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {FIT_OPTIONS.map((o) => (
+                        <button
+                          key={o.value}
+                          type="button"
+                          onClick={() =>
+                            setBrief((b) => ({ ...b, fit_reason: b.fit_reason === o.value ? null : o.value }))
+                          }
+                          className={`px-3 py-1.5 rounded-md border text-xs font-medium transition-colors ${
+                            brief.fit_reason === o.value
+                              ? "border-accent bg-accent text-accent-foreground"
+                              : "border-border bg-background hover:bg-muted"
+                          }`}
+                        >
+                          {o.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="font-mono text-[10px] uppercase tracking-widest">Role</Label>
+                    <Input
+                      value={brief.role}
+                      onChange={(e) => setBrief((b) => ({ ...b, role: e.target.value.slice(0, 100) }))}
+                      placeholder="Legal Internship"
+                      maxLength={100}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Step 2: Logistics */}
+              {step === 1 && (
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-sm font-semibold mb-2">When are you available?</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {AVAIL_OPTIONS.map((o) => (
+                        <button
+                          key={o.value}
+                          type="button"
+                          onClick={() =>
+                            setBrief((b) => ({ ...b, availability: b.availability === o.value ? null : o.value }))
+                          }
+                          className={`px-3 py-1.5 rounded-md border text-xs font-medium transition-colors ${
+                            brief.availability === o.value
+                              ? "border-accent bg-accent text-accent-foreground"
+                              : "border-border bg-background hover:bg-muted"
+                          }`}
+                        >
+                          {o.label}
+                        </button>
+                      ))}
+                    </div>
+                    {brief.availability === "specific" && (
+                      <Input
+                        value={brief.availability_custom}
+                        onChange={(e) =>
+                          setBrief((b) => ({ ...b, availability_custom: e.target.value.slice(0, 80) }))
+                        }
+                        placeholder="e.g. May to July 2026"
+                        maxLength={80}
+                        className="mt-2"
+                      />
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold mb-2">For how long?</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {DURATION_OPTIONS.map((o) => (
+                        <button
+                          key={o.value}
+                          type="button"
+                          onClick={() =>
+                            setBrief((b) => ({ ...b, duration: b.duration === o.value ? null : o.value }))
+                          }
+                          className={`px-3 py-1.5 rounded-md border text-xs font-medium transition-colors ${
+                            brief.duration === o.value
+                              ? "border-accent bg-accent text-accent-foreground"
+                              : "border-border bg-background hover:bg-muted"
+                          }`}
+                        >
+                          {o.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 3: Edge */}
+              {step === 2 && (
+                <div className="space-y-3">
+                  <div className="space-y-1.5">
+                    <Label className="font-mono text-[10px] uppercase tracking-widest">
+                      One line they should remember about you
+                    </Label>
+                    <Input
+                      value={brief.signature_line}
+                      onChange={(e) =>
+                        setBrief((b) => ({ ...b, signature_line: e.target.value.slice(0, 140) }))
+                      }
+                      placeholder="e.g. drafted my first commercial contract at 19"
+                      maxLength={140}
+                    />
+                    <p className="font-mono text-[10px] text-muted-foreground text-right">
+                      {brief.signature_line.length}/140
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold mb-2">Work mode</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {MODE_OPTIONS.map((o) => (
+                        <button
+                          key={o.value}
+                          type="button"
+                          onClick={() =>
+                            setBrief((b) => ({ ...b, work_mode: b.work_mode === o.value ? null : o.value }))
+                          }
+                          className={`px-3 py-1.5 rounded-md border text-xs font-medium transition-colors ${
+                            brief.work_mode === o.value
+                              ? "border-accent bg-accent text-accent-foreground"
+                              : "border-border bg-background hover:bg-muted"
+                          }`}
+                        >
+                          {o.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 4: Highlights */}
+              {step === 3 && (
+                <div className="space-y-2">
+                  <div className="flex items-baseline justify-between">
+                    <p className="text-sm font-semibold">Highlight from your CV</p>
+                    <span className="font-mono text-[10px] text-muted-foreground">
+                      {brief.highlight_ids.length}/4 picked
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Pick up to 4. We'll weave them naturally into the email.
+                  </p>
+                  {highlights.length === 0 ? (
+                    <p className="text-xs text-muted-foreground italic py-2">
+                      Add internships, moots or publications in your profile to surface highlights.
+                    </p>
+                  ) : (
+                    <div className="flex flex-wrap gap-1.5">
+                      {highlights.map((h) => {
+                        const picked = brief.highlight_ids.includes(h.id);
+                        const disabled = !picked && brief.highlight_ids.length >= 4;
+                        return (
+                          <button
+                            key={h.id}
+                            type="button"
+                            disabled={disabled}
+                            onClick={() =>
+                              setBrief((b) => ({
+                                ...b,
+                                highlight_ids: picked
+                                  ? b.highlight_ids.filter((id) => id !== h.id)
+                                  : [...b.highlight_ids, h.id],
+                              }))
+                            }
+                            className={`px-2.5 py-1.5 rounded-md border text-xs font-medium transition-colors flex items-center gap-1.5 ${
+                              picked
+                                ? "border-accent bg-accent text-accent-foreground"
+                                : disabled
+                                  ? "border-border bg-muted/30 text-muted-foreground/50 cursor-not-allowed"
+                                  : "border-border bg-background hover:bg-muted"
+                            }`}
+                            title={h.detail ?? undefined}
+                          >
+                            {picked && <Check size={12} />}
+                            {h.label}
+                            {h.matches && !picked && (
+                              <span className="font-mono text-[9px] uppercase text-accent ml-1">
+                                match
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Stepper nav */}
+              <div className="flex items-center justify-between pt-2 border-t border-border">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setStep((s) => Math.max(0, s - 1))}
+                  disabled={step === 0}
+                  className="h-8"
+                >
+                  <ChevronLeft className="h-3.5 w-3.5 mr-1" />
+                  Back
+                </Button>
+                <button
+                  type="button"
+                  onClick={generate}
+                  disabled={!canGenerate}
+                  className="text-xs text-muted-foreground underline hover:text-foreground disabled:opacity-40"
+                >
+                  Skip & generate
+                </button>
+                {step < 3 ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => setStep((s) => Math.min(3, s + 1))}
+                    className="h-8 bg-foreground text-background hover:bg-foreground/90"
+                  >
+                    Next
+                    <ChevronRight className="h-3.5 w-3.5 ml-1" />
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={generate}
+                    disabled={!canGenerate}
+                    className="h-8 bg-accent text-accent-foreground hover:bg-accent/90"
+                  >
+                    {generating ? (
+                      <>
+                        <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+                        Drafting…
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-3.5 w-3.5 mr-1" />
+                        Generate
+                      </>
+                    )}
+                  </Button>
+                )}
               </div>
             </div>
-          </div>
+          )}
 
-          <div className="space-y-1.5">
-            <Label className="font-mono text-[10px] uppercase tracking-widest">
-              Anything to add (optional)
-            </Label>
-            <Input
-              value={extraNote}
-              onChange={(e) => setExtraNote(e.target.value.slice(0, 300))}
-              placeholder="e.g. available May–July, interested in M&A specifically"
-              maxLength={300}
-            />
-          </div>
+          {/* Regenerate button (visible only when draft exists) */}
+          {hasDraft && (
+            <Button
+              onClick={generate}
+              disabled={!canGenerate}
+              variant="outline"
+              className="w-full"
+            >
+              {generating ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" /> Regenerating…
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  Regenerate with current brief
+                </>
+              )}
+            </Button>
+          )}
 
-          <Button
-            onClick={generate}
-            disabled={!canGenerate}
-            className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
-          >
-            {generating ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin mr-2" /> Drafting…
-              </>
-            ) : loadingUser ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin mr-2" /> Loading your profile…
-              </>
-            ) : (
-              <>
-                <Sparkles className="h-4 w-4 mr-2" />
-                {hasDraft ? "Regenerate" : "Generate email"}
-              </>
-            )}
-          </Button>
+          {loadingUser && (
+            <p className="text-xs text-muted-foreground text-center">
+              <Loader2 className="h-3 w-3 animate-spin inline mr-1" />
+              Loading your profile…
+            </p>
+          )}
 
           {/* Draft */}
           {hasDraft && (
