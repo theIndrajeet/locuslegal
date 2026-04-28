@@ -354,6 +354,8 @@ export default function DraftEmailDialog({ open, onOpenChange, target, onSent }:
     return payload;
   };
 
+  const isFollowup = !!target?.followup;
+
   const generate = async () => {
     if (!target || !user) return;
     setGenerating(true);
@@ -367,9 +369,13 @@ export default function DraftEmailDialog({ open, onOpenChange, target, onSent }:
         practice_areas: target.practice_areas,
         legal_needs: target.legal_needs,
       },
-      role: brief.role,
+      role: isFollowup ? target.followup!.originalRole : brief.role,
       tone,
-      brief: buildBriefPayload(),
+      brief: isFollowup ? null : buildBriefPayload(),
+      mode: isFollowup ? "followup" : "initial",
+      original: isFollowup
+        ? { applied_on: target.followup!.originalAppliedOn, role: target.followup!.originalRole }
+        : null,
       user,
     };
 
