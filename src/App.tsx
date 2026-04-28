@@ -121,6 +121,7 @@ const App = () => (
                 <Route path="/admin/waitlist" element={<AdminWaitlist />} />
                 <Route path="/admin/bar" element={<AdminBar />} />
                 <Route path="/admin/beta" element={<AdminBeta />} />
+                <Route path="/dock-lab" element={<DockLab />} />
               </Route>
               <Route path="/auth" element={<Auth />} />
               <Route path="/reset-password" element={<ResetPassword />} />
