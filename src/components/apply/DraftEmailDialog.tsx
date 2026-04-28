@@ -575,26 +575,28 @@ export default function DraftEmailDialog({ open, onOpenChange, target, onSent }:
             </div>
           )}
 
-          {/* Tone (always visible above stepper) */}
-          <div className="space-y-1.5">
-            <Label className="font-mono text-[10px] uppercase tracking-widest">Tone</Label>
-            <div className="flex gap-1.5">
-              {TONES.map((t) => (
-                <button
-                  key={t.value}
-                  type="button"
-                  onClick={() => setTone(t.value)}
-                  className={`px-3 py-2 rounded-md border text-xs font-semibold transition-colors ${
-                    tone === t.value
-                      ? "border-accent bg-accent text-accent-foreground"
-                      : "border-border bg-muted/30 text-muted-foreground hover:bg-muted"
-                  }`}
-                >
-                  {t.label}
-                </button>
-              ))}
+          {/* Tone (hidden in follow-up mode — always formal-courteous) */}
+          {!isFollowup && (
+            <div className="space-y-1.5">
+              <Label className="font-mono text-[10px] uppercase tracking-widest">Tone</Label>
+              <div className="flex gap-1.5">
+                {TONES.map((t) => (
+                  <button
+                    key={t.value}
+                    type="button"
+                    onClick={() => setTone(t.value)}
+                    className={`px-3 py-2 rounded-md border text-xs font-semibold transition-colors ${
+                      tone === t.value
+                        ? "border-accent bg-accent text-accent-foreground"
+                        : "border-border bg-muted/30 text-muted-foreground hover:bg-muted"
+                    }`}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Brief Builder Stepper */}
           {!hasDraft && !isFollowup && (
