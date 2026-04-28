@@ -465,24 +465,48 @@ export default function DraftEmailDialog({ open, onOpenChange, target, onSent }:
     if (userId) {
       const today = new Date().toISOString().slice(0, 10);
       const noteExcerpt = body.length > 500 ? body.slice(0, 497) + "…" : body;
-      void supabase
-        .from("profile_applications")
-        .insert({
-          user_id: userId,
-          firm_name_snapshot: target.name,
-          role: brief.role,
-          applied_on: today,
-          method: "email",
-          status: "sent",
-          notes: `Drafted via Locus AI\n\n${noteExcerpt}`,
-        })
-        .then(({ error: logErr }) => {
+      if (isFollowup && target.followup?.applicationId) {
+        // Append a follow-up entry to the existing application's notes.
+        void (async () => {
+          const { data: existing } = await supabase
+            .from("profile_applications")
+            .select("notes")
+            .eq("id", target.followup!.applicationId!)
+            .maybeSingle();
+          const prevNotes = existing?.notes ?? "";
+          const newNotes = `${prevNotes}\n\n--- Follow-up sent on ${today} ---\n${noteExcerpt}`.trim();
+          const { error: logErr } = await supabase
+            .from("profile_applications")
+            .update({ notes: newNotes, status_updated_at: new Date().toISOString() })
+            .eq("id", target.followup!.applicationId!);
           if (logErr) {
-            toast.error("Email opened, but couldn't log to your tracker.");
+            toast.error("Email opened, but couldn't log the follow-up.");
           } else {
-            toast.success("Logged to your Application Tracker.", { duration: 4000 });
+            toast.success("Follow-up logged to your tracker.", { duration: 4000 });
+            onSent?.();
           }
-        });
+        })();
+      } else {
+        void supabase
+          .from("profile_applications")
+          .insert({
+            user_id: userId,
+            firm_name_snapshot: target.name,
+            role: brief.role,
+            applied_on: today,
+            method: "email",
+            status: "sent",
+            notes: `Drafted via Locus AI\n\n${noteExcerpt}`,
+          })
+          .then(({ error: logErr }) => {
+            if (logErr) {
+              toast.error("Email opened, but couldn't log to your tracker.");
+            } else {
+              toast.success("Logged to your Application Tracker.", { duration: 4000 });
+              onSent?.();
+            }
+          });
+      }
     }
 
     onOpenChange(false);
