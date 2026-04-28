@@ -1,55 +1,84 @@
-# Fix the Home glitch on mobile dock too
+# Route Skeletons for Faster-Feeling Navigation
 
-## What the recording shows
+## Problem
 
-The video is from the published site (`locus.legal`) on mobile. Sequence:
-1. Dashboard at `/app`.
-2. User taps the **Home** icon in the bottom mobile dock.
-3. Marketing page renders fully ("Get the internship you deserve…", waitlist buttons).
-4. Brief blank/skeleton state.
-5. Dashboard renders.
+Today, the global Suspense fallback in `App.tsx` is just a 2px `<TopProgressBar />` at the top of the screen. While a route chunk downloads (or while the new page does its initial Supabase fetch), users see:
 
-So the glitch is still present on mobile.
+- The previous page disappear instantly
+- A blank black screen with only the navbar/footer + a thin yellow line
+- Then the real page snaps in
 
-## Why my last fix didn't cover this
+This reads as "the app froze" even when the actual wait is 200–600ms. We already have nice skeletons inside `AppHome`, `TheBar*`, `ProfileEdit`, etc., but they only render *after* the chunk loads — the gap before that is still blank.
 
-The previous fix retargeted the **desktop Navbar** "Home" link (and the brand logo) to `/app` when the user is logged in, plus added `/app` chunk prefetch in `Index.tsx`. That works for desktop and for any redirect-from-`/` flow.
+## Goal
 
-But the mobile bottom dock (`src/components/MobileBottomDock.tsx`) — which is what the user actually taps on phones — still hardcodes Home → `/`:
+Show a **route-shaped skeleton** during both phases (chunk download + initial data fetch) so every navigation feels like the new page is already there, just hydrating.
 
-```ts
-const ALL_NAV: NavItem[] = [
-  { to: "/", icon: Home, label: "Home" },
-  ...
-];
+## Approach
+
+### 1. Create a `RouteSkeleton` component
+
+New file `src/components/RouteSkeleton.tsx` that:
+
+- Reads the current pathname via `useLocation()`
+- Picks a skeleton "shape" preset based on the path (matched with the same regex table as `prefetchRoute`)
+- Renders neobrutalist skeleton blocks (using existing `Skeleton` from `@/components/ui/skeleton`) wrapped in the standard page padding (`pt-20 px-4 max-w-6xl mx-auto`)
+- Always renders `<TopProgressBar />` on top so the yellow line still gives motion feedback
+
+Skeleton shape presets (kept lightweight — 4–6 blocks each, no animation beyond the existing `animate-pulse`):
+
+| Route prefix | Shape |
+|---|---|
+| `/app` | Identity row + strength meter bar + 3-column pane grid |
+| `/the-bar`, `/the-bar/browse` | Stats strip + grid of 6 challenge cards |
+| `/the-bar/challenge/*` | Tall question card + answer area |
+| `/the-bar/leaderboard`, `/history` | Header + 8 list rows |
+| `/directory` | Filter bar + map placeholder + 6 firm cards |
+| `/playbook`, `/resources`, `/tools` | Header + 3-col card grid |
+| `/playbook/:slug` | Title block + paragraph lines (article shape) |
+| `/applications` | Stats strip + 5 row table |
+| `/profile/edit`, `/u/:username` | Avatar + 4 form sections |
+| `/auth`, `/choose-username`, `/reset-password` | Centered card with input rows |
+| `/admin/*`, `/waitlist`, `/beta`, fallback | Header + generic stack of 4 blocks |
+
+A small `getRouteShape(pathname)` function (mirroring `pathToKey` in `lib/prefetch.ts`) returns which preset to render. Default fallback = generic stack.
+
+### 2. Wire it into the global Suspense
+
+In `src/App.tsx`, change:
+
+```tsx
+<Suspense fallback={<TopProgressBar />}>
 ```
 
-So mobile users tapping Home still hit `/`, see the marketing flash, then get redirected to `/app` after the deferred auth check fires. Same triple-state glitch.
+to:
 
-## Fix
+```tsx
+<Suspense fallback={<RouteSkeleton />}>
+```
 
-Make the dock auth-aware too. The dock is already lazy-loaded (`Layout.tsx` wraps it in `Suspense`), so importing `useAuthSession` here is free for the home critical bundle.
+`RouteSkeleton` itself includes `<TopProgressBar />` so we keep the existing motion cue.
 
-### Change 1 — `src/components/MobileBottomDock.tsx`
-1. Import `useAuthSession`.
-2. Inside the component, read `userId` from the hook.
-3. Replace the hardcoded `ALL_NAV` Home entry with a derived list where the Home item's `to` is `/app` when `userId` is truthy, else `/`.
-4. Update `getActiveKey` so `/app` matches the Home pill (so the Home icon stays highlighted on the dashboard for logged-in users — it currently matches `/` only).
-5. Prefetch `/app` once we know the user is logged in (mirrors the Navbar fix).
+### 3. Reuse the same component for in-page initial loads (optional, cheap win)
 
-### Change 2 — verify no regressions
-- `getContextAction` already handles `/app` (returns `"log"`), so the contextual "+ Log" pill still appears on the dashboard. No change needed there.
-- The `pathname === "/"` checks for hiding the dock and computing `scrolledPastHero` are still correct because anonymous users on `/` are unaffected.
+`AppHome.tsx` already renders its own ad-hoc skeleton block while `loading` is true. We'll leave that as-is — it's already a skeleton — but make sure its shape matches what `RouteSkeleton` shows for `/app`, so the chunk-load skeleton → data-load skeleton transition is seamless (no visual jump).
 
-## Result
+If the shapes match closely enough, the user perceives one continuous skeleton instead of two flashes.
 
-Logged-in mobile user taps Home in the dock → goes directly to `/app`, dashboard chunk already prefetched, no marketing flash, no skeleton.
+## Technical notes
 
-Anonymous mobile user taps Home → still goes to `/`, no behavior change.
+- `RouteSkeleton` must not import any heavy dependencies — only `react-router-dom` (already in critical bundle), `@/components/ui/skeleton` (~20 LOC), and `TopProgressBar`. No Supabase, no auth, no icons that pull a chunk.
+- All skeleton blocks use `bg-card border-2 border-border` to match the neobrutalist aesthetic. No emojis, no rounded radii beyond what `Skeleton` provides.
+- The fallback renders inside `<Layout>` for nested routes (Navbar/Footer stay), and as a full-screen card for top-level routes like `/auth` (which lives outside Layout). The shape preset accounts for this — auth routes use a centered card; everything else uses the page padding.
+- Total bundle impact: ~1.5 KB gzipped, all in the critical chunk. No new lazy boundaries.
 
-## Files to edit
-- `src/components/MobileBottomDock.tsx` — auth-aware Home target + prefetch + active-key match for `/app`.
+## Files
 
-## Important note about the recording
+- **New**: `src/components/RouteSkeleton.tsx`
+- **Edit**: `src/App.tsx` (swap one line in the Suspense fallback)
 
-The video was recorded on `locus.legal` (the published site). My previous fix is in the **preview** build only. **The published site will continue to show the glitch until you click Publish to push the latest preview live.** After this dock fix, both the desktop and mobile flows will be glitch-free in the preview, then publishing rolls it out to `locus.legal`.
+## Out of scope
+
+- Animating between skeleton → real content (would require a coordinated cross-fade and isn't worth the complexity now)
+- Per-page custom skeletons inside each route file (the existing in-page skeletons stay; we're only fixing the *blank chunk-load* gap)
+- Changing the home page (it isn't lazy-loaded, so it never shows a fallback)

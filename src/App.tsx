@@ -7,7 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Layout from "./components/Layout";
 import Index from "./pages/Index";
-import TopProgressBar from "./components/TopProgressBar";
+import RouteSkeleton from "./components/RouteSkeleton";
 import { useVersionCheck } from "@/hooks/useVersionCheck";
 import { routeImports, prefetchCommonRoutes } from "@/lib/prefetch";
 import { CommandPaletteProvider } from "@/components/search/useCommandPalette";
@@ -101,7 +101,7 @@ const App = () => (
         <IdlePrefetcher />
         <BrowserRouter>
           <CommandPaletteProvider>
-            <Suspense fallback={<TopProgressBar />}>
+            <Suspense fallback={<RouteSkeleton />}>
               <Routes>
                 <Route element={<Layout />}>
                   <Route path="/" element={<Index />} />
