@@ -1,4 +1,5 @@
-import { Building2, MapPin, Mail, ExternalLink, Globe, Users, Layers, Scale, ClipboardList } from "lucide-react";
+import { useState } from "react";
+import { Building2, MapPin, Mail, ExternalLink, Globe, Users, Layers, Scale, ClipboardList, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
   Sheet,
@@ -7,6 +8,7 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
+import DraftEmailDialog, { type DraftEmailTarget } from "@/components/apply/DraftEmailDialog";
 
 export interface Startup {
   name: string;
@@ -33,9 +35,24 @@ function normalizeUrl(url: string) {
 }
 
 export default function StartupDrawer({ startup, open, onOpenChange }: Props) {
+  const [draftOpen, setDraftOpen] = useState(false);
+
   if (!startup) return null;
 
   const websiteUrl = startup.website ? normalizeUrl(startup.website) : null;
+
+  const draftTarget: DraftEmailTarget | null = startup.email
+    ? {
+        id: `startup:${startup.name}:${startup.email}`,
+        name: startup.name,
+        email: startup.email,
+        kind: "startup",
+        type: startup.type ?? null,
+        city: startup.city ?? null,
+        sector: startup.sector ?? null,
+        legal_needs: startup.legalNeeds ?? null,
+      }
+    : null;
 
   const logHref = `/applications?logFirm=${encodeURIComponent(startup.name)}${
     startup.legalNeeds ? `&logNotes=${encodeURIComponent(`Legal needs: ${startup.legalNeeds}`)}` : ""
@@ -149,9 +166,23 @@ export default function StartupDrawer({ startup, open, onOpenChange }: Props) {
 
           {/* Actions */}
           <div className="space-y-2">
+            {draftTarget && (
+              <button
+                type="button"
+                onClick={() => setDraftOpen(true)}
+                className="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-xl bg-accent text-accent-foreground font-medium text-sm hover:opacity-90 transition-opacity"
+              >
+                <Sparkles size={14} />
+                Draft Application Email
+              </button>
+            )}
             <Link
               to={logHref}
-              className="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-xl bg-accent text-accent-foreground font-medium text-sm hover:opacity-90 transition-opacity"
+              className={`flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl font-medium text-sm transition-colors ${
+                draftTarget
+                  ? "bg-card border border-border text-foreground hover:border-accent/40"
+                  : "bg-accent text-accent-foreground hover:opacity-90"
+              }`}
             >
               <ClipboardList size={14} />
               Log as Application
@@ -170,6 +201,8 @@ export default function StartupDrawer({ startup, open, onOpenChange }: Props) {
           </div>
         </div>
       </SheetContent>
+
+      <DraftEmailDialog open={draftOpen} onOpenChange={setDraftOpen} target={draftTarget} />
     </Sheet>
   );
 }
