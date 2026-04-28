@@ -223,11 +223,11 @@ export default function DraftEmailDialog({ open, onOpenChange, target }: Props) 
     setLoadingUser(true);
 
     (async () => {
-      const [{ data: profile }, { data: internships }] = await Promise.all([
+      const [{ data: profile }, { data: internships }, { data: moots }, { data: publications }] = await Promise.all([
         supabase
           .from("profiles")
           .select(
-            "display_name, college, degree, graduation_year, bio, subjects_of_interest, cv_url",
+            "display_name, college, degree, graduation_year, cgpa, bio, subjects_of_interest, cv_url",
           )
           .eq("id", userId)
           .maybeSingle(),
@@ -237,6 +237,18 @@ export default function DraftEmailDialog({ open, onOpenChange, target }: Props) 
           .eq("user_id", userId)
           .order("start_date", { ascending: false })
           .limit(3),
+        supabase
+          .from("profile_moots")
+          .select("competition_name, year, role, result")
+          .eq("user_id", userId)
+          .order("year", { ascending: false })
+          .limit(3),
+        supabase
+          .from("profile_publications")
+          .select("title, publisher")
+          .eq("user_id", userId)
+          .order("publication_date", { ascending: false })
+          .limit(3),
       ]);
       if (cancelled) return;
       setUser({
@@ -244,9 +256,12 @@ export default function DraftEmailDialog({ open, onOpenChange, target }: Props) 
         college: profile?.college ?? null,
         degree: profile?.degree ?? null,
         graduation_year: profile?.graduation_year ?? null,
+        cgpa: profile?.cgpa ? Number(profile.cgpa) : null,
         bio: profile?.bio ?? null,
         subjects_of_interest: profile?.subjects_of_interest ?? [],
         internships: internships ?? [],
+        moots: (moots ?? []) as UserContext["moots"],
+        publications: publications ?? [],
         has_cv: Boolean(profile?.cv_url),
       });
       setLoadingUser(false);
