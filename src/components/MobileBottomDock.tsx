@@ -95,6 +95,12 @@ export default function MobileBottomDock() {
     idleTimer.current = window.setTimeout(() => setCollapsed(true), IDLE_MS);
   }, [pathname]);
 
+  // Prefetch /app the moment we know the user is authenticated, so tapping
+  // Home (now retargeted to /app) doesn't hit the lazy-load skeleton.
+  useEffect(() => {
+    if (userId) prefetchRoute("/app");
+  }, [userId]);
+
   useEffect(() => {
     const check = () => setHasCompareBar(!!document.querySelector('[data-compare-bar="true"]'));
     check();
