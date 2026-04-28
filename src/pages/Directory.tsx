@@ -464,76 +464,67 @@ export default function Directory() {
 
       {/* ===== Startups & SMEs branch ===== */}
       {mode === "startups" && (<>
-        <section className="container mx-auto px-4 md:px-8 mb-6">
-          <div className="bg-card/60 backdrop-blur-sm border border-border/50 rounded-2xl p-4 md:p-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-              <div className="relative lg:col-span-2">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
-                <input
-                  type="text"
-                  placeholder="Search by company or sector..."
-                  value={searchInput}
-                  onChange={(e) => setSearchInput(e.target.value)}
-                  className="w-full bg-card border border-border rounded-lg pl-9 pr-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent/50 transition-colors"
-                />
-              </div>
-              <select value={sCity} onChange={(e) => setSCity(e.target.value)} className={selectClass}>
-                <option value="">All Cities</option>
-                {startupCities.map((c) => <option key={c} value={c}>{c}</option>)}
-              </select>
-              <select value={sSector} onChange={(e) => setSSector(e.target.value)} className={selectClass}>
-                <option value="">All Sectors</option>
-                {startupSectors.map((s) => <option key={s} value={s}>{s}</option>)}
-              </select>
-              <select value={sStage} onChange={(e) => setSStage(e.target.value)} className={selectClass}>
-                <option value="">All Stages</option>
-                {startupStages.map((s) => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
-              <select value={sSize} onChange={(e) => setSSize(e.target.value)} className={selectClass}>
-                <option value="">Any Team Size</option>
-                {startupSizes.map((sz) => <option key={sz} value={sz}>{sz} employees</option>)}
-              </select>
-              <select value={sLegal} onChange={(e) => setSLegal(e.target.value as "" | "yes" | "no")} className={selectClass}>
-                <option value="">Legal Team: Any</option>
-                <option value="yes">Has in-house legal team</option>
-                <option value="no">No in-house legal team</option>
-              </select>
-            </div>
-            {startupActiveFilters.length > 0 && (
-              <div className="flex flex-wrap items-center gap-2 mt-4 animate-fade-in">
-                {startupActiveFilters.map((af) => (
-                  <span key={af.key} className="inline-flex items-center gap-1.5 bg-accent/10 text-accent text-xs font-medium px-3 py-1.5 rounded-full">
-                    {af.label}
-                    <button onClick={af.clear} className="hover:text-foreground transition-colors">
-                      <X size={12} />
-                    </button>
-                  </span>
-                ))}
-                <button onClick={clearAllStartups} className="text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 underline underline-offset-2">
-                  Clear all
-                </button>
-              </div>
-            )}
-          </div>
-        </section>
+        <FilterBar
+          searchInput={searchInput}
+          onSearchChange={setSearchInput}
+          searchPlaceholder="Search by company or sector…"
+          filters={[
+            {
+              label: "City",
+              value: sCity,
+              options: startupCities.map((c) => ({ label: c, value: c })),
+              onChange: setSCity,
+            },
+            {
+              label: "Sector",
+              value: sSector,
+              options: startupSectors.map((s) => ({ label: s, value: s })),
+              onChange: setSSector,
+            },
+            {
+              label: "Stage",
+              value: sStage,
+              options: startupStages.map((s) => ({ label: s, value: s })),
+              onChange: setSStage,
+            },
+            {
+              label: "Size",
+              value: sSize,
+              options: startupSizes.map((sz) => ({ label: `${sz} employees`, value: sz })),
+              onChange: setSSize,
+            },
+            {
+              label: "Legal Team",
+              value: sLegal,
+              options: [
+                { label: "Has in-house legal team", value: "yes" },
+                { label: "No in-house legal team", value: "no" },
+              ],
+              onChange: (v) => setSLegal(v as "" | "yes" | "no"),
+            },
+          ]}
+          sort={{
+            value: sort,
+            options: [
+              { label: "Name (A → Z)", value: "name-asc" },
+              { label: "Name (Z → A)", value: "name-desc" },
+            ],
+            onChange: (v) => setSort(v as SortOption),
+          }}
+          showViewToggle={false}
+          onClearAll={clearAllStartups}
+          activeCount={startupActiveFilters.length}
+        />
 
         <section className="container mx-auto px-4 md:px-8 mb-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-muted-foreground">
-              <span className="font-semibold text-foreground">{startupSorted.length.toLocaleString()}</span> startups &amp; SMEs
-            </p>
-            <div className="flex items-center gap-1.5">
-              <ArrowUpDown size={14} className="text-muted-foreground" />
-              <select value={sort} onChange={(e) => setSort(e.target.value as SortOption)} className="bg-transparent border-none text-sm text-foreground focus:outline-none cursor-pointer">
-                <option value="relevance">Relevance</option>
-                <option value="name-asc">Name (A → Z)</option>
-                <option value="name-desc">Name (Z → A)</option>
-              </select>
-            </div>
-          </div>
+          <p className="text-sm text-muted-foreground">
+            <span className="font-semibold text-foreground">{startupSorted.length.toLocaleString()}</span> startups &amp; SMEs
+            {startupActiveFilters.length > 0 && (
+              <span className="ml-2 text-xs text-muted-foreground">· {startupActiveFilters.length} filter{startupActiveFilters.length === 1 ? "" : "s"} applied</span>
+            )}
+          </p>
         </section>
+
 
         <section className="container mx-auto px-4 md:px-8">
           {startupSorted.length === 0 ? (
