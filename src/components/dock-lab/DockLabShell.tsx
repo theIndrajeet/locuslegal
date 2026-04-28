@@ -8,6 +8,7 @@ import PullUpDrawerDock from "./variants/PullUpDrawerDock";
 import SplitDock from "./variants/SplitDock";
 import EdgeTabBarDock from "./variants/EdgeTabBarDock";
 import MorphDock from "./variants/MorphDock";
+import TwoPillDock from "./variants/TwoPillDock";
 
 type Variant = {
   id: string;
@@ -17,6 +18,7 @@ type Variant = {
 };
 
 const VARIANTS: Variant[] = [
+  { id: "twopill", name: "Two-Pill Dock", description: "Persistent nav pill (left) + contextual action pill (right). Collapses to a circle on scroll-down. Use the chips above the dock to preview each route's action.", Component: TwoPillDock },
   { id: "morph", name: "Morph Dock", description: "Single dock that morphs shape based on context — pill, split, search, orb, or hidden.", Component: MorphDock },
   { id: "current", name: "Current Dock", description: "Today's glassmorphic pill — baseline.", Component: CurrentDock },
   { id: "orb", name: "Locus Orb", description: "FAB bottom-right; taps fan icons in an arc.", Component: OrbDock },
@@ -29,7 +31,7 @@ const VARIANTS: Variant[] = [
 ];
 
 export default function DockLabShell() {
-  const [activeId, setActiveId] = useState("current");
+  const [activeId, setActiveId] = useState("twopill");
   const variant = VARIANTS.find((v) => v.id === activeId)!;
   const ActiveDock = variant.Component;
 
