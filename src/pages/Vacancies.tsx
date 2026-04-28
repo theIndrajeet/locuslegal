@@ -53,16 +53,31 @@ export default function Vacancies() {
       .in("firm_name_snapshot", firmNames)
       .order("applied_on", { ascending: false });
 
+    // Loose-match helper: lowercase, collapse whitespace, strip trailing 'ship'/'s'.
+    const norm = (s: string) =>
+      s.toLowerCase().trim().replace(/\s+/g, " ").replace(/(ship|s)$/, "");
+
     const map = new Map<string, VacancyApplication>();
     (data ?? []).forEach((row) => {
-      // Match application -> vacancy by firm_name + role (case-insensitive)
-      const v = vacancies.find(
-        (x) =>
-          x.firm_name.toLowerCase() === (row.firm_name_snapshot ?? "").toLowerCase() &&
-          x.role.toLowerCase() === (row.role ?? "").toLowerCase(),
+      const firmRows = vacancies.filter(
+        (x) => x.firm_name.toLowerCase() === (row.firm_name_snapshot ?? "").toLowerCase(),
       );
-      if (!v || map.has(v.id)) return; // keep latest only
-      // Detect follow-up timestamp from notes marker
+      if (firmRows.length === 0) return;
+
+      // 1. Exact role match
+      let v = firmRows.find((x) => x.role.toLowerCase() === (row.role ?? "").toLowerCase());
+      // 2. Normalized contains match (handles "Legal Intern" ↔ "Legal Internship")
+      if (!v) {
+        const rn = norm(row.role ?? "");
+        v = firmRows.find((x) => {
+          const xn = norm(x.role);
+          return xn === rn || xn.includes(rn) || rn.includes(xn);
+        });
+      }
+      // 3. Single firm vacancy fallback
+      if (!v && firmRows.length === 1) v = firmRows[0];
+      if (!v || map.has(v.id)) return;
+
       let lastFollowupOn: string | null = null;
       if (row.notes) {
         const m = row.notes.match(/Follow-up sent on (\d{4}-\d{2}-\d{2})/g);
