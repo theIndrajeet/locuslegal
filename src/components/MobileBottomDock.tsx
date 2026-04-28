@@ -125,8 +125,8 @@ export default function MobileBottomDock() {
   if (hasCompareBar) return null;
 
   const contextAction = getContextAction(pathname, scrolledPastHero);
-  const activeKey = getActiveKey(pathname);
-  const activeItem = ALL_NAV.find((n) => n.to === activeKey) ?? ALL_NAV[0];
+  const activeKey = getActiveKey(pathname, homeHref);
+  const activeItem = navItems.find((n) => n.to === activeKey) ?? navItems[0];
   const ActiveIcon = activeItem.icon;
 
   const hidden = inputFocused || (pathname === "/" && !scrolledPastHero);
