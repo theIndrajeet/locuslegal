@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { usePageMeta } from "@/hooks/usePageMeta";
-import { Search, Building2, MapPin, Star, Phone, Mail, GitCompareArrows, Trophy, ArrowRight, Rocket, Globe, Users, Scale } from "lucide-react";
+import { Building2, MapPin, Star, Phone, Mail, GitCompareArrows, Trophy, ArrowRight, Rocket, Globe, Users, Scale } from "lucide-react";
 import { Link } from "react-router-dom";
 import firms from "@/data/firms.json";
 import startupsData from "@/data/startups.json";
