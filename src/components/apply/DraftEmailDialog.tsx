@@ -314,7 +314,7 @@ export default function DraftEmailDialog({ open, onOpenChange, target, onSent }:
     } else {
       setBrief({
         fit_reason: null,
-        role: "Legal Internship",
+        role: target.roleHint?.trim() || "Legal Internship",
         availability: null,
         availability_custom: "",
         duration: null,
