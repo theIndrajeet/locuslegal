@@ -47,6 +47,9 @@ export default function MobileBottomDock() {
   // CompareBar's own actions take priority on the directory page.
   if (hasCompareBar) return null;
 
+  // Dock Lab is a sandbox that renders its own dock variants. Hide the real one.
+  if (pathname.startsWith("/dock-lab")) return null;
+
   return (
     <nav className={`fixed bottom-5 left-1/2 -translate-x-1/2 z-40 md:hidden transition-all duration-700 ease-in-out ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"}`}>
       <div className="flex items-center gap-4 px-6 py-3 rounded-full bg-background/60 backdrop-blur-xl border border-border/40 shadow-xl shadow-black/10">
