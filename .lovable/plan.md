@@ -1,37 +1,23 @@
-# Demo: two-pill scroll-collapsing dock
+## Add iOS-style glass texture to Two-Pill Dock
 
-Add a new variant to Dock Lab so you can play with it before we ship it as the real dock.
+Make both pills feel like translucent liquid glass — frosted blur, subtle inner highlight, soft outer glow — while keeping the neobrutalist border + hard shadow as the base identity (so it still reads as Locus, not generic iOS).
 
-## What gets built
+### Visual recipe (per pill)
 
-A new `TwoPillDock` variant on `/dock-lab`:
+- **Background**: `bg-background/55` + `backdrop-blur-2xl backdrop-saturate-150` so content behind shows through with a frosted tint.
+- **Inner highlight**: a top inset white-glow ring (`shadow-[inset_0_1px_0_0_hsl(0_0%_100%/0.18)]`) to mimic the glass meniscus.
+- **Outer glow**: soft accent halo (`shadow-[0_8px_32px_-8px_hsl(var(--accent)/0.35)]`) layered with the existing hard neobrutalist shadow.
+- **Border**: keep `border-2 border-foreground` but drop opacity to `border-foreground/70` so light passes through the edge.
+- **Active accent pill (right)**: `bg-accent/80 backdrop-blur-xl` so the yellow becomes a translucent jelly button instead of a flat block.
+- **Collapsed circle**: same glass treatment — looks like a floating liquid pill on scroll.
 
-```text
-At rest:
-┌──────────────────────────────────┐  ┌──────────┐
-│  🏠  🏢  📖  📚  🔧  ⚖️          │  │  + Log   │
-└── left pill (full nav, 6 icons) ─┘  └ right ───┘
+### Where it changes
 
-Scrolling down:
-┌──────┐                              ┌──────────┐
-│  🏠  │ ← collapses to active icon   │  + Log   │
-└──────┘                              └──────────┘
+- `src/components/dock-lab/variants/TwoPillDock.tsx` — update className strings on the left pill, right action pill, and the search sheet input row. No structural changes.
 
-Scroll stops or scrolls up → left pill expands back.
-```
+### What stays the same
 
-## Behaviour
+- Two-pill layout, scroll-collapse logic, contextual action behavior, lab chip row.
+- Neobrutalist hard shadow stays — just layered under the glass glow so the dock still has weight.
 
-- **Left pill**: always present, all 6 nav icons. Active icon highlighted in accent.
-- **Collapse trigger**: scroll down >8px → collapse to a circle showing only the active icon. Scroll up OR 600ms scroll-idle → expand. Tapping the collapsed circle also expands.
-- **Right pill**: shows a contextual action. In the lab, a small chip-row above the dock lets you preview each route's action: `Join` (home), `Search` (directory), `Log` (app), `none` (the bar / playbook / resources / tools).
-- **Search action**: tapping it opens a Radix `Sheet` from the bottom with an autofocused input (demo only — doesn't route anywhere).
-- **Styling**: neobrutalist — `border-2 border-foreground`, `shadow-[3px_3px_0_0_hsl(var(--accent))]` on both pills.
-- **Animations**: `framer-motion` `layout` for the width-shrink, fade for icons hiding/showing.
-
-## Files
-
-- `src/components/dock-lab/variants/TwoPillDock.tsx` — new variant.
-- `src/components/dock-lab/DockLabShell.tsx` — register `TwoPillDock` at the top of the variants list so it's the default selection.
-
-No changes to the real `MobileBottomDock` yet — once you approve the demo feel, I'll port it to production in a follow-up.
+Once approved, I'll apply it to the lab variant only. The production `MobileBottomDock` swap happens in a separate step.
