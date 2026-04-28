@@ -201,6 +201,8 @@ export default function StartupDrawer({ startup, open, onOpenChange }: Props) {
           </div>
         </div>
       </SheetContent>
+
+      <DraftEmailDialog open={draftOpen} onOpenChange={setDraftOpen} target={draftTarget} />
     </Sheet>
   );
 }
