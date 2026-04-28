@@ -222,7 +222,7 @@ export default function MobileBottomDock() {
             <motion.div
               layout
               transition={MORPH_SPRING}
-              className="pointer-events-auto flex items-center gap-2"
+              className="pointer-events-auto flex items-center gap-1.5"
             >
               {/* Search is ALWAYS available */}
               <button
@@ -235,20 +235,19 @@ export default function MobileBottomDock() {
                 <Search size={18} strokeWidth={2.2} className="text-foreground" />
               </button>
 
-              <AnimatePresence>
+              <AnimatePresence mode="wait" initial={false}>
                 {contextAction && (
                   <motion.button
-                    key={contextAction}
+                    key={`${pathname}-${contextAction}`}
                     type="button"
-                    layout
                     onClick={handleContextAction}
-                    initial={{ opacity: 0, y: 8, scale: 0.92 }}
+                    initial={{ opacity: 0, y: 6, scale: 0.94 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 8, scale: 0.92 }}
-                    transition={MORPH_SPRING}
+                    exit={{ opacity: 0, y: 6, scale: 0.94 }}
+                    transition={{ duration: 0.16, ease: EASE }}
                     aria-label={contextAction === "join" ? "Join" : "Log"}
                     style={{ WebkitBackdropFilter: "blur(20px) saturate(180%)" }}
-                    className="flex items-center gap-1.5 h-12 px-4 bg-accent/80 backdrop-blur-xl backdrop-saturate-150 text-foreground border-2 border-foreground/70 rounded-full shadow-[inset_0_1px_0_0_hsl(0_0%_100%/0.35),0_8px_28px_-8px_hsl(var(--accent)/0.6),3px_3px_0_0_hsl(var(--foreground))] active:translate-x-[1px] active:translate-y-[1px] transition-transform"
+                    className="flex items-center gap-1.5 h-12 px-3.5 bg-accent/80 backdrop-blur-xl backdrop-saturate-150 text-foreground border-2 border-foreground/70 rounded-full shadow-[inset_0_1px_0_0_hsl(0_0%_100%/0.35),0_8px_28px_-8px_hsl(var(--accent)/0.6),3px_3px_0_0_hsl(var(--foreground))] active:translate-x-[1px] active:translate-y-[1px] transition-transform"
                   >
                     {contextAction === "join" ? <Send size={14} strokeWidth={2.5} /> : <Plus size={14} strokeWidth={2.5} />}
                     <span className="font-sora text-xs font-bold">
