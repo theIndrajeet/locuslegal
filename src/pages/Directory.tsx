@@ -234,9 +234,6 @@ export default function Directory() {
     setSearchInput(""); setSCity(""); setSSector(""); setSStage(""); setSSize(""); setSLegal(""); setSort("relevance");
   }, []);
 
-  const selectClass =
-    "bg-card border border-border rounded-lg px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent/50 transition-colors";
-
   return (
     <main className="pt-24 pb-16">
       {/* Hero */}
