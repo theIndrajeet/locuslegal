@@ -1,84 +1,90 @@
-# Route Skeletons for Faster-Feeling Navigation
+# Add Startups & SMEs to the Directory
 
-## Problem
+Your spreadsheet has **506 startups, SMEs and corporates** across India — Bangalore (127), Delhi (55), Mumbai (37), Hyderabad (37), Gurgaon (35) etc. Sectors span Fintech (90), SaaS (33+), EdTech (33), HealthTech (29), LegalTech (19), and 100+ more. 502/506 have a contact email. Stages range from Seed → Series K → Listed/IPO/NASDAQ.
 
-Today, the global Suspense fallback in `App.tsx` is just a 2px `<TopProgressBar />` at the top of the screen. While a route chunk downloads (or while the new page does its initial Supabase fetch), users see:
+This is a fundamentally different dataset from law firms (different fields, different student intent: **cold-outreach for in-house/legal-ops internships** rather than chambers research). So instead of mixing them into one list, we'll add a **second mode** to the Directory.
 
-- The previous page disappear instantly
-- A blank black screen with only the navbar/footer + a thin yellow line
-- Then the real page snaps in
+## What we're building
 
-This reads as "the app froze" even when the actual wait is 200–600ms. We already have nice skeletons inside `AppHome`, `TheBar*`, `ProfileEdit`, etc., but they only render *after* the chunk loads — the gap before that is still blank.
+A new top-level toggle on `/directory` that switches between two universes:
 
-## Goal
-
-Show a **route-shaped skeleton** during both phases (chunk download + initial data fetch) so every navigation feels like the new page is already there, just hydrating.
-
-## Approach
-
-### 1. Create a `RouteSkeleton` component
-
-New file `src/components/RouteSkeleton.tsx` that:
-
-- Reads the current pathname via `useLocation()`
-- Picks a skeleton "shape" preset based on the path (matched with the same regex table as `prefetchRoute`)
-- Renders neobrutalist skeleton blocks (using existing `Skeleton` from `@/components/ui/skeleton`) wrapped in the standard page padding (`pt-20 px-4 max-w-6xl mx-auto`)
-- Always renders `<TopProgressBar />` on top so the yellow line still gives motion feedback
-
-Skeleton shape presets (kept lightweight — 4–6 blocks each, no animation beyond the existing `animate-pulse`):
-
-| Route prefix | Shape |
-|---|---|
-| `/app` | Identity row + strength meter bar + 3-column pane grid |
-| `/the-bar`, `/the-bar/browse` | Stats strip + grid of 6 challenge cards |
-| `/the-bar/challenge/*` | Tall question card + answer area |
-| `/the-bar/leaderboard`, `/history` | Header + 8 list rows |
-| `/directory` | Filter bar + map placeholder + 6 firm cards |
-| `/playbook`, `/resources`, `/tools` | Header + 3-col card grid |
-| `/playbook/:slug` | Title block + paragraph lines (article shape) |
-| `/applications` | Stats strip + 5 row table |
-| `/profile/edit`, `/u/:username` | Avatar + 4 form sections |
-| `/auth`, `/choose-username`, `/reset-password` | Centered card with input rows |
-| `/admin/*`, `/waitlist`, `/beta`, fallback | Header + generic stack of 4 blocks |
-
-A small `getRouteShape(pathname)` function (mirroring `pathToKey` in `lib/prefetch.ts`) returns which preset to render. Default fallback = generic stack.
-
-### 2. Wire it into the global Suspense
-
-In `src/App.tsx`, change:
-
-```tsx
-<Suspense fallback={<TopProgressBar />}>
+```text
+┌─────────────────────────────────────────────────────┐
+│  [ Law Firms (5,000+) ]  [ Startups & SMEs (506) ]  │
+└─────────────────────────────────────────────────────┘
 ```
 
-to:
+When "Startups & SMEs" is active, the page swaps in a tailored filter bar, card grid, and detail drawer — keeping the same neobrutalist aesthetic, search-as-you-type, pagination, and Cmd+K integration.
 
-```tsx
-<Suspense fallback={<RouteSkeleton />}>
+### Startup card (grid view)
+
+```text
+┌───────────────────────────────────────────────┐
+│ Razorpay                          [ Series F ]│
+│ Bangalore · Fintech                           │
+│                                               │
+│ 1001-5000 employees · Has Legal Dept          │
+│ Key needs: RBI, Payments, Privacy, IP         │
+│                                               │
+│ [Visit website]   [Copy email]   [Save]       │
+└───────────────────────────────────────────────┘
 ```
 
-`RouteSkeleton` itself includes `<TopProgressBar />` so we keep the existing motion cue.
+Click a card → drawer opens with website, email, sector, stage, employee band, legal needs, notes, and a one-click **"Log this as an application"** button that pre-fills the existing Application Tracker.
 
-### 3. Reuse the same component for in-page initial loads (optional, cheap win)
+### Filters for startup mode
 
-`AppHome.tsx` already renders its own ad-hoc skeleton block while `loading` is true. We'll leave that as-is — it's already a skeleton — but make sure its shape matches what `RouteSkeleton` shows for `/app`, so the chunk-load skeleton → data-load skeleton transition is seamless (no visual jump).
+- **Search** (name, sector, notes)
+- **City** — top 15 cities + "All"
+- **Sector** — grouped: Fintech, SaaS, HealthTech, EdTech, LegalTech, Logistics, EV/CleanTech, Other
+- **Stage** — grouped: Early (Seed–A), Growth (B–D), Late (E+), Listed/IPO, Acquired
+- **Employee size** — 1–50, 51–200, 201–1000, 1001–5000, 5000+
+- **Has legal team?** — Yes / No / Either (useful signal for "they need an intern" vs "they have one already")
+- **Sort** — Name A→Z, Stage (early → late), Most recently funded
 
-If the shapes match closely enough, the user perceives one continuous skeleton instead of two flashes.
+## How it slots into the existing app
 
-## Technical notes
+- **Directory page** (`src/pages/Directory.tsx`) gets a mode toggle at the top. Existing law-firm code stays untouched and behind the "Law Firms" tab. Map view stays law-firms-only (startups don't have lat/long).
+- **CompareBar** stays law-firms-only for now (chambers comparison is the differentiated use case).
+- **Universal Search** (Cmd+K) gets the 506 startups added to its index, so a search for "Razorpay" or "Fintech Bangalore" surfaces them site-wide.
+- **Application Tracker** already has a "Log application" flow — startup drawer's "Apply" button deep-links into it with the firm name pre-filled.
+- **SEO** — page meta updates to reflect both ("5,000+ law firms · 500+ startups hiring legal interns").
 
-- `RouteSkeleton` must not import any heavy dependencies — only `react-router-dom` (already in critical bundle), `@/components/ui/skeleton` (~20 LOC), and `TopProgressBar`. No Supabase, no auth, no icons that pull a chunk.
-- All skeleton blocks use `bg-card border-2 border-border` to match the neobrutalist aesthetic. No emojis, no rounded radii beyond what `Skeleton` provides.
-- The fallback renders inside `<Layout>` for nested routes (Navbar/Footer stay), and as a full-screen card for top-level routes like `/auth` (which lives outside Layout). The shape preset accounts for this — auth routes use a centered card; everything else uses the page padding.
-- Total bundle impact: ~1.5 KB gzipped, all in the critical chunk. No new lazy boundaries.
+## Technical details
 
-## Files
+**Data file** — Convert the xlsx to `src/data/startups.json` at build time (one-off script, then committed). Schema:
+```ts
+{ name, city, sector, sectorGroup, stage, stageGroup, website, email,
+  employees, employeesBand, hasLegalDept, legalNeeds, notes }
+```
+Pre-compute `sectorGroup`, `stageGroup`, `employeesBand` so filter dropdowns stay snappy without runtime parsing.
 
-- **New**: `src/components/RouteSkeleton.tsx`
-- **Edit**: `src/App.tsx` (swap one line in the Suspense fallback)
+**Component structure**:
+- `src/data/startups.json` — 506 entries (~80 KB, ships with bundle, no DB needed)
+- `src/components/directory/StartupCard.tsx` — card UI
+- `src/components/directory/StartupDrawer.tsx` — detail drawer (mirrors FirmDrawer styling)
+- `src/components/directory/DirectoryModeToggle.tsx` — the firms/startups switch
+- `src/pages/Directory.tsx` — refactor to read `mode` state and conditionally render filter bar + grid
 
-## Out of scope
+**State**: `mode` lives in URL query (`?mode=startups`) so links and Cmd+K results land in the right view.
 
-- Animating between skeleton → real content (would require a coordinated cross-fade and isn't worth the complexity now)
-- Per-page custom skeletons inside each route file (the existing in-page skeletons stay; we're only fixing the *blank chunk-load* gap)
-- Changing the home page (it isn't lazy-loaded, so it never shows a fallback)
+**Search index update**: `src/components/search/searchEngine.ts` — append startup entries with `type: 'startup'` and a distinct icon/color in the palette.
+
+**Privacy / abuse concern**: 502 contact emails ship to the client. Per our memory rule (no pricing/payment/early-access language in firms section), I'll keep the framing strictly factual: "Contact email" + Copy button, no auto-mail-to bulk-send affordance, no "outreach campaigns" language anywhere user-facing. The internal spreadsheet's "Judgy-Helmet outreach priority" columns will NOT be exposed — we strip them out during the JSON conversion.
+
+## Out of scope (for this pass)
+
+- Map view for startups (no coordinates in source data)
+- Compare mode for startups (chambers comparison is the existing differentiated use case)
+- User-submitted startups (would need DB + moderation)
+- Personalized "best match" scoring against the user's profile
+
+We can layer any of these on later if you want.
+
+## Approve and I'll build
+
+Once you say go, I'll:
+1. Generate `src/data/startups.json` from the spreadsheet (strip internal columns)
+2. Build the mode toggle, startup card, drawer, and filter bar
+3. Wire startups into the universal Cmd+K search
+4. Update page meta + the homepage stats bar count if it references "500+ firms"
