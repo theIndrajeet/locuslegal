@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Sparkles, Copy, Mail, AlertCircle, FileText } from "lucide-react";
+import { Loader2, Sparkles, Copy, Mail, AlertCircle, FileText, ChevronLeft, ChevronRight, Check } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthSession } from "@/hooks/useAuthSession";
@@ -33,6 +33,7 @@ interface UserContext {
   college: string | null;
   degree: string | null;
   graduation_year: number | null;
+  cgpa: number | null;
   bio: string | null;
   subjects_of_interest: string[];
   internships: Array<{
@@ -42,8 +43,56 @@ interface UserContext {
     end_date: string | null;
     description: string | null;
   }>;
+  moots: Array<{ competition_name: string; year: number; role: string | null; result: string | null }>;
+  publications: Array<{ title: string; publisher: string }>;
   has_cv: boolean;
 }
+
+type HighlightKind = "internship" | "subject" | "education" | "moot" | "publication" | "cgpa" | "bio";
+interface HighlightChip {
+  id: string;
+  kind: HighlightKind;
+  label: string;
+  detail?: string | null;
+  matches?: boolean; // overlaps with target
+}
+
+interface BriefState {
+  fit_reason: string | null;
+  role: string;
+  availability: string | null;
+  availability_custom: string;
+  duration: string | null;
+  signature_line: string;
+  work_mode: string | null;
+  highlight_ids: string[];
+}
+
+const FIT_OPTIONS = [
+  { value: "Practice area match", label: "Practice area match" },
+  { value: "Reputation", label: "Reputation" },
+  { value: "Location", label: "Location" },
+  { value: "Recent matter", label: "Recent matter" },
+  { value: "Other", label: "Other" },
+];
+const AVAIL_OPTIONS = [
+  { value: "this summer", label: "This summer" },
+  { value: "winter break", label: "Winter break" },
+  { value: "specific", label: "Specific months" },
+  { value: "flexible", label: "Flexible" },
+];
+const DURATION_OPTIONS = [
+  { value: "2-4 weeks", label: "2–4 weeks" },
+  { value: "1 month", label: "1 month" },
+  { value: "2 months", label: "2 months" },
+  { value: "3+ months", label: "3+ months" },
+];
+const MODE_OPTIONS = [
+  { value: "in-office", label: "In-office" },
+  { value: "remote", label: "Remote" },
+  { value: "hybrid", label: "Hybrid" },
+  { value: "either", label: "Either" },
+];
 
 const TONES: Array<{ value: "formal" | "warm" | "concise"; label: string }> = [
   { value: "formal", label: "Formal" },
@@ -53,6 +102,85 @@ const TONES: Array<{ value: "formal" | "warm" | "concise"; label: string }> = [
 
 // In-module cache per target id, keeps drafts during a session.
 const draftCache = new Map<string, { subject: string; body: string }>();
+const briefCache = new Map<string, BriefState>();
+
+function firstNoun(text: string | null | undefined): string {
+  if (!text) return "";
+  const stop = new Set(["the", "a", "an", "and", "or", "of", "for", "in", "on", "at", "with", "to", "i", "we", "did", "was", "were", "is", "are", "as"]);
+  const words = text.toLowerCase().replace(/[^a-z\s]/g, " ").split(/\s+/).filter(Boolean);
+  return words.find((w) => !stop.has(w) && w.length > 3) || "";
+}
+
+function buildHighlights(user: UserContext, target: DraftEmailTarget | null): HighlightChip[] {
+  const chips: HighlightChip[] = [];
+  const targetText = [target?.practice_areas, target?.legal_needs, target?.sector, target?.type]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  // Internships
+  user.internships.forEach((it, i) => {
+    const noun = firstNoun(it.description) || firstNoun(it.role);
+    const label = noun ? `${noun.charAt(0).toUpperCase() + noun.slice(1)} at ${it.firm_name}` : `Intern at ${it.firm_name}`;
+    const detail = `${it.role}${it.description ? " — " + it.description.slice(0, 140) : ""}`;
+    const matches = !!targetText && (targetText.includes(noun) || targetText.includes(it.firm_name.toLowerCase().split(" ")[0]));
+    chips.push({ id: `int-${i}`, kind: "internship", label, detail, matches });
+  });
+
+  // Subjects of interest
+  user.subjects_of_interest.forEach((s, i) => {
+    const matches = !!targetText && targetText.includes(s.toLowerCase());
+    chips.push({
+      id: `sub-${i}`,
+      kind: "subject",
+      label: `Interested in ${s}`,
+      detail: s,
+      matches,
+    });
+  });
+
+  // Education
+  if (user.college) {
+    chips.push({
+      id: "edu",
+      kind: "education",
+      label: `${user.degree ?? "Law student"} at ${user.college}`,
+      detail: `${user.degree ?? ""} ${user.college}${user.graduation_year ? `, graduating ${user.graduation_year}` : ""}`.trim(),
+    });
+  }
+
+  // Moots
+  user.moots.forEach((m, i) => {
+    chips.push({
+      id: `moot-${i}`,
+      kind: "moot",
+      label: `${m.competition_name} (${m.year})`,
+      detail: `${m.role ?? ""} — ${m.result ?? ""}`.trim(),
+    });
+  });
+
+  // Publications
+  user.publications.forEach((p, i) => {
+    chips.push({
+      id: `pub-${i}`,
+      kind: "publication",
+      label: `Published "${p.title.slice(0, 60)}"`,
+      detail: `${p.title} — ${p.publisher}`,
+    });
+  });
+
+  // CGPA (only if strong)
+  if (user.cgpa && user.cgpa >= 7.5) {
+    chips.push({
+      id: "cgpa",
+      kind: "cgpa",
+      label: `CGPA ${user.cgpa.toFixed(2)}`,
+      detail: `Current CGPA ${user.cgpa.toFixed(2)}`,
+    });
+  }
+
+  return chips;
+}
 
 function buildGmailUrl(to: string, subject: string, body: string): string {
   const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
@@ -72,11 +200,20 @@ export default function DraftEmailDialog({ open, onOpenChange, target }: Props) 
   const [user, setUser] = useState<UserContext | null>(null);
   const [loadingUser, setLoadingUser] = useState(false);
   const [tone, setTone] = useState<"formal" | "warm" | "concise">("formal");
-  const [role, setRole] = useState("Legal Internship");
-  const [extraNote, setExtraNote] = useState("");
   const [generating, setGenerating] = useState(false);
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
+  const [step, setStep] = useState(0); // 0..3
+  const [brief, setBrief] = useState<BriefState>({
+    fit_reason: null,
+    role: "Legal Internship",
+    availability: null,
+    availability_custom: "",
+    duration: null,
+    signature_line: "",
+    work_mode: null,
+    highlight_ids: [],
+  });
 
   // Auth gate — redirect when needed.
   useEffect(() => {
@@ -95,11 +232,11 @@ export default function DraftEmailDialog({ open, onOpenChange, target }: Props) 
     setLoadingUser(true);
 
     (async () => {
-      const [{ data: profile }, { data: internships }] = await Promise.all([
+      const [{ data: profile }, { data: internships }, { data: moots }, { data: publications }] = await Promise.all([
         supabase
           .from("profiles")
           .select(
-            "display_name, college, degree, graduation_year, bio, subjects_of_interest, cv_url",
+            "display_name, college, degree, graduation_year, cgpa, bio, subjects_of_interest, cv_url",
           )
           .eq("id", userId)
           .maybeSingle(),
@@ -109,6 +246,18 @@ export default function DraftEmailDialog({ open, onOpenChange, target }: Props) 
           .eq("user_id", userId)
           .order("start_date", { ascending: false })
           .limit(3),
+        supabase
+          .from("profile_moots")
+          .select("competition_name, year, role, result")
+          .eq("user_id", userId)
+          .order("year", { ascending: false })
+          .limit(3),
+        supabase
+          .from("profile_publications")
+          .select("title, publisher")
+          .eq("user_id", userId)
+          .order("publication_date", { ascending: false })
+          .limit(3),
       ]);
       if (cancelled) return;
       setUser({
@@ -116,9 +265,12 @@ export default function DraftEmailDialog({ open, onOpenChange, target }: Props) 
         college: profile?.college ?? null,
         degree: profile?.degree ?? null,
         graduation_year: profile?.graduation_year ?? null,
+        cgpa: profile?.cgpa ? Number(profile.cgpa) : null,
         bio: profile?.bio ?? null,
         subjects_of_interest: profile?.subjects_of_interest ?? [],
         internships: internships ?? [],
+        moots: (moots ?? []) as UserContext["moots"],
+        publications: publications ?? [],
         has_cv: Boolean(profile?.cv_url),
       });
       setLoadingUser(false);
@@ -130,6 +282,13 @@ export default function DraftEmailDialog({ open, onOpenChange, target }: Props) 
   }, [open, userId]);
 
   // Reset / restore draft when target changes
+  // Compute highlight chips from user + target
+  const highlights = useMemo<HighlightChip[]>(
+    () => (user && target ? buildHighlights(user, target) : []),
+    [user, target],
+  );
+
+  // Reset / restore draft + brief when target changes
   useEffect(() => {
     if (!open || !target) return;
     const cached = draftCache.get(target.id);
@@ -140,9 +299,53 @@ export default function DraftEmailDialog({ open, onOpenChange, target }: Props) 
       setSubject("");
       setBody("");
     }
-    setExtraNote("");
-    setRole("Legal Internship");
+    const cachedBrief = briefCache.get(target.id);
+    if (cachedBrief) {
+      setBrief(cachedBrief);
+    } else {
+      setBrief({
+        fit_reason: null,
+        role: "Legal Internship",
+        availability: null,
+        availability_custom: "",
+        duration: null,
+        signature_line: "",
+        work_mode: null,
+        highlight_ids: [],
+      });
+    }
+    setStep(0);
   }, [open, target]);
+
+  // Smart-default highlight selection once chips are computed (only if user hasn't picked any yet)
+  useEffect(() => {
+    if (!target || !highlights.length) return;
+    const cached = briefCache.get(target.id);
+    if (cached && cached.highlight_ids.length) return;
+    const matching = highlights.filter((h) => h.matches).slice(0, 2).map((h) => h.id);
+    const fillers = highlights.filter((h) => !matching.includes(h.id)).slice(0, 3 - matching.length).map((h) => h.id);
+    setBrief((b) => (b.highlight_ids.length ? b : { ...b, highlight_ids: [...matching, ...fillers].slice(0, 3) }));
+  }, [highlights, target]);
+
+  const buildBriefPayload = () => {
+    const availability =
+      brief.availability === "specific"
+        ? brief.availability_custom.trim() || null
+        : brief.availability;
+    const picked = highlights
+      .filter((h) => brief.highlight_ids.includes(h.id))
+      .map((h) => ({ kind: h.kind, label: h.label, detail: h.detail ?? null }));
+    const payload = {
+      fit_reason: brief.fit_reason,
+      availability,
+      duration: brief.duration,
+      signature_line: brief.signature_line.trim() || null,
+      work_mode: brief.work_mode,
+      highlights: picked,
+    };
+    // Strip empty
+    return payload;
+  };
 
   const generate = async () => {
     if (!target || !user) return;
@@ -159,9 +362,9 @@ export default function DraftEmailDialog({ open, onOpenChange, target }: Props) 
             practice_areas: target.practice_areas,
             legal_needs: target.legal_needs,
           },
-          role,
+          role: brief.role,
           tone,
-          extra_note: extraNote.trim() || null,
+          brief: buildBriefPayload(),
           user,
         },
       });
@@ -186,6 +389,7 @@ export default function DraftEmailDialog({ open, onOpenChange, target }: Props) 
       setSubject(result.subject);
       setBody(result.body);
       draftCache.set(target.id, { subject: result.subject, body: result.body });
+      briefCache.set(target.id, brief);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Couldn't generate email");
     } finally {
@@ -240,7 +444,7 @@ export default function DraftEmailDialog({ open, onOpenChange, target }: Props) 
         .insert({
           user_id: userId,
           firm_name_snapshot: target.name,
-          role,
+          role: brief.role,
           applied_on: today,
           method: "email",
           status: "sent",
@@ -258,7 +462,7 @@ export default function DraftEmailDialog({ open, onOpenChange, target }: Props) 
     onOpenChange(false);
   };
 
-  const canGenerate = !generating && !loadingUser && !!user && role.trim().length > 0;
+  const canGenerate = !generating && !loadingUser && !!user && brief.role.trim().length > 0;
   const hasDraft = subject.trim().length > 0 && body.trim().length > 0;
 
   const wordCount = useMemo(
@@ -300,70 +504,327 @@ export default function DraftEmailDialog({ open, onOpenChange, target }: Props) 
             </div>
           )}
 
-          {/* Inputs */}
-          <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3">
-            <div className="space-y-1.5">
-              <Label className="font-mono text-[10px] uppercase tracking-widest">Role</Label>
-              <Input
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
-                placeholder="Legal Internship"
-                maxLength={100}
-              />
+          {/* Tone (always visible above stepper) */}
+          <div className="space-y-1.5">
+            <Label className="font-mono text-[10px] uppercase tracking-widest">Tone</Label>
+            <div className="flex gap-1.5">
+              {TONES.map((t) => (
+                <button
+                  key={t.value}
+                  type="button"
+                  onClick={() => setTone(t.value)}
+                  className={`px-3 py-2 rounded-md border text-xs font-semibold transition-colors ${
+                    tone === t.value
+                      ? "border-accent bg-accent text-accent-foreground"
+                      : "border-border bg-muted/30 text-muted-foreground hover:bg-muted"
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
             </div>
-            <div className="space-y-1.5">
-              <Label className="font-mono text-[10px] uppercase tracking-widest">Tone</Label>
-              <div className="flex gap-1.5">
-                {TONES.map((t) => (
+          </div>
+
+          {/* Brief Builder Stepper */}
+          {!hasDraft && (
+            <div className="rounded-lg border-2 border-border bg-muted/20 p-3 space-y-3 shadow-[3px_3px_0_0_hsl(var(--border))]">
+              {/* Progress indicator */}
+              <div className="flex items-center gap-1.5">
+                {[0, 1, 2, 3].map((i) => (
                   <button
-                    key={t.value}
+                    key={i}
                     type="button"
-                    onClick={() => setTone(t.value)}
-                    className={`px-3 py-2 rounded-md border text-xs font-semibold transition-colors ${
-                      tone === t.value
-                        ? "border-accent bg-accent text-accent-foreground"
-                        : "border-border bg-muted/30 text-muted-foreground hover:bg-muted"
+                    onClick={() => setStep(i)}
+                    className={`flex-1 h-1.5 rounded-full transition-colors ${
+                      i <= step ? "bg-accent" : "bg-border"
                     }`}
-                  >
-                    {t.label}
-                  </button>
+                    aria-label={`Step ${i + 1}`}
+                  />
                 ))}
+                <span className="font-mono text-[10px] text-muted-foreground ml-2 shrink-0">
+                  {step + 1}/4
+                </span>
+              </div>
+
+              {/* Step 1: Fit */}
+              {step === 0 && (
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-sm font-semibold mb-2">What draws you to {target?.name ?? "them"}?</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {FIT_OPTIONS.map((o) => (
+                        <button
+                          key={o.value}
+                          type="button"
+                          onClick={() =>
+                            setBrief((b) => ({ ...b, fit_reason: b.fit_reason === o.value ? null : o.value }))
+                          }
+                          className={`px-3 py-1.5 rounded-md border text-xs font-medium transition-colors ${
+                            brief.fit_reason === o.value
+                              ? "border-accent bg-accent text-accent-foreground"
+                              : "border-border bg-background hover:bg-muted"
+                          }`}
+                        >
+                          {o.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="font-mono text-[10px] uppercase tracking-widest">Role</Label>
+                    <Input
+                      value={brief.role}
+                      onChange={(e) => setBrief((b) => ({ ...b, role: e.target.value.slice(0, 100) }))}
+                      placeholder="Legal Internship"
+                      maxLength={100}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Step 2: Logistics */}
+              {step === 1 && (
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-sm font-semibold mb-2">When are you available?</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {AVAIL_OPTIONS.map((o) => (
+                        <button
+                          key={o.value}
+                          type="button"
+                          onClick={() =>
+                            setBrief((b) => ({ ...b, availability: b.availability === o.value ? null : o.value }))
+                          }
+                          className={`px-3 py-1.5 rounded-md border text-xs font-medium transition-colors ${
+                            brief.availability === o.value
+                              ? "border-accent bg-accent text-accent-foreground"
+                              : "border-border bg-background hover:bg-muted"
+                          }`}
+                        >
+                          {o.label}
+                        </button>
+                      ))}
+                    </div>
+                    {brief.availability === "specific" && (
+                      <Input
+                        value={brief.availability_custom}
+                        onChange={(e) =>
+                          setBrief((b) => ({ ...b, availability_custom: e.target.value.slice(0, 80) }))
+                        }
+                        placeholder="e.g. May to July 2026"
+                        maxLength={80}
+                        className="mt-2"
+                      />
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold mb-2">For how long?</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {DURATION_OPTIONS.map((o) => (
+                        <button
+                          key={o.value}
+                          type="button"
+                          onClick={() =>
+                            setBrief((b) => ({ ...b, duration: b.duration === o.value ? null : o.value }))
+                          }
+                          className={`px-3 py-1.5 rounded-md border text-xs font-medium transition-colors ${
+                            brief.duration === o.value
+                              ? "border-accent bg-accent text-accent-foreground"
+                              : "border-border bg-background hover:bg-muted"
+                          }`}
+                        >
+                          {o.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 3: Edge */}
+              {step === 2 && (
+                <div className="space-y-3">
+                  <div className="space-y-1.5">
+                    <Label className="font-mono text-[10px] uppercase tracking-widest">
+                      One line they should remember about you
+                    </Label>
+                    <Input
+                      value={brief.signature_line}
+                      onChange={(e) =>
+                        setBrief((b) => ({ ...b, signature_line: e.target.value.slice(0, 140) }))
+                      }
+                      placeholder="e.g. drafted my first commercial contract at 19"
+                      maxLength={140}
+                    />
+                    <p className="font-mono text-[10px] text-muted-foreground text-right">
+                      {brief.signature_line.length}/140
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold mb-2">Work mode</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {MODE_OPTIONS.map((o) => (
+                        <button
+                          key={o.value}
+                          type="button"
+                          onClick={() =>
+                            setBrief((b) => ({ ...b, work_mode: b.work_mode === o.value ? null : o.value }))
+                          }
+                          className={`px-3 py-1.5 rounded-md border text-xs font-medium transition-colors ${
+                            brief.work_mode === o.value
+                              ? "border-accent bg-accent text-accent-foreground"
+                              : "border-border bg-background hover:bg-muted"
+                          }`}
+                        >
+                          {o.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 4: Highlights */}
+              {step === 3 && (
+                <div className="space-y-2">
+                  <div className="flex items-baseline justify-between">
+                    <p className="text-sm font-semibold">Highlight from your CV</p>
+                    <span className="font-mono text-[10px] text-muted-foreground">
+                      {brief.highlight_ids.length}/4 picked
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Pick up to 4. We'll weave them naturally into the email.
+                  </p>
+                  {highlights.length === 0 ? (
+                    <p className="text-xs text-muted-foreground italic py-2">
+                      Add internships, moots or publications in your profile to surface highlights.
+                    </p>
+                  ) : (
+                    <div className="flex flex-wrap gap-1.5">
+                      {highlights.map((h) => {
+                        const picked = brief.highlight_ids.includes(h.id);
+                        const disabled = !picked && brief.highlight_ids.length >= 4;
+                        return (
+                          <button
+                            key={h.id}
+                            type="button"
+                            disabled={disabled}
+                            onClick={() =>
+                              setBrief((b) => ({
+                                ...b,
+                                highlight_ids: picked
+                                  ? b.highlight_ids.filter((id) => id !== h.id)
+                                  : [...b.highlight_ids, h.id],
+                              }))
+                            }
+                            className={`px-2.5 py-1.5 rounded-md border text-xs font-medium transition-colors flex items-center gap-1.5 ${
+                              picked
+                                ? "border-accent bg-accent text-accent-foreground"
+                                : disabled
+                                  ? "border-border bg-muted/30 text-muted-foreground/50 cursor-not-allowed"
+                                  : "border-border bg-background hover:bg-muted"
+                            }`}
+                            title={h.detail ?? undefined}
+                          >
+                            {picked && <Check size={12} />}
+                            {h.label}
+                            {h.matches && !picked && (
+                              <span className="font-mono text-[9px] uppercase text-accent ml-1">
+                                match
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Stepper nav */}
+              <div className="flex items-center justify-between pt-2 border-t border-border">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setStep((s) => Math.max(0, s - 1))}
+                  disabled={step === 0}
+                  className="h-8"
+                >
+                  <ChevronLeft className="h-3.5 w-3.5 mr-1" />
+                  Back
+                </Button>
+                <button
+                  type="button"
+                  onClick={generate}
+                  disabled={!canGenerate}
+                  className="text-xs text-muted-foreground underline hover:text-foreground disabled:opacity-40"
+                >
+                  Skip & generate
+                </button>
+                {step < 3 ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => setStep((s) => Math.min(3, s + 1))}
+                    className="h-8 bg-foreground text-background hover:bg-foreground/90"
+                  >
+                    Next
+                    <ChevronRight className="h-3.5 w-3.5 ml-1" />
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={generate}
+                    disabled={!canGenerate}
+                    className="h-8 bg-accent text-accent-foreground hover:bg-accent/90"
+                  >
+                    {generating ? (
+                      <>
+                        <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+                        Drafting…
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-3.5 w-3.5 mr-1" />
+                        Generate
+                      </>
+                    )}
+                  </Button>
+                )}
               </div>
             </div>
-          </div>
+          )}
 
-          <div className="space-y-1.5">
-            <Label className="font-mono text-[10px] uppercase tracking-widest">
-              Anything to add (optional)
-            </Label>
-            <Input
-              value={extraNote}
-              onChange={(e) => setExtraNote(e.target.value.slice(0, 300))}
-              placeholder="e.g. available May–July, interested in M&A specifically"
-              maxLength={300}
-            />
-          </div>
+          {/* Regenerate button (visible only when draft exists) */}
+          {hasDraft && (
+            <Button
+              onClick={generate}
+              disabled={!canGenerate}
+              variant="outline"
+              className="w-full"
+            >
+              {generating ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" /> Regenerating…
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  Regenerate with current brief
+                </>
+              )}
+            </Button>
+          )}
 
-          <Button
-            onClick={generate}
-            disabled={!canGenerate}
-            className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
-          >
-            {generating ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin mr-2" /> Drafting…
-              </>
-            ) : loadingUser ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin mr-2" /> Loading your profile…
-              </>
-            ) : (
-              <>
-                <Sparkles className="h-4 w-4 mr-2" />
-                {hasDraft ? "Regenerate" : "Generate email"}
-              </>
-            )}
-          </Button>
+          {loadingUser && (
+            <p className="text-xs text-muted-foreground text-center">
+              <Loader2 className="h-3 w-3 animate-spin inline mr-1" />
+              Loading your profile…
+            </p>
+          )}
 
           {/* Draft */}
           {hasDraft && (

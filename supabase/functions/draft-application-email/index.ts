@@ -9,7 +9,7 @@ const corsHeaders = {
 
 const SYSTEM_PROMPT = `You draft professional cold internship/application emails for Indian law students reaching out to law firms, chambers, advocates, or in-house legal teams at companies.
 
-You will receive structured JSON describing the TARGET (firm/company) and the SENDER (the student). Your job is to write a single email — a SUBJECT line and a BODY — that is concrete, specific, and ready to send with only a CV attached.
+You will receive structured JSON describing the TARGET (firm/company), the SENDER (the student), and an optional BRIEF (sender's answers to a guided questionnaire). Your job is to write a single email — a SUBJECT line and a BODY — that is concrete, specific, and ready to send with only a CV attached.
 
 HARD RULES:
 - Output only via the provided tool. Never include placeholders like [Your Name], [Firm Name], [Date], [Insert X]. If a field is missing, omit that sentence entirely.
@@ -22,6 +22,14 @@ HARD RULES:
 - If the target is a startup/SME (in-house): pitch a legal internship with their in-house team, referencing their sector or known legal needs as the reason for interest.
 - One concrete reason for interest in THIS target (use sector / practice areas / city). One short line connecting the sender's most relevant experience or interest to that.
 - Subject line: 6–10 words, no clickbait. Format like: "Application for Legal Internship — <Sender Name>" or "Legal Internship Enquiry — <Sender Name>, <College short>".
+
+USING THE BRIEF (when present, treat as the sender's own priorities):
+- brief.fit_reason: lead the opening hook with this reason — make it concrete, don't quote the label verbatim.
+- brief.availability + brief.duration: weave naturally into the closing paragraph (e.g. "I am available for a [duration] internship during [availability]").
+- brief.work_mode: only mention if "remote" or "hybrid"; otherwise omit (in-office is assumed).
+- brief.signature_line: this is the ONE thing the sender wants remembered. Place it as the strongest sentence in the middle paragraph. Paraphrase, do NOT quote verbatim.
+- brief.highlights: weave the picked items into the middle paragraph as natural prose — NOT a bulleted list. Lead with the highlight whose detail most overlaps with the target's practice/sector. Merge similar highlights into one sentence.
+- If brief is empty/missing, fall back to standard generation using SENDER fields only.
 
 TONE OPTIONS:
 - formal (default): traditional, third-person professional. Address as "Dear Hiring Team," or "Dear Sir/Madam,".
@@ -38,6 +46,21 @@ interface Internship {
   description: string | null;
 }
 
+interface BriefHighlight {
+  kind: string;
+  label: string;
+  detail?: string | null;
+}
+
+interface Brief {
+  fit_reason?: string | null;
+  availability?: string | null;
+  duration?: string | null;
+  signature_line?: string | null;
+  work_mode?: string | null;
+  highlights?: BriefHighlight[];
+}
+
 interface Body {
   target: {
     name: string;
@@ -51,6 +74,7 @@ interface Body {
   role: string;
   tone: "formal" | "warm" | "concise";
   extra_note?: string | null;
+  brief?: Brief | null;
   user: {
     display_name: string | null;
     college: string | null;
@@ -61,6 +85,41 @@ interface Body {
     internships: Internship[];
     has_cv: boolean;
   };
+}
+
+const ALLOWED_HIGHLIGHT_KINDS = new Set([
+  "internship",
+  "subject",
+  "education",
+  "moot",
+  "publication",
+  "cgpa",
+  "bio",
+]);
+
+function sanitizeBrief(b: any): Brief | null {
+  if (!b || typeof b !== "object") return null;
+  const out: Brief = {};
+  if (typeof b.fit_reason === "string" && b.fit_reason.trim()) out.fit_reason = b.fit_reason.trim().slice(0, 120);
+  if (typeof b.availability === "string" && b.availability.trim()) out.availability = b.availability.trim().slice(0, 120);
+  if (typeof b.duration === "string" && b.duration.trim()) out.duration = b.duration.trim().slice(0, 60);
+  if (typeof b.signature_line === "string" && b.signature_line.trim()) out.signature_line = b.signature_line.trim().slice(0, 200);
+  if (typeof b.work_mode === "string" && b.work_mode.trim()) out.work_mode = b.work_mode.trim().slice(0, 30);
+  if (Array.isArray(b.highlights)) {
+    out.highlights = b.highlights
+      .filter((h: any) => h && typeof h === "object" && ALLOWED_HIGHLIGHT_KINDS.has(h.kind) && typeof h.label === "string")
+      .slice(0, 4)
+      .map((h: any) => ({
+        kind: String(h.kind),
+        label: String(h.label).slice(0, 120),
+        detail: h.detail ? String(h.detail).slice(0, 200) : null,
+      }));
+  }
+  // Empty brief => null
+  if (!out.fit_reason && !out.availability && !out.duration && !out.signature_line && !out.work_mode && !(out.highlights && out.highlights.length)) {
+    return null;
+  }
+  return out;
 }
 
 function validateBody(b: any): { ok: true; data: Body } | { ok: false; error: string } {
@@ -87,6 +146,7 @@ function validateBody(b: any): { ok: true; data: Body } | { ok: false; error: st
       role: String(b.role).trim().slice(0, 100),
       tone,
       extra_note: b.extra_note ? String(b.extra_note).slice(0, 300) : null,
+      brief: sanitizeBrief(b.brief),
       user: {
         display_name: b.user.display_name ? String(b.user.display_name).slice(0, 100) : null,
         college: b.user.college ? String(b.user.college).slice(0, 200) : null,
@@ -149,12 +209,16 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
+    const briefBlock = v.data.brief
+      ? `\n\nBRIEF (sender's guided answers — prioritise these):\n${JSON.stringify(v.data.brief, null, 2)}`
+      : "";
+
     const userPrompt = `TARGET:\n${JSON.stringify(v.data.target, null, 2)}\n\nSENDER:\n${JSON.stringify(
       v.data.user,
       null,
       2,
-    )}\n\nROLE: ${v.data.role}\nTONE: ${v.data.tone}\n${
-      v.data.extra_note ? `EXTRA NOTE FROM SENDER (try to weave naturally): ${v.data.extra_note}` : ""
+    )}\n\nROLE: ${v.data.role}\nTONE: ${v.data.tone}${briefBlock}\n${
+      v.data.extra_note ? `\nEXTRA NOTE FROM SENDER (try to weave naturally): ${v.data.extra_note}` : ""
     }\n\nDraft the email now via the draft_email tool.`;
 
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
