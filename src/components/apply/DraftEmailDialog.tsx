@@ -899,6 +899,13 @@ export default function DraftEmailDialog({ open, onOpenChange, target, onSent }:
             </p>
           )}
 
+          {isFollowup && !hasDraft && !loadingUser && (
+            <div className="flex items-center justify-center py-6 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin mr-2 text-accent" />
+              Drafting your follow-up…
+            </div>
+          )}
+
           {/* Draft */}
           {hasDraft && (
             <div className="space-y-3 pt-2 border-t border-border">
