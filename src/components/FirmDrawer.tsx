@@ -1,4 +1,5 @@
-import { Star, MapPin, Phone, Mail, ExternalLink, Building2 } from "lucide-react";
+import { useState } from "react";
+import { Star, MapPin, Phone, Mail, ExternalLink, Building2, Sparkles } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -6,6 +7,7 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
+import DraftEmailDialog, { type DraftEmailTarget } from "@/components/apply/DraftEmailDialog";
 
 type FirmType = "Law Firm" | "Chamber" | "Individual Advocate";
 
@@ -28,10 +30,24 @@ interface FirmDrawerProps {
 }
 
 export default function FirmDrawer({ firm, type, open, onOpenChange }: FirmDrawerProps) {
+  const [draftOpen, setDraftOpen] = useState(false);
+
   if (!firm) return null;
 
   const mapsUrl = firm.address
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(firm.address)}`
+    : null;
+
+  const draftTarget: DraftEmailTarget | null = firm.email
+    ? {
+        id: `firm:${firm.name}:${firm.email}`,
+        name: firm.name,
+        email: firm.email,
+        kind: "firm",
+        type,
+        city: firm.city ?? null,
+        practice_areas: type,
+      }
     : null;
 
   return (
@@ -104,19 +120,37 @@ export default function FirmDrawer({ firm, type, open, onOpenChange }: FirmDrawe
           </div>
 
           {/* Actions */}
-          {mapsUrl && (
-            <a
-              href={mapsUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-xl bg-accent text-accent-foreground font-medium text-sm hover:opacity-90 transition-opacity"
-            >
-              <ExternalLink size={14} />
-              Open in Google Maps
-            </a>
-          )}
+          <div className="space-y-2">
+            {draftTarget && (
+              <button
+                type="button"
+                onClick={() => setDraftOpen(true)}
+                className="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-xl bg-accent text-accent-foreground font-medium text-sm hover:opacity-90 transition-opacity"
+              >
+                <Sparkles size={14} />
+                Draft Application Email
+              </button>
+            )}
+            {mapsUrl && (
+              <a
+                href={mapsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl font-medium text-sm transition-colors ${
+                  draftTarget
+                    ? "bg-card border border-border text-foreground hover:border-accent/40"
+                    : "bg-accent text-accent-foreground hover:opacity-90"
+                }`}
+              >
+                <ExternalLink size={14} />
+                Open in Google Maps
+              </a>
+            )}
+          </div>
         </div>
       </SheetContent>
+
+      <DraftEmailDialog open={draftOpen} onOpenChange={setDraftOpen} target={draftTarget} />
     </Sheet>
   );
 }
