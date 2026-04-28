@@ -327,6 +327,26 @@ export default function DraftEmailDialog({ open, onOpenChange, target }: Props) 
     setBrief((b) => (b.highlight_ids.length ? b : { ...b, highlight_ids: [...matching, ...fillers].slice(0, 3) }));
   }, [highlights, target]);
 
+  const buildBriefPayload = () => {
+    const availability =
+      brief.availability === "specific"
+        ? brief.availability_custom.trim() || null
+        : brief.availability;
+    const picked = highlights
+      .filter((h) => brief.highlight_ids.includes(h.id))
+      .map((h) => ({ kind: h.kind, label: h.label, detail: h.detail ?? null }));
+    const payload = {
+      fit_reason: brief.fit_reason,
+      availability,
+      duration: brief.duration,
+      signature_line: brief.signature_line.trim() || null,
+      work_mode: brief.work_mode,
+      highlights: picked,
+    };
+    // Strip empty
+    return payload;
+  };
+
   const generate = async () => {
     if (!target || !user) return;
     setGenerating(true);
@@ -342,9 +362,9 @@ export default function DraftEmailDialog({ open, onOpenChange, target }: Props) 
             practice_areas: target.practice_areas,
             legal_needs: target.legal_needs,
           },
-          role,
+          role: brief.role,
           tone,
-          extra_note: extraNote.trim() || null,
+          brief: buildBriefPayload(),
           user,
         },
       });
@@ -369,6 +389,7 @@ export default function DraftEmailDialog({ open, onOpenChange, target }: Props) 
       setSubject(result.subject);
       setBody(result.body);
       draftCache.set(target.id, { subject: result.subject, body: result.body });
+      briefCache.set(target.id, brief);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Couldn't generate email");
     } finally {
