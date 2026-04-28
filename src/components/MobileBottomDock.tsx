@@ -197,7 +197,7 @@ export default function MobileBottomDock() {
                     exit={{ opacity: 0, transition: { duration: 0.08, ease: EASE } }}
                     className="flex items-center gap-2.5 px-3.5 py-2.5"
                   >
-                    {ALL_NAV.map(({ to, label, icon: Icon }) => {
+                    {navItems.map(({ to, label, icon: Icon }) => {
                       const isActive = activeKey === to;
                       return (
                         <Link
