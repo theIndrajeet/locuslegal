@@ -10,6 +10,9 @@ import Index from "./pages/Index";
 import TopProgressBar from "./components/TopProgressBar";
 import { useVersionCheck } from "@/hooks/useVersionCheck";
 import { routeImports, prefetchCommonRoutes } from "@/lib/prefetch";
+import { CommandPaletteProvider } from "@/components/search/useCommandPalette";
+import CommandPalette from "@/components/search/CommandPalette";
+import SearchFab from "@/components/search/SearchFab";
 
 // Lazy-load every non-landing route so the home page ships only what it needs.
 // All importers live in `lib/prefetch.ts` so hover/idle prefetching shares the
@@ -97,39 +100,43 @@ const App = () => (
         <VersionWatcher />
         <IdlePrefetcher />
         <BrowserRouter>
-          <Suspense fallback={<TopProgressBar />}>
-            <Routes>
-              <Route element={<Layout />}>
-                <Route path="/" element={<Index />} />
-                <Route path="/app" element={<AppHome />} />
-                <Route path="/waitlist" element={<Waitlist />} />
-                <Route path="/directory" element={<Directory />} />
-                <Route path="/playbook" element={<Playbook />} />
-                <Route path="/playbook/:slug" element={<PlaybookGuide />} />
-                <Route path="/resources" element={<Resources />} />
-                <Route path="/tools" element={<Tools />} />
-                <Route path="/tools/cv-analyser" element={<CvAnalyser />} />
-                <Route path="/the-bar" element={<TheBar />} />
-                <Route path="/the-bar/preview" element={<TheBarPreview />} />
-                <Route path="/the-bar/browse" element={<TheBarBrowse />} />
-                <Route path="/the-bar/challenge/:id" element={<TheBarChallenge />} />
-                <Route path="/the-bar/history" element={<TheBarHistory />} />
-                <Route path="/the-bar/leaderboard" element={<TheBarLeaderboard />} />
-                <Route path="/applications" element={<ApplicationTracker />} />
-                <Route path="/profile/edit" element={<ProfileEdit />} />
-                <Route path="/u/:username" element={<PublicProfile />} />
-                <Route path="/admin/waitlist" element={<AdminWaitlist />} />
-                <Route path="/admin/bar" element={<AdminBar />} />
-                <Route path="/admin/beta" element={<AdminBeta />} />
-                <Route path="/dock-lab" element={<DockLab />} />
-              </Route>
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/choose-username" element={<ChooseUsername />} />
-              <Route path="/beta" element={<BetaChecklist />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
+          <CommandPaletteProvider>
+            <Suspense fallback={<TopProgressBar />}>
+              <Routes>
+                <Route element={<Layout />}>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/app" element={<AppHome />} />
+                  <Route path="/waitlist" element={<Waitlist />} />
+                  <Route path="/directory" element={<Directory />} />
+                  <Route path="/playbook" element={<Playbook />} />
+                  <Route path="/playbook/:slug" element={<PlaybookGuide />} />
+                  <Route path="/resources" element={<Resources />} />
+                  <Route path="/tools" element={<Tools />} />
+                  <Route path="/tools/cv-analyser" element={<CvAnalyser />} />
+                  <Route path="/the-bar" element={<TheBar />} />
+                  <Route path="/the-bar/preview" element={<TheBarPreview />} />
+                  <Route path="/the-bar/browse" element={<TheBarBrowse />} />
+                  <Route path="/the-bar/challenge/:id" element={<TheBarChallenge />} />
+                  <Route path="/the-bar/history" element={<TheBarHistory />} />
+                  <Route path="/the-bar/leaderboard" element={<TheBarLeaderboard />} />
+                  <Route path="/applications" element={<ApplicationTracker />} />
+                  <Route path="/profile/edit" element={<ProfileEdit />} />
+                  <Route path="/u/:username" element={<PublicProfile />} />
+                  <Route path="/admin/waitlist" element={<AdminWaitlist />} />
+                  <Route path="/admin/bar" element={<AdminBar />} />
+                  <Route path="/admin/beta" element={<AdminBeta />} />
+                  <Route path="/dock-lab" element={<DockLab />} />
+                </Route>
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/choose-username" element={<ChooseUsername />} />
+                <Route path="/beta" element={<BetaChecklist />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
+            <CommandPalette />
+            <SearchFab />
+          </CommandPaletteProvider>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
