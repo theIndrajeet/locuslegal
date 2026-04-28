@@ -900,6 +900,60 @@ export type Database = {
         }
         Relationships: []
       }
+      vacancies: {
+        Row: {
+          application_email: string
+          created_at: string
+          created_by: string
+          description: string | null
+          eligibility: string | null
+          expires_at: string
+          firm_name: string
+          id: string
+          location: string | null
+          posted_at: string
+          role: string
+          source_credit: string | null
+          status: Database["public"]["Enums"]["vacancy_status"]
+          stipend: string | null
+          updated_at: string
+        }
+        Insert: {
+          application_email: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          eligibility?: string | null
+          expires_at: string
+          firm_name: string
+          id?: string
+          location?: string | null
+          posted_at?: string
+          role: string
+          source_credit?: string | null
+          status?: Database["public"]["Enums"]["vacancy_status"]
+          stipend?: string | null
+          updated_at?: string
+        }
+        Update: {
+          application_email?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          eligibility?: string | null
+          expires_at?: string
+          firm_name?: string
+          id?: string
+          location?: string | null
+          posted_at?: string
+          role?: string
+          source_credit?: string | null
+          status?: Database["public"]["Enums"]["vacancy_status"]
+          stipend?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       visit_counter: {
         Row: {
           count: number
@@ -1071,6 +1125,7 @@ export type Database = {
       }
       increment_visit_count: { Args: never; Returns: number }
       is_admin: { Args: { uid: string }; Returns: boolean }
+      vacancies_lifecycle_tick: { Args: never; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
@@ -1155,6 +1210,7 @@ export type Database = {
         | "quarter_finalist"
         | "participant"
       moot_role: "speaker" | "researcher" | "both"
+      vacancy_status: "live" | "archived" | "deleted"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1373,6 +1429,7 @@ export const Constants = {
         "participant",
       ],
       moot_role: ["speaker", "researcher", "both"],
+      vacancy_status: ["live", "archived", "deleted"],
     },
   },
 } as const

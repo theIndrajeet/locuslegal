@@ -135,6 +135,12 @@ export default function ProfileMenu() {
                 >
                   <Shield size={16} /> Admin Console
                 </button>
+                <button
+                  onClick={() => { setOpen(false); navigate("/admin/vacancies"); }}
+                  className="flex items-center gap-2 w-full px-3 py-2 text-sm font-semibold text-accent rounded-md hover:bg-accent/10 transition-colors"
+                >
+                  <Briefcase size={16} /> Admin Vacancies
+                </button>
                 <Divider />
               </>
             )}
