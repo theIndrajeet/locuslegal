@@ -1,4 +1,5 @@
-import { Building2, BookOpen, Wrench, Library, FileText, Compass } from "lucide-react";
+import { Building2, BookOpen, Wrench, Library, FileText, Compass, Rocket } from "lucide-react";
+import startupsData from "@/data/startups.json";
 import { guides } from "@/content/playbook";
 import { TOOL_CATALOG } from "@/data/tools";
 import type { SearchGroup, SearchResult } from "./types";
@@ -113,7 +114,31 @@ export function runSearch(rawQuery: string, firms: Firm[] | null): SearchOutput 
     }
   }
 
-  // Guides
+  // Startups
+  const startupHits: SearchResult[] = [];
+  type SRow = { name: string; city?: string | null; sector?: string | null; stage?: string | null };
+  const startups = startupsData as SRow[];
+  const sScored: { s: SRow; score: number }[] = [];
+  for (const s of startups) {
+    const score =
+      scoreField(s.name, q, 3) +
+      scoreField(s.sector ?? "", q, 1.4) +
+      scoreField(s.city ?? "", q, 1.2) +
+      scoreField(s.stage ?? "", q, 0.6);
+    if (score > 0) sScored.push({ s, score });
+  }
+  sScored.sort((a, b) => b.score - a.score);
+  for (const { s, score } of sScored.slice(0, 6)) {
+    startupHits.push({
+      id: `startup-${s.name}-${s.city ?? ""}`,
+      kind: "startup",
+      title: s.name,
+      subtitle: [s.city, s.sector].filter(Boolean).join(" · "),
+      meta: s.stage ?? undefined,
+      href: `/directory?mode=startups&q=${encodeURIComponent(s.name)}`,
+      score,
+    });
+  }
   const guideHits: SearchResult[] = [];
   for (const g of guides) {
     const s =
@@ -199,6 +224,7 @@ export function runSearch(rawQuery: string, firms: Firm[] | null): SearchOutput 
 
   const allGroups: SearchGroup[] = [
     { kind: "firm", label: "Firms", icon: Building2, results: firmHits },
+    { kind: "startup", label: "Startups & SMEs", icon: Rocket, results: startupHits },
     { kind: "guide", label: "Playbook", icon: BookOpen, results: guideHits.slice(0, 6) },
     { kind: "tool", label: "Tools", icon: Wrench, results: toolHits.slice(0, 6) },
     { kind: "resource", label: "Resources", icon: Library, results: resourceHits.slice(0, 6) },
@@ -223,6 +249,7 @@ export const SEARCH_SUGGESTIONS = [
 
 export const KIND_LABELS: Record<string, string> = {
   firm: "Firm",
+  startup: "Startup",
   guide: "Guide",
   tool: "Tool",
   resource: "Resource",
