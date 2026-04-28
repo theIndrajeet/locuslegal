@@ -73,20 +73,24 @@ export default function Directory() {
   const initialQ = searchParams.get("q") ?? "";
   const [searchInput, setSearchInput] = useState(initialQ);
   const [search, setSearch] = useState(initialQ);
-  const [city, setCity] = useState("");
-  const [area, setArea] = useState("");
-  const [tier, setTier] = useState("");
-  const [type, setType] = useState<FirmType | "">("");
+  const [city, setCity] = useState(searchParams.get("city") ?? "");
+  const [area, setArea] = useState(searchParams.get("area") ?? "");
+  const [tier, setTier] = useState(searchParams.get("tier") ?? "");
+  const [type, setType] = useState<FirmType | "">(
+    (searchParams.get("type") as FirmType) ?? "",
+  );
   const [sort, setSort] = useState<SortOption>("relevance");
   const [page, setPage] = useState(1);
   const [view, setView] = useState<"grid" | "map">("grid");
 
   // Startup-specific filters
-  const [sCity, setSCity] = useState("");
-  const [sSector, setSSector] = useState("");
-  const [sStage, setSStage] = useState("");
-  const [sSize, setSSize] = useState("");
-  const [sLegal, setSLegal] = useState<"" | "yes" | "no">("");
+  const [sCity, setSCity] = useState(searchParams.get("sCity") ?? "");
+  const [sSector, setSSector] = useState(searchParams.get("sSector") ?? "");
+  const [sStage, setSStage] = useState(searchParams.get("sStage") ?? "");
+  const [sSize, setSSize] = useState(searchParams.get("sSize") ?? "");
+  const [sLegal, setSLegal] = useState<"" | "yes" | "no">(
+    (searchParams.get("sLegal") as "" | "yes" | "no") ?? "",
+  );
 
   // Reset page on mode switch
   useEffect(() => { setPage(1); setView("grid"); }, [mode]);
