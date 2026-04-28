@@ -86,7 +86,7 @@ export default function TwoPillDock() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  transition={{ duration: 0.15 }}
+                  transition={{ duration: 0.1, ease: EASE }}
                   className="flex items-center gap-2 px-4 py-2.5"
                   aria-label="Expand navigation"
                 >
