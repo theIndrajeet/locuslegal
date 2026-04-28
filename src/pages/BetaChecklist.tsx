@@ -275,27 +275,23 @@ export default function BetaChecklist() {
     }
     setSubmitting(true);
     try {
-      const { data: inserted, error } = await supabase
-        .from("beta_feedback")
-        .insert({
-          tester_name: tester.display_name,
-          tester_email: tester.email,
-          overall_score: score,
-          general_notes: generalNotes.trim() || null,
-          responses: responses as never,
-          user_agent: navigator.userAgent,
-          tester_id: tester.id,
-        })
-        .select("id")
-        .maybeSingle();
+      // NOTE: do NOT chain .select() here — non-admin testers don't have
+      // SELECT permission on beta_feedback (admin-only RLS), so reading the
+      // row back would fail with 42501 and roll the insert back.
+      const { error } = await supabase.from("beta_feedback").insert({
+        tester_name: tester.display_name,
+        tester_email: tester.email,
+        overall_score: score,
+        general_notes: generalNotes.trim() || null,
+        responses: responses as never,
+        user_agent: navigator.userAgent,
+        tester_id: tester.id,
+      });
       if (error) throw error;
 
       await supabase
         .from("beta_testers")
-        .update({
-          submitted_at: new Date().toISOString(),
-          feedback_id: inserted?.id ?? null,
-        })
+        .update({ submitted_at: new Date().toISOString() })
         .eq("id", tester.id);
 
       if (DRAFT_KEY) localStorage.removeItem(DRAFT_KEY);
