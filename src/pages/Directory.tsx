@@ -238,14 +238,36 @@ export default function Directory() {
   return (
     <main className="pt-24 pb-16">
       {/* Hero */}
-      <section className="container mx-auto px-4 md:px-8 mb-12 text-center">
+      <section className="container mx-auto px-4 md:px-8 mb-8 text-center">
         <h1 className="font-heading text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight mb-4">
           Find Firms, Chambers{" "}
           <span className="text-accent">&amp; Companies</span>
         </h1>
-        <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-          Explore {firms.length.toLocaleString()} law firms, chambers, and legal practices across India.
+        <p className="text-muted-foreground text-lg max-w-2xl mx-auto mb-6">
+          {mode === "firms"
+            ? `Explore ${firms.length.toLocaleString()} law firms, chambers, and legal practices across India.`
+            : `Browse ${startups.length.toLocaleString()} startups & SMEs hiring legal talent across India.`}
         </p>
+
+        {/* Mode toggle */}
+        <div className="inline-flex items-center bg-card border border-border rounded-full p-1">
+          <button
+            onClick={() => setMode("firms")}
+            className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-full transition-all ${
+              mode === "firms" ? "bg-accent text-accent-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Building2 size={14} /> Law Firms
+          </button>
+          <button
+            onClick={() => setMode("startups")}
+            className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-full transition-all ${
+              mode === "startups" ? "bg-accent text-accent-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Rocket size={14} /> Startups &amp; SMEs
+          </button>
+        </div>
       </section>
 
       {/* Bar leaderboard callout */}
