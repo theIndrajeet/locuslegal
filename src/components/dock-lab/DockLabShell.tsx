@@ -31,7 +31,7 @@ const VARIANTS: Variant[] = [
 ];
 
 export default function DockLabShell() {
-  const [activeId, setActiveId] = useState("current");
+  const [activeId, setActiveId] = useState("twopill");
   const variant = VARIANTS.find((v) => v.id === activeId)!;
   const ActiveDock = variant.Component;
 
