@@ -193,7 +193,23 @@ export default function Vacancies() {
                     application={appMap.get(v.id) ?? null}
                   />
                 ))}
+                {/* Fill the empty desktop cell when live count is odd */}
+                {live.length % 2 === 1 && (
+                  <div className="hidden md:block">
+                    <DirectoryTeaser variant="cell" />
+                  </div>
+                )}
               </div>
+              {/* Mobile: always show as a strip below the grid */}
+              <div className="mt-4 md:hidden">
+                <DirectoryTeaser variant="strip" />
+              </div>
+              {/* Desktop: when grid is even, show strip below */}
+              {live.length % 2 === 0 && (
+                <div className="mt-5 hidden md:block">
+                  <DirectoryTeaser variant="strip" />
+                </div>
+              )}
             </section>
           )}
 
