@@ -13,7 +13,8 @@ const ACTION_PRESETS: { id: ActionKind; label: string }[] = [
   { id: "none", label: "The Bar / Playbook" },
 ];
 
-const EASE: [number, number, number, number] = [0.32, 0.72, 0, 1];
+const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
+const MORPH_SPRING = { type: "spring" as const, stiffness: 520, damping: 38, mass: 0.7 };
 
 export default function TwoPillDock() {
   const [activeKey, setActiveKey] = useState("home");
@@ -71,7 +72,7 @@ export default function TwoPillDock() {
           {/* LEFT pill — nav */}
           <motion.div
             layout
-            transition={{ duration: 0.32, ease: EASE }}
+            transition={MORPH_SPRING}
             onClick={() => collapsed && resetIdle()}
             style={{ WebkitBackdropFilter: "blur(24px) saturate(160%)" }}
             className={`pointer-events-auto bg-background/55 backdrop-blur-2xl backdrop-saturate-150 border-2 border-foreground/70 rounded-full overflow-hidden shadow-[inset_0_1px_0_0_hsl(0_0%_100%/0.18),0_8px_32px_-8px_hsl(var(--accent)/0.35),3px_3px_0_0_hsl(var(--accent))] ${
@@ -85,7 +86,7 @@ export default function TwoPillDock() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  transition={{ duration: 0.15 }}
+                  transition={{ duration: 0.1, ease: EASE }}
                   className="flex items-center gap-2 px-4 py-2.5"
                   aria-label="Expand navigation"
                 >
@@ -98,8 +99,8 @@ export default function TwoPillDock() {
                 <motion.div
                   key="full"
                   initial={{ opacity: 0 }}
-                  animate={{ opacity: 1, transition: { delay: 0.08, duration: 0.18 } }}
-                  exit={{ opacity: 0, transition: { duration: 0.1 } }}
+                  animate={{ opacity: 1, transition: { delay: 0.04, duration: 0.12, ease: EASE } }}
+                  exit={{ opacity: 0, transition: { duration: 0.08, ease: EASE } }}
                   className="flex items-center gap-2.5 px-3.5 py-2.5"
                 >
                   {NAV_ITEMS.map(({ key, label, icon: Icon }) => {
@@ -137,10 +138,10 @@ export default function TwoPillDock() {
               <motion.div
                 key={action}
                 layout
-                initial={{ opacity: 0, y: 12, scale: 0.9 }}
+                initial={{ opacity: 0, y: 8, scale: 0.92 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 12, scale: 0.9 }}
-                transition={{ duration: 0.22, ease: EASE }}
+                exit={{ opacity: 0, y: 8, scale: 0.92 }}
+                transition={MORPH_SPRING}
                 className="pointer-events-auto"
               >
                 <ActionPill kind={action} onSearch={() => setSearchOpen(true)} />
