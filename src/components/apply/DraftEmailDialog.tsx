@@ -350,24 +350,37 @@ export default function DraftEmailDialog({ open, onOpenChange, target }: Props) 
   const generate = async () => {
     if (!target || !user) return;
     setGenerating(true);
+    const payload = {
+      target: {
+        name: target.name,
+        kind: target.kind,
+        type: target.type,
+        city: target.city,
+        sector: target.sector,
+        practice_areas: target.practice_areas,
+        legal_needs: target.legal_needs,
+      },
+      role: brief.role,
+      tone,
+      brief: buildBriefPayload(),
+      user,
+    };
+
+    const invokeOnce = () => supabase.functions.invoke("draft-application-email", { body: payload });
+
     try {
-      const { data, error } = await supabase.functions.invoke("draft-application-email", {
-        body: {
-          target: {
-            name: target.name,
-            kind: target.kind,
-            type: target.type,
-            city: target.city,
-            sector: target.sector,
-            practice_areas: target.practice_areas,
-            legal_needs: target.legal_needs,
-          },
-          role: brief.role,
-          tone,
-          brief: buildBriefPayload(),
-          user,
-        },
-      });
+      let { data, error } = await invokeOnce();
+
+      // Silently retry once on transient cold-start / network failures
+      // (no HTTP response was received from the edge function)
+      const isTransient =
+        !!error &&
+        !(error as unknown as { context?: { response?: Response } })?.context?.response &&
+        /load failed|failed to fetch|network|timeout/i.test(error.message ?? "");
+      if (isTransient) {
+        await new Promise((r) => setTimeout(r, 800));
+        ({ data, error } = await invokeOnce());
+      }
 
       let errBody: { error?: string } | null = null;
       if (error) {
