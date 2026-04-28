@@ -7,6 +7,7 @@ import ContextualDock from "./variants/ContextualDock";
 import PullUpDrawerDock from "./variants/PullUpDrawerDock";
 import SplitDock from "./variants/SplitDock";
 import EdgeTabBarDock from "./variants/EdgeTabBarDock";
+import MorphDock from "./variants/MorphDock";
 
 type Variant = {
   id: string;
@@ -16,6 +17,7 @@ type Variant = {
 };
 
 const VARIANTS: Variant[] = [
+  { id: "morph", name: "Morph Dock", description: "Single dock that morphs shape based on context — pill, split, search, orb, or hidden.", Component: MorphDock },
   { id: "current", name: "Current Dock", description: "Today's glassmorphic pill — baseline.", Component: CurrentDock },
   { id: "orb", name: "Locus Orb", description: "FAB bottom-right; taps fan icons in an arc.", Component: OrbDock },
   { id: "command", name: "Command Bar", description: "Single search pill opens a full-screen menu sheet.", Component: CommandBarDock },
