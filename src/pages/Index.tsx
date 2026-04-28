@@ -5,6 +5,7 @@ import FeatureBento from "@/components/home/FeatureBento";
 import AudienceMiniRow from "@/components/home/AudienceMiniRow";
 import FinalCTA from "@/components/home/FinalCTA";
 import { usePageMeta } from "@/hooks/usePageMeta";
+import { prefetchRoute } from "@/lib/prefetch";
 
 /**
  * The home page is a public marketing landing — anonymous visitors are the
@@ -95,7 +96,13 @@ function AuthRedirectInner({
   const { ready, userId } = Hook();
 
   useEffect(() => {
-    if (ready && userId) navigate("/app", { replace: true });
+    if (ready && userId) {
+      // Prefetch /app's chunk before navigating so the redirect doesn't
+      // dump the user on a blank Suspense fallback. prefetchRoute shares its
+      // module promise with React.lazy — no duplicate downloads.
+      prefetchRoute("/app");
+      navigate("/app", { replace: true });
+    }
   }, [ready, userId, navigate]);
 
   return null;

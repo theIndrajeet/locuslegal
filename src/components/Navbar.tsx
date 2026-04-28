@@ -6,19 +6,62 @@ import ProfileMenu from "./ProfileMenuLazy";
 import AdminNavLink from "./AdminNavLink";
 import { prefetchRoute } from "@/lib/prefetch";
 
-const navLinks = [
-  { label: "Home", href: "/" },
-  { label: "Directory", href: "/directory" },
-  { label: "Playbook", href: "/playbook" },
-  { label: "Resources", href: "/resources" },
-  { label: "Tools", href: "/tools" },
-  { label: "The Bar", href: "/the-bar", glitch: true },
-];
-
 export default function Navbar() {
   const { theme, setTheme } = useTheme();
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
+
+  // Auth-aware Home target. We deferred-import useAuthSession (same pattern as
+  // Index.tsx / AdminNavLink) so anonymous visitors don't pay the supabase
+  // chunk cost on first paint. Logged-in users get "Home" silently retargeted
+  // to /app once the hook resolves, which prevents the marketing-page flash
+  // when they click Home from any other route.
+  const [isAuthed, setIsAuthed] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    const load = () => {
+      if (cancelled) return;
+      import("@/hooks/useAuthSession").then(() => {
+        // We can't call the hook here; instead read the cached session
+        // directly from the supabase client (already in cache by now).
+        import("@/integrations/supabase/client").then(({ supabase }) => {
+          supabase.auth.getSession().then(({ data }) => {
+            if (!cancelled && data.session?.user?.id) setIsAuthed(true);
+          });
+          const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+            if (!cancelled) setIsAuthed(!!session?.user?.id);
+          });
+          // Cleanup is handled by the outer cancelled flag; subscription is
+          // long-lived for the navbar's lifetime which matches the app shell.
+          if (cancelled) sub.subscription.unsubscribe();
+        });
+      });
+    };
+    const ric = (window as unknown as {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+    }).requestIdleCallback;
+    if (ric) ric(load, { timeout: 4000 });
+    else window.setTimeout(load, 2500);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const homeHref = isAuthed ? "/app" : "/";
+  const navLinks = [
+    { label: "Home", href: homeHref },
+    { label: "Directory", href: "/directory" },
+    { label: "Playbook", href: "/playbook" },
+    { label: "Resources", href: "/resources" },
+    { label: "Tools", href: "/tools" },
+    { label: "The Bar", href: "/the-bar", glitch: true },
+  ];
+
+  // Prefetch /app eagerly once we know the user is logged in so clicking Home
+  // (or any redirect from /) doesn't hit the lazy-load black screen.
+  useEffect(() => {
+    if (isAuthed) prefetchRoute("/app");
+  }, [isAuthed]);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -40,7 +83,7 @@ export default function Navbar() {
       }`}
     >
       <div className="container mx-auto flex items-center justify-between py-3 px-4 md:px-8">
-        <Link to="/" className="font-heading tracking-tight leading-none">
+        <Link to={homeHref} className="font-heading tracking-tight leading-none">
           <span className="text-2xl font-extrabold">
             Loc<span className="text-accent">us</span>
           </span>
