@@ -49,6 +49,9 @@ export default function LogApplicationDialog({
   userId,
   editing,
   onSaved,
+  prefillFirm,
+  prefillRole,
+  prefillNotes,
 }: Props) {
   const [firmName, setFirmName] = useState("");
   const [role, setRole] = useState("");
@@ -70,15 +73,15 @@ export default function LogApplicationDialog({
       setStatus(editing.status);
       setNotes(editing.notes ?? "");
     } else {
-      setFirmName("");
-      setRole("");
+      setFirmName(prefillFirm ?? "");
+      setRole(prefillRole ?? "");
       setAppliedOn(todayISO());
       setMethod("email");
       setStatus("sent");
-      setNotes("");
+      setNotes(prefillNotes ?? "");
     }
     setFirmQuery("");
-  }, [open, editing]);
+  }, [open, editing, prefillFirm, prefillRole, prefillNotes]);
 
   const filteredFirms = useMemo(() => {
     const q = firmQuery.trim().toLowerCase();
