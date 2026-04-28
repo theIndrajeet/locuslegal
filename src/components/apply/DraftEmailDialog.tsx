@@ -444,7 +444,7 @@ export default function DraftEmailDialog({ open, onOpenChange, target }: Props) 
         .insert({
           user_id: userId,
           firm_name_snapshot: target.name,
-          role,
+          role: brief.role,
           applied_on: today,
           method: "email",
           status: "sent",
