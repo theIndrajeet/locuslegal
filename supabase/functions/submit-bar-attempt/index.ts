@@ -187,9 +187,12 @@ const SPEED_FILLER_PREFIXES = [
   "clause", "cl.", "cl",
   "part", "chapter", "chap.", "chap",
 ];
+const SPEED_STOP_WORDS = new Set(["the", "of", "a", "an"]);
+
 function normalizeSpeedAnswer(raw: string): string {
   let s = (raw ?? "").trim().toLowerCase();
   if (!s) return "";
+  s = s.replace(/[\u2013\u2014]/g, "-").replace(/\u00a0/g, " ").replace(/[\u2018\u2019]/g, "'").replace(/[\u201c\u201d]/g, '"');
   for (const f of SPEED_FILLER_PREFIXES) {
     if (s === f) { s = ""; break; }
     if (s.startsWith(f + " ") || s.startsWith(f + ".")) {
@@ -201,7 +204,50 @@ function normalizeSpeedAnswer(raw: string): string {
   s = s.replace(/[.,;:!?'"()\[\]{}]/g, " ").replace(/\s+/g, " ").trim();
   if (SPEED_WORD_TO_NUM[s]) return SPEED_WORD_TO_NUM[s];
   if (SPEED_ROMAN_TO_NUM[s]) return SPEED_ROMAN_TO_NUM[s];
-  return s.split(" ").map((tok) => SPEED_WORD_TO_NUM[tok] ?? SPEED_ROMAN_TO_NUM[tok] ?? tok).join(" ");
+  const mapped = s.split(" ")
+    .map((tok) => SPEED_WORD_TO_NUM[tok] ?? SPEED_ROMAN_TO_NUM[tok] ?? tok)
+    .filter((tok) => tok.length > 0 && !SPEED_STOP_WORDS.has(tok));
+  return mapped.length > 0 ? mapped.join(" ") : s;
+}
+
+function speedEditDistance(a: string, b: string): number {
+  const m = a.length, n = b.length;
+  if (m === 0) return n;
+  if (n === 0) return m;
+  const d: number[][] = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+  for (let i = 0; i <= m; i++) d[i][0] = i;
+  for (let j = 0; j <= n; j++) d[0][j] = j;
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + cost);
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) {
+        d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1);
+      }
+    }
+  }
+  return d[m][n];
+}
+function speedAllowedEdits(len: number): number {
+  if (len <= 3) return 0;
+  if (len <= 6) return 1;
+  if (len <= 10) return 2;
+  return 3;
+}
+function speedFuzzyEquals(submitted: string, expected: string): boolean {
+  if (submitted === expected) return true;
+  if (!submitted || !expected) return false;
+  const subTokens = submitted.split(" ");
+  const expTokens = expected.split(" ");
+  if (subTokens.length !== expTokens.length) {
+    return speedEditDistance(submitted, expected) <= speedAllowedEdits(Math.max(submitted.length, expected.length));
+  }
+  for (let i = 0; i < subTokens.length; i++) {
+    const s = subTokens[i], e = expTokens[i];
+    if (s === e) continue;
+    if (speedEditDistance(s, e) > speedAllowedEdits(Math.max(s.length, e.length))) return false;
+  }
+  return true;
 }
 
 function gradeSpeedRound(p: z.infer<typeof SpeedRoundPayloadSchema>, a: z.infer<typeof SpeedRoundAnswerSchema>, points: number) {
@@ -214,7 +260,7 @@ function gradeSpeedRound(p: z.infer<typeof SpeedRoundPayloadSchema>, a: z.infer<
     const submittedRaw = map.get(q.id) ?? "";
     const sub = normalizeSpeedAnswer(submittedRaw);
     const expected = normalizeSpeedAnswer(q.answer);
-    const got_right = sub.length > 0 && sub === expected;
+    const got_right = sub.length > 0 && speedFuzzyEquals(sub, expected);
     if (got_right) count++;
     per_question.push({ id: q.id, prompt: q.prompt, submitted: submittedRaw, correct: q.answer, got_right });
   }
