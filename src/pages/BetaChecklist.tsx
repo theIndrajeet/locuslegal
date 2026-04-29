@@ -125,16 +125,11 @@ export default function BetaChecklist() {
         })),
       );
     }
-    // Aggregate counts (public + private). count: 'exact' returns total rows w/o data.
-    const { count: claimed } = await supabase
-      .from("beta_testers")
-      .select("id", { count: "exact", head: true });
-    const { count: submitted } = await supabase
-      .from("beta_testers")
-      .select("id", { count: "exact", head: true })
-      .not("submitted_at", "is", null);
-    setTotalClaimed(claimed ?? 0);
-    setTotalSubmitted(submitted ?? 0);
+    // Aggregate counts via RPC (anon can't read private rows directly post-RLS lockdown)
+    const { data: totals } = await supabase.rpc("get_beta_tester_totals");
+    const row = Array.isArray(totals) ? totals[0] : totals;
+    setTotalClaimed(row?.total_claimed ?? 0);
+    setTotalSubmitted(row?.total_submitted ?? 0);
   };
 
   useEffect(() => {
