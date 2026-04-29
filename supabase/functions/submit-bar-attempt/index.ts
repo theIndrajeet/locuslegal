@@ -166,6 +166,44 @@ function gradeIssueSpotter(p: z.infer<typeof IssueSpotterPayloadSchema>, a: z.in
   const exact = sub.size === correct.size && [...sub].every((id) => correct.has(id));
   return { is_correct: exact, points_awarded: exact ? points : 0 };
 }
+const SPEED_WORD_TO_NUM: Record<string, string> = {
+  zero: "0", one: "1", two: "2", three: "3", four: "4", five: "5", six: "6",
+  seven: "7", eight: "8", nine: "9", ten: "10", eleven: "11", twelve: "12",
+  thirteen: "13", fourteen: "14", fifteen: "15", sixteen: "16",
+  seventeen: "17", eighteen: "18", nineteen: "19", twenty: "20",
+  thirty: "30", forty: "40", fifty: "50", sixty: "60", seventy: "70",
+  eighty: "80", ninety: "90",
+  first: "1", second: "2", third: "3", fifth: "5", eighth: "8", ninth: "9",
+  twelfth: "12",
+};
+const SPEED_ROMAN_TO_NUM: Record<string, string> = {
+  i: "1", ii: "2", iii: "3", iv: "4", v: "5", vi: "6", vii: "7", viii: "8",
+  ix: "9", x: "10", xi: "11", xii: "12",
+};
+const SPEED_FILLER_PREFIXES = [
+  "article", "art.", "art",
+  "section", "sec.", "sec", "s.",
+  "schedule", "sch.", "sch",
+  "clause", "cl.", "cl",
+  "part", "chapter", "chap.", "chap",
+];
+function normalizeSpeedAnswer(raw: string): string {
+  let s = (raw ?? "").trim().toLowerCase();
+  if (!s) return "";
+  for (const f of SPEED_FILLER_PREFIXES) {
+    if (s === f) { s = ""; break; }
+    if (s.startsWith(f + " ") || s.startsWith(f + ".")) {
+      s = s.slice(f.length).trimStart().replace(/^\.\s*/, "");
+      break;
+    }
+  }
+  s = s.replace(/\b(\d+)(st|nd|rd|th)\b/g, "$1");
+  s = s.replace(/[.,;:!?'"()\[\]{}]/g, " ").replace(/\s+/g, " ").trim();
+  if (SPEED_WORD_TO_NUM[s]) return SPEED_WORD_TO_NUM[s];
+  if (SPEED_ROMAN_TO_NUM[s]) return SPEED_ROMAN_TO_NUM[s];
+  return s.split(" ").map((tok) => SPEED_WORD_TO_NUM[tok] ?? SPEED_ROMAN_TO_NUM[tok] ?? tok).join(" ");
+}
+
 function gradeSpeedRound(p: z.infer<typeof SpeedRoundPayloadSchema>, a: z.infer<typeof SpeedRoundAnswerSchema>, points: number) {
   const total = p.questions.length;
   if (total === 0) return { is_correct: false, points_awarded: 0, per_question: [] as Array<{ id: string; prompt: string; submitted: string; correct: string; got_right: boolean }> };
@@ -174,8 +212,8 @@ function gradeSpeedRound(p: z.infer<typeof SpeedRoundPayloadSchema>, a: z.infer<
   const per_question: Array<{ id: string; prompt: string; submitted: string; correct: string; got_right: boolean }> = [];
   for (const q of p.questions) {
     const submittedRaw = map.get(q.id) ?? "";
-    const sub = submittedRaw.trim().toLowerCase();
-    const expected = q.answer.trim().toLowerCase();
+    const sub = normalizeSpeedAnswer(submittedRaw);
+    const expected = normalizeSpeedAnswer(q.answer);
     const got_right = sub.length > 0 && sub === expected;
     if (got_right) count++;
     per_question.push({ id: q.id, prompt: q.prompt, submitted: submittedRaw, correct: q.answer, got_right });
