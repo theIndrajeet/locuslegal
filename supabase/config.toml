@@ -15,3 +15,5 @@ project_id = "kasyrononwksnjykgldt"
     verify_jwt = false
   [functions.dispatch-updates-broadcast]
     verify_jwt = true
+  [functions.admin-email-log]
+    verify_jwt = true
