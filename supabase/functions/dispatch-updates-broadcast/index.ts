@@ -170,22 +170,20 @@ function buildTemplateData(bc: any) {
 }
 
 async function invokeSend(
-  url: string,
-  serviceKey: string,
+  client: ReturnType<typeof createClient>,
   payload: Record<string, unknown>,
-): Promise<{ ok: boolean; status: number; body: unknown }> {
-  const res = await fetch(`${url}/functions/v1/send-transactional-email`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${serviceKey}`,
-      apikey: serviceKey,
-    },
-    body: JSON.stringify(payload),
-  })
-  let parsed: unknown = null
-  try { parsed = await res.json() } catch { /* ignore */ }
-  return { ok: res.ok, status: res.status, body: parsed }
+): Promise<{ ok: boolean; error?: string; body: unknown }> {
+  try {
+    const { data, error } = await client.functions.invoke('send-transactional-email', {
+      body: payload,
+    })
+    if (error) {
+      return { ok: false, error: error.message ?? String(error), body: data ?? null }
+    }
+    return { ok: true, body: data ?? null }
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e), body: null }
+  }
 }
 
 function json(obj: unknown, status = 200) {
