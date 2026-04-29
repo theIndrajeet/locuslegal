@@ -194,17 +194,37 @@ const SPEED_FILLER_PREFIXES = [
 ];
 const SPEED_STOP_WORDS = new Set(["the", "of", "a", "an"]);
 
+const SPEED_CANONICAL_FILLERS = ["article", "section", "schedule", "clause", "chapter"];
+
 function normalizeSpeedAnswer(raw: string): string {
   let s = (raw ?? "").trim().toLowerCase();
   if (!s) return "";
   s = s.replace(/[\u2013\u2014]/g, "-").replace(/\u00a0/g, " ").replace(/[\u2018\u2019]/g, "'").replace(/[\u201c\u201d]/g, '"');
+
+  let stripped = false;
   for (const f of SPEED_FILLER_PREFIXES) {
-    if (s === f) { s = ""; break; }
+    if (s === f) { s = ""; stripped = true; break; }
     if (s.startsWith(f + " ") || s.startsWith(f + ".")) {
       s = s.slice(f.length).trimStart().replace(/^\.\s*/, "");
+      stripped = true;
       break;
     }
   }
+  if (!stripped) {
+    const spaceIdx = s.indexOf(" ");
+    const firstTok = spaceIdx === -1 ? s : s.slice(0, spaceIdx);
+    const rest = spaceIdx === -1 ? "" : s.slice(spaceIdx + 1);
+    if (firstTok.length >= 4) {
+      for (const canonical of SPEED_CANONICAL_FILLERS) {
+        const dist = speedEditDistance(firstTok, canonical);
+        if (dist > 0 && dist <= speedAllowedEdits(Math.max(firstTok.length, canonical.length))) {
+          s = rest.trimStart();
+          break;
+        }
+      }
+    }
+  }
+
   s = s.replace(/\b(\d+)(st|nd|rd|th)\b/g, "$1");
   s = s.replace(/[.,;:!?'"()\[\]{}]/g, " ").replace(/\s+/g, " ").trim();
   if (SPEED_WORD_TO_NUM[s]) return SPEED_WORD_TO_NUM[s];
@@ -255,6 +275,111 @@ function speedFuzzyEquals(submitted: string, expected: string): boolean {
   return true;
 }
 
+function speedMetaphone(word: string): string {
+  const w = word.toLowerCase().replace(/[^a-z]/g, "");
+  if (!w) return "";
+  let s = w
+    .replace(/^x/, "s")
+    .replace(/^kn|^gn|^pn|^ae|^wr/, (m) => m[1])
+    .replace(/^wh/, "w");
+  let out = "";
+  const len = s.length;
+  for (let i = 0; i < len; i++) {
+    const c = s[i];
+    const prev = s[i - 1] ?? "";
+    const next = s[i + 1] ?? "";
+    const next2 = s[i + 2] ?? "";
+    if (c === prev && c !== "c") continue;
+    switch (c) {
+      case "a": case "e": case "i": case "o": case "u":
+        if (i === 0) out += c.toUpperCase();
+        break;
+      case "b":
+        if (!(i === len - 1 && prev === "m")) out += "B";
+        break;
+      case "c":
+        if (next === "i" && next2 === "a") out += "X";
+        else if (next === "h") { out += "X"; i++; }
+        else if (next === "i" || next === "e" || next === "y") out += "S";
+        else out += "K";
+        break;
+      case "d":
+        if (next === "g" && (next2 === "e" || next2 === "i" || next2 === "y")) { out += "J"; i++; }
+        else out += "T";
+        break;
+      case "g":
+        if (next === "h") {
+          if (i + 2 >= len || /[^aeiou]/.test(next2)) { /* silent */ }
+          else { out += "F"; i++; }
+        } else if (next === "n") { /* silent */ }
+        else if (next === "e" || next === "i" || next === "y") out += "J";
+        else out += "K";
+        break;
+      case "h":
+        if (i > 0 && /[aeiou]/.test(prev) && !/[aeiou]/.test(next)) { /* silent */ }
+        else out += "H";
+        break;
+      case "k":
+        if (prev !== "c") out += "K";
+        break;
+      case "p":
+        if (next === "h") { out += "F"; i++; }
+        else out += "P";
+        break;
+      case "q": out += "K"; break;
+      case "s":
+        if (next === "h") { out += "X"; i++; }
+        else if (next === "i" && (next2 === "o" || next2 === "a")) out += "X";
+        else out += "S";
+        break;
+      case "t":
+        if (next === "h") { out += "0"; i++; }
+        else if (next === "i" && (next2 === "o" || next2 === "a")) out += "X";
+        else out += "T";
+        break;
+      case "v": out += "F"; break;
+      case "w": case "y":
+        if (/[aeiou]/.test(next)) out += c.toUpperCase();
+        break;
+      case "x": out += "KS"; break;
+      case "z": out += "S"; break;
+      case "f": case "j": case "l": case "m": case "n": case "r":
+        out += c.toUpperCase();
+        break;
+    }
+  }
+  return out;
+}
+
+function speedPhoneticEquals(submitted: string, expected: string): boolean {
+  if (!submitted || !expected) return false;
+  const subTokens = submitted.split(" ");
+  const expTokens = expected.split(" ");
+  if (subTokens.length !== expTokens.length) return false;
+  for (let i = 0; i < subTokens.length; i++) {
+    const s = subTokens[i], e = expTokens[i];
+    if (s === e) continue;
+    if (s.length < 5 || e.length < 5 || /^\d+$/.test(s) || /^\d+$/.test(e)) return false;
+    const ms = speedMetaphone(s), me = speedMetaphone(e);
+    if (!ms || !me || ms !== me) return false;
+  }
+  return true;
+}
+
+function speedMatchesAnyCandidate(submittedRaw: string, answer: string, aliases?: string[]): boolean {
+  const sub = normalizeSpeedAnswer(submittedRaw);
+  if (!sub) return false;
+  const candidates = [answer, ...(aliases ?? [])];
+  for (const candidate of candidates) {
+    const norm = normalizeSpeedAnswer(candidate);
+    if (!norm) continue;
+    if (sub === norm) return true;
+    if (speedFuzzyEquals(sub, norm)) return true;
+    if (speedPhoneticEquals(sub, norm)) return true;
+  }
+  return false;
+}
+
 function gradeSpeedRound(p: z.infer<typeof SpeedRoundPayloadSchema>, a: z.infer<typeof SpeedRoundAnswerSchema>, points: number) {
   const total = p.questions.length;
   if (total === 0) return { is_correct: false, points_awarded: 0, per_question: [] as Array<{ id: string; prompt: string; submitted: string; correct: string; got_right: boolean }> };
@@ -263,9 +388,7 @@ function gradeSpeedRound(p: z.infer<typeof SpeedRoundPayloadSchema>, a: z.infer<
   const per_question: Array<{ id: string; prompt: string; submitted: string; correct: string; got_right: boolean }> = [];
   for (const q of p.questions) {
     const submittedRaw = map.get(q.id) ?? "";
-    const sub = normalizeSpeedAnswer(submittedRaw);
-    const expected = normalizeSpeedAnswer(q.answer);
-    const got_right = sub.length > 0 && speedFuzzyEquals(sub, expected);
+    const got_right = speedMatchesAnyCandidate(submittedRaw, q.answer, q.aliases);
     if (got_right) count++;
     per_question.push({ id: q.id, prompt: q.prompt, submitted: submittedRaw, correct: q.answer, got_right });
   }
