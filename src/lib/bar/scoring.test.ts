@@ -74,7 +74,7 @@ describe("fuzzyEquals", () => {
 });
 
 describe("gradeSpeedRound with typos", () => {
-  it("forgives typos in answers", () => {
+  it("forgives typos in answer body and accepts filler/ordinal variants", () => {
     const p = {
       questions: [
         { id: "q1", prompt: "Writ for unlawful detention", answer: "habeas corpus" },
@@ -85,7 +85,7 @@ describe("gradeSpeedRound with typos", () => {
     const r = gradeSpeedRound(p as never, {
       answers: [
         { question_id: "q1", submitted: "habeus corpos" },
-        { question_id: "q2", submitted: "ariticle 14." },
+        { question_id: "q2", submitted: "Article 14." },
       ],
     } as never, 100);
     expect(r.is_correct).toBe(true);
