@@ -137,14 +137,11 @@ export default function BetaChecklist() {
     (async () => {
       const storedId = typeof window !== "undefined" ? localStorage.getItem(TESTER_STORAGE_KEY) : null;
       if (storedId) {
-        const { data } = await supabase
-          .from("beta_testers")
-          .select("id, slot_number, display_name, email, is_public, intro_line_index, submitted_at")
-          .eq("id", storedId)
-          .maybeSingle();
-        if (active && data) {
-          setTester(data as Tester);
-          if (data.submitted_at) setSubmitted(true);
+        const { data } = await supabase.rpc("get_beta_tester_self", { p_id: storedId });
+        const row = Array.isArray(data) ? data[0] : data;
+        if (active && row) {
+          setTester(row as Tester);
+          if (row.submitted_at) setSubmitted(true);
         }
       }
       await refreshRoster();
