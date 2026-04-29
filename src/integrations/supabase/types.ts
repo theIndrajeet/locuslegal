@@ -1268,12 +1268,50 @@ export type Database = {
       }
       get_app_dashboard: { Args: { p_user_id: string }; Returns: Json }
       get_bar_dashboard: { Args: { p_user_id: string }; Returns: Json }
+      get_beta_tester_self: {
+        Args: { p_id: string }
+        Returns: {
+          claimed_at: string
+          code: string | null
+          created_at: string
+          display_name: string
+          email: string | null
+          feedback_id: string | null
+          id: string
+          intro_line_index: number
+          is_public: boolean
+          personal_note: string | null
+          slot_number: number
+          submitted_at: string | null
+          user_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "beta_testers"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      get_beta_tester_totals: {
+        Args: never
+        Returns: {
+          total_claimed: number
+          total_submitted: number
+        }[]
+      }
       get_email_by_username: { Args: { p_username: string }; Returns: string }
       get_feature_vote_counts: {
         Args: never
         Returns: {
           feature_key: string
           vote_count: number
+        }[]
+      }
+      get_own_cv_ref: {
+        Args: never
+        Returns: {
+          cv_uploaded_at: string
+          cv_url: string
         }[]
       }
       get_profile_activity: {
@@ -1295,6 +1333,7 @@ export type Database = {
       }
       increment_visit_count: { Args: never; Returns: number }
       is_admin: { Args: { uid: string }; Returns: boolean }
+      mark_beta_tester_submitted: { Args: { p_id: string }; Returns: undefined }
       move_to_dlq: {
         Args: {
           dlq_name: string
