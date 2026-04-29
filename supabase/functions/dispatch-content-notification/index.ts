@@ -19,8 +19,6 @@ const SITE_URL = 'https://locus.legal'
 interface Body {
   kind?: 'vacancy' | 'bar_challenge'
   id?: string
-  // TEMP: when set, send only to this address and DO NOT stamp notified_at.
-  testEmail?: string
 }
 
 Deno.serve(async (req) => {
@@ -54,7 +52,7 @@ Deno.serve(async (req) => {
 
   let body: Body = {}
   try { body = await req.json() } catch { /* allow */ }
-  const { kind, id, testEmail } = body
+  const { kind, id } = body
   if (!kind || !id) return json({ error: 'kind and id required' }, 400)
   if (kind !== 'vacancy' && kind !== 'bar_challenge') {
     return json({ error: 'invalid kind' }, 400)
@@ -108,22 +106,18 @@ Deno.serve(async (req) => {
     }
   }
 
-  // 2. Page through all users (or use testEmail override).
+  // 2. Page through all users.
   const recipients: string[] = []
-  if (testEmail) {
-    recipients.push(testEmail.toLowerCase())
-  } else {
-    let page = 1
-    const perPage = 1000
-    while (true) {
-      const { data, error } = await admin.auth.admin.listUsers({ page, perPage })
-      if (error) return json({ error: 'failed to list users', details: error.message }, 500)
-      const users = data?.users || []
-      for (const u of users) if (u.email) recipients.push(u.email.toLowerCase())
-      if (users.length < perPage) break
-      page += 1
-      if (page > 50) break
-    }
+  let page = 1
+  const perPage = 1000
+  while (true) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage })
+    if (error) return json({ error: 'failed to list users', details: error.message }, 500)
+    const users = data?.users || []
+    for (const u of users) if (u.email) recipients.push(u.email.toLowerCase())
+    if (users.length < perPage) break
+    page += 1
+    if (page > 50) break
   }
   const unique = Array.from(new Set(recipients))
 
