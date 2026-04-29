@@ -162,6 +162,7 @@ export type Database = {
           explanation: string | null
           grading_config: Json
           id: string
+          notified_at: string | null
           payload: Json
           points_base: number
           prompt: string
@@ -185,6 +186,7 @@ export type Database = {
           explanation?: string | null
           grading_config?: Json
           id?: string
+          notified_at?: string | null
           payload?: Json
           points_base: number
           prompt: string
@@ -208,6 +210,7 @@ export type Database = {
           explanation?: string | null
           grading_config?: Json
           id?: string
+          notified_at?: string | null
           payload?: Json
           points_base?: number
           prompt?: string
@@ -1073,6 +1076,7 @@ export type Database = {
           firm_name: string
           id: string
           location: string | null
+          notified_at: string | null
           posted_at: string
           role: string
           source_credit: string | null
@@ -1090,6 +1094,7 @@ export type Database = {
           firm_name: string
           id?: string
           location?: string | null
+          notified_at?: string | null
           posted_at?: string
           role: string
           source_credit?: string | null
@@ -1107,6 +1112,7 @@ export type Database = {
           firm_name?: string
           id?: string
           location?: string | null
+          notified_at?: string | null
           posted_at?: string
           role?: string
           source_credit?: string | null
@@ -1261,6 +1267,10 @@ export type Database = {
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
+      }
+      dispatch_content_notification: {
+        Args: { p_id: string; p_kind: string }
+        Returns: undefined
       }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
