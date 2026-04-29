@@ -1,24 +1,12 @@
-import { Link, Outlet, useLocation } from "react-router-dom";
+import { Link, Outlet } from "react-router-dom";
 import { Loader2, ShieldOff } from "lucide-react";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAdminRole } from "@/hooks/useAdminRole";
-import AdminSidebar from "./AdminSidebar";
-
-const labels: Record<string, string> = {
-  "/admin": "Dashboard",
-  "/admin/waitlist": "Waitlist",
-  "/admin/beta": "Beta Testers",
-  "/admin/vacancies": "Vacancies",
-  "/admin/bar": "The Bar",
-  "/admin/updates": "Updates",
-  "/admin/emails": "Email Log",
-};
+import AdminSubNav from "./AdminSubNav";
 
 export default function AdminLayout() {
   const isAdmin = useAdminRole();
-  const { pathname } = useLocation();
 
   if (isAdmin === null) {
     return (
@@ -47,28 +35,12 @@ export default function AdminLayout() {
     );
   }
 
-  const crumb =
-    labels[pathname] ??
-    Object.entries(labels).find(([k]) => pathname.startsWith(k + "/"))?.[1] ??
-    "Admin";
-
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full pt-16">
-        <AdminSidebar />
-        <div className="flex-1 flex flex-col min-w-0">
-          <header className="h-12 flex items-center gap-3 border-b-2 border-foreground/20 bg-background/80 backdrop-blur sticky top-16 z-30 px-3">
-            <SidebarTrigger />
-            <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
-              Admin <span className="mx-1.5 opacity-50">/</span>
-              <span className="text-foreground">{crumb}</span>
-            </div>
-          </header>
-          <main className="flex-1 min-w-0">
-            <Outlet />
-          </main>
-        </div>
-      </div>
-    </SidebarProvider>
+    <div className="min-h-screen flex flex-col w-full pt-16">
+      <AdminSubNav />
+      <main className="flex-1 min-w-0">
+        <Outlet />
+      </main>
+    </div>
   );
 }

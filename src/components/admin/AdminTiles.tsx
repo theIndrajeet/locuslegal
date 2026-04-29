@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { LucideIcon } from "lucide-react";
+import { ArrowRight, LucideIcon } from "lucide-react";
 
 export function StatCard({
   label,
@@ -50,12 +50,16 @@ export function ToolTile({
         <div className="w-10 h-10 flex items-center justify-center bg-accent text-accent-foreground border-2 border-foreground shrink-0">
           <Icon className="w-5 h-5" />
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h3 className="font-heading font-extrabold text-lg leading-tight">
             {title}
           </h3>
           <p className="text-sm text-muted-foreground mt-1">{description}</p>
         </div>
+        <span className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 text-[10px] font-mono uppercase tracking-widest text-accent shrink-0 mt-1">
+          Open
+          <ArrowRight className="w-3 h-3" />
+        </span>
       </div>
     </Link>
   );
