@@ -42,6 +42,9 @@ const AdminBeta = lazy(routeImports.adminBeta as never);
 const Vacancies = lazy(routeImports.vacancies as never);
 const AdminVacancies = lazy(routeImports.adminVacancies as never);
 const AdminUpdates = lazy(routeImports.adminUpdates as never);
+const AdminDashboard = lazy(routeImports.adminDashboard as never);
+const AdminEmails = lazy(routeImports.adminEmails as never);
+const AdminLayout = lazy(() => import("./components/admin/AdminLayout"));
 const Unsubscribe = lazy(routeImports.unsubscribe as never);
 const ApplicationTracker = lazy(routeImports.applicationTracker as never);
 const BetaChecklist = lazy(routeImports.betaChecklist as never);
@@ -126,11 +129,15 @@ const App = () => (
                   <Route path="/applications" element={<ApplicationTracker />} />
                   <Route path="/profile/edit" element={<ProfileEdit />} />
                   <Route path="/u/:username" element={<PublicProfile />} />
-                  <Route path="/admin/waitlist" element={<AdminWaitlist />} />
-                  <Route path="/admin/bar" element={<AdminBar />} />
-                  <Route path="/admin/beta" element={<AdminBeta />} />
-                  <Route path="/admin/vacancies" element={<AdminVacancies />} />
-                  <Route path="/admin/updates" element={<AdminUpdates />} />
+                  <Route path="/admin" element={<AdminLayout />}>
+                    <Route index element={<AdminDashboard />} />
+                    <Route path="waitlist" element={<AdminWaitlist />} />
+                    <Route path="bar" element={<AdminBar />} />
+                    <Route path="beta" element={<AdminBeta />} />
+                    <Route path="vacancies" element={<AdminVacancies />} />
+                    <Route path="updates" element={<AdminUpdates />} />
+                    <Route path="emails" element={<AdminEmails />} />
+                  </Route>
                   <Route path="/vacancies" element={<Vacancies />} />
                   <Route path="/dock-lab" element={<DockLab />} />
                 </Route>
