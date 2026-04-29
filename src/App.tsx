@@ -41,6 +41,8 @@ const AdminBar = lazy(routeImports.adminBar as never);
 const AdminBeta = lazy(routeImports.adminBeta as never);
 const Vacancies = lazy(routeImports.vacancies as never);
 const AdminVacancies = lazy(routeImports.adminVacancies as never);
+const AdminUpdates = lazy(routeImports.adminUpdates as never);
+const Unsubscribe = lazy(routeImports.unsubscribe as never);
 const ApplicationTracker = lazy(routeImports.applicationTracker as never);
 const BetaChecklist = lazy(routeImports.betaChecklist as never);
 const NotFound = lazy(routeImports.notFound as never);
@@ -128,9 +130,11 @@ const App = () => (
                   <Route path="/admin/bar" element={<AdminBar />} />
                   <Route path="/admin/beta" element={<AdminBeta />} />
                   <Route path="/admin/vacancies" element={<AdminVacancies />} />
+                  <Route path="/admin/updates" element={<AdminUpdates />} />
                   <Route path="/vacancies" element={<Vacancies />} />
                   <Route path="/dock-lab" element={<DockLab />} />
                 </Route>
+                <Route path="/unsubscribe" element={<Unsubscribe />} />
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/choose-username" element={<ChooseUsername />} />

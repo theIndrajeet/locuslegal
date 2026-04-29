@@ -993,6 +993,57 @@ export type Database = {
         }
         Relationships: []
       }
+      update_broadcasts: {
+        Row: {
+          body_html: string
+          body_markdown: string
+          created_at: string
+          created_by: string
+          cta_label: string | null
+          cta_url: string | null
+          id: string
+          preheader: string | null
+          recipient_count: number
+          sent_at: string | null
+          sent_by: string | null
+          status: string
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          body_html: string
+          body_markdown: string
+          created_at?: string
+          created_by: string
+          cta_label?: string | null
+          cta_url?: string | null
+          id?: string
+          preheader?: string | null
+          recipient_count?: number
+          sent_at?: string | null
+          sent_by?: string | null
+          status?: string
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          body_html?: string
+          body_markdown?: string
+          created_at?: string
+          created_by?: string
+          cta_label?: string | null
+          cta_url?: string | null
+          id?: string
+          preheader?: string | null
+          recipient_count?: number
+          sent_at?: string | null
+          sent_by?: string | null
+          status?: string
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
