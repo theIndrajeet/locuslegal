@@ -48,6 +48,8 @@ export default function TheBar() {
     path: "/the-bar",
   });
 
+  const [refetchTick, setRefetchTick] = useState(0);
+
   useEffect(() => {
     if (!authReady) return;
     if (!userId) { setLoading(false); return; }
@@ -62,7 +64,7 @@ export default function TheBar() {
         });
         if (!active) return;
         if (error || !data) {
-          /* defaults render below */
+          console.error("[TheBar] get_bar_dashboard failed", error);
           return;
         }
 
@@ -95,14 +97,30 @@ export default function TheBar() {
         );
         setOptedOut(!!d.opted_out);
         setOverallRank(d.overall_rank ?? null);
-      } catch {
-        /* defaults render below */
+      } catch (e) {
+        console.error("[TheBar] dashboard fetch threw", e);
       } finally {
         if (active) setLoading(false);
       }
     })();
     return () => { active = false; clearTimeout(timeout); };
-  }, [authReady, userId]);
+  }, [authReady, userId, refetchTick]);
+
+  // Refetch dashboard whenever the tab becomes visible again or when a
+  // submitted attempt broadcasts a stats update — fixes stale "Trainee 0/0/0"
+  // state after a user finishes a challenge in another route.
+  useEffect(() => {
+    const bump = () => setRefetchTick((t) => t + 1);
+    const onVisible = () => { if (document.visibilityState === "visible") bump(); };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("bar:stats-updated", bump);
+    window.addEventListener("focus", bump);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("bar:stats-updated", bump);
+      window.removeEventListener("focus", bump);
+    };
+  }, []);
 
 
   const isGuest = !userId;
