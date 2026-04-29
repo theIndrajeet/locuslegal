@@ -76,12 +76,12 @@ function AdminCheckInner({
   }, [isAdmin, onResult]);
 
   if (!render) return null;
-  const active = location === "/admin/bar";
+  const active = location === "/admin" || location.startsWith("/admin/");
   return (
     <Link
-      to="/admin/bar"
-      onMouseEnter={() => prefetchRoute("/admin/bar")}
-      onFocus={() => prefetchRoute("/admin/bar")}
+      to="/admin"
+      onMouseEnter={() => prefetchRoute("/admin")}
+      onFocus={() => prefetchRoute("/admin")}
       className={`text-sm font-medium transition-colors duration-300 inline-flex items-center gap-1 ${
         active ? "text-accent" : "text-muted-foreground hover:text-accent"
       }`}
