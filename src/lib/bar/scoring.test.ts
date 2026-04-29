@@ -35,6 +35,7 @@ describe("normalizeSpeedAnswer", () => {
   it("handles empty / whitespace", () => {
     expect(normalizeSpeedAnswer("")).toBe("");
     expect(normalizeSpeedAnswer("   ")).toBe("");
+  });
   it("strips trailing punctuation", () => {
     expect(normalizeSpeedAnswer("Article 14.")).toBe("14");
     expect(normalizeSpeedAnswer("habeas corpus!")).toBe("habeas corpus");
@@ -59,7 +60,7 @@ describe("fuzzyEquals", () => {
     expect(fuzzyEquals("habeus corpos", "habeas corpus")).toBe(true);
     expect(fuzzyEquals("writ of mandamuss", "writ of mandamus")).toBe(true);
   });
-  it("rejects 3-letter look-alikes (no edits allowed at len ≤ 3)", () => {
+  it("rejects 3-letter look-alikes (no edits allowed at len <= 3)", () => {
     expect(fuzzyEquals("or", "of")).toBe(false);
     expect(fuzzyEquals("yes", "yet")).toBe(false);
   });
@@ -89,7 +90,6 @@ describe("gradeSpeedRound with typos", () => {
     } as never, 100);
     expect(r.is_correct).toBe(true);
   });
-});
 });
 
 describe("gradeSpeedRound normalisation", () => {
