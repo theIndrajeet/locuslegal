@@ -157,6 +157,9 @@ export default function AdminUpdates() {
         body: { broadcastId: id },
       });
       if (error) throw error;
+      if (data && (data as any).ok === false) {
+        throw new Error((data as any).error || "Broadcast failed");
+      }
       const queued = (data as any)?.queued ?? 0;
       const skipped = (data as any)?.suppressed_skipped ?? 0;
       toast({
