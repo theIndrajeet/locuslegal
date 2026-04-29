@@ -10,6 +10,7 @@ import {
   Heading,
   Html,
   Preview,
+  Section,
   Text,
 } from 'npm:@react-email/components@0.0.22'
 
@@ -18,25 +19,28 @@ interface MagicLinkEmailProps {
   confirmationUrl: string
 }
 
-export const MagicLinkEmail = ({
-  siteName,
-  confirmationUrl,
-}: MagicLinkEmailProps) => (
+export const MagicLinkEmail = ({ confirmationUrl }: MagicLinkEmailProps) => (
   <Html lang="en" dir="ltr">
     <Head />
-    <Preview>Your login link for {siteName}</Preview>
+    <Preview>Your Locus login link</Preview>
     <Body style={main}>
       <Container style={container}>
+        <Section style={brandBar}>
+          <Text style={brand}>
+            Loc<span style={brandAccent}>us</span>
+          </Text>
+        </Section>
         <Heading style={h1}>Your login link</Heading>
         <Text style={text}>
-          Click the button below to log in to {siteName}. This link will expire
-          shortly.
+          Tap below to sign in to Locus. The link expires shortly, so use it soon.
         </Text>
-        <Button style={button} href={confirmationUrl}>
-          Log In
-        </Button>
+        <Section style={btnWrap}>
+          <Button style={button} href={confirmationUrl}>
+            Log In
+          </Button>
+        </Section>
         <Text style={footer}>
-          If you didn't request this link, you can safely ignore this email.
+          Didn't request this? Ignore this email — no action needed.
         </Text>
       </Container>
     </Body>
@@ -45,26 +49,13 @@ export const MagicLinkEmail = ({
 
 export default MagicLinkEmail
 
-const main = { backgroundColor: '#ffffff', fontFamily: 'Arial, sans-serif' }
-const container = { padding: '20px 25px' }
-const h1 = {
-  fontSize: '22px',
-  fontWeight: 'bold' as const,
-  color: '#000000',
-  margin: '0 0 20px',
-}
-const text = {
-  fontSize: '14px',
-  color: '#55575d',
-  lineHeight: '1.5',
-  margin: '0 0 25px',
-}
-const button = {
-  backgroundColor: '#000000',
-  color: '#ffffff',
-  fontSize: '14px',
-  borderRadius: '8px',
-  padding: '12px 20px',
-  textDecoration: 'none',
-}
-const footer = { fontSize: '12px', color: '#999999', margin: '30px 0 0' }
+const main = { backgroundColor: '#ffffff', fontFamily: "'Inter', Arial, sans-serif", margin: 0, padding: '40px 0' }
+const container = { maxWidth: '520px', margin: '0 auto', padding: '0', backgroundColor: '#ffffff', border: '2px solid #000000', boxShadow: '6px 6px 0 0 #000000' }
+const brandBar = { padding: '20px 28px', borderBottom: '2px solid #000000', backgroundColor: '#ffffff' }
+const brand = { fontFamily: "'Sora', Arial, sans-serif", fontSize: '24px', fontWeight: 800 as const, color: '#000000', margin: 0, letterSpacing: '-0.02em' }
+const brandAccent = { color: '#000000', backgroundColor: '#FACC15', padding: '0 6px', borderRadius: '2px' }
+const h1 = { fontFamily: "'Sora', Arial, sans-serif", fontSize: '26px', fontWeight: 800 as const, color: '#000000', margin: '28px 28px 16px', letterSpacing: '-0.01em' }
+const text = { fontSize: '15px', color: '#3f3f46', lineHeight: '1.6', margin: '0 28px 18px' }
+const btnWrap = { padding: '8px 28px 28px' }
+const button = { backgroundColor: '#FACC15', color: '#000000', fontFamily: "'Sora', Arial, sans-serif", fontSize: '15px', fontWeight: 700 as const, borderRadius: '0px', padding: '14px 24px', textDecoration: 'none', border: '2px solid #000000', display: 'inline-block', boxShadow: '4px 4px 0 0 #000000' }
+const footer = { fontSize: '12px', color: '#71717a', margin: '0 28px 28px', paddingTop: '16px', borderTop: '1px solid #e4e4e7' }
