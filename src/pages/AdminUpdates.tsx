@@ -120,22 +120,18 @@ export default function AdminUpdates() {
     if (err) { toast({ title: err, variant: "destructive" }); return; }
     setBusy(true);
     try {
-      const id = await createDraft();
-      if (!id) return;
-      const { data, error } = await supabase.functions.invoke("dispatch-updates-broadcast", {
-        body: { broadcastId: id, testEmail: "self" === "self" ? undefined : undefined },
-      });
-      // Use caller's own email — the edge fn doesn't know it for tests; we resolve client-side:
       const { data: u } = await supabase.auth.getUser();
       const myEmail = u?.user?.email;
       if (!myEmail) {
         toast({ title: "Cannot resolve your email", variant: "destructive" });
         return;
       }
-      const r2 = await supabase.functions.invoke("dispatch-updates-broadcast", {
+      const id = await createDraft();
+      if (!id) return;
+      const { error } = await supabase.functions.invoke("dispatch-updates-broadcast", {
         body: { broadcastId: id, testEmail: myEmail },
       });
-      if (r2.error) throw r2.error;
+      if (error) throw error;
       toast({
         title: `Test sent to ${myEmail}`,
         description: "Check your inbox in a few seconds.",
