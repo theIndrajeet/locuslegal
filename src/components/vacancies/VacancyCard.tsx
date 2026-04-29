@@ -6,10 +6,10 @@ import {
   type Vacancy,
   daysLeft,
   urgencyTone,
-  formatExpiry,
   type VacancyApplication,
   applicationStateFor,
 } from "@/lib/vacancies";
+import { useCountdown } from "@/lib/useCountdown";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -23,7 +23,8 @@ export default function VacancyCard({ vacancy, onApply, archived = false, applic
   const [expanded, setExpanded] = useState(false);
   const days = daysLeft(vacancy.expires_at);
   const tone = urgencyTone(days);
-  const isClosed = archived || tone === "expired";
+  const { label: countdownLabel, expired } = useCountdown(vacancy.expires_at);
+  const isClosed = archived || expired;
 
   const { state: appState, daysUntilFollowup, lastActionOn } = applicationStateFor(application);
 
@@ -57,12 +58,12 @@ export default function VacancyCard({ vacancy, onApply, archived = false, applic
         ) : tone === "soon" ? (
           <span className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-muted text-foreground border-2 border-foreground/70 shrink-0">
             <AlertTriangle size={12} />
-            {formatExpiry(vacancy.expires_at)}
+            {countdownLabel}
           </span>
         ) : (
           <span className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-accent text-accent-foreground border-2 border-foreground/70 shrink-0">
             <Clock size={12} />
-            {formatExpiry(vacancy.expires_at)}
+            {countdownLabel}
           </span>
         )}
       </div>

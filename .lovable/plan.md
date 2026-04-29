@@ -1,32 +1,26 @@
-## Goal
-Turn the static `5D` badge on the Live Vacancies cards (Directory page strip) into a real countdown that ticks down toward the deadline.
+## Why it still says "Closes in 5 days"
 
-## Where it appears
-- File: `src/components/vacancies/VacancyTeaserStrip.tsx` — the badge currently rendered as `{d}d` (line 113) inside each vacancy card.
+Last round I only converted the **Directory teaser strip** (`VacancyTeaserStrip.tsx`) to the live `useCountdown` hook. The screenshot you shared is the **`/vacancies` page**, which renders `VacancyCard.tsx` — that component still uses the old static `formatExpiry()` helper that rounds to whole days, so it stays stuck on "Closes in 5 days" until midnight ticks over.
 
-## Behavior
-- Show the time remaining until `expires_at` as a live ticking value.
-- Format adapts to remaining time so it stays compact inside the small pill:
-  - More than 1 day left → `5d 03h` (days + hours, updates every minute)
-  - Less than 24 hours → `09h 42m` (hours + minutes, updates every minute)
-  - Less than 1 hour → `42:18` (mm:ss, updates every second)
-  - Expired → `Closed`
-- Urgency tone unchanged (yellow normal, muted "soon" when ≤2 days, expired hidden since the query already filters them out).
+## Fix
 
-## Implementation
+Switch the badge in `src/components/vacancies/VacancyCard.tsx` to the existing `useCountdown` hook so it ticks live, exactly like the Directory teaser.
 
-1. Add a small hook `useCountdown(expiresAt: string)` (inline in the file, or as `src/lib/useCountdown.ts` if reused later) that:
-   - Returns `{ label: string, totalMs: number }`.
-   - Uses `setInterval` with a 1s tick when <1h remaining, otherwise 30s tick (cheap, accurate enough).
-   - Cleans up on unmount and when `expiresAt` changes.
+### Changes
 
-2. Update `VacancyTeaserStrip.tsx`:
-   - Replace `{d}d` with `{label}` from the hook.
-   - Keep the existing `Clock` / `AlertTriangle` icon logic based on `urgencyTone(daysLeft(...))`.
-   - Slightly widen the pill if needed so `09h 42m` doesn't wrap (use `whitespace-nowrap`).
+1. **`src/components/vacancies/VacancyCard.tsx`**
+   - Import `useCountdown` from `@/lib/useCountdown`.
+   - Drop the `formatExpiry` import (no longer used here).
+   - Call `const { label, expired } = useCountdown(vacancy.expires_at);` at the top of the component.
+   - Drive `isClosed` off `archived || expired` (instead of `tone === "expired"`), so the card flips to the muted "Closed" state the instant the timer hits zero.
+   - Replace both `{formatExpiry(vacancy.expires_at)}` usages in the badge with `{label}`.
+   - Keep the existing tone logic (`urgencyTone(days)`) for choosing yellow vs. muted styling — `daysLeft` is still the right input for "is this urgent?".
 
-3. Leave `VacancyCard.tsx` (full Vacancies page) untouched for now — user only flagged the Directory teaser. Confirm in the next turn whether to roll the same countdown out there too.
+### Resulting badge behaviour (matches Directory)
 
-## Out of scope
-- Server-side changes, no schema changes.
-- No change to `daysLeft` / `urgencyTone` / `formatExpiry` helpers — only the rendered label changes.
+- More than 1 day left → `5d 03h` (updates every 30s)
+- Less than 24 hours → `09h 42m` (updates every 30s)
+- Less than 1 hour → `MM:SS` live ticking every second
+- At zero → badge becomes `Closed` and the card greys out automatically
+
+No other files need to change — `VacancyTeaserStrip.tsx` is already on the live hook, and `formatExpiry`/`daysLeft` stay in `vacancies.ts` for any other callers.
