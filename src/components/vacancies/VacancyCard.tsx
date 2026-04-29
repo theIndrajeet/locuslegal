@@ -23,7 +23,8 @@ export default function VacancyCard({ vacancy, onApply, archived = false, applic
   const [expanded, setExpanded] = useState(false);
   const days = daysLeft(vacancy.expires_at);
   const tone = urgencyTone(days);
-  const isClosed = archived || tone === "expired";
+  const { label: countdownLabel, expired } = useCountdown(vacancy.expires_at);
+  const isClosed = archived || expired;
 
   const { state: appState, daysUntilFollowup, lastActionOn } = applicationStateFor(application);
 
