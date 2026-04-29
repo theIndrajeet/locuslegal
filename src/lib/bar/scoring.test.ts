@@ -9,6 +9,7 @@ import {
   gradeJurisdiction,
   gradeAttempt,
   normalizeSpeedAnswer,
+  fuzzyEquals,
 } from "./scoring";
 import { GradingError } from "./types";
 
