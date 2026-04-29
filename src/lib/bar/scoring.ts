@@ -237,7 +237,7 @@ export function gradeSpeedRound(
   for (const q of payload.questions) {
     const sub = normalizeSpeedAnswer(answerMap.get(q.id) ?? "");
     const expected = normalizeSpeedAnswer(q.answer);
-    if (sub.length > 0 && sub === expected) correctCount++;
+    if (sub.length > 0 && fuzzyEquals(sub, expected)) correctCount++;
   }
   const ratio = correctCount / total;
   const points = Math.floor(ratio * pointsBase);
