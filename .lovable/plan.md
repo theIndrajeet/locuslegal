@@ -1,37 +1,47 @@
 ## Diagnosis
 
-The Updates broadcast is **not working**. When you clicked "Send test to me", the dispatcher ran successfully (HTTP 200), but its internal call to `send-transactional-email` returned **HTTP 401 Unauthorized**, so no email was ever enqueued. The toast said "Test sent" because the dispatcher swallowed the failure.
+A WhatsApp tester (Anam) clicked **Claim my slot** on `/beta` and got a generic "Something went wrong" toast.
 
-Evidence:
-- `email_send_log` table is **empty** (0 rows ever).
-- Edge logs show `POST /send-transactional-email → 401` immediately after the dispatcher ran.
-- `send-transactional-email` has zero invocation logs (gateway rejected before code ran).
-- The "Test Email" row is stuck at `status = draft`.
+I reproduced it by calling the `claim_beta_slot` RPC directly and got back:
 
-### Why it 401s
-`supabase/functions/dispatch-updates-broadcast/index.ts` calls `send-transactional-email` via raw `fetch` with `Authorization: Bearer <SERVICE_KEY>`. The gateway's `verify_jwt = true` check rejects this in some configurations. The supported pattern (used everywhere else and recommended in the transactional-emails docs) is `supabase.functions.invoke(...)` from a service-role client — that handles auth headers correctly.
+```
+HTTP 400
+code: 23514
+message: new row for relation "beta_testers" violates check constraint "beta_testers_slot_number_check"
+```
+
+The `beta_testers` table has a hardcoded constraint:
+
+```
+CHECK ((slot_number >= 1) AND (slot_number <= 7))
+```
+
+There are already **7 claimed testers**, so the RPC tries to insert slot 8 and Postgres rejects it. Anam was about to be Founding Tester #008 (the screenshot literally previews "#008") and the database refused.
+
+This is a one-time hard cap that was never meant to limit the program — the UI, copy, and slot numbering all assume a rolling counter.
 
 ## Fix
 
-**File:** `supabase/functions/dispatch-updates-broadcast/index.ts`
+### 1. Database migration — remove the cap
+`supabase/migrations/<timestamp>_remove_beta_slot_cap.sql`:
+- Drop `beta_testers_slot_number_check` (the `<= 7` cap).
+- Add `beta_testers_slot_number_positive_check` ensuring `slot_number >= 1` (keeps integrity, removes the upper bound).
 
-1. Replace the hand-rolled `invokeSend` `fetch` helper with a service-role `supabase.functions.invoke('send-transactional-email', { body: ... })` call.
-2. Treat any non-2xx / error response as a real failure (count it, log it) instead of silently returning `ok: true`.
-3. For the **test-send** path, surface the underlying error to the toast so future failures are visible — return `{ ok: false, error }` with HTTP 502 when the inner call fails, instead of `{ ok: true, result }`.
+No data changes; the existing 7 rows stay as-is. The unique constraint on `slot_number` already prevents duplicates.
 
-**File:** `src/pages/AdminUpdates.tsx`
+### 2. Better error surface in the UI
+`src/pages/BetaChecklist.tsx` → `handleClaim` catch block:
+- Replace the generic `"Something went wrong"` toast with an error mapper that reads the actual Postgres message and shows a useful description (e.g., "All slots are full right now" / "Please add your name").
+- Log the raw error to the console so future failures are easy to diagnose.
 
-4. In `handleTestSend` and `handleSendAll`, check the returned payload for `ok === false` and show the actual error message in the toast (currently only network-level errors throw).
+No schema changes elsewhere, no RLS changes, no edge-function changes.
 
-No DB schema changes, no new functions, no new templates. Only the dispatcher's call style and the client's error handling change.
+## Verification
 
-## Verification after the fix
-
-1. Click **Send test to me** in `/admin/updates`.
-2. Confirm the toast shows success **and** a row appears in `email_send_log` with `template_name = 'updates-broadcast'`, `status = 'pending'` then `'sent'` within ~10s.
-3. Check inbox.
-4. The Email Log dashboard should then show the unique send.
+1. After the migration applies, retry the claim from `/beta` (or hit the RPC directly) — it should return a fresh `beta_testers` row with `slot_number = 8`.
+2. Anam can claim. Total claimed should jump to 8.
+3. Future failures will show the real reason in the toast instead of "Something went wrong".
 
 ## Files changed
-- `supabase/functions/dispatch-updates-broadcast/index.ts` — switch to SDK invoke + propagate errors
-- `src/pages/AdminUpdates.tsx` — show real error in failure toast
+- `supabase/migrations/<timestamp>_remove_beta_slot_cap.sql` — drop cap, add `>= 1` check (new file)
+- `src/pages/BetaChecklist.tsx` — friendlier error toast in `handleClaim`
