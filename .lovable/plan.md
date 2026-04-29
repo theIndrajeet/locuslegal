@@ -1,61 +1,71 @@
-# Directory teaser — show the *full* directory, not just firms
+# Updates Broadcast System
 
-## What changes
+Admin-only tool to send monthly updates and feature announcements from `noreply@locus.legal` to all registered Locus users. Uses Lovable's built-in queue (no third-party service).
 
-The current teaser only mentions "500+ firms". Reality: the directory also covers **startups & SMEs** (with sectors, stages, sizes, legal-team flag) plus **chambers, individual advocates, cities, practice areas, tiers**. The teaser will be redesigned to convey that breadth and let people jump into any of those slices in one tap.
+## What gets built
 
-## New teaser anatomy (both `cell` and `strip` variants)
+### 1. Database (one migration)
+- `update_broadcasts` table — stores broadcast history
+  - `id`, `subject`, `body_markdown`, `cta_label`, `cta_url`, `sent_by`, `recipient_count`, `sent_at`, `status` ('draft' | 'sending' | 'sent' | 'failed')
+  - RLS: admin-only SELECT/INSERT/UPDATE
+- Reuses existing `suppressed_emails` and `email_unsubscribe_tokens` from email infra
+
+### 2. Edge Functions (3 new)
+- **`send-transactional-email`** — generic sender (scaffolded by Lovable's transactional tool, used for both broadcasts and any future app emails)
+- **`dispatch-updates-broadcast`** — admin-only. Verifies caller is admin, fetches all users via `auth.admin.listUsers()`, filters out suppressed addresses, loops and enqueues one `send-transactional-email` call per recipient. Updates broadcast row to `sent` with final count.
+- **`handle-email-unsubscribe`** — validates unsubscribe tokens (scaffolded)
+
+### 3. Email template
+- `_shared/transactional-email-templates/updates-broadcast.tsx`
+  - Neobrutalist styling (white body, black borders, yellow accent CTA, Sora/Inter fonts)
+  - Props: `subject`, `bodyMarkdown` (rendered to HTML), `ctaLabel?`, `ctaUrl?`
+  - System auto-appends unsubscribe footer
+
+### 4. Admin UI — `/admin/updates`
+- Gated by `useAdminRole` (same pattern as `AdminBar.tsx`)
+- **Compose form**: subject, markdown body (textarea), optional CTA label + URL
+- **Live preview pane** rendering the email
+- **"Send test to me"** button — sends only to the admin's own email
+- **"Send to all users"** button — shows confirm dialog with recipient count, then triggers dispatcher
+- **History table** below — past broadcasts with sent date, recipient count, subject
+
+### 5. Public unsubscribe page — `/email-unsubscribe`
+- Reads `?token=` from URL, validates via edge function, shows confirm button, marks email as suppressed on click
+
+### 6. Navigation
+- Add "Updates" tab to admin nav (alongside existing admin pages)
+
+## How it works (flow)
 
 ```text
-┌───────────────────────────────────────────┐
-│ [icon] DIRECTORY                          │
-│                                           │
-│ Beyond this list.                         │
-│ 500+ firms · 200+ startups · all India.   │
-│                                           │
-│ [ Firms ] [ Startups & SMEs ]   ← toggle  │
-│                                           │
-│ [ Search by name…              ]   →     │
-│                                           │
-│ Browse by:                                │
-│   Tier 1   Mumbai   IP   Chambers         │  ← when "Firms"
-│   Fintech  Series A  Has legal team       │  ← when "Startups"
-│ ────────────────────────────────────────  │
-│ Open the full directory  →               │
-└───────────────────────────────────────────┘
+Admin types update → clicks "Send to all"
+  ↓
+dispatch-updates-broadcast (admin check)
+  ↓
+listUsers() → filter suppressed → for each user:
+  ↓
+enqueue → auth_emails has priority, transactional drains after
+  ↓
+process-email-queue (cron, every 5s) → sends via Lovable Email API
+  ↓
+Each email has unsubscribe footer auto-appended
+  ↓
+Status logged in email_send_log + broadcast row updated
 ```
 
-Key updates:
+## Safety guarantees
+- Auth emails (password reset, signup) stay in higher-priority lane — broadcasts never block them
+- Suppressed emails skipped automatically
+- 5-attempt retry + dead-letter queue per recipient
+- Idempotency keys prevent double-sends on retry
+- Admin-only RLS + edge function admin verification (defense in depth)
 
-1. **Headline rewritten** to convey breadth, not just count:
-   - Line 1 (foreground): *"Beyond this list."*
-   - Line 2 (accent): *"500+ firms · 200+ startups · all India."*
-2. **Mode toggle** (Firms / Startups & SMEs) — neobrutalist segmented control identical to the one used inside Directory itself. Selecting a mode swaps the chip set below.
-3. **Search input** posts to `/directory?q=…&mode=<firms|startups>` so the user lands inside the right tab with their query pre-applied.
-4. **Dynamic chip rows**:
-   - **Firms mode**: `Tier 1` → `?tier=Tier 1` · `Mumbai` → `?city=Mumbai` · `IP` → `?area=IP` · `Chambers` → `?type=Chamber`
-   - **Startups mode**: `Fintech` → `?mode=startups&sSector=Fintech` · `Series A` → `?mode=startups&sStage=Series A` · `Has legal team` → `?mode=startups&sLegal=yes`
-5. **Footer link** *"Open the full directory →"* always lands on `/directory?mode=<currentMode>`.
+## Out of scope (can add later if needed)
+- Audience segmentation (only sending to firms vs students)
+- Scheduled sends
+- A/B subject lines
+- Open/click tracking
 
-## Directory side — wire up the new params
+---
 
-`src/pages/Directory.tsx` already reads `?q=` and `?mode=`. I'll extend the URL-param seeding to also pre-fill (one-time on mount):
-
-- Firms: `tier`, `city`, `area`, `type`
-- Startups: `sCity`, `sSector`, `sStage`, `sSize`, `sLegal`
-
-This means every chip in the teaser produces a real, filtered Directory view, not just a vanilla page load.
-
-## Where it appears (unchanged)
-
-- Desktop odd-count: fills the empty grid cell (`cell` variant).
-- Desktop even-count: full-width strip below the grid (`strip` variant).
-- Mobile: full-width strip below the grid.
-
-The `strip` variant gets the same mode toggle + dynamic chips, just laid out horizontally so it doesn't grow tall.
-
-## Technical bits
-
-- Edit `src/components/vacancies/DirectoryTeaser.tsx`: add a `mode` local state + chip arrays per mode, swap chips and submit-target accordingly.
-- Edit `src/pages/Directory.tsx`: extend the existing one-time URL-param hydration to seed all firm + startup filters from the search params on mount.
-- No new files, no DB changes.
+Approve and I'll build it.
