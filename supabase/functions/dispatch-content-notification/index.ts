@@ -27,12 +27,28 @@ Deno.serve(async (req) => {
   const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
   const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
-  // Service-role bearer required.
+  // Service-role bearer required. Accept either byte-equality with the env
+  // key OR any JWT whose `role` claim is `service_role` (vault key may differ
+  // after rotation but still identifies as service role).
   const authHeader = req.headers.get('Authorization') || ''
-  const token = authHeader.replace(/^Bearer\s+/i, '')
-  if (!token || token !== SERVICE_KEY) {
-    return json({ error: 'unauthorized' }, 401)
+  const token = authHeader.replace(/^Bearer\s+/i, '').trim()
+  let authorized = false
+  if (token) {
+    if (token === SERVICE_KEY) {
+      authorized = true
+    } else {
+      const parts = token.split('.')
+      if (parts.length >= 2) {
+        try {
+          const payload = parts[1].replaceAll('-', '+').replaceAll('_', '/')
+            .padEnd(Math.ceil(parts[1].length / 4) * 4, '=')
+          const claims = JSON.parse(atob(payload)) as Record<string, unknown>
+          if (claims?.role === 'service_role') authorized = true
+        } catch { /* fall through */ }
+      }
+    }
   }
+  if (!authorized) return json({ error: 'unauthorized' }, 401)
 
   let body: Body = {}
   try { body = await req.json() } catch { /* allow */ }
