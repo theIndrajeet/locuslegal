@@ -241,14 +241,15 @@ export default function DraftEmailDialog({ open, onOpenChange, target, onSent }:
     setLoadingUser(true);
 
     (async () => {
-      const [{ data: profile }, { data: internships }, { data: moots }, { data: publications }] = await Promise.all([
+      const [{ data: profile }, { data: cvRef }, { data: internships }, { data: moots }, { data: publications }] = await Promise.all([
         supabase
           .from("profiles")
           .select(
-            "display_name, college, degree, graduation_year, cgpa, bio, subjects_of_interest, cv_url",
+            "display_name, college, degree, graduation_year, cgpa, bio, subjects_of_interest",
           )
           .eq("id", userId)
           .maybeSingle(),
+        supabase.rpc("get_own_cv_ref"),
         supabase
           .from("profile_internships")
           .select("firm_name, role, start_date, end_date, description")
