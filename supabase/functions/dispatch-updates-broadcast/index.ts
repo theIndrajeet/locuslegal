@@ -170,17 +170,28 @@ function buildTemplateData(bc: any) {
 }
 
 async function invokeSend(
-  client: ReturnType<typeof createClient>,
+  _client: ReturnType<typeof createClient>,
   payload: Record<string, unknown>,
-): Promise<{ ok: boolean; error?: string; body: unknown }> {
+): Promise<{ ok: boolean; status?: number; error?: string; body: unknown }> {
+  const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
+  const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
   try {
-    const { data, error } = await client.functions.invoke('send-transactional-email', {
-      body: payload,
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/send-transactional-email`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SERVICE_KEY}`,
+        'apikey': SERVICE_KEY,
+      },
+      body: JSON.stringify(payload),
     })
-    if (error) {
-      return { ok: false, error: error.message ?? String(error), body: data ?? null }
+    const text = await res.text()
+    let parsed: unknown = null
+    try { parsed = text ? JSON.parse(text) : null } catch { parsed = text }
+    if (!res.ok) {
+      return { ok: false, status: res.status, error: `sender returned ${res.status}`, body: parsed }
     }
-    return { ok: true, body: data ?? null }
+    return { ok: true, status: res.status, body: parsed }
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e), body: null }
   }
