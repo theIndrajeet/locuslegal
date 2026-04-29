@@ -91,23 +91,15 @@ Deno.serve(async (req) => {
     )
   }
 
-  const authHeader = req.headers.get('Authorization')
-  if (!authHeader?.startsWith('Bearer ')) {
+  // verify_jwt = false at the gateway. Validate the bearer token in-function:
+  // it MUST equal SUPABASE_SERVICE_ROLE_KEY. The pg_cron job authenticates with
+  // the service-role key stored in vault, so this gate accepts that exact token.
+  const authHeader = req.headers.get('Authorization') || ''
+  const presentedToken = authHeader.replace(/^Bearer\s+/i, '').trim()
+  if (!presentedToken || presentedToken !== supabaseServiceKey) {
     return new Response(
       JSON.stringify({ error: 'Unauthorized' }),
       { status: 401, headers: { 'Content-Type': 'application/json' } }
-    )
-  }
-
-  // Defense in depth: verify_jwt=true already requires a valid JWT at the
-  // gateway layer. This adds an explicit role check so only service-role
-  // callers can trigger queue processing.
-  const token = authHeader.slice('Bearer '.length).trim()
-  const claims = parseJwtClaims(token)
-  if (claims?.role !== 'service_role') {
-    return new Response(
-      JSON.stringify({ error: 'Forbidden' }),
-      { status: 403, headers: { 'Content-Type': 'application/json' } }
     )
   }
 
