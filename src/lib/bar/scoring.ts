@@ -134,6 +134,9 @@ const FILLER_PREFIXES = [
   "part", "chapter", "chap.", "chap",
 ];
 
+// Words to drop when comparing multi-word answers ("the right to equality" === "right to equality")
+const STOP_WORDS = new Set(["the", "of", "a", "an"]);
+
 /**
  * Normalises a free-text speed-round answer so that obvious equivalents
  * compare equal: "8" / "8th" / "eighth" / "Article 8" / "Schedule VIII".
@@ -141,6 +144,9 @@ const FILLER_PREFIXES = [
 export function normalizeSpeedAnswer(raw: string): string {
   let s = (raw ?? "").trim().toLowerCase();
   if (!s) return "";
+
+  // Normalise unicode dashes / non-breaking space / smart quotes
+  s = s.replace(/[\u2013\u2014]/g, "-").replace(/\u00a0/g, " ").replace(/[\u2018\u2019]/g, "'").replace(/[\u201c\u201d]/g, '"');
 
   // Strip leading filler words ("article 14" → "14", "schedule viii" → "viii")
   for (const f of FILLER_PREFIXES) {
@@ -154,21 +160,67 @@ export function normalizeSpeedAnswer(raw: string): string {
   // Drop ordinal suffixes on bare numbers: "8th" → "8", "21st" → "21"
   s = s.replace(/\b(\d+)(st|nd|rd|th)\b/g, "$1");
 
-  // Collapse punctuation/whitespace
+  // Collapse punctuation/whitespace (also strips trailing "." in "Article 14.")
   s = s.replace(/[.,;:!?'"()\[\]{}]/g, " ").replace(/\s+/g, " ").trim();
 
   // Single-token shortcuts
   if (WORD_TO_NUM[s]) return WORD_TO_NUM[s];
   if (ROMAN_TO_NUM[s]) return ROMAN_TO_NUM[s];
 
-  // Multi-token: map any individual roman/word numeral tokens to digits.
-  const mapped = s.split(" ").map((tok) => {
-    if (WORD_TO_NUM[tok]) return WORD_TO_NUM[tok];
-    if (ROMAN_TO_NUM[tok]) return ROMAN_TO_NUM[tok];
-    return tok;
-  }).join(" ");
+  // Multi-token: map roman/word numerals to digits, drop stop words.
+  const mapped = s.split(" ")
+    .map((tok) => WORD_TO_NUM[tok] ?? ROMAN_TO_NUM[tok] ?? tok)
+    .filter((tok) => tok.length > 0 && !STOP_WORDS.has(tok));
 
-  return mapped;
+  return mapped.length > 0 ? mapped.join(" ") : s;
+}
+
+/**
+ * Damerau-Levenshtein distance (handles substitutions, insertions, deletions, transpositions).
+ */
+function editDistance(a: string, b: string): number {
+  const m = a.length, n = b.length;
+  if (m === 0) return n;
+  if (n === 0) return m;
+  const d: number[][] = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+  for (let i = 0; i <= m; i++) d[i][0] = i;
+  for (let j = 0; j <= n; j++) d[0][j] = j;
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + cost);
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) {
+        d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1);
+      }
+    }
+  }
+  return d[m][n];
+}
+
+/** Length-aware tolerance for typos. Short tokens demand exact matches. */
+function allowedEdits(len: number): number {
+  if (len <= 3) return 0;
+  if (len <= 6) return 1;
+  if (len <= 10) return 2;
+  return 3;
+}
+
+/** Token-level fuzzy equality. Tokens compared in order; both strings already normalised. */
+export function fuzzyEquals(submitted: string, expected: string): boolean {
+  if (submitted === expected) return true;
+  if (!submitted || !expected) return false;
+  const subTokens = submitted.split(" ");
+  const expTokens = expected.split(" ");
+  if (subTokens.length !== expTokens.length) {
+    // Whole-string fallback for length mismatch (e.g. extra space)
+    return editDistance(submitted, expected) <= allowedEdits(Math.max(submitted.length, expected.length));
+  }
+  for (let i = 0; i < subTokens.length; i++) {
+    const s = subTokens[i], e = expTokens[i];
+    if (s === e) continue;
+    if (editDistance(s, e) > allowedEdits(Math.max(s.length, e.length))) return false;
+  }
+  return true;
 }
 
 export function gradeSpeedRound(
@@ -185,7 +237,7 @@ export function gradeSpeedRound(
   for (const q of payload.questions) {
     const sub = normalizeSpeedAnswer(answerMap.get(q.id) ?? "");
     const expected = normalizeSpeedAnswer(q.answer);
-    if (sub.length > 0 && sub === expected) correctCount++;
+    if (sub.length > 0 && fuzzyEquals(sub, expected)) correctCount++;
   }
   const ratio = correctCount / total;
   const points = Math.floor(ratio * pointsBase);

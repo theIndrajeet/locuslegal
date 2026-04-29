@@ -9,6 +9,7 @@ import {
   gradeJurisdiction,
   gradeAttempt,
   normalizeSpeedAnswer,
+  fuzzyEquals,
 } from "./scoring";
 import { GradingError } from "./types";
 
@@ -34,6 +35,60 @@ describe("normalizeSpeedAnswer", () => {
   it("handles empty / whitespace", () => {
     expect(normalizeSpeedAnswer("")).toBe("");
     expect(normalizeSpeedAnswer("   ")).toBe("");
+  });
+  it("strips trailing punctuation", () => {
+    expect(normalizeSpeedAnswer("Article 14.")).toBe("14");
+    expect(normalizeSpeedAnswer("habeas corpus!")).toBe("habeas corpus");
+  });
+  it("drops stop words in multi-word answers", () => {
+    expect(normalizeSpeedAnswer("the right to equality"))
+      .toBe(normalizeSpeedAnswer("right to equality"));
+    expect(normalizeSpeedAnswer("writ of mandamus"))
+      .toBe(normalizeSpeedAnswer("writ mandamus"));
+  });
+  it("normalises em/en dashes and nbsp", () => {
+    expect(normalizeSpeedAnswer("Article\u00a014")).toBe("14");
+  });
+});
+
+describe("fuzzyEquals", () => {
+  it("accepts single-character typos in medium tokens", () => {
+    expect(fuzzyEquals("habeus", "habeas")).toBe(true);
+    expect(fuzzyEquals("schdule", "schedule")).toBe(true);
+  });
+  it("accepts typos across multi-word answers", () => {
+    expect(fuzzyEquals("habeus corpos", "habeas corpus")).toBe(true);
+    expect(fuzzyEquals("writ of mandamuss", "writ of mandamus")).toBe(true);
+  });
+  it("rejects 3-letter look-alikes (no edits allowed at len <= 3)", () => {
+    expect(fuzzyEquals("or", "of")).toBe(false);
+    expect(fuzzyEquals("yes", "yet")).toBe(false);
+  });
+  it("rejects genuinely different words", () => {
+    expect(fuzzyEquals("eighth", "seventh")).toBe(false);
+    expect(fuzzyEquals("plaintiff", "defendant")).toBe(false);
+  });
+  it("requires exact token-count or distance fallback", () => {
+    expect(fuzzyEquals("a b c", "a b")).toBe(false);
+  });
+});
+
+describe("gradeSpeedRound with typos", () => {
+  it("forgives typos in answer body and accepts filler/ordinal variants", () => {
+    const p = {
+      questions: [
+        { id: "q1", prompt: "Writ for unlawful detention", answer: "habeas corpus" },
+        { id: "q2", prompt: "Article for equality", answer: "Article 14" },
+      ],
+      time_limit_seconds: 60,
+    } as const;
+    const r = gradeSpeedRound(p as never, {
+      answers: [
+        { question_id: "q1", submitted: "habeus corpos" },
+        { question_id: "q2", submitted: "Article 14." },
+      ],
+    } as never, 100);
+    expect(r.is_correct).toBe(true);
   });
 });
 

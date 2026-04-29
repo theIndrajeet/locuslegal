@@ -1,74 +1,65 @@
-## Beta bug-fix pass (Asmi's report)
+# Smart answer matching — typos, equivalents, everywhere
 
-Four real issues surfaced. Each has a confirmed root cause in code/data — not guesswork.
+## What's already done
+The previous fix made these all count as the **same answer** in Speed Round (both client preview and server grading):
 
----
+- `8`, `8th`, `eighth`, `VIII`, `viii`
+- `Article 14`, `article 14`, `14`, `Art. 14`
+- `Schedule VIII`, `Schedule 8`, `Schedule eighth`
 
-### Bug 1 — Speed round marks correct answers wrong ("8th" → "8" shown red)
+## What this round adds
 
-**Evidence:** Asmi's screenshot Q3 *"Schedule listing official languages"* — she typed `8th`, expected `8`, marked X. The grader does a literal `trim().toLowerCase()` compare in `supabase/functions/submit-bar-attempt/index.ts` (`gradeSpeedRound`, line 169). No tolerance for ordinal suffixes ("8th"), spelled-out numerals ("eighth"), Roman numerals, or "Article 8" prefixes.
+The user wants the matcher to also forgive **typos** and apply consistently across the whole app.
 
-**Fix:** Add a `normalizeSpeedAnswer()` helper used on both submitted and expected before equality:
-- Strip ordinal suffixes (`st|nd|rd|th`)
-- Strip leading filler words (`article`, `art`, `art.`, `section`, `sec`, `s.`, `schedule`, `sch.`, `clause`)
-- Collapse internal whitespace and punctuation
-- Map word-numerals 0–20 + multiples of 10 → digits (`eight` → `8`, `eighth` → `8`)
-- Keep canonical Roman → digit map for I–XII (common for schedules)
+### 1. Typo tolerance (Levenshtein, length-aware)
 
-Mirror the same normalizer in `src/lib/bar/scoring.ts` (`gradeSpeedRound`, line 112) so client-side preview matches server grading. Add a couple of unit tests in `src/lib/bar/scoring.test.ts`.
+Add fuzzy matching on top of the existing `normalizeSpeedAnswer()`:
 
----
+- After normalisation, if exact match fails, compute **Damerau-Levenshtein distance** between submitted and expected.
+- Allowed edit distance scales with length:
+  - ≤ 3 chars: must match exactly (avoid false positives on "or" vs "of")
+  - 4–6 chars: 1 edit allowed (`habeus` → `habeas`)
+  - 7–10 chars: 2 edits (`mandamuss` → `mandamus`)
+  - 11+ chars: 3 edits (`fundemental rite` → `fundamental right`)
+- Applies **per token** for multi-word answers, then re-joins. So `"writ of habeus corpos"` matches `"writ of habeas corpus"`.
 
-### Bug 2 — Personal Bar dashboard stays at "Trainee 0/0/0" after attempts
+This catches: `ariticle`, `schdule`, `habeus`, `manadmus`, `fundemental`, `direcive`, `principels` — i.e. genuine typos, without over-matching genuinely different answers.
 
-**Evidence:** Asmi's account `dc34a9ba…` actually has 6 attempts / 392 pts / 100% accuracy / "Junior Associate" in `bar_user_stats`, yet her screenshot shows the empty Trainee state. The dashboard `useEffect` in `src/pages/TheBar.tsx` only depends on `[authReady, userId]` — it never refetches when she finishes an attempt and navigates back to `/the-bar`. The page is also kept alive in the SPA, so old state persists.
+### 2. Numeric/filler tolerance everywhere
+The existing normaliser already handles ordinals, word-numerals, roman numerals, and filler prefixes. We extend it to also:
 
-**Fix:**
-1. Refetch the dashboard whenever the route becomes visible again — listen to `document.visibilitychange` + a re-mount key tied to `useLocation().key` so navigating back from `/the-bar/challenge/:id` re-runs the RPC.
-2. After a successful attempt submission in `src/pages/TheBarChallenge.tsx` / `ResultScreen.tsx`, broadcast a tiny `window.dispatchEvent(new Event("bar:stats-updated"))` and have `TheBar.tsx` listen for it to refetch.
-3. Drop the silent `catch {}` swallowing — log the error to console so future failures are visible.
+- Strip trailing punctuation (`"Article 14."` → `"14"`)
+- Collapse multiple spaces / non-breaking spaces
+- Treat `–` `—` as `-` (em/en dashes)
+- Ignore the words `the`, `of`, `a`, `an` when comparing multi-word answers (so `"the right to equality"` matches `"right to equality"`)
 
----
+### 3. Audit: where does free-text grading happen?
 
-### Bug 3 — "Failed to send a request to the Edge Function" when drafting from Directory
+Verified: free-text answers exist in **exactly one place** — Speed Round (`SpeedRoundRenderer` → `gradeSpeedRound`). All other Bar question types (MCQ, Issue Spotter, Jurisdiction, Document Review, Brief Builder, Ethics, Client Counseling) are **ID/option based** — there is no text to normalise.
 
-**Evidence:** Works from `/vacancies` (Asmi confirmed), fails from Directory drawer. Same component (`DraftEmailDialog`) is used. The retry path in `generate()` (line 384) treats it as transient and retries once — but the toast still fires. Most likely cause: when the dialog opens immediately on directory click, `user` (profile context) finishes loading *after* the auto-trigger, causing a race where the supabase client invokes before the auth token is hydrated, returning a network-style `FunctionsFetchError`.
-
-**Fix:**
-1. Guard `generate()` to wait for `ready && userId && user` before allowing invoke; show a tiny "preparing…" state if user context still loading.
-2. Increase resilience: bump retry to 2 attempts with 600ms then 1200ms backoff.
-3. Surface the actual `error.context.response.status` in the toast when the response *did* come back, so we stop reporting "Failed to send a request" when the function actually returned 4xx/5xx.
-4. Add `console.error` with full error object on failure so beta testers' next report includes a usable trace.
-
----
-
-### Bug 4 — Gmail-copied email pastes as URL-encoded text (`%20`, `%0A`)
-
-**Evidence:** Asmi's second screenshot shows the body pasted as `Subject:%20Legal%20Internship…%0A%0ADear…`. Cause: `buildGmailUrl()` (line 194) uses `encodeURIComponent` for the body, which is correct for the URL — but on iOS Safari, when the user long-presses the Gmail compose body and copies, iOS sometimes copies the underlying mailto/url string instead of the rendered text. Our "Open in Gmail" button on mobile uses `mailto:` which has this exact symptom.
-
-**Fix:**
-1. **Always copy the plain-text email to clipboard** *before* opening the mail client (currently we only copy on `truncated`). This guarantees that if the user pastes anywhere — including back into Gmail — they get clean text, not the URL-encoded fallback.
-2. Show a clearer success toast: `"Opening Gmail. Plain text also copied — paste if it looks encoded."`
-3. Keep mobile `mailto:` (it's the only way to route to default mail apps), but the universal clipboard backup eliminates the user-visible failure.
-
----
-
-### Files touched
+So "throughout the app" boils down to: keep the normaliser as the single source of truth, called from the only two graders that exist for free text:
 
 ```text
-supabase/functions/submit-bar-attempt/index.ts   # add normalizeSpeedAnswer, use in gradeSpeedRound
-src/lib/bar/scoring.ts                           # mirror normalizer
-src/lib/bar/scoring.test.ts                      # add cases: "8th"=="8", "eighth"=="8", "Article 14"=="14"
-src/pages/TheBar.tsx                             # refetch on visibility + custom event, log errors
-src/pages/TheBarChallenge.tsx                    # dispatch "bar:stats-updated" after submit
-src/components/bar/ResultScreen.tsx              # also dispatch on result render (safety net)
-src/components/apply/DraftEmailDialog.tsx        # gate generate on user ready, better retry,
-                                                 # always-copy-on-Gmail, surface real error
+src/lib/bar/scoring.ts                         (client preview)
+supabase/functions/submit-bar-attempt/index.ts (server, source of truth)
 ```
 
-No DB migrations. No new tables. No edge function additions — just edits to one existing function.
+Both already share the same normaliser. The new fuzzy logic will be added to **both**, kept in lockstep.
 
-### Out of scope (intentionally)
+### 4. Tests
 
-- Asmi's earlier "random logout" report — she confirmed it didn't recur today. Not chasing without a fresh repro.
-- The "results show on leaderboard but not personal board" wording — Bug 2 above is the actual cause; once the dashboard refetches, leaderboard and personal board will align.
+Extend `src/lib/bar/scoring.test.ts` with cases for:
+- Typos: `habeus corpus` → `habeas corpus`
+- Punctuation: `Article 14.` → `14`
+- Stop words: `the right to equality` → `right to equality`
+- Negative cases: `or` does **not** match `of`; `eighth` does not match `seventh`
+
+## Files touched
+- `src/lib/bar/scoring.ts` — extend `normalizeSpeedAnswer`, add `fuzzyEquals(a, b)`, plug into `gradeSpeedRound`
+- `supabase/functions/submit-bar-attempt/index.ts` — mirror the same two helpers
+- `src/lib/bar/scoring.test.ts` — add ~15 new assertions
+
+## Out of scope
+- Allowing one-character answers to match across letters (intentional — too risky)
+- Synonyms / semantic matching (e.g. "SC" vs "Supreme Court") — that needs an admin-curated alias list, separate task
+- Changing how MCQ / option-based questions grade (no text involved)
