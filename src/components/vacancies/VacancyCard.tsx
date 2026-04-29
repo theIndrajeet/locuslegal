@@ -6,10 +6,10 @@ import {
   type Vacancy,
   daysLeft,
   urgencyTone,
-  formatExpiry,
   type VacancyApplication,
   applicationStateFor,
 } from "@/lib/vacancies";
+import { useCountdown } from "@/lib/useCountdown";
 import { cn } from "@/lib/utils";
 
 interface Props {
