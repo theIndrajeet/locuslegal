@@ -148,14 +148,11 @@ Deno.serve(async (req) => {
     }
   }
 
-  // 5. Stamp notified_at (skip in test mode so the real broadcast can fire later).
-  if (!testEmail) {
-    await admin.from(table).update({ notified_at: new Date().toISOString() }).eq('id', id)
-  }
+  // 5. Stamp notified_at.
+  await admin.from(table).update({ notified_at: new Date().toISOString() }).eq('id', id)
 
   return json({
     ok: true, kind, id,
-    test_mode: !!testEmail,
     total_users: unique.length,
     suppressed_skipped: unique.length - allowed.length,
     queued, failed,

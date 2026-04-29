@@ -1272,10 +1272,6 @@ export type Database = {
         Args: { p_id: string; p_kind: string }
         Returns: undefined
       }
-      dispatch_content_notification_test: {
-        Args: { p_id: string; p_kind: string; p_test_email: string }
-        Returns: number
-      }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
