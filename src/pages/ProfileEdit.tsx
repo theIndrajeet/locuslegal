@@ -133,8 +133,9 @@ export default function ProfileEdit() {
             setGraduationYear(p.graduation_year ? String(p.graduation_year) : "");
             setCgpa(p.cgpa !== null && p.cgpa !== undefined ? String(p.cgpa) : "");
             setSubjects(p.subjects_of_interest || []);
-            setCvUrl(p.cv_url || null);
-            setCvUploadedAt(p.cv_uploaded_at || null);
+            const cvRow = Array.isArray(cvRes.data) ? cvRes.data[0] : cvRes.data;
+            setCvUrl((cvRow as { cv_url?: string | null })?.cv_url ?? null);
+            setCvUploadedAt((cvRow as { cv_uploaded_at?: string | null })?.cv_uploaded_at ?? null);
             setApplicationsCount((p as { applications_count?: number }).applications_count ?? 0);
           }
 
