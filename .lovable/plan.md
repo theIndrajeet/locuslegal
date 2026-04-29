@@ -1,75 +1,89 @@
-# Final Pre-Beta Audit — Locus
+# Fix 3 Critical RLS Issues Before Beta Launch
 
-Verdict at the bottom. Read everything first.
+## What's broken
 
-## 🔴 BLOCKERS (fix before public beta)
+1. **`beta_testers` SELECT policy** is `USING (true)` for `{public}` — anyone can scrape every tester's name + email.
+2. **`beta_testers` UPDATE policy** `Anyone can mark tester submitted` lets any anon user flip `submitted_at` on any pending row, locking testers out.
+3. **`profiles` SELECT policy** is `USING (true)` and exposes `cv_url` + `cv_uploaded_at` columns to the public — CV storage paths leak.
 
-### 1. Beta tester emails are publicly readable
-`beta_testers` table has `Anyone can read beta testers` policy with `USING (true)` for `{public}`. The table contains real email addresses (your existing testers — `amaan.rizvi.legal@gmail.com`, etc.). **Anyone visiting your site can `SELECT *` and harvest the list.**
+## Migration (single SQL file)
 
-Fix: split into two policies — public sees only `is_public = true` rows with email column excluded (via a view), or restrict to admins entirely.
+```sql
+-- 1. beta_testers SELECT: drop public, allow only public-opted rows + admin + own row
+DROP POLICY "Anyone can read beta testers" ON public.beta_testers;
 
-### 2. CV storage paths leaked via profiles
-`profiles` table is publicly readable AND contains `cv_url` (storage path to private CV). Bucket itself is private, but exposing the path enables targeted enumeration/attacks. 
+CREATE POLICY "Public can view opted-in testers"
+  ON public.beta_testers FOR SELECT TO anon, authenticated
+  USING (is_public = true);
 
-Fix: drop `cv_url` from public read — either via column-level grant revoke, a public view that omits it, or moving CV refs to a user-scoped table.
+CREATE POLICY "Users can view own beta tester row"
+  ON public.beta_testers FOR SELECT TO authenticated
+  USING (auth.uid() = user_id);
 
-### 3. Anyone can mark any tester as "submitted"
-`beta_testers` UPDATE policy: `USING (submitted_at IS NULL)` for `{public}`. An anonymous attacker can flip every pending tester to "submitted", killing their ability to submit feedback.
+-- 2. beta_testers UPDATE: drop the open policy, replace with RPC
+DROP POLICY "Anyone can mark tester submitted" ON public.beta_testers;
 
-Fix: scope to `auth.uid() = user_id` OR require a tester code match.
+CREATE OR REPLACE FUNCTION public.mark_beta_tester_submitted(p_id uuid, p_feedback_id uuid)
+RETURNS void
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+BEGIN
+  UPDATE public.beta_testers
+    SET submitted_at = now(), feedback_id = p_feedback_id
+    WHERE id = p_id AND submitted_at IS NULL;
+END;
+$$;
+GRANT EXECUTE ON FUNCTION public.mark_beta_tester_submitted(uuid, uuid) TO anon, authenticated;
 
-### 4. No Privacy Policy / Terms of Service
-You're collecting names, emails, CVs, college info — and you're in India where DPDP Act 2023 applies. You **need** Privacy Policy + Terms pages before opening signups publicly. Not optional.
+-- Helper RPC so a user/anon can fetch their own claimed row by id (the id stored in localStorage)
+CREATE OR REPLACE FUNCTION public.get_beta_tester_self(p_id uuid)
+RETURNS public.beta_testers
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
+AS $$ SELECT * FROM public.beta_testers WHERE id = p_id LIMIT 1; $$;
+GRANT EXECUTE ON FUNCTION public.get_beta_tester_self(uuid) TO anon, authenticated;
 
-### 5. `auth-email-hook` uses LOVABLE_API_KEY for auth — verify it's the right pattern
-The hook checks `authHeader === 'Bearer ${LOVABLE_API_KEY}'`. This is the correct Lovable-managed pattern (different from the queue/sender we just fixed), so it should work — but **you have NOT tested fresh signup or password reset since the recent email infra changes**. Could silently be broken. Must smoke test before launch.
+-- 3. profiles: keep public read but strip sensitive columns
+DROP POLICY "Anyone can view profiles" ON public.profiles;
 
-## 🟡 SHOULD-FIX (harden during beta)
+REVOKE SELECT ON public.profiles FROM anon, authenticated;
+GRANT SELECT (
+  id, username, display_name, avatar_url, bio, college, degree,
+  graduation_year, cgpa, subjects_of_interest, open_to_opportunities,
+  bar_leaderboard_opt_out, applications_count, created_at
+) ON public.profiles TO anon, authenticated;
 
-### 6. User UUID enumeration via public stats
-`bar_user_stats`, `bar_user_stats_by_area`, `bar_user_colleges` are all `USING (true)` and expose raw `user_id` UUIDs. Lets anyone enumerate every user on the platform. Fix via a public view that joins on profile username and drops user_id, or filter by `bar_leaderboard_opt_out = false`.
+CREATE POLICY "Public can view profiles (column-scoped)"
+  ON public.profiles FOR SELECT TO anon, authenticated
+  USING (true);
 
-### 7. SECURITY DEFINER functions callable by anon/auth
-40+ functions flagged. Most are intentional (`get_public_profile`, `has_role`, etc.) but worth a once-over to revoke `EXECUTE` from `anon`/`authenticated` on anything that shouldn't be callable directly (e.g., `claim_beta_slot`, `enqueue_email`, `move_to_dlq`).
+CREATE POLICY "Users can view own full profile"
+  ON public.profiles FOR SELECT TO authenticated
+  USING (auth.uid() = id);
 
-### 8. `extension_in_public` warning
-Likely `pgmq` or `pg_net` installed in `public` schema. Cosmetic but worth moving to `extensions` schema later.
+-- RPC for own CV ref (used by CvAnalyser, ProfileEdit, DraftEmailDialog)
+CREATE OR REPLACE FUNCTION public.get_own_cv_ref()
+RETURNS TABLE(cv_url text, cv_uploaded_at timestamptz)
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+  SELECT cv_url, cv_uploaded_at FROM public.profiles WHERE id = auth.uid();
+$$;
+GRANT EXECUTE ON FUNCTION public.get_own_cv_ref() TO authenticated;
+```
 
-### 9. `function_search_path_mutable` (4 functions)
-A handful of DB functions don't set `search_path`. Minor SQL injection hardening — set `SET search_path = public` on each.
+## Frontend changes
 
-### 10. Frontend on `locus.legal` may be stale
-Backend changes (edge functions, DB) deploy instantly. **Frontend changes only go live when you click "Update" in the Publish dialog.** Your last week of UI work (admin dashboard refresh, email viewer, etc.) might not be live. Verify before announcing.
+- `src/pages/BetaChecklist.tsx` — replace `.from('beta_testers').select(...).eq('id', ...)` with `supabase.rpc('get_beta_tester_self', { p_id })`; replace the `update({submitted_at, feedback_id}).eq('id',...)` with `supabase.rpc('mark_beta_tester_submitted', { p_id, p_feedback_id })`.
+- `src/components/CvAnalyser.tsx`, `src/components/ProfileEdit.tsx`, `src/components/DraftEmailDialog.tsx` — replace any `select('cv_url, cv_uploaded_at').eq('id', user.id)` with `supabase.rpc('get_own_cv_ref')`.
+- Audit any other place that reads `cv_url` from `profiles` and migrate to the RPC.
+- Audit any place that reads `email`/raw `beta_testers` rows; for the public Beta Wall use the new "is_public = true" path (already works because policy allows it).
 
-### 11. `/dock-lab` is exposed in production routes
-That's a dev/lab page. Should be removed from prod routes or gated behind admin check.
+## Verification after apply
 
-## 🟢 PASSING / GOOD
+1. As anon: `select email from beta_testers` → returns 0 rows (only is_public rows, and those have no email exposure needed — confirm UI doesn't render email for public ones).
+2. As anon: `update beta_testers set submitted_at = now()` → denied.
+3. As anon: `select cv_url from profiles` → permission denied on column.
+4. As authenticated user: `rpc('get_own_cv_ref')` → returns own row only.
+5. Beta checklist flow end-to-end: claim → check progress → submit feedback still works.
 
-- Email pipeline end-to-end working (auth fix + queue + suppression + unsubscribe)
-- RLS on all sensitive tables (applications, internships, moots, publications, votes, profile data) properly scoped to `auth.uid() = user_id`
-- Admin role stored in separate `user_roles` table (correct pattern, no privilege escalation surface)
-- `is_admin()` helper used consistently across policies
-- Suppression / unsubscribe / DLQ infrastructure in place
-- Service-role-only access correctly enforced on `email_send_log`, `email_send_state`, `suppressed_emails`, `email_unsubscribe_tokens`
-- 32 routes wired, lazy-loaded, prefetch optimized
-- robots.txt blocks `/admin` and `/beta` from search engines (good)
-- sitemap.xml present
-- Admin layout properly gated via `useAdminRole`
-
-## Pre-launch checklist (in order)
-
-1. **Fix the 3 RLS issues** (#1, #2, #3) — these are real exploitable bugs, ~1 hour of work
-2. **Add Privacy Policy + Terms pages** (#4) — legally required, can be templated
-3. **Smoke test auth emails** (#5) — fresh signup + password reset on a burner email
-4. **Publish (click Update in Publish dialog)** so the live site is current
-5. **Remove or gate `/dock-lab`** (#11)
-6. **Soft-launch to your existing `/beta` list** (10–50 people) for 48h before broader announcement
-7. (Post-launch) work through #6–#9
-
-## Verdict
-
-**NOT READY for public beta yet.** You're 60-90 minutes of focused work away from being ready. The blockers are all real (especially #1 — leaking beta tester emails publicly is bad) but every single one is fixable today.
-
-After these fixes: green light for soft launch.
+## Out of scope
+Privacy Policy / Terms pages and the final Publish step — separate follow-ups before public beta.
