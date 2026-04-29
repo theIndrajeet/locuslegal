@@ -3,7 +3,48 @@ import { Link } from "react-router-dom";
 import { Briefcase, Clock, AlertTriangle, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { type Vacancy, daysLeft, urgencyTone, formatExpiry } from "@/lib/vacancies";
+import { useCountdown } from "@/lib/useCountdown";
 import { cn } from "@/lib/utils";
+
+function VacancyTeaserCard({ v }: { v: Vacancy }) {
+  const d = daysLeft(v.expires_at);
+  const tone = urgencyTone(d);
+  const { label, expired } = useCountdown(v.expires_at);
+  return (
+    <Link
+      to={`/vacancies#vacancy-${v.id}`}
+      className={cn(
+        "snap-start shrink-0 w-[260px] md:w-[280px] bg-background border-2 rounded-xl p-3 transition-all",
+        tone === "soon"
+          ? "border-foreground/60"
+          : "border-foreground/80 hover:shadow-[3px_3px_0_0_hsl(var(--accent))]",
+      )}
+    >
+      <div className="flex items-start justify-between gap-2 mb-1.5">
+        <h3 className="font-heading text-sm font-extrabold leading-tight truncate flex-1">
+          {v.firm_name}
+        </h3>
+        <span
+          className={cn(
+            "inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full border shrink-0 whitespace-nowrap tabular-nums",
+            expired
+              ? "bg-muted text-muted-foreground border-foreground/40"
+              : tone === "soon"
+                ? "bg-muted text-foreground border-foreground/60"
+                : "bg-accent text-accent-foreground border-foreground/70",
+          )}
+        >
+          {tone === "soon" ? <AlertTriangle size={9} /> : <Clock size={9} />}
+          {label}
+        </span>
+      </div>
+      <p className="text-xs text-muted-foreground truncate">{v.role}</p>
+      {v.location && (
+        <p className="text-[11px] text-muted-foreground/80 mt-1 truncate">{v.location}</p>
+      )}
+    </Link>
+  );
+}
 
 export default function VacancyTeaserStrip() {
   const [vacancies, setVacancies] = useState<Vacancy[]>([]);
@@ -83,43 +124,9 @@ export default function VacancyTeaserStrip() {
           className="flex gap-3 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-1 -mx-1 px-1"
           style={{ scrollbarWidth: "thin" }}
         >
-          {vacancies.map((v) => {
-            const d = daysLeft(v.expires_at);
-            const tone = urgencyTone(d);
-            return (
-              <Link
-                key={v.id}
-                to={`/vacancies#vacancy-${v.id}`}
-                className={cn(
-                  "snap-start shrink-0 w-[260px] md:w-[280px] bg-background border-2 rounded-xl p-3 transition-all",
-                  tone === "soon"
-                    ? "border-foreground/60"
-                    : "border-foreground/80 hover:shadow-[3px_3px_0_0_hsl(var(--accent))]",
-                )}
-              >
-                <div className="flex items-start justify-between gap-2 mb-1.5">
-                  <h3 className="font-heading text-sm font-extrabold leading-tight truncate flex-1">
-                    {v.firm_name}
-                  </h3>
-                  <span
-                    className={cn(
-                      "inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full border shrink-0",
-                      tone === "soon"
-                        ? "bg-muted text-foreground border-foreground/60"
-                        : "bg-accent text-accent-foreground border-foreground/70",
-                    )}
-                  >
-                    {tone === "soon" ? <AlertTriangle size={9} /> : <Clock size={9} />}
-                    {d}d
-                  </span>
-                </div>
-                <p className="text-xs text-muted-foreground truncate">{v.role}</p>
-                {v.location && (
-                  <p className="text-[11px] text-muted-foreground/80 mt-1 truncate">{v.location}</p>
-                )}
-              </Link>
-            );
-          })}
+          {vacancies.map((v) => (
+            <VacancyTeaserCard key={v.id} v={v} />
+          ))}
         </div>
       </div>
     </section>
