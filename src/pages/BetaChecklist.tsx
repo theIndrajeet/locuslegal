@@ -237,8 +237,15 @@ export default function BetaChecklist() {
       try { localStorage.setItem(TESTER_STORAGE_KEY, row.id); } catch { /* ignore */ }
       await refreshRoster();
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Could not claim a slot";
-      toast("Something went wrong", { description: msg });
+      const raw = err instanceof Error ? err.message : String(err);
+      const friendly = raw.includes("name_required")
+        ? "Please add your name."
+        : raw.toLowerCase().includes("slot_number")
+          ? "Couldn't reserve a slot — please refresh and try again."
+          : raw || "Could not claim a slot";
+      toast("Could not claim your slot", { description: friendly });
+      // eslint-disable-next-line no-console
+      console.error("[claim_beta_slot]", err);
     } finally {
       setClaiming(false);
     }
