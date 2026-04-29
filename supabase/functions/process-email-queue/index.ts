@@ -91,12 +91,30 @@ Deno.serve(async (req) => {
     )
   }
 
-  // verify_jwt = false at the gateway. Validate the bearer token in-function:
-  // it MUST equal SUPABASE_SERVICE_ROLE_KEY. The pg_cron job authenticates with
-  // the service-role key stored in vault, so this gate accepts that exact token.
+  // verify_jwt = false at the gateway. Validate in-function: accept either
+  // (a) byte-equality with the env service-role key, OR (b) any JWT whose
+  // `role` claim is `service_role`. The pg_cron job authenticates with the
+  // service-role key stored in vault — that token may not be byte-identical
+  // to the env var (e.g., after a key rotation), but its claims will still
+  // identify it as a service-role token.
   const authHeader = req.headers.get('Authorization') || ''
   const presentedToken = authHeader.replace(/^Bearer\s+/i, '').trim()
-  if (!presentedToken || presentedToken !== supabaseServiceKey) {
+  let authorized = false
+  if (presentedToken) {
+    if (presentedToken === supabaseServiceKey) {
+      authorized = true
+    } else {
+      const claims = parseJwtClaims(presentedToken)
+      if (claims && claims.role === 'service_role') {
+        authorized = true
+      }
+    }
+  }
+  if (!authorized) {
+    console.warn('process-email-queue: unauthorized caller', {
+      hasToken: Boolean(presentedToken),
+      tokenPrefix: presentedToken ? presentedToken.slice(0, 12) + '...' : null,
+    })
     return new Response(
       JSON.stringify({ error: 'Unauthorized' }),
       { status: 401, headers: { 'Content-Type': 'application/json' } }

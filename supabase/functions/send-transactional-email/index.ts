@@ -31,8 +31,23 @@ function generateToken(): string {
 }
 
 // Auth note: verify_jwt = false at the gateway. We validate the bearer token
-// in-function: it MUST equal SUPABASE_SERVICE_ROLE_KEY. Only backend callers
-// (admin dispatcher, queue worker) hold that key, so this stays private.
+// in-function: accept either byte-equality with SUPABASE_SERVICE_ROLE_KEY OR
+// any JWT whose `role` claim is `service_role`. Only backend callers
+// (admin dispatcher, queue worker, vault'd cron token) hold such a key.
+
+function parseJwtClaims(token: string): Record<string, unknown> | null {
+  const parts = token.split('.')
+  if (parts.length < 2) return null
+  try {
+    const payload = parts[1]
+      .replaceAll('-', '+')
+      .replaceAll('_', '/')
+      .padEnd(Math.ceil(parts[1].length / 4) * 4, '=')
+    return JSON.parse(atob(payload)) as Record<string, unknown>
+  } catch {
+    return null
+  }
+}
 
 Deno.serve(async (req) => {
   // Handle CORS preflight
@@ -54,11 +69,25 @@ Deno.serve(async (req) => {
     )
   }
 
-  // In-function authorization: only backend callers with the service-role key.
+  // In-function authorization: backend callers only.
   const authHeader = req.headers.get('Authorization') || ''
   const presentedToken = authHeader.replace(/^Bearer\s+/i, '').trim()
-  if (!presentedToken || presentedToken !== supabaseServiceKey) {
-    console.warn('send-transactional-email: unauthorized caller')
+  let authorized = false
+  if (presentedToken) {
+    if (presentedToken === supabaseServiceKey) {
+      authorized = true
+    } else {
+      const claims = parseJwtClaims(presentedToken)
+      if (claims && claims.role === 'service_role') {
+        authorized = true
+      }
+    }
+  }
+  if (!authorized) {
+    console.warn('send-transactional-email: unauthorized caller', {
+      hasToken: Boolean(presentedToken),
+      tokenPrefix: presentedToken ? presentedToken.slice(0, 12) + '...' : null,
+    })
     return new Response(
       JSON.stringify({ error: 'Unauthorized' }),
       {
