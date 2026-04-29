@@ -73,8 +73,8 @@ export default function ChallengeForm({ open, onOpenChange, onCreated, sources }
   const [correctIssues, setCorrectIssues] = useState<Set<string>>(new Set());
 
   // Speed Round
-  const [subQs, setSubQs] = useState<{ id: string; prompt: string; answer: string }[]>(
-    Array.from({ length: 5 }, () => ({ id: newId(), prompt: "", answer: "" })),
+  const [subQs, setSubQs] = useState<{ id: string; prompt: string; answer: string; aliases: string[] }[]>(
+    Array.from({ length: 5 }, () => ({ id: newId(), prompt: "", answer: "", aliases: [] })),
   );
   const [timeLimit, setTimeLimit] = useState<number>(60);
 
