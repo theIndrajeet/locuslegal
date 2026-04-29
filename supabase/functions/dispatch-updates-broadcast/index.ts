@@ -125,16 +125,19 @@ Deno.serve(async (req) => {
   let failed = 0
   for (const email of allowed) {
     try {
-      const r = await invokeSend(SUPABASE_URL, SERVICE_KEY, {
+      const r = await invokeSend(admin, {
         templateName: 'updates-broadcast',
         recipientEmail: email,
         idempotencyKey: `updates-${broadcastId}-${email}`,
         templateData,
       })
       if (r.ok) queued += 1
-      else failed += 1
+      else {
+        console.error('enqueue failed', email, r.error, r.body)
+        failed += 1
+      }
     } catch (e) {
-      console.error('enqueue failed', email, e)
+      console.error('enqueue threw', email, e)
       failed += 1
     }
   }
