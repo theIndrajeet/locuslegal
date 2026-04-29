@@ -109,6 +109,68 @@ export function gradeIssueSpotter(
   return { is_correct: exact, points_awarded: exact ? pointsBase : 0 };
 }
 
+// Word-numerals → digit (covers ordinals like "eighth" via the same map after stripping "th").
+const WORD_TO_NUM: Record<string, string> = {
+  zero: "0", one: "1", two: "2", three: "3", four: "4", five: "5", six: "6",
+  seven: "7", eight: "8", nine: "9", ten: "10", eleven: "11", twelve: "12",
+  thirteen: "13", fourteen: "14", fifteen: "15", sixteen: "16",
+  seventeen: "17", eighteen: "18", nineteen: "19", twenty: "20",
+  thirty: "30", forty: "40", fifty: "50", sixty: "60", seventy: "70",
+  eighty: "80", ninety: "90",
+  first: "1", second: "2", third: "3", fifth: "5", eighth: "8", ninth: "9",
+  twelfth: "12",
+};
+
+const ROMAN_TO_NUM: Record<string, string> = {
+  i: "1", ii: "2", iii: "3", iv: "4", v: "5", vi: "6", vii: "7", viii: "8",
+  ix: "9", x: "10", xi: "11", xii: "12",
+};
+
+const FILLER_PREFIXES = [
+  "article", "art.", "art",
+  "section", "sec.", "sec", "s.",
+  "schedule", "sch.", "sch",
+  "clause", "cl.", "cl",
+  "part", "chapter", "chap.", "chap",
+];
+
+/**
+ * Normalises a free-text speed-round answer so that obvious equivalents
+ * compare equal: "8" / "8th" / "eighth" / "Article 8" / "Schedule VIII".
+ */
+export function normalizeSpeedAnswer(raw: string): string {
+  let s = (raw ?? "").trim().toLowerCase();
+  if (!s) return "";
+
+  // Strip leading filler words ("article 14" → "14", "schedule viii" → "viii")
+  for (const f of FILLER_PREFIXES) {
+    if (s === f) { s = ""; break; }
+    if (s.startsWith(f + " ") || s.startsWith(f + ".")) {
+      s = s.slice(f.length).trimStart().replace(/^\.\s*/, "");
+      break;
+    }
+  }
+
+  // Drop ordinal suffixes on bare numbers: "8th" → "8", "21st" → "21"
+  s = s.replace(/\b(\d+)(st|nd|rd|th)\b/g, "$1");
+
+  // Collapse punctuation/whitespace
+  s = s.replace(/[.,;:!?'"()\[\]{}]/g, " ").replace(/\s+/g, " ").trim();
+
+  // Single-token shortcuts
+  if (WORD_TO_NUM[s]) return WORD_TO_NUM[s];
+  if (ROMAN_TO_NUM[s]) return ROMAN_TO_NUM[s];
+
+  // Multi-token: map any individual roman/word numeral tokens to digits.
+  const mapped = s.split(" ").map((tok) => {
+    if (WORD_TO_NUM[tok]) return WORD_TO_NUM[tok];
+    if (ROMAN_TO_NUM[tok]) return ROMAN_TO_NUM[tok];
+    return tok;
+  }).join(" ");
+
+  return mapped;
+}
+
 export function gradeSpeedRound(
   payload: SpeedRoundPayload,
   answer: SpeedRoundAnswer,
@@ -121,8 +183,8 @@ export function gradeSpeedRound(
   );
   let correctCount = 0;
   for (const q of payload.questions) {
-    const sub = (answerMap.get(q.id) ?? "").trim().toLowerCase();
-    const expected = q.answer.trim().toLowerCase();
+    const sub = normalizeSpeedAnswer(answerMap.get(q.id) ?? "");
+    const expected = normalizeSpeedAnswer(q.answer);
     if (sub.length > 0 && sub === expected) correctCount++;
   }
   const ratio = correctCount / total;

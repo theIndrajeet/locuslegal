@@ -234,6 +234,8 @@ export default function TheBarChallenge() {
           question_type: challenge.question_type,
         },
       });
+      // Notify the dashboard so it refetches stats when the user navigates back.
+      window.dispatchEvent(new Event("bar:stats-updated"));
     } catch (e) {
       console.error(e);
       toast.error("Network error. Please try again.");
