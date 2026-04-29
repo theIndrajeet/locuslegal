@@ -19,6 +19,8 @@ const SITE_URL = 'https://locus.legal'
 interface Body {
   kind?: 'vacancy' | 'bar_challenge'
   id?: string
+  // TEMP: when set, send only to this address and DO NOT stamp notified_at.
+  testEmail?: string
 }
 
 Deno.serve(async (req) => {
@@ -52,7 +54,7 @@ Deno.serve(async (req) => {
 
   let body: Body = {}
   try { body = await req.json() } catch { /* allow */ }
-  const { kind, id } = body
+  const { kind, id, testEmail } = body
   if (!kind || !id) return json({ error: 'kind and id required' }, 400)
   if (kind !== 'vacancy' && kind !== 'bar_challenge') {
     return json({ error: 'invalid kind' }, 400)
@@ -106,18 +108,22 @@ Deno.serve(async (req) => {
     }
   }
 
-  // 2. Page through all users.
+  // 2. Page through all users (or use testEmail override).
   const recipients: string[] = []
-  let page = 1
-  const perPage = 1000
-  while (true) {
-    const { data, error } = await admin.auth.admin.listUsers({ page, perPage })
-    if (error) return json({ error: 'failed to list users', details: error.message }, 500)
-    const users = data?.users || []
-    for (const u of users) if (u.email) recipients.push(u.email.toLowerCase())
-    if (users.length < perPage) break
-    page += 1
-    if (page > 50) break
+  if (testEmail) {
+    recipients.push(testEmail.toLowerCase())
+  } else {
+    let page = 1
+    const perPage = 1000
+    while (true) {
+      const { data, error } = await admin.auth.admin.listUsers({ page, perPage })
+      if (error) return json({ error: 'failed to list users', details: error.message }, 500)
+      const users = data?.users || []
+      for (const u of users) if (u.email) recipients.push(u.email.toLowerCase())
+      if (users.length < perPage) break
+      page += 1
+      if (page > 50) break
+    }
   }
   const unique = Array.from(new Set(recipients))
 
@@ -148,11 +154,14 @@ Deno.serve(async (req) => {
     }
   }
 
-  // 5. Stamp notified_at.
-  await admin.from(table).update({ notified_at: new Date().toISOString() }).eq('id', id)
+  // 5. Stamp notified_at (skip in test mode so the real broadcast can fire later).
+  if (!testEmail) {
+    await admin.from(table).update({ notified_at: new Date().toISOString() }).eq('id', id)
+  }
 
   return json({
     ok: true, kind, id,
+    test_mode: !!testEmail,
     total_users: unique.length,
     suppressed_skipped: unique.length - allowed.length,
     queued, failed,
