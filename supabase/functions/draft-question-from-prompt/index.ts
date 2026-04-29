@@ -33,7 +33,7 @@ const IssueSpotterPayloadSchema = z.object({
 }, { message: "correct_issue_ids mismatch" });
 
 const SpeedRoundPayloadSchema = z.object({
-  questions: z.array(z.object({ id: z.string().min(1), prompt: z.string().min(1), answer: z.string().min(1) })).min(5).max(15),
+  questions: z.array(z.object({ id: z.string().min(1), prompt: z.string().min(1), answer: z.string().min(1), aliases: z.array(z.string().min(1)).max(10).optional() })).min(5).max(15),
   time_limit_seconds: z.number().int().min(30).max(300),
 });
 
@@ -165,7 +165,7 @@ ${areaLine}
 Return EXACTLY ONE question as a JSON object (not an array). Per-type payload shapes:
 - mcq: { "options":[{"id":"a","text":"..."}], "correct_option_id":"a" }  (2-6 options)
 - issue_spotter: { "issue_options":[{"id":"a","text":"..."}], "correct_issue_ids":["a"] }  (3-10 issues)
-- speed_round: { "questions":[{"id":"q1","prompt":"...","answer":"..."}], "time_limit_seconds":60 }  (5-8 sub-qs)
+- speed_round: { "questions":[{"id":"q1","prompt":"...","answer":"...","aliases":["alt phrasing 1","alt phrasing 2"]}], "time_limit_seconds":60 }  (5-8 sub-qs; aliases optional but recommended for any answer with common alternate phrasings, abbreviations like "SC"/"Supreme Court", or short forms — 1-3 alternates each, no need for typo variants since the grader handles those)
 - jurisdiction: { "options":[{"id":"a","jurisdiction":"...","reasoning":"..."}], "correct_option_id":"a" }  (2-5 options)
 - document_review: { "reviewer_brief":"Partner's instruction to the junior, 1-2 sentences", "agreement_type":"NDA | Mutual NDA | SOW | MSA | Employment Agreement | SaaS | Licensing | Distribution | Consultancy | Shareholder | etc.", "doc_id":"DOC-XXX-NNN", "doc_title":"...", "doc_subtitle":"Between Party A and Party B", "doc_date":"Month YYYY", "document_html":"clause text with {{s1}}, {{s2}}... markers", "spans":[{"id":"s1","text":"verbatim phrase the marker replaces"}], "categories":[{"id":"one_sided","label":"One-sided"},{"id":"overbroad","label":"Overbroad"},{"id":"missing_carveout","label":"Missing Carve-out"},{"id":"vague","label":"Vague / Unenforceable"},{"id":"missing_clause","label":"Standard Clause Missing"},{"id":"boilerplate_wrong","label":"Wrong Boilerplate"},{"id":"liability_risk","label":"Liability Risk"},{"id":"ip_leakage","label":"IP Leakage"},{"id":"term_trap","label":"Termination / Renewal Trap"},{"id":"confidentiality_gap","label":"Confidentiality Gap"},{"id":"payment_risk","label":"Payment / Tax Risk"},{"id":"compliance_gap","label":"Compliance Gap"}], "correct_flags":[{"span_id":"s1","category_id":"one_sided"}], "rationale":{"s1":"Why s1 is a problem — 1-2 sentences a junior can learn from."}, "suggested_redline":{"s1":"How a senior would rewrite the clause."} }
 - brief_builder: { "fact_pattern":"...", "citation":"X v. Y (2024)", "steps":[ {"kind":"mcq","label":"Statute","prompt":"...","options":[{"id":"a","letter":"A","title":"...","desc":"...","meta":""}],"correct_option_id":"a"}, {"kind":"mcq","label":"Precedent",...}, {"kind":"order","label":"Arguments","prompt":"order strongest→weakest","blocks":[{"id":"b1","text":"..."}],"correct_order":["b1","b2","b3"]}, {"kind":"mcq","label":"Rebuttal",...} ] }  (exactly 4 steps)
