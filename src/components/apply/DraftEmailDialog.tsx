@@ -359,7 +359,15 @@ export default function DraftEmailDialog({ open, onOpenChange, target, onSent }:
   const isFollowup = !!target?.followup;
 
   const generate = async () => {
-    if (!target || !user) return;
+    if (!target) return;
+    // Wait for auth + profile to fully hydrate before invoking the edge function.
+    // Without this guard the directory-drawer auto-trigger can fire before the
+    // Supabase client has the user's access token, producing a generic
+    // "Failed to send a request to the Edge Function" toast.
+    if (!ready || !userId || !user) {
+      toast.info("Loading your profile…");
+      return;
+    }
     setGenerating(true);
     const payload = {
       target: {
@@ -383,30 +391,49 @@ export default function DraftEmailDialog({ open, onOpenChange, target, onSent }:
 
     const invokeOnce = () => supabase.functions.invoke("draft-application-email", { body: payload });
 
+    const isTransient = (err: unknown) =>
+      !!err &&
+      !(err as { context?: { response?: Response } })?.context?.response &&
+      /load failed|failed to fetch|network|timeout/i.test((err as Error).message ?? "");
+
     try {
       let { data, error } = await invokeOnce();
 
-      // Silently retry once on transient cold-start / network failures
-      // (no HTTP response was received from the edge function)
-      const isTransient =
-        !!error &&
-        !(error as unknown as { context?: { response?: Response } })?.context?.response &&
-        /load failed|failed to fetch|network|timeout/i.test(error.message ?? "");
-      if (isTransient) {
-        await new Promise((r) => setTimeout(r, 800));
+      // Up to 2 retries on transient cold-start / network failures (no HTTP response).
+      if (error && isTransient(error)) {
+        await new Promise((r) => setTimeout(r, 600));
+        ({ data, error } = await invokeOnce());
+      }
+      if (error && isTransient(error)) {
+        await new Promise((r) => setTimeout(r, 1200));
         ({ data, error } = await invokeOnce());
       }
 
-      let errBody: { error?: string } | null = null;
       if (error) {
+        let errBody: { error?: string } | null = null;
+        let httpStatus: number | null = null;
         try {
           const resp = (error as unknown as { context?: { response?: Response } })?.context?.response;
-          if (resp) errBody = await resp.clone().json();
+          if (resp) {
+            httpStatus = resp.status;
+            errBody = await resp.clone().json();
+          }
         } catch {
-          // ignore
+          // ignore JSON parse failures
         }
-        const msg = errBody?.error || error.message || "Couldn't generate email";
-        toast.error(msg);
+        // Log the full error so beta-tester reports include a usable trace.
+        console.error("[DraftEmailDialog] generate failed", {
+          httpStatus,
+          errBody,
+          rawMessage: error.message,
+          error,
+        });
+        const detail = errBody?.error
+          ? errBody.error
+          : httpStatus
+          ? `Server returned ${httpStatus}. Try again.`
+          : error.message || "Couldn't generate email";
+        toast.error(detail);
         return;
       }
       const result = data as { subject?: string; body?: string };
@@ -419,6 +446,7 @@ export default function DraftEmailDialog({ open, onOpenChange, target, onSent }:
       draftCache.set(target.id, { subject: result.subject, body: result.body });
       briefCache.set(target.id, brief);
     } catch (e) {
+      console.error("[DraftEmailDialog] generate threw", e);
       toast.error(e instanceof Error ? e.message : "Couldn't generate email");
     } finally {
       setGenerating(false);
