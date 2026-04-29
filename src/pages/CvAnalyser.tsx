@@ -455,8 +455,10 @@ export default function CvAnalyser() {
       setUserId(uid);
       setAuthReady(true);
       if (!uid) return;
-      const { data: prof } = await supabase.from("profiles").select("cv_url").eq("id", uid).maybeSingle();
-      if (prof?.cv_url) setExistingCv(prof.cv_url);
+      const { data: cvRef } = await supabase.rpc("get_own_cv_ref");
+      const cvRow = Array.isArray(cvRef) ? cvRef[0] : cvRef;
+      const cvUrl = (cvRow as { cv_url?: string | null } | null)?.cv_url;
+      if (cvUrl) setExistingCv(cvUrl);
       const { data: hist } = await supabase
         .from("cv_analyses")
         .select("id, overall_score, verdict, created_at, cv_storage_path")

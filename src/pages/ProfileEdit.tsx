@@ -104,8 +104,9 @@ export default function ProfileEdit() {
         // 3. Profile + lists
         try {
           console.log("[ProfileEdit] fetching profile + lists");
-          const [profileRes, internshipsRes, mootsRes, pubsRes] = await Promise.all([
-            supabase.from("profiles").select("*").eq("id", uid!).maybeSingle(),
+          const [profileRes, cvRes, internshipsRes, mootsRes, pubsRes] = await Promise.all([
+            supabase.from("profiles").select("id, username, display_name, avatar_url, bio, college, degree, graduation_year, cgpa, subjects_of_interest, open_to_opportunities, bar_leaderboard_opt_out, applications_count, created_at").eq("id", uid!).maybeSingle(),
+            supabase.rpc("get_own_cv_ref"),
             supabase.from("profile_internships").select("*").eq("user_id", uid!).order("start_date", { ascending: false }),
             supabase.from("profile_moots").select("*").eq("user_id", uid!).order("year", { ascending: false }),
             supabase.from("profile_publications").select("*").eq("user_id", uid!).order("publication_date", { ascending: false }),
@@ -132,8 +133,9 @@ export default function ProfileEdit() {
             setGraduationYear(p.graduation_year ? String(p.graduation_year) : "");
             setCgpa(p.cgpa !== null && p.cgpa !== undefined ? String(p.cgpa) : "");
             setSubjects(p.subjects_of_interest || []);
-            setCvUrl(p.cv_url || null);
-            setCvUploadedAt(p.cv_uploaded_at || null);
+            const cvRow = Array.isArray(cvRes.data) ? cvRes.data[0] : cvRes.data;
+            setCvUrl((cvRow as { cv_url?: string | null })?.cv_url ?? null);
+            setCvUploadedAt((cvRow as { cv_uploaded_at?: string | null })?.cv_uploaded_at ?? null);
             setApplicationsCount((p as { applications_count?: number }).applications_count ?? 0);
           }
 
