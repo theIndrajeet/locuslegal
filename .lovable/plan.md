@@ -1,79 +1,36 @@
-# Automated Email Notifications: New Vacancies & New Bar Challenges
+# Fix: dispatcher rejects vault service-role key (401)
 
-Send a branded email to **all users** automatically whenever:
-1. A new **vacancy** is published (status `live`).
-2. A new **Bar challenge** is approved (status `approved`).
+## What I tested
 
-No in-app preferences. Users opt out via the **one-click unsubscribe link** in the email footer (already system-managed and respected by the send pipeline).
+I ran an end-to-end check on the new content-notification system:
 
----
+- Migration applied — `notified_at` columns and triggers exist on both tables.
+- Trigger functions registered correctly.
+- Edge function `dispatch-content-notification` deployed.
+- I called the SQL helper `dispatch_content_notification('vacancy', <fake-id>)` to simulate a trigger firing. It correctly invoked the edge function via `pg_net`.
 
-## How it works
+## Bug found
 
-- Admin approves a Bar challenge (or publishes a vacancy) in the existing admin UI.
-- A Postgres trigger fires once per row → calls a new edge function `dispatch-content-notification`.
-- Function pages through all `auth.users`, filters out anyone in `suppressed_emails` (i.e. previously unsubscribed/bounced), and queues a templated email per recipient.
-- Queue throttles, retries, and logs everything to `email_send_log` (visible in `/admin/emails`).
-- Each email has the standard unsubscribe footer — clicking it adds the address to `suppressed_emails`, which automatically excludes them from all future sends.
+The edge function returned **401 unauthorized**.
 
----
+**Cause:** The trigger pulls the service-role bearer from the vault secret `email_queue_service_role_key`, but the dispatcher checks for byte-equality against the current `SUPABASE_SERVICE_ROLE_KEY` env var. The vault token was issued before the latest key rotation, so the bytes differ — even though it's still a valid service-role JWT.
 
-## What gets built
+This is the exact same problem `process-email-queue` already solved, and the fix is the same.
 
-### 1. Database (single migration)
+## Fix
 
-- Add `notified_at timestamptz` to `vacancies` and `bar_challenges` (idempotency guard — a row can never trigger twice).
-- Trigger function on `vacancies`: fires on INSERT/UPDATE when `status` becomes `'live'` and `notified_at IS NULL`.
-- Trigger function on `bar_challenges`: fires on INSERT/UPDATE when `status` becomes `'approved'` and `notified_at IS NULL`.
-- Both call `dispatch-content-notification` via `pg_net.http_post` with the service-role key (read from Vault, same pattern as `process-email-queue`) and payload `{ kind, id }`.
+Update `supabase/functions/dispatch-content-notification/index.ts` to authorize the caller if **either**:
+1. The bearer matches `SUPABASE_SERVICE_ROLE_KEY` exactly, **or**
+2. The bearer is a valid JWT whose `role` claim is `service_role`.
 
-### 2. Edge function: `dispatch-content-notification`
+This is a copy of the proven pattern in `process-email-queue` and makes the dispatcher resilient to service-role key rotations.
 
-- `verify_jwt = false`; validates the bearer is the service role.
-- Loads the source row; bails if `notified_at` is already set (idempotent).
-- Pages through all users via `auth.admin.listUsers`.
-- Filters out addresses in `suppressed_emails`.
-- Invokes `send-transactional-email` per recipient with `idempotencyKey = '{kind}-notify-{id}-{email}'`.
-- Stamps `notified_at = now()` on the source row when done.
+## After applying
 
-(Mirrors `dispatch-updates-broadcast` exactly, minus the admin auth check since the trigger calls it server-side.)
-
-### 3. Two React Email templates
-
-In `supabase/functions/_shared/transactional-email-templates/`:
-
-- **`new-vacancy.tsx`** — Subject: `New vacancy at {firmName} — {role}`. Body: firm, role, location, brief description, "View vacancy" button → `/vacancies`.
-- **`new-bar-challenge.tsx`** — Subject: `New challenge in The Bar — {areaOfLaw}`. Body: title, area, difficulty, "Take the challenge" button → `/the-bar/challenge/{id}`.
-
-Both styled to match Locus (white email body, black borders, yellow accents). System auto-appends the unsubscribe footer.
-
-### 4. Registry + config
-
-- `registry.ts` — register both templates.
-- `supabase/config.toml` — add `[functions.dispatch-content-notification]` with `verify_jwt = false`.
-
----
-
-## Safety
-
-- `notified_at` guard → no duplicate broadcasts, even if a row is re-saved.
-- `suppressed_emails` is checked on every send → unsubscribed users never receive another email.
-- Queue handles rate limits & retries automatically (~120 emails/min default).
-- Full audit trail in `email_send_log` / `/admin/emails`.
-
----
+I'll re-fire the SQL helper with a fake ID and confirm the response is `404 vacancy not found` instead of `401`. That proves the trigger → edge function path is fully wired. I'll **not** trigger a real broadcast to your 16 users without your explicit go-ahead.
 
 ## Files
 
-**New**
-- `supabase/migrations/<timestamp>_content_notifications.sql`
-- `supabase/functions/dispatch-content-notification/index.ts`
-- `supabase/functions/dispatch-content-notification/deno.json`
-- `supabase/functions/_shared/transactional-email-templates/new-vacancy.tsx`
-- `supabase/functions/_shared/transactional-email-templates/new-bar-challenge.tsx`
+- `supabase/functions/dispatch-content-notification/index.ts` — replace the auth check block (~6 lines).
 
-**Modified**
-- `supabase/functions/_shared/transactional-email-templates/registry.ts`
-- `supabase/config.toml`
-
-Approve and I'll build it.
+Approve and I'll patch and re-verify.
