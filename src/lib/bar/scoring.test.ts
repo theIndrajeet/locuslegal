@@ -10,6 +10,9 @@ import {
   gradeAttempt,
   normalizeSpeedAnswer,
   fuzzyEquals,
+  metaphone,
+  phoneticEquals,
+  matchesAnyCandidate,
 } from "./scoring";
 import { GradingError } from "./types";
 

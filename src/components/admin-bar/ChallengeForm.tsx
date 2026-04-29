@@ -73,8 +73,8 @@ export default function ChallengeForm({ open, onOpenChange, onCreated, sources }
   const [correctIssues, setCorrectIssues] = useState<Set<string>>(new Set());
 
   // Speed Round
-  const [subQs, setSubQs] = useState<{ id: string; prompt: string; answer: string }[]>(
-    Array.from({ length: 5 }, () => ({ id: newId(), prompt: "", answer: "" })),
+  const [subQs, setSubQs] = useState<{ id: string; prompt: string; answer: string; aliases: string[] }[]>(
+    Array.from({ length: 5 }, () => ({ id: newId(), prompt: "", answer: "", aliases: [] })),
   );
   const [timeLimit, setTimeLimit] = useState<number>(60);
 
@@ -166,7 +166,7 @@ export default function ChallengeForm({ open, onOpenChange, onCreated, sources }
     setCorrectOption("");
     setIssues([{ id: newId(), text: "" }, { id: newId(), text: "" }, { id: newId(), text: "" }]);
     setCorrectIssues(new Set());
-    setSubQs(Array.from({ length: 5 }, () => ({ id: newId(), prompt: "", answer: "" })));
+    setSubQs(Array.from({ length: 5 }, () => ({ id: newId(), prompt: "", answer: "", aliases: [] })));
     setTimeLimit(60);
     setDocHtml("");
     setDocCategories([{ id: newId(), label: "Risk" }, { id: newId(), label: "Ambiguity" }]);
@@ -221,7 +221,12 @@ export default function ChallengeForm({ open, onOpenChange, onCreated, sources }
     }
     if (type === "speed_round") {
       const p = {
-        questions: subQs.map((q) => ({ id: q.id, prompt: q.prompt.trim(), answer: q.answer.trim() })),
+        questions: subQs.map((q) => ({
+          id: q.id,
+          prompt: q.prompt.trim(),
+          answer: q.answer.trim(),
+          ...(q.aliases.length > 0 ? { aliases: q.aliases.map((a) => a.trim()).filter(Boolean) } : {}),
+        })),
         time_limit_seconds: timeLimit,
       };
       const r = SpeedRoundPayloadSchema.safeParse(p);
@@ -580,12 +585,16 @@ function IssueEditor({ issues, setIssues, correct, setCorrect }: {
 }
 
 function SpeedRoundEditor({ subQs, setSubQs, timeLimit, setTimeLimit }: {
-  subQs: { id: string; prompt: string; answer: string }[];
-  setSubQs: (q: { id: string; prompt: string; answer: string }[]) => void;
+  subQs: { id: string; prompt: string; answer: string; aliases: string[] }[];
+  setSubQs: (q: { id: string; prompt: string; answer: string; aliases: string[] }[]) => void;
   timeLimit: number; setTimeLimit: (n: number) => void;
 }) {
+  const updateAliases = (idx: number, raw: string) => {
+    const aliases = raw.split(",").map((a) => a.trim()).filter(Boolean);
+    const next = [...subQs]; next[idx] = { ...subQs[idx], aliases }; setSubQs(next);
+  };
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       <div className="flex items-center justify-between">
         <Label>Sub-questions (5-15)</Label>
         <div className="flex items-center gap-2">
@@ -594,23 +603,36 @@ function SpeedRoundEditor({ subQs, setSubQs, timeLimit, setTimeLimit }: {
         </div>
       </div>
       {subQs.map((q, i) => (
-        <div key={q.id} className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground w-6">{i + 1}.</span>
-          <Input placeholder="Prompt" value={q.prompt} onChange={(e) => {
-            const next = [...subQs]; next[i] = { ...q, prompt: e.target.value }; setSubQs(next);
-          }} />
-          <Input placeholder="Answer" value={q.answer} onChange={(e) => {
-            const next = [...subQs]; next[i] = { ...q, answer: e.target.value }; setSubQs(next);
-          }} />
-          {subQs.length > 5 && (
-            <Button size="icon" variant="ghost" onClick={() => setSubQs(subQs.filter((x) => x.id !== q.id))}>
-              <Trash2 className="w-4 h-4" />
-            </Button>
-          )}
+        <div key={q.id} className="space-y-1.5 border-2 border-border rounded-md p-2">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground w-6">{i + 1}.</span>
+            <Input placeholder="Prompt" value={q.prompt} onChange={(e) => {
+              const next = [...subQs]; next[i] = { ...q, prompt: e.target.value }; setSubQs(next);
+            }} />
+            <Input placeholder="Answer" value={q.answer} onChange={(e) => {
+              const next = [...subQs]; next[i] = { ...q, answer: e.target.value }; setSubQs(next);
+            }} />
+            {subQs.length > 5 && (
+              <Button size="icon" variant="ghost" onClick={() => setSubQs(subQs.filter((x) => x.id !== q.id))}>
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
+          <div className="flex items-center gap-2 pl-8">
+            <Label className="text-[10px] uppercase tracking-wider text-muted-foreground whitespace-nowrap">
+              Also accept
+            </Label>
+            <Input
+              placeholder="Comma-separated alternates (optional, e.g. HC writ, writ of HC)"
+              value={q.aliases.join(", ")}
+              onChange={(e) => updateAliases(i, e.target.value)}
+              className="text-xs h-8"
+            />
+          </div>
         </div>
       ))}
       {subQs.length < 15 && (
-        <Button size="sm" variant="outline" onClick={() => setSubQs([...subQs, { id: newId(), prompt: "", answer: "" }])}>
+        <Button size="sm" variant="outline" onClick={() => setSubQs([...subQs, { id: newId(), prompt: "", answer: "", aliases: [] }])}>
           <Plus className="w-4 h-4 mr-1" /> Add sub-question
         </Button>
       )}

@@ -1,65 +1,79 @@
-# Smart answer matching — typos, equivalents, everywhere
+# Smarter answer matching — phonetic, fuzzy fillers, alias list
 
-## What's already done
-The previous fix made these all count as the **same answer** in Speed Round (both client preview and server grading):
+Three layered improvements on top of today's normaliser + edit-distance.
 
-- `8`, `8th`, `eighth`, `VIII`, `viii`
-- `Article 14`, `article 14`, `14`, `Art. 14`
-- `Schedule VIII`, `Schedule 8`, `Schedule eighth`
+## 1. Typo-tolerant filler stripping
 
-## What this round adds
+**Problem:** `ariticle 14` fails because the prefix-stripper only matches an exact `article`.
 
-The user wants the matcher to also forgive **typos** and apply consistently across the whole app.
+**Fix:** Before stripping, try fuzzy-matching the first token against the filler list (`article`, `section`, `schedule`, `clause`, `part`, `chapter`) using the same length-aware edit distance we already have. If the first token is within 1–2 edits of any filler word, treat it as that filler and strip it.
 
-### 1. Typo tolerance (Levenshtein, length-aware)
+Catches: `ariticle`, `articel`, `artcle`, `schdule`, `schedual`, `secton`, `sectin`, `clase`, `chater`.
 
-Add fuzzy matching on top of the existing `normalizeSpeedAnswer()`:
+## 2. Metaphone phonetic fallback
 
-- After normalisation, if exact match fails, compute **Damerau-Levenshtein distance** between submitted and expected.
-- Allowed edit distance scales with length:
-  - ≤ 3 chars: must match exactly (avoid false positives on "or" vs "of")
-  - 4–6 chars: 1 edit allowed (`habeus` → `habeas`)
-  - 7–10 chars: 2 edits (`mandamuss` → `mandamus`)
-  - 11+ chars: 3 edits (`fundemental rite` → `fundamental right`)
-- Applies **per token** for multi-word answers, then re-joins. So `"writ of habeus corpos"` matches `"writ of habeas corpus"`.
+**Problem:** Edit-distance can miss phonetic typos at word starts. `sertiorari` vs `certiorari` is 1 edit but in a long word, low signal. `habias` vs `habeas` similarly.
 
-This catches: `ariticle`, `schdule`, `habeus`, `manadmus`, `fundemental`, `direcive`, `principels` — i.e. genuine typos, without over-matching genuinely different answers.
+**Fix:** Add a tiny Double-Metaphone implementation (~80 LOC, no dep). After exact + edit-distance both fail, compare phonetic codes:
+- `habeas` / `habias` / `habeus` → all encode to `HBS`
+- `mandamus` / `mandamous` / `mandimus` → `MNTMS`
+- `certiorari` / `sertiorari` / `certorari` → `SRTRR`
+- `quo warranto` / `quo waranto` → `KW WRNT`
 
-### 2. Numeric/filler tolerance everywhere
-The existing normaliser already handles ordinals, word-numerals, roman numerals, and filler prefixes. We extend it to also:
+**Guard rails to prevent false positives:**
+- Only apply phonetic match for tokens **≥ 5 characters** (skips short look-alikes like `or`/`of`)
+- Multi-word answers must have the same number of tokens
+- Phonetic codes must be **non-empty** (filters digits, which encode to `""`)
 
-- Strip trailing punctuation (`"Article 14."` → `"14"`)
-- Collapse multiple spaces / non-breaking spaces
-- Treat `–` `—` as `-` (em/en dashes)
-- Ignore the words `the`, `of`, `a`, `an` when comparing multi-word answers (so `"the right to equality"` matches `"right to equality"`)
+## 3. Per-question accepted aliases (admin escape hatch)
 
-### 3. Audit: where does free-text grading happen?
+**Problem:** Some prompts are genuinely ambiguous. Algorithms can't catch every valid phrasing. Admins need a way to say "these are also correct".
 
-Verified: free-text answers exist in **exactly one place** — Speed Round (`SpeedRoundRenderer` → `gradeSpeedRound`). All other Bar question types (MCQ, Issue Spotter, Jurisdiction, Document Review, Brief Builder, Ethics, Client Counseling) are **ID/option based** — there is no text to normalise.
+**Fix:** No DB migration needed — the speed-round payload is already JSONB. Add an optional `aliases: string[]` field to each sub-question:
 
-So "throughout the app" boils down to: keep the normaliser as the single source of truth, called from the only two graders that exist for free text:
-
-```text
-src/lib/bar/scoring.ts                         (client preview)
-supabase/functions/submit-bar-attempt/index.ts (server, source of truth)
+```ts
+// Existing
+{ id, prompt: "Writ for unlawful detention", answer: "habeas corpus" }
+// New (backwards compatible — empty array if not provided)
+{ id, prompt: "...", answer: "habeas corpus", aliases: ["HC writ", "writ of HC"] }
 ```
 
-Both already share the same normaliser. The new fuzzy logic will be added to **both**, kept in lockstep.
+**Admin UI:** In `ChallengeForm.tsx`, under each speed-round answer field add a small "Accepted alternates (optional)" chip input. Empty = current behaviour.
 
-### 4. Tests
+**Grading:** A submission counts as correct if it matches `answer` **OR any alias** under the full normaliser → fuzzy → phonetic pipeline.
 
-Extend `src/lib/bar/scoring.test.ts` with cases for:
-- Typos: `habeus corpus` → `habeas corpus`
-- Punctuation: `Article 14.` → `14`
-- Stop words: `the right to equality` → `right to equality`
-- Negative cases: `or` does **not** match `of`; `eighth` does not match `seventh`
+## How the four-layer pipeline runs (per submitted answer)
+
+```text
+1. Normalize submitted + each candidate (answer + aliases)
+   - filler stripping (now fuzzy)
+   - ordinals, word-numerals, romans
+   - dashes, stop words, punctuation
+2. Exact match? -> correct
+3. Token-level edit distance within budget? -> correct
+4. Token-level Metaphone match (tokens >= 5 chars)? -> correct
+5. Otherwise -> wrong
+```
 
 ## Files touched
-- `src/lib/bar/scoring.ts` — extend `normalizeSpeedAnswer`, add `fuzzyEquals(a, b)`, plug into `gradeSpeedRound`
-- `supabase/functions/submit-bar-attempt/index.ts` — mirror the same two helpers
-- `src/lib/bar/scoring.test.ts` — add ~15 new assertions
 
-## Out of scope
-- Allowing one-character answers to match across letters (intentional — too risky)
-- Synonyms / semantic matching (e.g. "SC" vs "Supreme Court") — that needs an admin-curated alias list, separate task
-- Changing how MCQ / option-based questions grade (no text involved)
+**Client (preview grader)**
+- `src/lib/bar/scoring.ts` — fuzzy filler stripping in `normalizeSpeedAnswer`, add `metaphone()` + `phoneticEquals()`, add aliases to `SpeedRoundPayload` type, update `gradeSpeedRound` to try `[answer, ...aliases]`
+
+**Server (source of truth)**
+- `supabase/functions/submit-bar-attempt/index.ts` — mirror the same three additions; extend `SpeedRoundPayloadSchema` to accept optional `aliases: string[]` per question
+
+**Admin form**
+- `src/components/admin-bar/ChallengeForm.tsx` — add an "Accepted alternates" chip-input under each speed-round answer; persist `aliases` into the payload when saving
+
+**AI extraction (so AI-generated questions can suggest aliases)**
+- `supabase/functions/extract-questions-from-pdf/index.ts` and `supabase/functions/draft-question-from-prompt/index.ts` — extend the JSON schema to optionally return `aliases` for speed-round questions; prompt the model to include common phrasings
+
+**Tests**
+- `src/lib/bar/scoring.test.ts` — add ~12 assertions: fuzzy filler stripping, phonetic matches (positive + negative), alias-list grading, regression that `or`/`of` still don't match
+
+## Out of scope (deliberately)
+- **Bag-of-words matching** — too risky, can match wrong-answer combinations
+- **Abbreviation dictionary** (`SC` ↔ `Supreme Court`) — better expressed as per-question aliases
+- **Compound numbers** (`twenty-one` → `21`) — extremely rare in speed-round answers, skip until requested
+- **Diacritics stripping** — irrelevant to Indian legal vocabulary

@@ -95,6 +95,7 @@ export const SpeedRoundQuestionSchema = z.object({
   id: z.string().min(1),
   prompt: z.string().min(1),
   answer: z.string().min(1),
+  aliases: z.array(z.string().min(1)).max(10).optional(),
 });
 export const SpeedRoundPayloadSchema = z.object({
   questions: z.array(SpeedRoundQuestionSchema).min(5).max(15),

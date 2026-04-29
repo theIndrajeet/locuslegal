@@ -140,6 +140,7 @@ const STOP_WORDS = new Set(["the", "of", "a", "an"]);
 /**
  * Normalises a free-text speed-round answer so that obvious equivalents
  * compare equal: "8" / "8th" / "eighth" / "Article 8" / "Schedule VIII".
+ * Also strips filler words even when typo'd (e.g. "ariticle 14" → "14").
  */
 export function normalizeSpeedAnswer(raw: string): string {
   let s = (raw ?? "").trim().toLowerCase();
@@ -148,12 +149,29 @@ export function normalizeSpeedAnswer(raw: string): string {
   // Normalise unicode dashes / non-breaking space / smart quotes
   s = s.replace(/[\u2013\u2014]/g, "-").replace(/\u00a0/g, " ").replace(/[\u2018\u2019]/g, "'").replace(/[\u201c\u201d]/g, '"');
 
-  // Strip leading filler words ("article 14" → "14", "schedule viii" → "viii")
+  // Strip leading filler words — exact match first, then fuzzy on first token.
+  let stripped = false;
   for (const f of FILLER_PREFIXES) {
-    if (s === f) { s = ""; break; }
+    if (s === f) { s = ""; stripped = true; break; }
     if (s.startsWith(f + " ") || s.startsWith(f + ".")) {
       s = s.slice(f.length).trimStart().replace(/^\.\s*/, "");
+      stripped = true;
       break;
+    }
+  }
+  if (!stripped) {
+    // Try fuzzy match on the first token against canonical filler words
+    const spaceIdx = s.indexOf(" ");
+    const firstTok = spaceIdx === -1 ? s : s.slice(0, spaceIdx);
+    const rest = spaceIdx === -1 ? "" : s.slice(spaceIdx + 1);
+    if (firstTok.length >= 4) {
+      for (const canonical of CANONICAL_FILLERS) {
+        const dist = editDistance(firstTok, canonical);
+        if (dist > 0 && dist <= allowedEdits(Math.max(firstTok.length, canonical.length))) {
+          s = rest.trimStart();
+          break;
+        }
+      }
     }
   }
 
@@ -174,6 +192,8 @@ export function normalizeSpeedAnswer(raw: string): string {
 
   return mapped.length > 0 ? mapped.join(" ") : s;
 }
+
+const CANONICAL_FILLERS = ["article", "section", "schedule", "clause", "chapter"];
 
 /**
  * Damerau-Levenshtein distance (handles substitutions, insertions, deletions, transpositions).
@@ -223,6 +243,134 @@ export function fuzzyEquals(submitted: string, expected: string): boolean {
   return true;
 }
 
+/**
+ * Simplified Metaphone phonetic encoder. Returns "" for non-alphabetic input.
+ * Not Double-Metaphone — covers common English/Latin legal vocabulary well enough
+ * to catch sound-alike typos like habeas/habias, mandamus/mandamous, certiorari/sertiorari.
+ */
+export function metaphone(word: string): string {
+  const w = word.toLowerCase().replace(/[^a-z]/g, "");
+  if (!w) return "";
+  // Initial transformations
+  let s = w
+    .replace(/^x/, "s")
+    .replace(/^kn|^gn|^pn|^ae|^wr/, (m) => m[1])
+    .replace(/^wh/, "w");
+
+  let out = "";
+  const len = s.length;
+  for (let i = 0; i < len; i++) {
+    const c = s[i];
+    const prev = s[i - 1] ?? "";
+    const next = s[i + 1] ?? "";
+    const next2 = s[i + 2] ?? "";
+
+    // Skip duplicates (except "c")
+    if (c === prev && c !== "c") continue;
+
+    switch (c) {
+      case "a": case "e": case "i": case "o": case "u":
+        if (i === 0) out += c.toUpperCase();
+        break;
+      case "b":
+        if (!(i === len - 1 && prev === "m")) out += "B";
+        break;
+      case "c":
+        if (next === "i" && next2 === "a") out += "X";
+        else if (next === "h") { out += "X"; i++; }
+        else if (next === "i" || next === "e" || next === "y") out += "S";
+        else out += "K";
+        break;
+      case "d":
+        if (next === "g" && (next2 === "e" || next2 === "i" || next2 === "y")) { out += "J"; i++; }
+        else out += "T";
+        break;
+      case "g":
+        if (next === "h") {
+          if (i + 2 >= len || /[^aeiou]/.test(next2)) { /* silent */ }
+          else { out += "F"; i++; }
+        } else if (next === "n") { /* silent */ }
+        else if (next === "e" || next === "i" || next === "y") out += "J";
+        else out += "K";
+        break;
+      case "h":
+        if (i > 0 && /[aeiou]/.test(prev) && !/[aeiou]/.test(next)) { /* silent */ }
+        else out += "H";
+        break;
+      case "k":
+        if (prev !== "c") out += "K";
+        break;
+      case "p":
+        if (next === "h") { out += "F"; i++; }
+        else out += "P";
+        break;
+      case "q": out += "K"; break;
+      case "s":
+        if (next === "h") { out += "X"; i++; }
+        else if (next === "i" && (next2 === "o" || next2 === "a")) out += "X";
+        else out += "S";
+        break;
+      case "t":
+        if (next === "h") { out += "0"; i++; }
+        else if (next === "i" && (next2 === "o" || next2 === "a")) out += "X";
+        else out += "T";
+        break;
+      case "v": out += "F"; break;
+      case "w": case "y":
+        if (/[aeiou]/.test(next)) out += c.toUpperCase();
+        break;
+      case "x": out += "KS"; break;
+      case "z": out += "S"; break;
+      case "f": case "j": case "l": case "m": case "n": case "r":
+        out += c.toUpperCase();
+        break;
+    }
+  }
+  return out;
+}
+
+/** Phonetic equality across tokens. Only applied to tokens of length >= 5 to avoid false positives. */
+export function phoneticEquals(submitted: string, expected: string): boolean {
+  if (!submitted || !expected) return false;
+  const subTokens = submitted.split(" ");
+  const expTokens = expected.split(" ");
+  if (subTokens.length !== expTokens.length) return false;
+  for (let i = 0; i < subTokens.length; i++) {
+    const s = subTokens[i], e = expTokens[i];
+    if (s === e) continue;
+    // Don't apply phonetic to short tokens (or/of, yes/yet) or pure numbers
+    if (s.length < 5 || e.length < 5 || /^\d+$/.test(s) || /^\d+$/.test(e)) return false;
+    const ms = metaphone(s), me = metaphone(e);
+    if (!ms || !me || ms !== me) return false;
+  }
+  return true;
+}
+
+/** Returns true iff `submitted` matches `expected` under exact OR fuzzy OR phonetic equality. */
+function matchesUnderAllRules(submittedNorm: string, expectedNorm: string): boolean {
+  if (!submittedNorm || !expectedNorm) return false;
+  if (submittedNorm === expectedNorm) return true;
+  if (fuzzyEquals(submittedNorm, expectedNorm)) return true;
+  if (phoneticEquals(submittedNorm, expectedNorm)) return true;
+  return false;
+}
+
+/** Returns true if submitted matches the canonical answer or any alias. */
+export function matchesAnyCandidate(
+  submitted: string,
+  answer: string,
+  aliases?: string[],
+): boolean {
+  const sub = normalizeSpeedAnswer(submitted);
+  if (!sub) return false;
+  const candidates = [answer, ...(aliases ?? [])];
+  for (const candidate of candidates) {
+    const norm = normalizeSpeedAnswer(candidate);
+    if (matchesUnderAllRules(sub, norm)) return true;
+  }
+  return false;
+}
+
 export function gradeSpeedRound(
   payload: SpeedRoundPayload,
   answer: SpeedRoundAnswer,
@@ -235,9 +383,8 @@ export function gradeSpeedRound(
   );
   let correctCount = 0;
   for (const q of payload.questions) {
-    const sub = normalizeSpeedAnswer(answerMap.get(q.id) ?? "");
-    const expected = normalizeSpeedAnswer(q.answer);
-    if (sub.length > 0 && fuzzyEquals(sub, expected)) correctCount++;
+    const submitted = answerMap.get(q.id) ?? "";
+    if (matchesAnyCandidate(submitted, q.answer, q.aliases)) correctCount++;
   }
   const ratio = correctCount / total;
   const points = Math.floor(ratio * pointsBase);
