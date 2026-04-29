@@ -477,6 +477,7 @@ export default function DraftEmailDialog({ open, onOpenChange, target, onSent }:
     const sendBody = truncated ? body.slice(0, 1800) : body;
     const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
     const url = buildGmailUrl(target.email, subject, sendBody);
+    const plainText = `Subject: ${subject}\n\n${body}`;
 
     // CRITICAL: trigger the open synchronously inside the user gesture — no awaits before this.
     if (isMobile) {
@@ -486,17 +487,19 @@ export default function DraftEmailDialog({ open, onOpenChange, target, onSent }:
       window.open(url, "_blank", "noopener,noreferrer");
     }
 
-    // Background: clipboard backup (non-blocking, ignore failures)
-    void navigator.clipboard
-      ?.writeText(`Subject: ${subject}\n\n${body}`)
-      .catch(() => {});
+    // Background: ALWAYS copy the plain text to clipboard so a long-press paste
+    // anywhere (including back inside Gmail on iOS) yields readable text instead
+    // of a URL-encoded mailto fallback ("Subject:%20…%0A%0A…").
+    void navigator.clipboard?.writeText(plainText).catch(() => {});
 
     if (truncated) {
-      toast.info("Body was long — full version copied to clipboard. Paste if it truncates.", {
+      toast.info("Body was long — full email copied to clipboard. Paste if it truncates.", {
         duration: 6000,
       });
     } else {
-      toast.success("Don't forget to attach your CV before sending.", { duration: 6000 });
+      toast.success("Opening Gmail. Plain text also copied — paste if it looks encoded.", {
+        duration: 5000,
+      });
     }
 
     // Background: auto-log to tracker (fire-and-forget, never blocks the open)
