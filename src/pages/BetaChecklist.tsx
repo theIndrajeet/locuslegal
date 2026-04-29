@@ -288,10 +288,7 @@ export default function BetaChecklist() {
       });
       if (error) throw error;
 
-      await supabase
-        .from("beta_testers")
-        .update({ submitted_at: new Date().toISOString() })
-        .eq("id", tester.id);
+      await supabase.rpc("mark_beta_tester_submitted", { p_id: tester.id });
 
       if (DRAFT_KEY) localStorage.removeItem(DRAFT_KEY);
       setSubmitted(true);
