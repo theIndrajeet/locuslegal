@@ -1,79 +1,48 @@
-# Smarter answer matching — phonetic, fuzzy fillers, alias list
+## Goal
 
-Three layered improvements on top of today's normaliser + edit-distance.
+Kill the admin sidebar (it duplicates the dashboard tiles and eats horizontal space) and make jumping around the admin panel one-click obvious — including a clear "Back" path to the dashboard and to the main site.
 
-## 1. Typo-tolerant filler stripping
+## What changes
 
-**Problem:** `ariticle 14` fails because the prefix-stripper only matches an exact `article`.
+### 1. Remove the sidebar
+- Delete `AdminSidebar` usage from `src/components/admin/AdminLayout.tsx`.
+- Drop `SidebarProvider` / `SidebarTrigger` from the admin layout (the global app sidebar isn't used here anyway).
+- Keep the file `src/components/admin/AdminSidebar.tsx` for now but unimport it (safe to delete in a follow-up).
 
-**Fix:** Before stripping, try fuzzy-matching the first token against the filler list (`article`, `section`, `schedule`, `clause`, `part`, `chapter`) using the same length-aware edit distance we already have. If the first token is within 1–2 edits of any filler word, treat it as that filler and strip it.
-
-Catches: `ariticle`, `articel`, `artcle`, `schdule`, `schedual`, `secton`, `sectin`, `clase`, `chater`.
-
-## 2. Metaphone phonetic fallback
-
-**Problem:** Edit-distance can miss phonetic typos at word starts. `sertiorari` vs `certiorari` is 1 edit but in a long word, low signal. `habias` vs `habeas` similarly.
-
-**Fix:** Add a tiny Double-Metaphone implementation (~80 LOC, no dep). After exact + edit-distance both fail, compare phonetic codes:
-- `habeas` / `habias` / `habeus` → all encode to `HBS`
-- `mandamus` / `mandamous` / `mandimus` → `MNTMS`
-- `certiorari` / `sertiorari` / `certorari` → `SRTRR`
-- `quo warranto` / `quo waranto` → `KW WRNT`
-
-**Guard rails to prevent false positives:**
-- Only apply phonetic match for tokens **≥ 5 characters** (skips short look-alikes like `or`/`of`)
-- Multi-word answers must have the same number of tokens
-- Phonetic codes must be **non-empty** (filters digits, which encode to `""`)
-
-## 3. Per-question accepted aliases (admin escape hatch)
-
-**Problem:** Some prompts are genuinely ambiguous. Algorithms can't catch every valid phrasing. Admins need a way to say "these are also correct".
-
-**Fix:** No DB migration needed — the speed-round payload is already JSONB. Add an optional `aliases: string[]` field to each sub-question:
-
-```ts
-// Existing
-{ id, prompt: "Writ for unlawful detention", answer: "habeas corpus" }
-// New (backwards compatible — empty array if not provided)
-{ id, prompt: "...", answer: "habeas corpus", aliases: ["HC writ", "writ of HC"] }
-```
-
-**Admin UI:** In `ChallengeForm.tsx`, under each speed-round answer field add a small "Accepted alternates (optional)" chip input. Empty = current behaviour.
-
-**Grading:** A submission counts as correct if it matches `answer` **OR any alias** under the full normaliser → fuzzy → phonetic pipeline.
-
-## How the four-layer pipeline runs (per submitted answer)
+### 2. New sticky admin sub-nav (replaces the sidebar)
+A single horizontal bar pinned under the main navbar on every `/admin/*` route:
 
 ```text
-1. Normalize submitted + each candidate (answer + aliases)
-   - filler stripping (now fuzzy)
-   - ordinals, word-numerals, romans
-   - dashes, stop words, punctuation
-2. Exact match? -> correct
-3. Token-level edit distance within budget? -> correct
-4. Token-level Metaphone match (tokens >= 5 chars)? -> correct
-5. Otherwise -> wrong
+┌──────────────────────────────────────────────────────────────────────┐
+│  ← Dashboard   |  Waitlist  Beta  Vacancies  Bar  Updates  Emails  │   ↗ View site │
+└──────────────────────────────────────────────────────────────────────┘
 ```
+
+- **Left**: contextual back button.
+  - On `/admin` → shows `← Back to site` (links to `/`).
+  - On any other `/admin/*` → shows `← Dashboard` (links to `/admin`).
+- **Center**: pill-style tabs for the 6 sections (Waitlist, Beta Testers, Vacancies, The Bar, Updates, Email Log) with the active one highlighted in the brand yellow + neobrutalist border. Lucide icon + label on desktop, icon-only on small screens, horizontally scrollable if it overflows.
+- **Right**: small `View site ↗` link (opens `/` in same tab) so admins can pop out of the console quickly.
+- Breadcrumb (`ADMIN / DASHBOARD`) stays but moves into this same bar on the far left under the back button on mobile, inline on desktop.
+
+### 3. Dashboard tile improvements
+- The dashboard tiles already act as the "menu" — keep them as the canonical entry. Add a subtle hover hint ("Open →") so it's obvious they're navigation, not just stat displays.
+- No other changes to `AdminDashboard.tsx` content.
+
+### 4. Per-page back affordance
+Inner pages (Waitlist, Beta, Vacancies, Bar, Updates, Email Log) currently rely on the sidebar. With the new sub-nav handling navigation, no per-page change is required — but we'll verify each page header doesn't have its own redundant "back" since the sub-nav covers it.
 
 ## Files touched
 
-**Client (preview grader)**
-- `src/lib/bar/scoring.ts` — fuzzy filler stripping in `normalizeSpeedAnswer`, add `metaphone()` + `phoneticEquals()`, add aliases to `SpeedRoundPayload` type, update `gradeSpeedRound` to try `[answer, ...aliases]`
+- `src/components/admin/AdminLayout.tsx` — rip out sidebar, render new `AdminSubNav`.
+- `src/components/admin/AdminSubNav.tsx` — **new** component (back button + tab pills + view-site link).
+- `src/components/admin/AdminTiles.tsx` — add a small "Open →" affordance on `ToolTile` hover.
 
-**Server (source of truth)**
-- `supabase/functions/submit-bar-attempt/index.ts` — mirror the same three additions; extend `SpeedRoundPayloadSchema` to accept optional `aliases: string[]` per question
+## Visual style
 
-**Admin form**
-- `src/components/admin-bar/ChallengeForm.tsx` — add an "Accepted alternates" chip-input under each speed-round answer; persist `aliases` into the payload when saving
+Matches existing neobrutalist system — 2px foreground borders, hard yellow accent for the active tab, mono-uppercase micro labels, no emojis (Lucide icons only). Sticky just below the global navbar (`top-16`), full-width, `bg-background/90 backdrop-blur`.
 
-**AI extraction (so AI-generated questions can suggest aliases)**
-- `supabase/functions/extract-questions-from-pdf/index.ts` and `supabase/functions/draft-question-from-prompt/index.ts` — extend the JSON schema to optionally return `aliases` for speed-round questions; prompt the model to include common phrasings
+## Out of scope
 
-**Tests**
-- `src/lib/bar/scoring.test.ts` — add ~12 assertions: fuzzy filler stripping, phonetic matches (positive + negative), alias-list grading, regression that `or`/`of` still don't match
-
-## Out of scope (deliberately)
-- **Bag-of-words matching** — too risky, can match wrong-answer combinations
-- **Abbreviation dictionary** (`SC` ↔ `Supreme Court`) — better expressed as per-question aliases
-- **Compound numbers** (`twenty-one` → `21`) — extremely rare in speed-round answers, skip until requested
-- **Diacritics stripping** — irrelevant to Indian legal vocabulary
+- No changes to admin page contents or data fetching.
+- `AdminSidebar.tsx` left in repo (orphaned) — can be deleted later if you want a clean tree.
