@@ -281,7 +281,7 @@ export default function DraftEmailDialog({ open, onOpenChange, target, onSent }:
         internships: internships ?? [],
         moots: (moots ?? []) as UserContext["moots"],
         publications: publications ?? [],
-        has_cv: Boolean(profile?.cv_url),
+        has_cv: Boolean((Array.isArray(cvRef) ? cvRef[0] : cvRef)?.cv_url),
       });
       setLoadingUser(false);
     })();
