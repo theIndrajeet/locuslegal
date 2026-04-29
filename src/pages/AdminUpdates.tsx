@@ -128,10 +128,13 @@ export default function AdminUpdates() {
       }
       const id = await createDraft();
       if (!id) return;
-      const { error } = await supabase.functions.invoke("dispatch-updates-broadcast", {
+      const { data, error } = await supabase.functions.invoke("dispatch-updates-broadcast", {
         body: { broadcastId: id, testEmail: myEmail },
       });
       if (error) throw error;
+      if (data && (data as any).ok === false) {
+        throw new Error((data as any).error || "Send failed");
+      }
       toast({
         title: `Test sent to ${myEmail}`,
         description: "Check your inbox in a few seconds.",
