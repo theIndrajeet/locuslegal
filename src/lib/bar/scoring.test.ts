@@ -8,8 +8,62 @@ import {
   gradeSpeedRound,
   gradeJurisdiction,
   gradeAttempt,
+  normalizeSpeedAnswer,
 } from "./scoring";
 import { GradingError } from "./types";
+
+describe("normalizeSpeedAnswer", () => {
+  it("strips ordinal suffixes", () => {
+    expect(normalizeSpeedAnswer("8th")).toBe(normalizeSpeedAnswer("8"));
+    expect(normalizeSpeedAnswer("21st")).toBe(normalizeSpeedAnswer("21"));
+  });
+  it("maps word numerals to digits", () => {
+    expect(normalizeSpeedAnswer("eight")).toBe("8");
+    expect(normalizeSpeedAnswer("eighth")).toBe("8");
+    expect(normalizeSpeedAnswer("Twelve")).toBe("12");
+  });
+  it("strips filler prefixes", () => {
+    expect(normalizeSpeedAnswer("Article 14")).toBe("14");
+    expect(normalizeSpeedAnswer("Schedule VIII")).toBe("8");
+    expect(normalizeSpeedAnswer("Section 302")).toBe("302");
+  });
+  it("treats roman numerals same as digits", () => {
+    expect(normalizeSpeedAnswer("VIII")).toBe("8");
+    expect(normalizeSpeedAnswer("iv")).toBe("4");
+  });
+  it("handles empty / whitespace", () => {
+    expect(normalizeSpeedAnswer("")).toBe("");
+    expect(normalizeSpeedAnswer("   ")).toBe("");
+  });
+});
+
+describe("gradeSpeedRound normalisation", () => {
+  const payload = {
+    questions: [
+      { id: "q1", prompt: "Schedule listing official languages", answer: "8" },
+      { id: "q2", prompt: "Right to equality article", answer: "Article 14" },
+    ],
+  } as const;
+  it("accepts ordinal suffix as correct", () => {
+    const r = gradeSpeedRound(payload as never, {
+      answers: [
+        { question_id: "q1", submitted: "8th" },
+        { question_id: "q2", submitted: "14" },
+      ],
+    } as never, 100);
+    expect(r.is_correct).toBe(true);
+    expect(r.points_awarded).toBe(100);
+  });
+  it("accepts spelled-out numeral", () => {
+    const r = gradeSpeedRound(payload as never, {
+      answers: [
+        { question_id: "q1", submitted: "eighth" },
+        { question_id: "q2", submitted: "Article 14" },
+      ],
+    } as never, 100);
+    expect(r.is_correct).toBe(true);
+  });
+});
 
 describe("computeBasePoints", () => {
   it("mcq easy = 5", () => expect(computeBasePoints("mcq", "easy")).toBe(5));
