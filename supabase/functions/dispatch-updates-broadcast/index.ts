@@ -59,12 +59,16 @@ Deno.serve(async (req) => {
       .from('update_broadcasts').select('*').eq('id', broadcastId).maybeSingle()
     if (!bc) return json({ error: 'broadcast not found' }, 404)
 
-    const result = await invokeSend(SUPABASE_URL, SERVICE_KEY, {
+    const result = await invokeSend(admin, {
       templateName: 'updates-broadcast',
       recipientEmail: testEmail,
       idempotencyKey: `updates-test-${broadcastId}-${testEmail}`,
       templateData: buildTemplateData(bc),
     })
+    if (!result.ok) {
+      console.error('test send failed', result)
+      return json({ ok: false, test: true, error: result.error ?? 'send failed', details: result.body }, 502)
+    }
     return json({ ok: true, test: true, result })
   }
 

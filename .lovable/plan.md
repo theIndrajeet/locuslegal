@@ -1,48 +1,37 @@
-## Goal
+## Diagnosis
 
-Kill the admin sidebar (it duplicates the dashboard tiles and eats horizontal space) and make jumping around the admin panel one-click obvious — including a clear "Back" path to the dashboard and to the main site.
+The Updates broadcast is **not working**. When you clicked "Send test to me", the dispatcher ran successfully (HTTP 200), but its internal call to `send-transactional-email` returned **HTTP 401 Unauthorized**, so no email was ever enqueued. The toast said "Test sent" because the dispatcher swallowed the failure.
 
-## What changes
+Evidence:
+- `email_send_log` table is **empty** (0 rows ever).
+- Edge logs show `POST /send-transactional-email → 401` immediately after the dispatcher ran.
+- `send-transactional-email` has zero invocation logs (gateway rejected before code ran).
+- The "Test Email" row is stuck at `status = draft`.
 
-### 1. Remove the sidebar
-- Delete `AdminSidebar` usage from `src/components/admin/AdminLayout.tsx`.
-- Drop `SidebarProvider` / `SidebarTrigger` from the admin layout (the global app sidebar isn't used here anyway).
-- Keep the file `src/components/admin/AdminSidebar.tsx` for now but unimport it (safe to delete in a follow-up).
+### Why it 401s
+`supabase/functions/dispatch-updates-broadcast/index.ts` calls `send-transactional-email` via raw `fetch` with `Authorization: Bearer <SERVICE_KEY>`. The gateway's `verify_jwt = true` check rejects this in some configurations. The supported pattern (used everywhere else and recommended in the transactional-emails docs) is `supabase.functions.invoke(...)` from a service-role client — that handles auth headers correctly.
 
-### 2. New sticky admin sub-nav (replaces the sidebar)
-A single horizontal bar pinned under the main navbar on every `/admin/*` route:
+## Fix
 
-```text
-┌──────────────────────────────────────────────────────────────────────┐
-│  ← Dashboard   |  Waitlist  Beta  Vacancies  Bar  Updates  Emails  │   ↗ View site │
-└──────────────────────────────────────────────────────────────────────┘
-```
+**File:** `supabase/functions/dispatch-updates-broadcast/index.ts`
 
-- **Left**: contextual back button.
-  - On `/admin` → shows `← Back to site` (links to `/`).
-  - On any other `/admin/*` → shows `← Dashboard` (links to `/admin`).
-- **Center**: pill-style tabs for the 6 sections (Waitlist, Beta Testers, Vacancies, The Bar, Updates, Email Log) with the active one highlighted in the brand yellow + neobrutalist border. Lucide icon + label on desktop, icon-only on small screens, horizontally scrollable if it overflows.
-- **Right**: small `View site ↗` link (opens `/` in same tab) so admins can pop out of the console quickly.
-- Breadcrumb (`ADMIN / DASHBOARD`) stays but moves into this same bar on the far left under the back button on mobile, inline on desktop.
+1. Replace the hand-rolled `invokeSend` `fetch` helper with a service-role `supabase.functions.invoke('send-transactional-email', { body: ... })` call.
+2. Treat any non-2xx / error response as a real failure (count it, log it) instead of silently returning `ok: true`.
+3. For the **test-send** path, surface the underlying error to the toast so future failures are visible — return `{ ok: false, error }` with HTTP 502 when the inner call fails, instead of `{ ok: true, result }`.
 
-### 3. Dashboard tile improvements
-- The dashboard tiles already act as the "menu" — keep them as the canonical entry. Add a subtle hover hint ("Open →") so it's obvious they're navigation, not just stat displays.
-- No other changes to `AdminDashboard.tsx` content.
+**File:** `src/pages/AdminUpdates.tsx`
 
-### 4. Per-page back affordance
-Inner pages (Waitlist, Beta, Vacancies, Bar, Updates, Email Log) currently rely on the sidebar. With the new sub-nav handling navigation, no per-page change is required — but we'll verify each page header doesn't have its own redundant "back" since the sub-nav covers it.
+4. In `handleTestSend` and `handleSendAll`, check the returned payload for `ok === false` and show the actual error message in the toast (currently only network-level errors throw).
 
-## Files touched
+No DB schema changes, no new functions, no new templates. Only the dispatcher's call style and the client's error handling change.
 
-- `src/components/admin/AdminLayout.tsx` — rip out sidebar, render new `AdminSubNav`.
-- `src/components/admin/AdminSubNav.tsx` — **new** component (back button + tab pills + view-site link).
-- `src/components/admin/AdminTiles.tsx` — add a small "Open →" affordance on `ToolTile` hover.
+## Verification after the fix
 
-## Visual style
+1. Click **Send test to me** in `/admin/updates`.
+2. Confirm the toast shows success **and** a row appears in `email_send_log` with `template_name = 'updates-broadcast'`, `status = 'pending'` then `'sent'` within ~10s.
+3. Check inbox.
+4. The Email Log dashboard should then show the unique send.
 
-Matches existing neobrutalist system — 2px foreground borders, hard yellow accent for the active tab, mono-uppercase micro labels, no emojis (Lucide icons only). Sticky just below the global navbar (`top-16`), full-width, `bg-background/90 backdrop-blur`.
-
-## Out of scope
-
-- No changes to admin page contents or data fetching.
-- `AdminSidebar.tsx` left in repo (orphaned) — can be deleted later if you want a clean tree.
+## Files changed
+- `supabase/functions/dispatch-updates-broadcast/index.ts` — switch to SDK invoke + propagate errors
+- `src/pages/AdminUpdates.tsx` — show real error in failure toast
