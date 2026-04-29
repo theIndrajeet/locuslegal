@@ -1,76 +1,62 @@
-I understand. I’m treating this as the last attempt and I’m not going to touch random parts of the app.
+# Fix: Emails enqueue but never send
 
-Do I know what the issue is? Yes.
+## Status right now
 
-The actual issue is:
+- ✅ "Send test" works — email is enqueued (`pending` row in `email_send_log` confirms it).
+- ❌ The email never moves from `pending` → `sent`. It's stuck in the queue.
+- ❌ `process-email-queue` boots every 5s (cron is firing) but does zero work — no batch logs, no errors.
 
-```text
-The admin dispatcher is now calling the email sender,
-but the email sender is rejected before its code runs because gateway JWT validation says:
-UNAUTHORIZED_INVALID_JWT_FORMAT / Invalid JWT
+## Root cause
+
+The pg_cron job sends the request with the **vault'd service-role key** as the Bearer token. That token in the vault was stored when infrastructure was first provisioned and **may not be byte-identical** to the current `SUPABASE_SERVICE_ROLE_KEY` env var the function reads (key rotation, different signing key version, etc).
+
+Our manual auth check does a **strict string equality**:
+```
+presentedToken !== supabaseServiceKey  →  401 Unauthorized (silent, no log)
 ```
 
-That explains every symptom:
+So the cron hits the function, gets a silent 401, and exits before any processing log is emitted. That's why we see "booted" every 5s and nothing else.
 
-- The toast still says `Edge Function returned a non-2xx status code`
-- The sender function has no logs
-- `email_send_log` is empty
-- No queue rows are created
-- Nothing reaches the inbox
+This is the exact same class of issue we just fixed for the sender — the gateway-level JWT check moved into the function, and now the in-function check is too strict for the cron's stored token.
 
-The fix is to stop making these internal email functions depend on gateway JWT validation, and instead validate the backend service secret inside the function code.
+## The fix
 
-Implementation plan:
+Replace the strict equality check in `process-email-queue` with a proper JWT validation that accepts ANY valid service-role JWT (checking the `role` claim = `service_role`), not byte-equality with the env var.
 
-1. Fix the sender function auth gate
-   - Update `supabase/config.toml`
-   - Change `send-transactional-email` from gateway JWT validation to in-function service-secret validation
-   - Add an explicit authorization check at the top of `supabase/functions/send-transactional-email/index.ts`
-   - Only allow requests where the bearer token matches the backend service secret
+### Changes
 
-2. Fix the queue worker auth gate too
-   - Update `process-email-queue` the same way
-   - This is necessary because after the sender starts queueing emails, the queue worker still has to run and send them
-   - Replace its current JWT role parsing with service-secret validation
+**`supabase/functions/process-email-queue/index.ts`** — replace the auth gate (lines ~94-104):
 
-3. Keep the admin page locked down
-   - Do not weaken `/admin/updates`
-   - The dispatcher remains admin-only
-   - The admin role check remains server-side
-   - Only the internal sender and queue worker change auth strategy
-
-4. Deploy only the required backend functions
-   - Deploy `send-transactional-email`
-   - Deploy `process-email-queue`
-   - Deploy `dispatch-updates-broadcast` only if the dispatcher code needs a small compatibility tweak
-
-5. Verify before calling it fixed
-   - Trigger the test-send path
-   - Check that the sender now runs
-   - Check `email_send_log`
-   - Expected progression:
-
-```text
-pending -> sent
+Instead of:
+```ts
+if (!presentedToken || presentedToken !== supabaseServiceKey) → 401
 ```
 
-If it gets `pending` but not `sent`, then the current blocker is fixed and the next issue would be queue delivery. I will not call that “done” unless the log proves it.
-
-Expected result after this fix:
-
-```text
-/admin/updates Send test to me
-  -> admin dispatcher accepts your admin session
-  -> internal sender accepts backend service-secret auth
-  -> sender queues the email
-  -> queue worker accepts scheduled backend auth
-  -> email is sent
-  -> email_send_log shows the final status
+Use the existing `parseJwtClaims` helper already in the file:
+```ts
+const claims = parseJwtClaims(presentedToken)
+if (!claims || claims.role !== 'service_role') → 401 with logged reason
 ```
 
-This is the narrowest fix for the exact `Invalid JWT` failure shown in the live logs.
+Also add a `console.warn` before the 401 so future failures show up in logs instead of being silent.
 
-<lov-actions>
-<lov-open-history>View History</lov-open-history>
-<lov-link url="https://docs.lovable.dev/tips-tricks/troubleshooting">Troubleshooting docs</lov-link>
-</lov-actions>
+**Apply the same JWT-claim check to `send-transactional-email/index.ts`** for consistency (currently uses strict equality — works today only because the dispatcher uses the env var directly, but will break if anything else calls it with a different valid service token).
+
+### Verification
+
+1. Redeploy both functions.
+2. Wait ≤10s for next cron tick.
+3. Query `email_send_log` — the existing `pending` row for `heyjeetttt@gmail.com` should flip to `sent`.
+4. Check `process-email-queue` logs — should now show "processing batch" / send activity instead of just "booted".
+5. Inbox check.
+
+## Files changed
+
+- `supabase/functions/process-email-queue/index.ts` (auth gate)
+- `supabase/functions/send-transactional-email/index.ts` (auth gate, same pattern)
+
+No DB migrations. No config.toml changes (those stay correct — `verify_jwt = false` for both).
+
+## Confidence
+
+High. The smoking gun is clear: sender enqueued successfully, queue worker boots but emits zero processing logs, and the only thing between "boot" and "process" is that strict-equality auth check.
