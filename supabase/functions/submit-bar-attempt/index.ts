@@ -51,7 +51,12 @@ const IssueSpotterPayloadSchema = z.object({
 const IssueSpotterAnswerSchema = z.object({ selected_issue_ids: z.array(z.string().min(1)) });
 
 const SpeedRoundPayloadSchema = z.object({
-  questions: z.array(z.object({ id: z.string().min(1), prompt: z.string().min(1), answer: z.string().min(1) })).min(5).max(15),
+  questions: z.array(z.object({
+    id: z.string().min(1),
+    prompt: z.string().min(1),
+    answer: z.string().min(1),
+    aliases: z.array(z.string().min(1)).max(10).optional(),
+  })).min(5).max(15),
   time_limit_seconds: z.number().int().min(30).max(300),
 });
 const SpeedRoundAnswerSchema = z.object({
