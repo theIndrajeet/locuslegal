@@ -59,12 +59,16 @@ Deno.serve(async (req) => {
       .from('update_broadcasts').select('*').eq('id', broadcastId).maybeSingle()
     if (!bc) return json({ error: 'broadcast not found' }, 404)
 
-    const result = await invokeSend(SUPABASE_URL, SERVICE_KEY, {
+    const result = await invokeSend(admin, {
       templateName: 'updates-broadcast',
       recipientEmail: testEmail,
       idempotencyKey: `updates-test-${broadcastId}-${testEmail}`,
       templateData: buildTemplateData(bc),
     })
+    if (!result.ok) {
+      console.error('test send failed', result)
+      return json({ ok: false, test: true, error: result.error ?? 'send failed', details: result.body }, 502)
+    }
     return json({ ok: true, test: true, result })
   }
 
@@ -121,16 +125,19 @@ Deno.serve(async (req) => {
   let failed = 0
   for (const email of allowed) {
     try {
-      const r = await invokeSend(SUPABASE_URL, SERVICE_KEY, {
+      const r = await invokeSend(admin, {
         templateName: 'updates-broadcast',
         recipientEmail: email,
         idempotencyKey: `updates-${broadcastId}-${email}`,
         templateData,
       })
       if (r.ok) queued += 1
-      else failed += 1
+      else {
+        console.error('enqueue failed', email, r.error, r.body)
+        failed += 1
+      }
     } catch (e) {
-      console.error('enqueue failed', email, e)
+      console.error('enqueue threw', email, e)
       failed += 1
     }
   }
@@ -163,22 +170,20 @@ function buildTemplateData(bc: any) {
 }
 
 async function invokeSend(
-  url: string,
-  serviceKey: string,
+  client: ReturnType<typeof createClient>,
   payload: Record<string, unknown>,
-): Promise<{ ok: boolean; status: number; body: unknown }> {
-  const res = await fetch(`${url}/functions/v1/send-transactional-email`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${serviceKey}`,
-      apikey: serviceKey,
-    },
-    body: JSON.stringify(payload),
-  })
-  let parsed: unknown = null
-  try { parsed = await res.json() } catch { /* ignore */ }
-  return { ok: res.ok, status: res.status, body: parsed }
+): Promise<{ ok: boolean; error?: string; body: unknown }> {
+  try {
+    const { data, error } = await client.functions.invoke('send-transactional-email', {
+      body: payload,
+    })
+    if (error) {
+      return { ok: false, error: error.message ?? String(error), body: data ?? null }
+    }
+    return { ok: true, body: data ?? null }
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e), body: null }
+  }
 }
 
 function json(obj: unknown, status = 200) {
