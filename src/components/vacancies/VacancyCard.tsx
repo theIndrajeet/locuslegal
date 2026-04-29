@@ -58,12 +58,12 @@ export default function VacancyCard({ vacancy, onApply, archived = false, applic
         ) : tone === "soon" ? (
           <span className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-muted text-foreground border-2 border-foreground/70 shrink-0">
             <AlertTriangle size={12} />
-            {formatExpiry(vacancy.expires_at)}
+            {countdownLabel}
           </span>
         ) : (
           <span className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-accent text-accent-foreground border-2 border-foreground/70 shrink-0">
             <Clock size={12} />
-            {formatExpiry(vacancy.expires_at)}
+            {countdownLabel}
           </span>
         )}
       </div>
