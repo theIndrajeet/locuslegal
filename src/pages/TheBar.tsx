@@ -98,6 +98,70 @@ export default function TheBar() {
       setFetchError(false);
     };
 
+    // Fallback: read directly from the underlying tables if the RPC errors.
+    // This guarantees the user still sees their points / recent attempts even
+    // if the bundled dashboard function is broken or temporarily unreachable.
+    const fetchFallback = async () => {
+      try {
+        const [statsRes, recentRes, profRes] = await Promise.all([
+          supabase
+            .from("bar_user_stats")
+            .select("total_points, accuracy_pct, current_streak, longest_streak, total_attempts, designation")
+            .eq("user_id", userId)
+            .maybeSingle(),
+          supabase
+            .from("bar_attempts")
+            .select("id, is_correct, points_awarded, attempted_at, bar_challenges(title, question_type)")
+            .eq("user_id", userId)
+            .order("attempted_at", { ascending: false })
+            .limit(10),
+          supabase
+            .from("profiles")
+            .select("bar_leaderboard_opt_out")
+            .eq("id", userId)
+            .maybeSingle(),
+        ]);
+
+        const s = statsRes.data;
+        const stats = {
+          total_points: s?.total_points ?? 0,
+          accuracy_pct: Number(s?.accuracy_pct ?? 0),
+          current_streak: s?.current_streak ?? 0,
+          longest_streak: s?.longest_streak ?? 0,
+          total_attempts: s?.total_attempts ?? 0,
+          designation: (s?.designation ?? "trainee") as BarDesignation,
+        };
+
+        const recentRows = (recentRes.data ?? []).map((r: any) => ({
+          id: r.id as string,
+          is_correct: r.is_correct as boolean,
+          points_awarded: r.points_awarded as number,
+          attempted_at: r.attempted_at as string,
+          challenge_title: (r.bar_challenges?.title ?? null) as string | null,
+          question_type: (r.bar_challenges?.question_type ?? "mcq") as string | null,
+        }));
+
+        let overall_rank: number | null = null;
+        if ((s?.total_points ?? 0) > 0) {
+          const { count } = await supabase
+            .from("bar_user_stats")
+            .select("user_id", { count: "exact", head: true })
+            .gt("total_points", s!.total_points);
+          overall_rank = (count ?? 0) + 1;
+        }
+
+        return {
+          stats,
+          recent: recentRows,
+          opted_out: !!profRes.data?.bar_leaderboard_opt_out,
+          overall_rank,
+        };
+      } catch (e) {
+        console.error("[TheBar] fallback fetch failed", e);
+        return null;
+      }
+    };
+
     (async () => {
       setLoading(true);
       try {
@@ -111,7 +175,14 @@ export default function TheBar() {
         if (!active) return;
         if (!res.ok) {
           console.error("[TheBar] get_bar_dashboard failed", res.error);
-          setFetchError(true);
+          // Last-resort: try direct table reads so the user still sees real stats.
+          const fb = await fetchFallback();
+          if (!active) return;
+          if (fb) {
+            apply(fb);
+          } else {
+            setFetchError(true);
+          }
           return;
         }
         apply(res.data);
