@@ -59,7 +59,7 @@ export default function VacancyTeaserStrip() {
         .select("*")
         .eq("status", "live")
         .gt("expires_at", new Date().toISOString())
-        .order("expires_at", { ascending: true })
+        .order("created_at", { ascending: false })
         .limit(8);
       if (cancelled) return;
       setVacancies((data ?? []) as Vacancy[]);
