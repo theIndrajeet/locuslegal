@@ -48,6 +48,7 @@ const AdminLayout = lazy(() => import("./components/admin/AdminLayout"));
 const Unsubscribe = lazy(routeImports.unsubscribe as never);
 const ApplicationTracker = lazy(routeImports.applicationTracker as never);
 const BetaChecklist = lazy(routeImports.betaChecklist as never);
+const BetaRound2 = lazy(routeImports.betaRound2 as never);
 const NotFound = lazy(routeImports.notFound as never);
 const DockLab = lazy(() => import("./pages/DockLab"));
 
@@ -146,6 +147,7 @@ const App = () => (
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/choose-username" element={<ChooseUsername />} />
                 <Route path="/beta" element={<BetaChecklist />} />
+                <Route path="/beta/round-2" element={<BetaRound2 />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>
