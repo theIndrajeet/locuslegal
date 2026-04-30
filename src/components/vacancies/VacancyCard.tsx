@@ -46,8 +46,18 @@ export default function VacancyCard({ vacancy, onApply, archived = false, applic
           <h3 className="font-heading text-lg md:text-xl font-extrabold tracking-tight text-foreground truncate">
             {vacancy.firm_name}
           </h3>
-          <p className="text-sm font-medium text-muted-foreground flex items-center gap-1.5 mt-0.5">
+          <p className="text-sm font-medium text-muted-foreground flex items-center gap-1.5 mt-0.5 flex-wrap">
             <Briefcase size={14} /> {vacancy.role}
+            <span
+              className={cn(
+                "ml-1 inline-flex items-center text-[10px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded-md border-2",
+                vacancy.opportunity_type === "job"
+                  ? "border-foreground/80 bg-background text-foreground"
+                  : "border-foreground/80 bg-accent text-accent-foreground",
+              )}
+            >
+              {vacancy.opportunity_type === "job" ? "Job" : "Internship"}
+            </span>
           </p>
         </div>
 
