@@ -4,6 +4,7 @@ import { Loader2, CheckCircle2, ArrowRight, ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { toast } from "@/components/ui/sonner";
@@ -55,38 +56,76 @@ export default function BetaRound2() {
   const [generalNotes, setGeneralNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [recoverEmail, setRecoverEmail] = useState("");
+  const [recovering, setRecovering] = useState(false);
 
   const draftKey = useMemo(
     () => (tester ? `${DRAFT_KEY_PREFIX}${tester.id}` : null),
     [tester],
   );
 
-  // Boot — restore tester and check eligibility
+  const applyTesterRow = (row: Tester | null) => {
+    if (!row) {
+      setEligible(false);
+      return false;
+    }
+    setTester(row);
+    const isEligible = !!row.submitted_at;
+    setEligible(isEligible);
+    if (row.round2_submitted_at) setSubmitted(true);
+    try {
+      localStorage.setItem(TESTER_STORAGE_KEY, row.id);
+    } catch {
+      /* ignore */
+    }
+    return isEligible;
+  };
+
+  // Boot — restore tester from localStorage, then ?as= fallback
   useEffect(() => {
     let active = true;
     (async () => {
       const storedId =
         typeof window !== "undefined" ? localStorage.getItem(TESTER_STORAGE_KEY) : null;
-      if (!storedId) {
-        if (active) {
-          setEligible(false);
+      if (storedId) {
+        const { data } = await supabase.rpc("get_beta_tester_self", { p_id: storedId });
+        const row = (Array.isArray(data) ? data[0] : data) as Tester | null;
+        if (!active) return;
+        if (row) {
+          applyTesterRow(row);
           setBootLoading(false);
+          return;
         }
-        return;
       }
-      const { data } = await supabase.rpc("get_beta_tester_self", { p_id: storedId });
-      const row = Array.isArray(data) ? data[0] : data;
-      if (!active) return;
-      if (!row) {
+
+      // Fallback: ?as=<email> recovery
+      const params = new URLSearchParams(
+        typeof window !== "undefined" ? window.location.search : "",
+      );
+      const asEmail = params.get("as")?.trim();
+      if (asEmail) {
+        const { data } = await supabase.rpc("find_round2_tester", { p_email: asEmail });
+        const row = (Array.isArray(data) ? data[0] : data) as Tester | null;
+        if (!active) return;
+        if (row) {
+          applyTesterRow(row);
+          // Clean URL so the email isn't kept around
+          try {
+            const url = new URL(window.location.href);
+            url.searchParams.delete("as");
+            window.history.replaceState({}, "", url.toString());
+          } catch {
+            /* ignore */
+          }
+          setBootLoading(false);
+          return;
+        }
+      }
+
+      if (active) {
         setEligible(false);
-      } else {
-        const t = row as Tester;
-        setTester(t);
-        const isEligible = !!t.submitted_at;
-        setEligible(isEligible);
-        if (t.round2_submitted_at) setSubmitted(true);
+        setBootLoading(false);
       }
-      setBootLoading(false);
     })();
     return () => {
       active = false;
@@ -187,6 +226,32 @@ export default function BetaRound2() {
     );
   }
 
+  const handleRecover = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const email = recoverEmail.trim();
+    if (!email) return;
+    setRecovering(true);
+    try {
+      const { data, error } = await supabase.rpc("find_round2_tester", { p_email: email });
+      if (error) throw error;
+      const row = (Array.isArray(data) ? data[0] : data) as Tester | null;
+      if (!row) {
+        toast("No match", {
+          description:
+            "We couldn't find a Founding Tester with that email who finished Round 1.",
+        });
+        return;
+      }
+      applyTesterRow(row);
+      toast(`Welcome back, ${row.display_name.split(" ")[0]}.`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Could not look you up";
+      toast("Lookup failed", { description: msg });
+    } finally {
+      setRecovering(false);
+    }
+  };
+
   // Not eligible — never claimed, or never submitted Round 1
   if (!eligible) {
     return (
@@ -209,6 +274,37 @@ export default function BetaRound2() {
           >
             Go to /beta <ArrowRight className="w-4 h-4" />
           </Link>
+
+          <div className="mt-8 pt-6 border-t border-border">
+            <p className="font-mono text-[11px] text-muted-foreground uppercase tracking-widest mb-3">
+              Already submitted Round 1?
+            </p>
+            <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
+              On a new device or browser? Enter the email you used and we'll restore your seat.
+            </p>
+            <form onSubmit={handleRecover} className="flex flex-col gap-2">
+              <Input
+                type="email"
+                value={recoverEmail}
+                onChange={(e) => setRecoverEmail(e.target.value)}
+                placeholder="you@example.com"
+                disabled={recovering}
+                className="border-2 border-foreground"
+                required
+              />
+              <Button
+                type="submit"
+                disabled={recovering || !recoverEmail.trim()}
+                className="border-2 border-foreground bg-yellow-400 text-foreground hover:bg-yellow-300 font-bold shadow-[3px_3px_0_0_hsl(var(--foreground))] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_0_hsl(var(--foreground))] transition"
+              >
+                {recovering ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>Recover access <ArrowRight className="w-4 h-4 ml-1" /></>
+                )}
+              </Button>
+            </form>
+          </div>
         </div>
       </main>
     );
