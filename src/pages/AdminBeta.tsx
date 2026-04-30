@@ -81,12 +81,16 @@ export default function AdminBeta() {
     if (!isAdmin) return;
     let mounted = true;
     (async () => {
-      const [feedbackRes, testersRes] = await Promise.all([
+      const [feedbackRes, testersRes, round2Res] = await Promise.all([
         supabase.from("beta_feedback").select("*").order("created_at", { ascending: false }),
         supabase
           .from("beta_testers")
-          .select("id, slot_number, display_name, code, email, is_public, claimed_at, submitted_at")
+          .select("id, slot_number, display_name, code, email, is_public, claimed_at, submitted_at, round2_submitted_at")
           .order("slot_number", { ascending: true }),
+        supabase
+          .from("beta_feedback_round2")
+          .select("id, tester_name, tester_email, nps_score, general_notes, responses, user_agent, created_at")
+          .order("created_at", { ascending: false }),
       ]);
       if (!mounted) return;
       if (feedbackRes.error) {
@@ -94,7 +98,15 @@ export default function AdminBeta() {
       } else {
         setRows((feedbackRes.data as FeedbackRow[]) ?? []);
       }
-      if (testersRes.data) setTesters(testersRes.data as TesterRow[]);
+      if (testersRes.data) {
+        setTesters(testersRes.data as TesterRow[]);
+        const r2map: Record<string, string> = {};
+        (testersRes.data as Array<TesterRow & { round2_submitted_at: string | null }>).forEach((t) => {
+          if (t.round2_submitted_at) r2map[t.id] = t.round2_submitted_at;
+        });
+        setRound2Submitted(r2map);
+      }
+      if (round2Res.data) setRound2Rows(round2Res.data as Round2Row[]);
       setLoading(false);
     })();
     return () => {
