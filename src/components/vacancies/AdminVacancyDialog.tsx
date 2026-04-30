@@ -100,14 +100,16 @@ export default function AdminVacancyDialog({ open, onOpenChange, initial, onSave
         eligibility: d.eligibility ?? "",
         stipend: d.stipend ?? "",
         description: d.description ?? "",
+        task_brief: d.task_brief ?? "",
         source_credit: d.source_credit ?? "",
       }));
       setStep("form");
       const typeLabel = detectedType === "job" ? "Job" : "Internship";
+      const taskNote = d.task_brief && d.task_brief.trim() ? " A written task was detected." : "";
       if (!d.application_email || !EMAIL_RE.test(d.application_email)) {
-        toast.warning(`Detected as ${typeLabel}. No valid email found — add one manually or reject.`);
+        toast.warning(`Detected as ${typeLabel}.${taskNote} No valid email found — add one manually or reject.`);
       } else {
-        toast.success(`Detected as ${typeLabel}. Review and save.`);
+        toast.success(`Detected as ${typeLabel}.${taskNote} Review and save.`);
       }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Extraction failed.");
@@ -142,6 +144,7 @@ export default function AdminVacancyDialog({ open, onOpenChange, initial, onSave
             eligibility: form.eligibility.trim() || null,
             stipend: form.stipend.trim() || null,
             description: form.description.trim() || null,
+            task_brief: form.task_brief.trim() || null,
             source_credit: form.source_credit.trim() || null,
             expires_at,
           })
@@ -160,6 +163,7 @@ export default function AdminVacancyDialog({ open, onOpenChange, initial, onSave
           eligibility: form.eligibility.trim() || null,
           stipend: form.stipend.trim() || null,
           description: form.description.trim() || null,
+          task_brief: form.task_brief.trim() || null,
           source_credit: form.source_credit.trim() || null,
           posted_at: now.toISOString(),
           expires_at,
