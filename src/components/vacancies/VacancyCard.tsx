@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Briefcase, MapPin, Coins, GraduationCap, Mail, AlertTriangle, Clock, ChevronDown, Check, RotateCw } from "lucide-react";
+import { Briefcase, MapPin, Coins, GraduationCap, Mail, AlertTriangle, Clock, ChevronDown, Check, RotateCw, ClipboardList } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,6 +21,8 @@ interface Props {
 
 export default function VacancyCard({ vacancy, onApply, archived = false, application }: Props) {
   const [expanded, setExpanded] = useState(false);
+  const [taskOpen, setTaskOpen] = useState(false);
+  const hasTask = !!vacancy.task_brief && vacancy.task_brief.trim().length > 0;
   const days = daysLeft(vacancy.expires_at);
   const tone = urgencyTone(days);
   const { label: countdownLabel, expired } = useCountdown(vacancy.expires_at);
