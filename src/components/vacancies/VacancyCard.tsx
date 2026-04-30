@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Briefcase, MapPin, Coins, GraduationCap, Mail, AlertTriangle, Clock, ChevronDown, Check, RotateCw } from "lucide-react";
+import { Briefcase, MapPin, Coins, GraduationCap, Mail, AlertTriangle, Clock, ChevronDown, Check, RotateCw, ClipboardList } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,6 +21,8 @@ interface Props {
 
 export default function VacancyCard({ vacancy, onApply, archived = false, application }: Props) {
   const [expanded, setExpanded] = useState(false);
+  const [taskOpen, setTaskOpen] = useState(false);
+  const hasTask = !!vacancy.task_brief && vacancy.task_brief.trim().length > 0;
   const days = daysLeft(vacancy.expires_at);
   const tone = urgencyTone(days);
   const { label: countdownLabel, expired } = useCountdown(vacancy.expires_at);
@@ -58,6 +60,12 @@ export default function VacancyCard({ vacancy, onApply, archived = false, applic
             >
               {vacancy.opportunity_type === "job" ? "Job" : "Internship"}
             </span>
+            {hasTask && (
+              <span className="ml-1 inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded-md border-2 border-foreground/80 bg-foreground text-background">
+                <ClipboardList size={10} />
+                Task required
+              </span>
+            )}
           </p>
         </div>
 
@@ -106,6 +114,33 @@ export default function VacancyCard({ vacancy, onApply, archived = false, applic
               <ChevronDown size={12} className={cn("transition-transform", expanded && "rotate-180")} />
             </button>
           )}
+        </div>
+      )}
+
+      {/* Required task — surfaced inline, not a PDF */}
+      {hasTask && (
+        <div className="mb-4 rounded-lg border-2 border-foreground/80 bg-accent/15 p-3 shadow-[3px_3px_0_0_hsl(var(--foreground))]">
+          <div className="flex items-center justify-between gap-2 mb-1.5">
+            <span className="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-foreground">
+              <ClipboardList size={13} />
+              Written task required to apply
+            </span>
+            {vacancy.task_brief!.length > 220 && (
+              <button
+                onClick={() => setTaskOpen((o) => !o)}
+                className="text-[11px] font-semibold text-accent hover:underline inline-flex items-center gap-1 shrink-0"
+              >
+                {taskOpen ? "Collapse" : "Expand"}
+                <ChevronDown size={11} className={cn("transition-transform", taskOpen && "rotate-180")} />
+              </button>
+            )}
+          </div>
+          <p className={cn("text-sm text-foreground whitespace-pre-wrap font-medium", !taskOpen && "line-clamp-4")}>
+            {vacancy.task_brief}
+          </p>
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-2 font-semibold">
+            Submit this with your application email — no PDF attached.
+          </p>
         </div>
       )}
 

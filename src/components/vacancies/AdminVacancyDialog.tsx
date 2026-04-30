@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Loader2, Sparkles, AlertTriangle, GraduationCap, Briefcase } from "lucide-react";
+import { Loader2, Sparkles, AlertTriangle, GraduationCap, Briefcase, ClipboardList } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -27,6 +27,7 @@ interface FormState {
   eligibility: string;
   stipend: string;
   description: string;
+  task_brief: string;
   source_credit: string;
   expires_in_days: number;
 }
@@ -35,7 +36,7 @@ const EMAIL_RE = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
 
 const blank = (): FormState => ({
   firm_name: "", role: "", opportunity_type: "internship", location: "", application_email: "",
-  eligibility: "", stipend: "", description: "", source_credit: "",
+  eligibility: "", stipend: "", description: "", task_brief: "", source_credit: "",
   expires_in_days: 5,
 });
 
@@ -62,6 +63,7 @@ export default function AdminVacancyDialog({ open, onOpenChange, initial, onSave
         eligibility: initial.eligibility ?? "",
         stipend: initial.stipend ?? "",
         description: initial.description ?? "",
+        task_brief: initial.task_brief ?? "",
         source_credit: initial.source_credit ?? "",
         expires_in_days: days,
       });
@@ -98,14 +100,16 @@ export default function AdminVacancyDialog({ open, onOpenChange, initial, onSave
         eligibility: d.eligibility ?? "",
         stipend: d.stipend ?? "",
         description: d.description ?? "",
+        task_brief: d.task_brief ?? "",
         source_credit: d.source_credit ?? "",
       }));
       setStep("form");
       const typeLabel = detectedType === "job" ? "Job" : "Internship";
+      const taskNote = d.task_brief && d.task_brief.trim() ? " A written task was detected." : "";
       if (!d.application_email || !EMAIL_RE.test(d.application_email)) {
-        toast.warning(`Detected as ${typeLabel}. No valid email found — add one manually or reject.`);
+        toast.warning(`Detected as ${typeLabel}.${taskNote} No valid email found — add one manually or reject.`);
       } else {
-        toast.success(`Detected as ${typeLabel}. Review and save.`);
+        toast.success(`Detected as ${typeLabel}.${taskNote} Review and save.`);
       }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Extraction failed.");
@@ -140,6 +144,7 @@ export default function AdminVacancyDialog({ open, onOpenChange, initial, onSave
             eligibility: form.eligibility.trim() || null,
             stipend: form.stipend.trim() || null,
             description: form.description.trim() || null,
+            task_brief: form.task_brief.trim() || null,
             source_credit: form.source_credit.trim() || null,
             expires_at,
           })
@@ -158,6 +163,7 @@ export default function AdminVacancyDialog({ open, onOpenChange, initial, onSave
           eligibility: form.eligibility.trim() || null,
           stipend: form.stipend.trim() || null,
           description: form.description.trim() || null,
+          task_brief: form.task_brief.trim() || null,
           source_credit: form.source_credit.trim() || null,
           posted_at: now.toISOString(),
           expires_at,
@@ -316,6 +322,24 @@ export default function AdminVacancyDialog({ open, onOpenChange, initial, onSave
                   maxLength={800}
                 />
                 <p className="text-xs text-muted-foreground mt-1">{form.description.length} / 800</p>
+              </div>
+
+              <div className="rounded-md border-2 border-dashed border-foreground/30 bg-accent/5 p-3">
+                <Label className="flex items-center gap-2 font-extrabold uppercase tracking-wide text-xs">
+                  <ClipboardList size={14} className="text-accent" />
+                  Required task / assignment (optional)
+                </Label>
+                <p className="text-[11px] text-muted-foreground mt-1 mb-2">
+                  Paste the written task the firm wants applicants to submit (research note prompt, sample drafting question, etc.). Shown inline on the card — no PDF needed.
+                </p>
+                <Textarea
+                  value={form.task_brief}
+                  onChange={(e) => update("task_brief", e.target.value)}
+                  className="min-h-[100px]"
+                  placeholder='e.g. "Submit a 500-word note on Section 9 arbitration interim relief, citing 3 recent SC judgments."'
+                  maxLength={2000}
+                />
+                <p className="text-xs text-muted-foreground mt-1">{form.task_brief.length} / 2000</p>
               </div>
 
               <div>

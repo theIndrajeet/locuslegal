@@ -1173,6 +1173,7 @@ export type Database = {
           source_credit: string | null
           status: Database["public"]["Enums"]["vacancy_status"]
           stipend: string | null
+          task_brief: string | null
           updated_at: string
         }
         Insert: {
@@ -1192,6 +1193,7 @@ export type Database = {
           source_credit?: string | null
           status?: Database["public"]["Enums"]["vacancy_status"]
           stipend?: string | null
+          task_brief?: string | null
           updated_at?: string
         }
         Update: {
@@ -1211,6 +1213,7 @@ export type Database = {
           source_credit?: string | null
           status?: Database["public"]["Enums"]["vacancy_status"]
           stipend?: string | null
+          task_brief?: string | null
           updated_at?: string
         }
         Relationships: []
