@@ -205,6 +205,19 @@ export default function TheBar() {
           />
         )}
 
+        {!isGuest && fetchError && !loading && (
+          <div className="text-xs text-muted-foreground flex items-center gap-2">
+            <span>Couldn't refresh stats.</span>
+            <button
+              type="button"
+              onClick={() => setRefetchTick((t) => t + 1)}
+              className="underline font-semibold text-foreground hover:text-accent"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
 
         {/* Overall rank pill — logged-in users with attempts only */}
         {!isGuest && !loading && overallRank !== null && (
