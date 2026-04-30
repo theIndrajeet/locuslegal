@@ -106,7 +106,27 @@ Deno.serve(async (req) => {
     if (page > 50) break // safety: max 50k users
   }
 
-  // De-duplicate.
+  // Also include waitlist emails (people who signed up for updates but
+  // never created an account). They're expecting product news from Locus.
+  try {
+    const { data: waitlistRows, error: wlErr } = await admin
+      .from('waitlist_submissions')
+      .select('email')
+    if (wlErr) {
+      console.warn('waitlist fetch failed (continuing without):', wlErr.message)
+    } else {
+      for (const row of waitlistRows || []) {
+        const e = (row as any)?.email
+        if (typeof e === 'string' && e.includes('@')) {
+          recipients.push(e.toLowerCase().trim())
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('waitlist fetch threw (continuing without):', e)
+  }
+
+  // De-duplicate (handles overlap between auth.users and waitlist).
   const unique = Array.from(new Set(recipients))
 
   // 4. Filter out suppressed addresses.
