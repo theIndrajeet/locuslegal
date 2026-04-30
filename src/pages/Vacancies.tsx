@@ -6,7 +6,8 @@ import { useAuthSession } from "@/hooks/useAuthSession";
 import VacancyCard from "@/components/vacancies/VacancyCard";
 import DirectoryTeaser from "@/components/vacancies/DirectoryTeaser";
 import DraftEmailDialog, { type DraftEmailTarget } from "@/components/apply/DraftEmailDialog";
-import { type Vacancy, type VacancyApplication } from "@/lib/vacancies";
+import { type Vacancy, type VacancyApplication, type VacancyOpportunityType } from "@/lib/vacancies";
+import { cn } from "@/lib/utils";
 
 export default function Vacancies() {
   usePageMeta({
@@ -18,6 +19,7 @@ export default function Vacancies() {
   const { userId } = useAuthSession();
   const [vacancies, setVacancies] = useState<Vacancy[]>([]);
   const [loading, setLoading] = useState(true);
+  const [typeFilter, setTypeFilter] = useState<"all" | VacancyOpportunityType>("all");
   const [draftFor, setDraftFor] = useState<{ vacancy: Vacancy; followup: boolean } | null>(null);
   const [draftOpen, setDraftOpen] = useState(false);
   // Map vacancy.id -> latest application meta for the signed-in user
@@ -109,14 +111,24 @@ export default function Vacancies() {
     if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [loading]);
 
+  const filtered = useMemo(
+    () => (typeFilter === "all" ? vacancies : vacancies.filter((v) => v.opportunity_type === typeFilter)),
+    [vacancies, typeFilter],
+  );
   const live = useMemo(
-    () => vacancies.filter((v) => v.status === "live" && new Date(v.expires_at).getTime() > Date.now()),
-    [vacancies],
+    () => filtered.filter((v) => v.status === "live" && new Date(v.expires_at).getTime() > Date.now()),
+    [filtered],
   );
   const archived = useMemo(
-    () => vacancies.filter((v) => !(v.status === "live" && new Date(v.expires_at).getTime() > Date.now())),
-    [vacancies],
+    () => filtered.filter((v) => !(v.status === "live" && new Date(v.expires_at).getTime() > Date.now())),
+    [filtered],
   );
+
+  const counts = useMemo(() => ({
+    all: vacancies.length,
+    internship: vacancies.filter((v) => v.opportunity_type === "internship").length,
+    job: vacancies.filter((v) => v.opportunity_type === "job").length,
+  }), [vacancies]);
 
   const handleApply = (v: Vacancy, opts?: { followup?: boolean }) => {
     setDraftFor({ vacancy: v, followup: !!opts?.followup });
