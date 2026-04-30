@@ -69,18 +69,16 @@ export default function Directory() {
   const [mode, setMode] = useState<Mode>(initialMode);
   const initialChannel: Channel = searchParams.get("channel") === "phone" ? "phone" : "email";
   const [channel, setChannel] = useState<Channel>(initialChannel);
-  const [verifiedOnly, setVerifiedOnly] = useState(searchParams.get("verified") === "1");
   useEffect(() => {
     const next = new URLSearchParams(searchParams);
     if (mode === "startups") next.set("mode", "startups");
     else next.delete("mode");
     if (mode === "firms" && channel === "phone") next.set("channel", "phone");
     else next.delete("channel");
-    if (mode === "firms" && verifiedOnly) next.set("verified", "1");
-    else next.delete("verified");
+    next.delete("verified");
     setSearchParams(next, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, channel, verifiedOnly]);
+  }, [mode, channel]);
 
   const initialQ = searchParams.get("q") ?? "";
   const [searchInput, setSearchInput] = useState(initialQ);
