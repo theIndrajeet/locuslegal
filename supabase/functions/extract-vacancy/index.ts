@@ -7,16 +7,20 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const SYSTEM_PROMPT = `You extract structured legal-internship vacancy details from messy raw text shared by a curator (often a screenshot OCR, a WhatsApp forward, or a LinkedIn post).
+const SYSTEM_PROMPT = `You extract structured legal vacancy details from messy raw text shared by a curator (often a screenshot OCR, a WhatsApp forward, or a LinkedIn post).
 
 CRITICAL:
 - Output ONLY via the provided extract_vacancy tool.
 - application_email is REQUIRED. If the source has no email address (only a form link, only a phone number, only "DM us"), set application_email to "" — the admin UI will reject it.
 - Do NOT invent or guess an email. Pick only what's literally in the text.
 - firm_name and role are required. If unclear, infer the cleanest short version.
+- opportunity_type is REQUIRED. Classify as one of:
+    * "internship" — time-bound, often for law students. Signals: words like "intern", "internship", "clerkship", "summer position", "X-week assessment", "trainee", "law student", "currently in 3rd/4th/5th year", small/no stipend, short defined duration.
+    * "job" — open-ended employment for qualified lawyers. Signals: "associate", "lawyer", "counsel", "lateral hire", "full-time", "PQE", "X years experience required", a CTC/salary instead of stipend, "qualified advocate".
+  When the signals genuinely conflict, prefer "internship" (the curator is internship-focused) but lean "job" if the post explicitly demands prior years of experience or post-qualification.
 - description: keep the freeform body the curator wrote (instructions, eligibility specifics, deadlines mentioned in prose). Strip emojis. Strip "DM me", "comment 'interested'", or any non-email instructions. Max 800 chars.
-- eligibility: a one-line summary like "3rd-5th year, NLU only" or "All law students" — null if not specified.
-- stipend: free-form, null if not stated.
+- eligibility: a one-line summary like "3rd-5th year, NLU only" or "2-4 PQE, litigation background" — null if not specified.
+- stipend: free-form (covers stipend OR salary/CTC), null if not stated.
 - location: city only, null if remote/unspecified.
 - source_credit: capture an attribution like "via @handle" or "shared by Jane" if present, else null.
 
@@ -101,6 +105,7 @@ serve(async (req) => {
               properties: {
                 firm_name: { type: "string" },
                 role: { type: "string" },
+                opportunity_type: { type: "string", enum: ["internship", "job"], description: "internship for law-student postings; job for qualified-lawyer roles." },
                 location: { type: ["string", "null"] },
                 application_email: { type: "string", description: "Empty string if none found." },
                 eligibility: { type: ["string", "null"] },
@@ -108,7 +113,7 @@ serve(async (req) => {
                 description: { type: ["string", "null"] },
                 source_credit: { type: ["string", "null"] },
               },
-              required: ["firm_name", "role", "application_email"],
+              required: ["firm_name", "role", "application_email", "opportunity_type"],
               additionalProperties: false,
             },
           },
@@ -154,9 +159,13 @@ serve(async (req) => {
       return t ? t.slice(0, max) : null;
     };
 
+    const rawType = typeof parsed.opportunity_type === "string" ? parsed.opportunity_type.toLowerCase().trim() : "";
+    const opportunity_type: "internship" | "job" = rawType === "job" ? "job" : "internship";
+
     return new Response(JSON.stringify({
       firm_name: clean(parsed.firm_name, 200) ?? "",
       role: clean(parsed.role, 200) ?? "",
+      opportunity_type,
       location: clean(parsed.location, 100),
       application_email: clean(parsed.application_email, 200) ?? "",
       eligibility: clean(parsed.eligibility, 200),

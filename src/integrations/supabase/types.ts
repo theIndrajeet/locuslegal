@@ -1167,6 +1167,7 @@ export type Database = {
           id: string
           location: string | null
           notified_at: string | null
+          opportunity_type: Database["public"]["Enums"]["vacancy_opportunity_type"]
           posted_at: string
           role: string
           source_credit: string | null
@@ -1185,6 +1186,7 @@ export type Database = {
           id?: string
           location?: string | null
           notified_at?: string | null
+          opportunity_type?: Database["public"]["Enums"]["vacancy_opportunity_type"]
           posted_at?: string
           role: string
           source_credit?: string | null
@@ -1203,6 +1205,7 @@ export type Database = {
           id?: string
           location?: string | null
           notified_at?: string | null
+          opportunity_type?: Database["public"]["Enums"]["vacancy_opportunity_type"]
           posted_at?: string
           role?: string
           source_credit?: string | null
@@ -1552,6 +1555,7 @@ export type Database = {
         | "quarter_finalist"
         | "participant"
       moot_role: "speaker" | "researcher" | "both"
+      vacancy_opportunity_type: "internship" | "job"
       vacancy_status: "live" | "archived" | "deleted"
     }
     CompositeTypes: {
@@ -1771,6 +1775,7 @@ export const Constants = {
         "participant",
       ],
       moot_role: ["speaker", "researcher", "both"],
+      vacancy_opportunity_type: ["internship", "job"],
       vacancy_status: ["live", "archived", "deleted"],
     },
   },

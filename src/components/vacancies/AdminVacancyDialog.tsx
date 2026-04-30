@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Loader2, Sparkles, AlertTriangle } from "lucide-react";
+import { Loader2, Sparkles, AlertTriangle, GraduationCap, Briefcase } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { type Vacancy } from "@/lib/vacancies";
+import { cn } from "@/lib/utils";
+import { type Vacancy, type VacancyOpportunityType } from "@/lib/vacancies";
 
 interface Props {
   open: boolean;
@@ -20,6 +21,7 @@ interface Props {
 interface FormState {
   firm_name: string;
   role: string;
+  opportunity_type: VacancyOpportunityType;
   location: string;
   application_email: string;
   eligibility: string;
@@ -32,7 +34,7 @@ interface FormState {
 const EMAIL_RE = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
 
 const blank = (): FormState => ({
-  firm_name: "", role: "", location: "", application_email: "",
+  firm_name: "", role: "", opportunity_type: "internship", location: "", application_email: "",
   eligibility: "", stipend: "", description: "", source_credit: "",
   expires_in_days: 5,
 });
@@ -54,6 +56,7 @@ export default function AdminVacancyDialog({ open, onOpenChange, initial, onSave
       setForm({
         firm_name: initial.firm_name,
         role: initial.role,
+        opportunity_type: initial.opportunity_type ?? "internship",
         location: initial.location ?? "",
         application_email: initial.application_email,
         eligibility: initial.eligibility ?? "",
@@ -83,11 +86,13 @@ export default function AdminVacancyDialog({ open, onOpenChange, initial, onSave
         toast.error(error.message ?? "Couldn't extract.");
         return;
       }
-      const d = data as Partial<FormState> & { application_email?: string };
+      const d = data as Partial<FormState> & { application_email?: string; opportunity_type?: string };
+      const detectedType: VacancyOpportunityType = d.opportunity_type === "job" ? "job" : "internship";
       setForm((f) => ({
         ...f,
         firm_name: d.firm_name ?? "",
         role: d.role ?? "",
+        opportunity_type: detectedType,
         location: d.location ?? "",
         application_email: d.application_email ?? "",
         eligibility: d.eligibility ?? "",
@@ -96,10 +101,11 @@ export default function AdminVacancyDialog({ open, onOpenChange, initial, onSave
         source_credit: d.source_credit ?? "",
       }));
       setStep("form");
+      const typeLabel = detectedType === "job" ? "Job" : "Internship";
       if (!d.application_email || !EMAIL_RE.test(d.application_email)) {
-        toast.warning("No valid email found in the source. Add one manually or reject this posting.");
+        toast.warning(`Detected as ${typeLabel}. No valid email found — add one manually or reject.`);
       } else {
-        toast.success("Extracted. Review and save.");
+        toast.success(`Detected as ${typeLabel}. Review and save.`);
       }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Extraction failed.");
@@ -128,6 +134,7 @@ export default function AdminVacancyDialog({ open, onOpenChange, initial, onSave
           .update({
             firm_name: form.firm_name.trim(),
             role: form.role.trim(),
+            opportunity_type: form.opportunity_type,
             location: form.location.trim() || null,
             application_email: email,
             eligibility: form.eligibility.trim() || null,
@@ -145,6 +152,7 @@ export default function AdminVacancyDialog({ open, onOpenChange, initial, onSave
         const { error } = await supabase.from("vacancies").insert({
           firm_name: form.firm_name.trim(),
           role: form.role.trim(),
+          opportunity_type: form.opportunity_type,
           location: form.location.trim() || null,
           application_email: email,
           eligibility: form.eligibility.trim() || null,
@@ -216,6 +224,32 @@ export default function AdminVacancyDialog({ open, onOpenChange, initial, onSave
         ) : (
           <>
             <div className="space-y-3">
+              <div>
+                <Label>Type *</Label>
+                <div className="grid grid-cols-2 gap-2 mt-1">
+                  {(["internship", "job"] as const).map((t) => {
+                    const Icon = t === "internship" ? GraduationCap : Briefcase;
+                    const active = form.opportunity_type === t;
+                    return (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => update("opportunity_type", t)}
+                        className={cn(
+                          "flex items-center justify-center gap-2 py-2 rounded-md border-2 font-bold text-sm uppercase tracking-wide transition-all",
+                          active
+                            ? "border-foreground bg-accent text-accent-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))]"
+                            : "border-border bg-background text-muted-foreground hover:border-foreground/60",
+                        )}
+                      >
+                        <Icon size={14} />
+                        {t === "internship" ? "Internship" : "Job"}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
                   <Label>Firm name *</Label>

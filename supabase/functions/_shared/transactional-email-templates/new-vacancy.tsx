@@ -70,8 +70,10 @@ const NewVacancyEmail = ({
 
 export const template = {
   component: NewVacancyEmail,
-  subject: (data: Record<string, any>) =>
-    `New vacancy at ${data?.firmName || 'a top firm'} — ${data?.role || 'Internship'}`,
+  subject: (data: Record<string, any>) => {
+    const noun = data?.opportunityType === 'job' ? 'job' : 'internship';
+    return `New ${noun} at ${data?.firmName || 'a top firm'} — ${data?.role || (noun === 'job' ? 'Open role' : 'Internship')}`;
+  },
   displayName: 'New vacancy alert',
   previewData: {
     firmName: 'AZB & Partners',

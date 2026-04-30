@@ -165,6 +165,15 @@ function Row({
         <div className="flex items-center gap-2 flex-wrap">
           <span className="font-heading font-extrabold truncate">{v.firm_name}</span>
           <span className="text-muted-foreground text-sm">— {v.role}</span>
+          <span
+            className={`text-[10px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded-md border ${
+              v.opportunity_type === "job"
+                ? "border-foreground/60 bg-background text-foreground"
+                : "border-foreground/60 bg-accent text-accent-foreground"
+            }`}
+          >
+            {v.opportunity_type === "job" ? "Job" : "Internship"}
+          </span>
           {!archived && (
             <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-accent text-accent-foreground">
               {d}d left

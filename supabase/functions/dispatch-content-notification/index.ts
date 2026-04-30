@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
     table = 'vacancies'
     const { data: v } = await admin
       .from('vacancies')
-      .select('id, firm_name, role, location, stipend, description, status, notified_at')
+      .select('id, firm_name, role, location, stipend, description, status, notified_at, opportunity_type')
       .eq('id', id)
       .maybeSingle()
     if (!v) return json({ error: 'vacancy not found' }, 404)
@@ -80,6 +80,7 @@ Deno.serve(async (req) => {
     templateData = {
       firmName: v.firm_name,
       role: v.role,
+      opportunityType: v.opportunity_type || 'internship',
       location: v.location || undefined,
       stipend: v.stipend || undefined,
       description: v.description || undefined,
