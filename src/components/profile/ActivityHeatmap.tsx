@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -47,6 +47,7 @@ function intensityClass(count: number): string {
 export default function ActivityHeatmap({ userId }: Props) {
   const [rows, setRows] = useState<ActivityRow[] | null>(null);
   const [loading, setLoading] = useState(true);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let mounted = true;
