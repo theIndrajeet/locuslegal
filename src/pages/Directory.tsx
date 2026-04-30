@@ -315,6 +315,37 @@ export default function Directory() {
         </Link>
       </section>
 
+      {/* Channel toggle — sits directly above the search/filters */}
+      <section className="container mx-auto px-4 md:px-8 mb-3">
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <div className="inline-flex items-stretch border-2 border-foreground bg-card shadow-[3px_3px_0_0_hsl(var(--foreground))]">
+            <button
+              onClick={() => setChannel("email")}
+              className={`flex items-center gap-2 px-4 py-2.5 text-sm font-bold transition-colors ${
+                channel === "email" ? "bg-accent text-accent-foreground" : "text-foreground hover:bg-muted"
+              }`}
+            >
+              <Mail size={14} /> Mail Now
+              <span className="font-mono text-[11px] opacity-80">· {mailNowCount.toLocaleString()}</span>
+            </button>
+            <button
+              onClick={() => setChannel("phone")}
+              className={`flex items-center gap-2 px-4 py-2.5 text-sm font-bold border-l-2 border-foreground transition-colors ${
+                channel === "phone" ? "bg-accent text-accent-foreground" : "text-foreground hover:bg-muted"
+              }`}
+            >
+              <Phone size={14} /> Cold Call
+              <span className="font-mono text-[11px] opacity-80">· {coldCallCount.toLocaleString()}</span>
+            </button>
+          </div>
+        </div>
+        <p className="text-center text-xs text-muted-foreground mt-2">
+          {channel === "email"
+            ? "Firms with a public email — best matched to the cold-mail playbook."
+            : "Phone-only firms — best for ground-level cold calling."}
+        </p>
+      </section>
+
       {/* Filters — single line */}
       <FilterBar
         searchInput={searchInput}
