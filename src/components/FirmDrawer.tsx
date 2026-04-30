@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Star, MapPin, Phone, Mail, ExternalLink, Building2, Sparkles } from "lucide-react";
+import { Star, MapPin, Phone, Mail, ExternalLink, Sparkles, ShieldCheck, Eye, MessageSquarePlus } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -7,11 +7,14 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import DraftEmailDialog, { type DraftEmailTarget } from "@/components/apply/DraftEmailDialog";
+import SuggestFixDialog from "@/components/directory/SuggestFixDialog";
 
 type FirmType = "Law Firm" | "Chamber" | "Individual Advocate";
 
 interface Firm {
+  id?: string;
   name: string;
   address?: string;
   city?: string;
@@ -20,6 +23,9 @@ interface Firm {
   rating?: number | string;
   phone?: string;
   email?: string;
+  verified?: string;
+  verificationNote?: string;
+  channel?: string;
 }
 
 interface FirmDrawerProps {
@@ -31,6 +37,7 @@ interface FirmDrawerProps {
 
 export default function FirmDrawer({ firm, type, open, onOpenChange }: FirmDrawerProps) {
   const [draftOpen, setDraftOpen] = useState(false);
+  const [suggestOpen, setSuggestOpen] = useState(false);
 
   if (!firm) return null;
 
@@ -49,6 +56,9 @@ export default function FirmDrawer({ firm, type, open, onOpenChange }: FirmDrawe
         practice_areas: type,
       }
     : null;
+
+  const isVerified = firm.verified === "verified";
+  const isLikely = firm.verified === "likely";
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -75,6 +85,33 @@ export default function FirmDrawer({ firm, type, open, onOpenChange }: FirmDrawe
               </span>
             )}
           </div>
+
+          {/* Verification */}
+          {(isVerified || isLikely) && (
+            <TooltipProvider delayDuration={150}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg border-2 cursor-help ${
+                      isVerified
+                        ? "border-foreground bg-accent text-accent-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))]"
+                        : "border-border bg-muted/40 text-foreground"
+                    }`}
+                  >
+                    {isVerified ? <ShieldCheck size={16} /> : <Eye size={16} className="text-muted-foreground" />}
+                    <span className="text-xs font-bold">
+                      {isVerified ? "Independently verified" : "Listed source"}
+                    </span>
+                  </div>
+                </TooltipTrigger>
+                {firm.verificationNote && (
+                  <TooltipContent className="max-w-xs">
+                    <p className="text-xs">{firm.verificationNote}</p>
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
+          )}
 
           {/* Address */}
           {firm.address && (
@@ -103,7 +140,7 @@ export default function FirmDrawer({ firm, type, open, onOpenChange }: FirmDrawe
                 {firm.phone}
               </a>
             )}
-            {firm.email && (
+            {firm.email ? (
               <a
                 href={`mailto:${firm.email}`}
                 className="flex items-center gap-3 text-sm text-foreground hover:text-accent transition-colors group"
@@ -113,7 +150,9 @@ export default function FirmDrawer({ firm, type, open, onOpenChange }: FirmDrawe
                 </div>
                 <span className="truncate">{firm.email}</span>
               </a>
-            )}
+            ) : firm.phone ? (
+              <p className="text-xs text-muted-foreground italic pl-1">No public email — best reached by phone.</p>
+            ) : null}
             {!firm.phone && !firm.email && (
               <p className="text-sm text-muted-foreground">No contact information available.</p>
             )}
@@ -147,10 +186,23 @@ export default function FirmDrawer({ firm, type, open, onOpenChange }: FirmDrawe
               </a>
             )}
           </div>
+
+          {/* Suggest a fix */}
+          <div className="pt-3 border-t border-border/40">
+            <button
+              type="button"
+              onClick={() => setSuggestOpen(true)}
+              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-accent transition-colors mx-auto"
+            >
+              <MessageSquarePlus size={12} />
+              Something wrong? Suggest a fix
+            </button>
+          </div>
         </div>
       </SheetContent>
 
       <DraftEmailDialog open={draftOpen} onOpenChange={setDraftOpen} target={draftTarget} />
+      <SuggestFixDialog firm={firm} open={suggestOpen} onOpenChange={setSuggestOpen} />
     </Sheet>
   );
 }
