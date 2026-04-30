@@ -164,7 +164,7 @@ export default function Directory() {
   // Reset page on filter change
   useEffect(() => {
     setPage(1);
-  }, [search, city, area, tier, type, sort, channel, verifiedOnly]);
+  }, [search, city, area, tier, type, sort, channel]);
 
   const totalPages = Math.ceil(sorted.length / PAGE_SIZE);
   const paginated = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
