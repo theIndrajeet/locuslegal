@@ -464,6 +464,12 @@ export default function BetaChecklist() {
               ? "Your name's on the Founding Tester board — that won't ever come off."
               : "You stayed anonymous, but the badge is still yours."}
           </p>
+          <a
+            href="/beta/round-2"
+            className="inline-flex items-center gap-2 px-4 py-2.5 mb-6 border-2 border-foreground bg-yellow-400 text-background font-bold text-sm shadow-[3px_3px_0_0_hsl(var(--foreground))] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_0_hsl(var(--foreground))] transition"
+          >
+            Open Round 2 <ArrowRight className="w-4 h-4" />
+          </a>
           <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">
             {totalSubmitted} of {totalClaimed} have submitted
           </p>
