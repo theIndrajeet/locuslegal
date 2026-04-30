@@ -36,7 +36,7 @@ const EMAIL_RE = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
 
 const blank = (): FormState => ({
   firm_name: "", role: "", opportunity_type: "internship", location: "", application_email: "",
-  eligibility: "", stipend: "", description: "", source_credit: "",
+  eligibility: "", stipend: "", description: "", task_brief: "", source_credit: "",
   expires_in_days: 5,
 });
 
@@ -63,6 +63,7 @@ export default function AdminVacancyDialog({ open, onOpenChange, initial, onSave
         eligibility: initial.eligibility ?? "",
         stipend: initial.stipend ?? "",
         description: initial.description ?? "",
+        task_brief: initial.task_brief ?? "",
         source_credit: initial.source_credit ?? "",
         expires_in_days: days,
       });
