@@ -142,7 +142,7 @@ export default function Directory() {
     });
   }, [search, city, area, tier, type, channel]);
 
-  // Sorted (verified firms float to top within current sort; tier ascending by default)
+  // Sorted — tier is the primary key; verified only floats within the same tier
   const sorted = useMemo(() => {
     const arr = [...filtered];
     const verifiedWeight = (f: typeof firms[0]) => ((f as { verified?: string }).verified === "verified" ? 1 : 0);
@@ -155,17 +155,25 @@ export default function Directory() {
     };
     switch (sort) {
       case "rating-desc":
-        return arr.sort((a, b) => (verifiedWeight(b) - verifiedWeight(a)) || ((Number(b.rating) || 0) - (Number(a.rating) || 0)));
+        return arr.sort((a, b) =>
+          (tierWeight(a) - tierWeight(b)) ||
+          (verifiedWeight(b) - verifiedWeight(a)) ||
+          ((Number(b.rating) || 0) - (Number(a.rating) || 0))
+        );
       case "name-asc":
-        return arr.sort((a, b) => (verifiedWeight(b) - verifiedWeight(a)) || a.name.localeCompare(b.name));
+        return arr.sort((a, b) => a.name.localeCompare(b.name));
       case "name-desc":
-        return arr.sort((a, b) => (verifiedWeight(b) - verifiedWeight(a)) || b.name.localeCompare(a.name));
+        return arr.sort((a, b) => b.name.localeCompare(a.name));
       case "tier":
-        return arr.sort((a, b) => (verifiedWeight(b) - verifiedWeight(a)) || (tierWeight(a) - tierWeight(b)) || a.name.localeCompare(b.name));
+        return arr.sort((a, b) =>
+          (tierWeight(a) - tierWeight(b)) ||
+          (verifiedWeight(b) - verifiedWeight(a)) ||
+          a.name.localeCompare(b.name)
+        );
       default:
         return arr.sort((a, b) =>
-          (verifiedWeight(b) - verifiedWeight(a)) ||
           (tierWeight(a) - tierWeight(b)) ||
+          (verifiedWeight(b) - verifiedWeight(a)) ||
           ((Number(b.rating) || 0) - (Number(a.rating) || 0)) ||
           a.name.localeCompare(b.name)
         );
