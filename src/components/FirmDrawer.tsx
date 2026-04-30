@@ -187,15 +187,31 @@ export default function FirmDrawer({ firm, type, open, onOpenChange }: FirmDrawe
             )}
           </div>
 
-          {/* Suggest a fix */}
-          <div className="pt-3 border-t border-border/40">
+          {/* Suggest a fix — prominent neobrutalist call-out */}
+          <div className="pt-4 border-t-2 border-foreground/20">
             <button
               type="button"
               onClick={() => setSuggestOpen(true)}
-              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-accent transition-colors mx-auto"
+              className="w-full text-left bg-card border-2 border-foreground rounded-lg p-3 shadow-[3px_3px_0_0_hsl(var(--foreground))] hover:shadow-[4px_4px_0_0_hsl(var(--accent))] hover:border-accent transition-all group"
             >
-              <MessageSquarePlus size={12} />
-              Something wrong? Suggest a fix
+              <div className="flex items-center gap-2 mb-2">
+                <span className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-accent text-accent-foreground border-2 border-foreground">
+                  <MessageSquarePlus size={14} />
+                </span>
+                <span className="font-bold text-sm text-foreground">Spot something wrong? Help us fix it</span>
+              </div>
+              <p className="text-xs text-muted-foreground mb-2 leading-relaxed">
+                You can suggest corrections for:
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                <span className="inline-flex items-center px-2 py-0.5 text-[11px] font-bold rounded-full bg-muted border border-foreground/30">Wrong email</span>
+                <span className="inline-flex items-center px-2 py-0.5 text-[11px] font-bold rounded-full bg-muted border border-foreground/30">Tier (1-4)</span>
+                <span className="inline-flex items-center px-2 py-0.5 text-[11px] font-bold rounded-full bg-muted border border-foreground/30">Phone number</span>
+                <span className="inline-flex items-center px-2 py-0.5 text-[11px] font-bold rounded-full bg-muted border border-foreground/30">Closed firm</span>
+              </div>
+              <p className="text-[11px] text-accent font-bold mt-2 group-hover:underline">
+                Suggest a fix →
+              </p>
             </button>
           </div>
         </div>
