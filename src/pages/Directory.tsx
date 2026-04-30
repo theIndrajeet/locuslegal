@@ -161,16 +161,7 @@ export default function Directory() {
         return arr.sort((a, b) => verifiedWeight(b) - verifiedWeight(a));
     }
   }, [filtered, sort]);
-      case "name-asc":
-        return arr.sort((a, b) => a.name.localeCompare(b.name));
-      case "name-desc":
-        return arr.sort((a, b) => b.name.localeCompare(a.name));
-      case "tier":
-        return arr.sort((a, b) => (a.tier || "").localeCompare(b.tier || ""));
-      default:
-        return arr;
-    }
-  }, [filtered, sort]);
+
 
   // Reset page on filter change
   useEffect(() => {
