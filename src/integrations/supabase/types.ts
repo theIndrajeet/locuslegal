@@ -523,6 +523,42 @@ export type Database = {
           },
         ]
       }
+      beta_feedback_round2: {
+        Row: {
+          created_at: string
+          general_notes: string | null
+          id: string
+          nps_score: number | null
+          responses: Json
+          tester_email: string | null
+          tester_id: string | null
+          tester_name: string
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string
+          general_notes?: string | null
+          id?: string
+          nps_score?: number | null
+          responses?: Json
+          tester_email?: string | null
+          tester_id?: string | null
+          tester_name: string
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string
+          general_notes?: string | null
+          id?: string
+          nps_score?: number | null
+          responses?: Json
+          tester_email?: string | null
+          tester_id?: string | null
+          tester_name?: string
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       beta_testers: {
         Row: {
           claimed_at: string
@@ -535,6 +571,7 @@ export type Database = {
           intro_line_index: number
           is_public: boolean
           personal_note: string | null
+          round2_submitted_at: string | null
           slot_number: number
           submitted_at: string | null
           user_id: string | null
@@ -550,6 +587,7 @@ export type Database = {
           intro_line_index?: number
           is_public?: boolean
           personal_note?: string | null
+          round2_submitted_at?: string | null
           slot_number: number
           submitted_at?: string | null
           user_id?: string | null
@@ -565,6 +603,7 @@ export type Database = {
           intro_line_index?: number
           is_public?: boolean
           personal_note?: string | null
+          round2_submitted_at?: string | null
           slot_number?: number
           submitted_at?: string | null
           user_id?: string | null
@@ -1253,6 +1292,7 @@ export type Database = {
           intro_line_index: number
           is_public: boolean
           personal_note: string | null
+          round2_submitted_at: string | null
           slot_number: number
           submitted_at: string | null
           user_id: string | null
@@ -1291,6 +1331,7 @@ export type Database = {
           intro_line_index: number
           is_public: boolean
           personal_note: string | null
+          round2_submitted_at: string | null
           slot_number: number
           submitted_at: string | null
           user_id: string | null
@@ -1343,6 +1384,10 @@ export type Database = {
       }
       increment_visit_count: { Args: never; Returns: number }
       is_admin: { Args: { uid: string }; Returns: boolean }
+      mark_beta_tester_round2_submitted: {
+        Args: { p_id: string }
+        Returns: undefined
+      }
       mark_beta_tester_submitted: { Args: { p_id: string }; Returns: undefined }
       move_to_dlq: {
         Args: {
