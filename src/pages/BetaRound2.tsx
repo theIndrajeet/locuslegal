@@ -56,38 +56,76 @@ export default function BetaRound2() {
   const [generalNotes, setGeneralNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [recoverEmail, setRecoverEmail] = useState("");
+  const [recovering, setRecovering] = useState(false);
 
   const draftKey = useMemo(
     () => (tester ? `${DRAFT_KEY_PREFIX}${tester.id}` : null),
     [tester],
   );
 
-  // Boot — restore tester and check eligibility
+  const applyTesterRow = (row: Tester | null) => {
+    if (!row) {
+      setEligible(false);
+      return false;
+    }
+    setTester(row);
+    const isEligible = !!row.submitted_at;
+    setEligible(isEligible);
+    if (row.round2_submitted_at) setSubmitted(true);
+    try {
+      localStorage.setItem(TESTER_STORAGE_KEY, row.id);
+    } catch {
+      /* ignore */
+    }
+    return isEligible;
+  };
+
+  // Boot — restore tester from localStorage, then ?as= fallback
   useEffect(() => {
     let active = true;
     (async () => {
       const storedId =
         typeof window !== "undefined" ? localStorage.getItem(TESTER_STORAGE_KEY) : null;
-      if (!storedId) {
-        if (active) {
-          setEligible(false);
+      if (storedId) {
+        const { data } = await supabase.rpc("get_beta_tester_self", { p_id: storedId });
+        const row = (Array.isArray(data) ? data[0] : data) as Tester | null;
+        if (!active) return;
+        if (row) {
+          applyTesterRow(row);
           setBootLoading(false);
+          return;
         }
-        return;
       }
-      const { data } = await supabase.rpc("get_beta_tester_self", { p_id: storedId });
-      const row = Array.isArray(data) ? data[0] : data;
-      if (!active) return;
-      if (!row) {
+
+      // Fallback: ?as=<email> recovery
+      const params = new URLSearchParams(
+        typeof window !== "undefined" ? window.location.search : "",
+      );
+      const asEmail = params.get("as")?.trim();
+      if (asEmail) {
+        const { data } = await supabase.rpc("find_round2_tester", { p_email: asEmail });
+        const row = (Array.isArray(data) ? data[0] : data) as Tester | null;
+        if (!active) return;
+        if (row) {
+          applyTesterRow(row);
+          // Clean URL so the email isn't kept around
+          try {
+            const url = new URL(window.location.href);
+            url.searchParams.delete("as");
+            window.history.replaceState({}, "", url.toString());
+          } catch {
+            /* ignore */
+          }
+          setBootLoading(false);
+          return;
+        }
+      }
+
+      if (active) {
         setEligible(false);
-      } else {
-        const t = row as Tester;
-        setTester(t);
-        const isEligible = !!t.submitted_at;
-        setEligible(isEligible);
-        if (t.round2_submitted_at) setSubmitted(true);
+        setBootLoading(false);
       }
-      setBootLoading(false);
     })();
     return () => {
       active = false;
