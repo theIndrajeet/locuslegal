@@ -207,7 +207,8 @@ export default function AdminUpdates() {
       <header className="mb-8">
         <h1 className="text-4xl font-bold">Updates Broadcast</h1>
         <p className="text-muted-foreground mt-1">
-          Send a one-off product or feature update to every Locus user.
+          Send a one-off product or feature update to every signed-up user
+          and every waitlist email (deduped, suppressed addresses skipped).
         </p>
       </header>
 
@@ -254,10 +255,11 @@ export default function AdminUpdates() {
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Send to all registered users?</AlertDialogTitle>
+                  <AlertDialogTitle>Send to all users + waitlist?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    This will queue an email to every Locus user (excluding suppressed addresses).
-                    You can't unsend after this.
+                    This will queue an email to every signed-up Locus user
+                    AND every email on the waitlist (deduped, suppressed
+                    addresses skipped). You can't unsend after this.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
