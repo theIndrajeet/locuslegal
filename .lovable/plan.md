@@ -1,11 +1,11 @@
-## Remove "Verified only" filter chip
+## Move Mail Now / Cold Call toggle next to the search bar
 
-The "Verified only · 51" toggle next to the Mail Now / Cold Call switch on `/directory` will be removed. Verified firms will still float to the top of results (sort logic unchanged) and will still display the "Verified" badge on their cards.
+The channel toggle (Mail Now · 885 / Cold Call · 2,768) currently sits in its own section high up on `/directory`, far above the search input. Move it so it sits **directly above the search bar / Filters row**, where it acts as a clear scope switch for the results below.
 
-### Changes
+### Change
 - `src/pages/Directory.tsx`
-  - Delete the "Verified only" `<button>` block (lines ~320–332).
-  - Remove the now-unused `verifiedOnly` state, the `?verified=1` URL sync, and the `verifiedOnly` branch inside the filter `useMemo`.
-  - Drop `verifiedCount` constant and the `ShieldCheck` import if no longer used elsewhere in the file (it is still used for the per-card badge, so keep the import).
+  - Remove the standalone channel toggle `<section>` (currently between the Law Firms / Startups switch and the Bar leaderboard callout).
+  - Re-insert the same toggle (plus its helper caption: "Firms with a public email…" / "Phone-only firms…") inside the existing `mode === "firms"` block, immediately **above** the `<FilterBar … searchPlaceholder="Search by firm name…" />`.
+  - Keep the existing neobrutalist styling (border-2, hard shadow, accent fill on active tab) and the count chips. No logic, state, or data changes.
 
-No data, schema, or other component changes required.
+Result: search bar, channel toggle, and filters all live as one cohesive control cluster, matching the user's screenshot intent.
