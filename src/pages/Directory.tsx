@@ -132,7 +132,7 @@ export default function Directory() {
       const hasEmail = !!f.email;
       if (channel === "email" && !hasEmail) return false;
       if (channel === "phone" && hasEmail) return false;
-      if (verifiedOnly && (f as { verified?: string }).verified !== "verified") return false;
+      
       if (search && !f.name.toLowerCase().includes(search.toLowerCase())) return false;
       if (city && f.city !== city) return false;
       if (area && f.area !== area) return false;
