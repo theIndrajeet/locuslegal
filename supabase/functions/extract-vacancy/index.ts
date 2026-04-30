@@ -19,6 +19,7 @@ CRITICAL:
     * "job" — open-ended employment for qualified lawyers. Signals: "associate", "lawyer", "counsel", "lateral hire", "full-time", "PQE", "X years experience required", a CTC/salary instead of stipend, "qualified advocate".
   When the signals genuinely conflict, prefer "internship" (the curator is internship-focused) but lean "job" if the post explicitly demands prior years of experience or post-qualification.
 - description: keep the freeform body the curator wrote (instructions, eligibility specifics, deadlines mentioned in prose). Strip emojis. Strip "DM me", "comment 'interested'", or any non-email instructions. Max 800 chars.
+- task_brief: if (and ONLY if) the post explicitly requires the applicant to complete a written task / assignment / research prompt / drafting exercise as part of applying (e.g. "submit a 500-word note on…", "draft a clause for…", "answer the following question and email it"), capture the FULL task wording verbatim here (max 2000 chars). Do NOT put generic "send your CV" or "attach transcript" instructions here — those are not tasks. If no written task is required, return null.
 - eligibility: a one-line summary like "3rd-5th year, NLU only" or "2-4 PQE, litigation background" — null if not specified.
 - stipend: free-form (covers stipend OR salary/CTC), null if not stated.
 - location: city only, null if remote/unspecified.
@@ -111,6 +112,7 @@ serve(async (req) => {
                 eligibility: { type: ["string", "null"] },
                 stipend: { type: ["string", "null"] },
                 description: { type: ["string", "null"] },
+                task_brief: { type: ["string", "null"], description: "Verbatim written task/assignment the applicant must complete; null if none." },
                 source_credit: { type: ["string", "null"] },
               },
               required: ["firm_name", "role", "application_email", "opportunity_type"],
@@ -171,6 +173,7 @@ serve(async (req) => {
       eligibility: clean(parsed.eligibility, 200),
       stipend: clean(parsed.stipend, 100),
       description: clean(parsed.description, 800),
+      task_brief: clean(parsed.task_brief, 2000),
       source_credit: clean(parsed.source_credit, 100),
     }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
