@@ -1,15 +1,15 @@
-## Why Tier 1 wasn't showing first
+## Make "Suggest a fix" obvious + show what students can suggest
 
-You have **195 Tier 1 firms with email** in the dataset, so they exist on Mail Now. The reason they were buried is the previous sort logic: it floated **every "verified" firm to the top first**, then sorted by tier inside that. Since Corrida Legal (Tier 2) is flagged `verified` and most Tier 1 firms aren't, the verified Tier 2/3 firms ended up above all Tier 1.
+Currently it's a tiny grey link at the bottom of the firm drawer — easy to miss. Upgrade it to a proper neobrutalist call-out card that explicitly lists the kinds of corrections we accept, while keeping the same `setSuggestOpen(true)` action and existing `SuggestFixDialog` flow.
 
-## Fix
+### Change in `src/components/FirmDrawer.tsx` (only the suggest-fix block, lines 190–200)
 
-In `src/pages/Directory.tsx` `sorted` useMemo, swap the comparator priority so **tier is the primary sort key** and **verified only re-orders within the same tier**:
+Replace the small ghost link with a full-width clickable card:
 
-- `default` (relevance) and `case "tier"`: `tierWeight asc → verifiedWeight desc → rating desc → name asc`
-- `case "rating-desc"`: `tierWeight asc → verified desc → rating desc` (so a 5-star Tier 4 doesn't jump above Tier 1)
-- `case "name-asc" / "name-desc"`: pure name sort, no verified bump (these are explicit user choices, respect them)
+- Bold border-2 + 3px hard shadow (neobrutalist), shadow shifts to accent on hover.
+- Yellow icon chip (`MessageSquarePlus`) + bold heading: **"Spot something wrong? Help us fix it"**
+- One-line context: "You can suggest corrections for:"
+- Pill chips listing example fields: **Wrong email · Tier (1-4) · Phone number · Closed firm**
+- Footer micro-CTA in accent color: "Suggest a fix →"
 
-Result: Tier 1 firms (Luthra, Trilegal, Shardul Amarchand, S&R, Phoenix Legal, …) lead the list, then Tier 2 — and within each tier the verified ones still float to the top with the badge.
-
-No data, schema, or other UI changes.
+No data, dialog, or schema changes — just visual prominence and education on what's suggestable.
