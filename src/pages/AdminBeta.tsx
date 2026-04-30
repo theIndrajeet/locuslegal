@@ -7,6 +7,7 @@ import { usePageMeta } from "@/hooks/usePageMeta";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/sonner";
 import { BETA_STAGES, TOTAL_TASKS } from "@/content/beta-checklist";
+import { R2_SECTIONS } from "@/content/beta-round2";
 import { cn } from "@/lib/utils";
 
 type TaskResponse = {
@@ -26,6 +27,17 @@ type FeedbackRow = {
   user_agent: string | null;
   created_at: string;
   tester_code: string | null;
+};
+
+type Round2Row = {
+  id: string;
+  tester_name: string;
+  tester_email: string | null;
+  nps_score: number | null;
+  general_notes: string | null;
+  responses: Record<string, unknown>;
+  user_agent: string | null;
+  created_at: string;
 };
 
 type TesterRow = {
@@ -53,9 +65,13 @@ export default function AdminBeta() {
   const isAdmin = useAdminRole();
   const navigate = useNavigate();
   const [rows, setRows] = useState<FeedbackRow[]>([]);
+  const [round2Rows, setRound2Rows] = useState<Round2Row[]>([]);
   const [testers, setTesters] = useState<TesterRow[]>([]);
+  const [round2Submitted, setRound2Submitted] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<"round1" | "round2">("round1");
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [expandedR2Id, setExpandedR2Id] = useState<string | null>(null);
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -66,12 +82,16 @@ export default function AdminBeta() {
     if (!isAdmin) return;
     let mounted = true;
     (async () => {
-      const [feedbackRes, testersRes] = await Promise.all([
+      const [feedbackRes, testersRes, round2Res] = await Promise.all([
         supabase.from("beta_feedback").select("*").order("created_at", { ascending: false }),
         supabase
           .from("beta_testers")
-          .select("id, slot_number, display_name, code, email, is_public, claimed_at, submitted_at")
+          .select("id, slot_number, display_name, code, email, is_public, claimed_at, submitted_at, round2_submitted_at")
           .order("slot_number", { ascending: true }),
+        supabase
+          .from("beta_feedback_round2")
+          .select("id, tester_name, tester_email, nps_score, general_notes, responses, user_agent, created_at")
+          .order("created_at", { ascending: false }),
       ]);
       if (!mounted) return;
       if (feedbackRes.error) {
@@ -79,7 +99,15 @@ export default function AdminBeta() {
       } else {
         setRows((feedbackRes.data as FeedbackRow[]) ?? []);
       }
-      if (testersRes.data) setTesters(testersRes.data as TesterRow[]);
+      if (testersRes.data) {
+        setTesters(testersRes.data as TesterRow[]);
+        const r2map: Record<string, string> = {};
+        (testersRes.data as Array<TesterRow & { round2_submitted_at: string | null }>).forEach((t) => {
+          if (t.round2_submitted_at) r2map[t.id] = t.round2_submitted_at;
+        });
+        setRound2Submitted(r2map);
+      }
+      if (round2Res.data) setRound2Rows(round2Res.data as Round2Row[]);
       setLoading(false);
     })();
     return () => {
@@ -274,7 +302,7 @@ export default function AdminBeta() {
         {testers.length > 0 && (
           <section className="mb-8 border-2 border-foreground bg-card p-5 shadow-[4px_4px_0_0_hsl(var(--foreground))]">
             <h2 className="font-[Sora] text-lg font-black mb-4">
-              Founding Testers · {testers.filter((t) => t.submitted_at).length}/{testers.length} submitted
+              Founding Testers · R1 {testers.filter((t) => t.submitted_at).length}/{testers.length} · R2 {Object.keys(round2Submitted).length}/{testers.filter((t) => t.submitted_at).length}
             </h2>
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
@@ -285,7 +313,8 @@ export default function AdminBeta() {
                     <th className="py-2 pr-3">Email</th>
                     <th className="py-2 pr-3">Public</th>
                     <th className="py-2 pr-3">Claimed</th>
-                    <th className="py-2 pr-3">Submitted</th>
+                    <th className="py-2 pr-3">R1</th>
+                    <th className="py-2 pr-3">R2</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -312,6 +341,18 @@ export default function AdminBeta() {
                           <span className="text-muted-foreground">pending</span>
                         )}
                       </td>
+                      <td className="py-2 pr-3">
+                        {round2Submitted[t.id] ? (
+                          <span className="inline-flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-yellow-400" />
+                            {new Date(round2Submitted[t.id]).toLocaleDateString()}
+                          </span>
+                        ) : t.submitted_at ? (
+                          <span className="text-muted-foreground">eligible</span>
+                        ) : (
+                          <span className="text-muted-foreground/50">—</span>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -319,6 +360,40 @@ export default function AdminBeta() {
             </div>
           </section>
         )}
+
+        {/* Tabs */}
+        <div className="flex items-center gap-2 mb-4 border-b-2 border-foreground/20">
+          {(["round1", "round2"] as const).map((tab) => {
+            const isActive = activeTab === tab;
+            const label = tab === "round1" ? `Round 1 · ${rows.length}` : `Round 2 · ${round2Rows.length}`;
+            return (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setActiveTab(tab)}
+                className={cn(
+                  "px-4 py-2 text-xs font-bold uppercase tracking-wider border-2 border-b-0 transition -mb-[2px]",
+                  isActive
+                    ? "border-foreground bg-card text-foreground"
+                    : "border-transparent text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+
+        {activeTab === "round2" && (
+          <Round2Panel
+            rows={round2Rows}
+            expandedId={expandedR2Id}
+            onToggle={(id) => setExpandedR2Id((prev) => (prev === id ? null : id))}
+          />
+        )}
+
+        {activeTab === "round1" && (
+          <>
 
         {rows.length === 0 ? (
           <div className="border-2 border-dashed border-foreground/30 p-12 text-center text-muted-foreground">
@@ -453,8 +528,139 @@ export default function AdminBeta() {
             })}
           </div>
         )}
+          </>
+        )}
       </div>
     </main>
+  );
+}
+
+function Round2Panel({
+  rows,
+  expandedId,
+  onToggle,
+}: {
+  rows: Round2Row[];
+  expandedId: string | null;
+  onToggle: (id: string) => void;
+}) {
+  const exportR2Csv = () => {
+    const headers = ["submission_id","tester_name","tester_email","nps_score","submitted_at","question_id","question_prompt","answer"];
+    const escape = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const lines = [headers.join(",")];
+    const allQs = R2_SECTIONS.flatMap((s) => s.questions);
+    rows.forEach((row) => {
+      allQs.forEach((q) => {
+        const a = (row.responses as Record<string, unknown>)?.[q.id];
+        if (a === undefined || a === null || a === "") return;
+        lines.push([row.id,row.tester_name,row.tester_email ?? "",row.nps_score ?? "",row.created_at,q.id,q.prompt,Array.isArray(a) ? a.join("; ") : String(a)].map(escape).join(","));
+      });
+      if (row.general_notes) {
+        lines.push([row.id,row.tester_name,row.tester_email ?? "",row.nps_score ?? "",row.created_at,"general","General notes",row.general_notes].map(escape).join(","));
+      }
+    });
+    const blob = new Blob([lines.join("\n")], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `locus-beta-round2-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  if (rows.length === 0) {
+    return (
+      <div className="border-2 border-dashed border-foreground/30 p-12 text-center text-muted-foreground">
+        No Round 2 submissions yet. Share <span className="font-mono text-foreground">/beta/round-2</span> with Round 1 finishers.
+      </div>
+    );
+  }
+
+  const scored = rows.filter((r) => r.nps_score !== null);
+  const avgNps = scored.length ? scored.reduce((s, r) => s + (r.nps_score ?? 0), 0) / scored.length : 0;
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between gap-4 mb-2 flex-wrap">
+        <p className="text-xs text-muted-foreground">
+          {rows.length} submission{rows.length === 1 ? "" : "s"} · Avg NPS{" "}
+          <span className="font-bold text-foreground">{avgNps.toFixed(1)}/10</span>
+        </p>
+        <button
+          type="button"
+          onClick={exportR2Csv}
+          className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider px-3 py-1.5 border-2 border-foreground hover:bg-muted transition"
+        >
+          <Download className="w-3.5 h-3.5" /> Export Round 2 CSV
+        </button>
+      </div>
+
+      {rows.map((row) => {
+        const expanded = expandedId === row.id;
+        return (
+          <article key={row.id} className="border-2 border-foreground bg-card shadow-[4px_4px_0_0_hsl(var(--foreground))]">
+            <button
+              type="button"
+              onClick={() => onToggle(row.id)}
+              className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left hover:bg-muted/30 transition"
+            >
+              <div className="min-w-0">
+                <div className="flex items-center gap-3 flex-wrap mb-1">
+                  <h3 className="font-[Sora] font-bold">{row.tester_name}</h3>
+                  {row.tester_email && (
+                    <span className="text-xs text-muted-foreground">{row.tester_email}</span>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {new Date(row.created_at).toLocaleString()} · NPS {row.nps_score ?? "—"}/10
+                </p>
+              </div>
+              {expanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+            </button>
+
+            {expanded && (
+              <div className="border-t-2 border-foreground p-5 space-y-6">
+                {R2_SECTIONS.map((section) => {
+                  const items = section.questions
+                    .map((q) => ({ q, a: (row.responses as Record<string, unknown>)?.[q.id] }))
+                    .filter(({ a }) => a !== undefined && a !== null && a !== "");
+                  if (items.length === 0) return null;
+                  return (
+                    <div key={section.id}>
+                      <h4 className="font-[Sora] text-sm font-black uppercase tracking-wider text-muted-foreground mb-3">
+                        0{section.number} · {section.title}
+                      </h4>
+                      <div className="space-y-3">
+                        {items.map(({ q, a }) => (
+                          <div key={q.id} className="border border-foreground/20 p-4 bg-background">
+                            <p className="font-mono text-xs text-muted-foreground mb-1">
+                              {q.id} · {q.prompt}
+                            </p>
+                            <p className="text-sm whitespace-pre-wrap leading-relaxed font-bold">
+                              {Array.isArray(a) ? a.join(", ") : String(a)}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+                {row.general_notes && (
+                  <div>
+                    <h4 className="font-[Sora] text-sm font-black uppercase tracking-wider text-muted-foreground mb-2">
+                      General notes
+                    </h4>
+                    <p className="text-sm whitespace-pre-wrap leading-relaxed border border-foreground/20 p-4 bg-background">
+                      {row.general_notes}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </article>
+        );
+      })}
+    </div>
   );
 }
 
