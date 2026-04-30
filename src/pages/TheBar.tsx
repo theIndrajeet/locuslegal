@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthSession } from "@/hooks/useAuthSession";
@@ -34,12 +34,14 @@ interface RecentAttempt {
 
 export default function TheBar() {
   const { userId, ready: authReady } = useAuthSession();
+  const location = useLocation();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<Stats | null>(null);
   const [recent, setRecent] = useState<RecentAttempt[]>([]);
   const [reviewId, setReviewId] = useState<string | null>(null);
   const [overallRank, setOverallRank] = useState<number | null>(null);
   const [optedOut, setOptedOut] = useState(false);
+  const [fetchError, setFetchError] = useState(false);
 
   const designationLabel = stats ? formatDesignation(stats.designation) : "Trainee";
   usePageMeta({
@@ -54,57 +56,87 @@ export default function TheBar() {
     if (!authReady) return;
     if (!userId) { setLoading(false); return; }
     let active = true;
-    const timeout = setTimeout(() => { if (active) setLoading(false); }, 8000);
+
+    const fetchOnce = async () => {
+      const { data, error } = await supabase.rpc("get_bar_dashboard", {
+        p_user_id: userId,
+      });
+      if (error || !data) {
+        return { ok: false as const, error };
+      }
+      return { ok: true as const, data };
+    };
+
+    const apply = (data: unknown) => {
+      const d = data as {
+        stats: Stats;
+        recent: Array<{
+          id: string;
+          is_correct: boolean;
+          points_awarded: number;
+          attempted_at: string;
+          challenge_title: string | null;
+          question_type: string | null;
+        }>;
+        opted_out: boolean;
+        overall_rank: number | null;
+      };
+      setStats(d.stats);
+      setRecent(
+        (d.recent ?? []).map((r) => ({
+          id: r.id,
+          is_correct: r.is_correct,
+          points_awarded: r.points_awarded,
+          attempted_at: r.attempted_at,
+          bar_challenges: r.challenge_title
+            ? { title: r.challenge_title, question_type: r.question_type ?? "mcq" }
+            : null,
+        }))
+      );
+      setOptedOut(!!d.opted_out);
+      setOverallRank(d.overall_rank ?? null);
+      setFetchError(false);
+    };
+
     (async () => {
       setLoading(true);
       try {
-        // Single round-trip via SECURITY DEFINER RPC — replaces 4 sequential queries.
-        const { data, error } = await supabase.rpc("get_bar_dashboard", {
-          p_user_id: userId,
-        });
+        let res = await fetchOnce();
+        if (!res.ok) {
+          // One-shot retry after a short delay to dodge transient cold-start / network blips.
+          await new Promise((r) => setTimeout(r, 600));
+          if (!active) return;
+          res = await fetchOnce();
+        }
         if (!active) return;
-        if (error || !data) {
-          console.error("[TheBar] get_bar_dashboard failed", error);
+        if (!res.ok) {
+          console.error("[TheBar] get_bar_dashboard failed", res.error);
+          setFetchError(true);
           return;
         }
+        apply(res.data);
 
-        const d = data as unknown as {
-          stats: Stats;
-          recent: Array<{
-            id: string;
-            is_correct: boolean;
-            points_awarded: number;
-            attempted_at: string;
-            challenge_title: string | null;
-            question_type: string | null;
-          }>;
-          opted_out: boolean;
-          overall_rank: number | null;
-        };
-
-        setStats(d.stats);
-        // Map flat RPC shape back to the nested form the UI expects.
-        setRecent(
-          (d.recent ?? []).map((r) => ({
-            id: r.id,
-            is_correct: r.is_correct,
-            points_awarded: r.points_awarded,
-            attempted_at: r.attempted_at,
-            bar_challenges: r.challenge_title
-              ? { title: r.challenge_title, question_type: r.question_type ?? "mcq" }
-              : null,
-          }))
-        );
-        setOptedOut(!!d.opted_out);
-        setOverallRank(d.overall_rank ?? null);
+        // If the user just submitted an attempt, the trigger-updated row may
+        // not be visible yet on the first read. Refetch once more ~1s later.
+        let lastSubmit = 0;
+        try { lastSubmit = Number(sessionStorage.getItem("bar:lastSubmitAt") ?? 0); } catch { /* ignore */ }
+        if (lastSubmit && Date.now() - lastSubmit < 60_000) {
+          try { sessionStorage.removeItem("bar:lastSubmitAt"); } catch { /* ignore */ }
+          setTimeout(async () => {
+            if (!active) return;
+            const r2 = await fetchOnce();
+            if (active && r2.ok) apply(r2.data);
+          }, 1000);
+        }
       } catch (e) {
         console.error("[TheBar] dashboard fetch threw", e);
+        if (active) setFetchError(true);
       } finally {
         if (active) setLoading(false);
       }
     })();
-    return () => { active = false; clearTimeout(timeout); };
-  }, [authReady, userId, refetchTick]);
+    return () => { active = false; };
+  }, [authReady, userId, refetchTick, location.key]);
 
   // Refetch dashboard whenever the tab becomes visible again or when a
   // submitted attempt broadcasts a stats update — fixes stale "Trainee 0/0/0"
