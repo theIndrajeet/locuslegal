@@ -140,7 +140,7 @@ export default function Directory() {
       if (type && getType(f) !== type) return false;
       return true;
     });
-  }, [search, city, area, tier, type, channel, verifiedOnly]);
+  }, [search, city, area, tier, type, channel]);
 
   // Sorted (verified firms always float to top within current sort)
   const sorted = useMemo(() => {
