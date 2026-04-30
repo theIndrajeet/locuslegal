@@ -173,10 +173,36 @@ export default function Vacancies() {
           Live <span className="text-accent">Vacancies</span>
         </h1>
         <p className="text-muted-foreground text-base md:text-lg max-w-2xl mx-auto">
-          Hand-picked legal internship openings accepting email applications. Each one closes when the deadline expires —
+          Hand-picked legal internships and jobs accepting email applications. Each one closes when the deadline expires —
           no infinite scroll, no stale listings.
         </p>
       </section>
+
+      {!loading && vacancies.length > 0 && (
+        <section className="container mx-auto px-4 md:px-8 mb-6">
+          <div className="flex flex-wrap items-center gap-2">
+            {([
+              { key: "all", label: "All", n: counts.all },
+              { key: "internship", label: "Internships", n: counts.internship },
+              { key: "job", label: "Jobs", n: counts.job },
+            ] as const).map((p) => (
+              <button
+                key={p.key}
+                type="button"
+                onClick={() => setTypeFilter(p.key)}
+                className={cn(
+                  "px-3 py-1.5 rounded-full border-2 text-xs font-extrabold uppercase tracking-wider transition-all",
+                  typeFilter === p.key
+                    ? "border-foreground bg-accent text-accent-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))]"
+                    : "border-border bg-background text-muted-foreground hover:border-foreground/60",
+                )}
+              >
+                {p.label} <span className="opacity-70 ml-1">{p.n}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
       {loading ? (
         <div className="flex items-center justify-center py-16">
