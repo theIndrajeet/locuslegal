@@ -226,6 +226,32 @@ export default function BetaRound2() {
     );
   }
 
+  const handleRecover = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const email = recoverEmail.trim();
+    if (!email) return;
+    setRecovering(true);
+    try {
+      const { data, error } = await supabase.rpc("find_round2_tester", { p_email: email });
+      if (error) throw error;
+      const row = (Array.isArray(data) ? data[0] : data) as Tester | null;
+      if (!row) {
+        toast("No match", {
+          description:
+            "We couldn't find a Founding Tester with that email who finished Round 1.",
+        });
+        return;
+      }
+      applyTesterRow(row);
+      toast(`Welcome back, ${row.display_name.split(" ")[0]}.`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Could not look you up";
+      toast("Lookup failed", { description: msg });
+    } finally {
+      setRecovering(false);
+    }
+  };
+
   // Not eligible — never claimed, or never submitted Round 1
   if (!eligible) {
     return (
@@ -248,6 +274,37 @@ export default function BetaRound2() {
           >
             Go to /beta <ArrowRight className="w-4 h-4" />
           </Link>
+
+          <div className="mt-8 pt-6 border-t border-border">
+            <p className="font-mono text-[11px] text-muted-foreground uppercase tracking-widest mb-3">
+              Already submitted Round 1?
+            </p>
+            <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
+              On a new device or browser? Enter the email you used and we'll restore your seat.
+            </p>
+            <form onSubmit={handleRecover} className="flex flex-col gap-2">
+              <Input
+                type="email"
+                value={recoverEmail}
+                onChange={(e) => setRecoverEmail(e.target.value)}
+                placeholder="you@example.com"
+                disabled={recovering}
+                className="border-2 border-foreground"
+                required
+              />
+              <Button
+                type="submit"
+                disabled={recovering || !recoverEmail.trim()}
+                className="border-2 border-foreground bg-yellow-400 text-foreground hover:bg-yellow-300 font-bold shadow-[3px_3px_0_0_hsl(var(--foreground))] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_0_hsl(var(--foreground))] transition"
+              >
+                {recovering ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>Recover access <ArrowRight className="w-4 h-4 ml-1" /></>
+                )}
+              </Button>
+            </form>
+          </div>
         </div>
       </main>
     );
