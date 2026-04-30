@@ -134,6 +134,7 @@ export default function AdminVacancyDialog({ open, onOpenChange, initial, onSave
           .update({
             firm_name: form.firm_name.trim(),
             role: form.role.trim(),
+            opportunity_type: form.opportunity_type,
             location: form.location.trim() || null,
             application_email: email,
             eligibility: form.eligibility.trim() || null,
@@ -151,6 +152,7 @@ export default function AdminVacancyDialog({ open, onOpenChange, initial, onSave
         const { error } = await supabase.from("vacancies").insert({
           firm_name: form.firm_name.trim(),
           role: form.role.trim(),
+          opportunity_type: form.opportunity_type,
           location: form.location.trim() || null,
           application_email: email,
           eligibility: form.eligibility.trim() || null,
