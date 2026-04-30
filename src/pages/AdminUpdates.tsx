@@ -207,7 +207,8 @@ export default function AdminUpdates() {
       <header className="mb-8">
         <h1 className="text-4xl font-bold">Updates Broadcast</h1>
         <p className="text-muted-foreground mt-1">
-          Send a one-off product or feature update to every Locus user.
+          Send a one-off product or feature update to every signed-up user
+          and every waitlist email (deduped, suppressed addresses skipped).
         </p>
       </header>
 
