@@ -1,47 +1,58 @@
-## What I found when QA'ing Round 2
+## Goal
 
-I navigated to `/beta/round-2` and confirmed:
+Send one branded "Start your journey on Locus" email to all 30 unique addresses (16 signed-up users + 14 waitlist-only emails), highlighting Directory apply, CV Analyser, The Bar, and Vacancy Board.
 
-- **Gate works correctly** — without a Round 1 token, the page shows "Round 1 first." and blocks entry. Good.
-- **Submission code is correct** — `BetaRound2.tsx` inserts into `beta_feedback_round2` (RLS allows public insert), then calls the `mark_beta_tester_round2_submitted` RPC. Plumbing is sound.
-- **But there's a real blocker:** the only way the form unlocks is if `localStorage["locus-beta-tester-id-v2"]` is set on the same browser. That value is written *only* by the Round 1 page (`/beta/<code>`) when a tester opens their personal link. After Round 1 submission, every tester's `code` was cleared to `NULL`, so **none of the four eligible testers (Suha, Aditi, Asmi, Ritika) can re-seed the token** if they open Round 2 in a new browser, on mobile, or after clearing site data.
+## Approach
 
-This is also why I can't run the real end-to-end test in the browser tool — there's no path to obtain the token without the Round 1 link.
+Reuse the existing `/admin/updates` flow — same composer, same `updates-broadcast` template, same queue, same unsubscribe handling. Only one piece needs to change: the dispatcher currently pulls recipients from `auth.users` only. We'll widen it to also include waitlist emails.
 
-## The fix
+## Changes
 
-Two small changes that unblock testing AND testers:
+### 1. Widen the recipient pool in the dispatcher
 
-### 1. Add a recovery entry path: `/beta/round-2?as=<email>`
+Edit `supabase/functions/dispatch-updates-broadcast/index.ts`:
 
-If the URL has an `as=<email>` param and no localStorage token is present, look up the matching tester by email via a new SECURITY DEFINER RPC `find_round2_tester(p_email text)` that returns `{ id, display_name, email, submitted_at, round2_submitted_at }` **only if `submitted_at IS NOT NULL`**. If found, set localStorage and proceed. If not eligible, show the existing "Round 1 first." card.
+- After paginating `auth.admin.listUsers`, also `SELECT DISTINCT email FROM waitlist_submissions`.
+- Merge into the same `recipients` array, then dedupe (existing `Array.from(new Set(...))` already handles this).
+- Suppression check + queue enqueue stay exactly as they are — waitlist emails get filtered against `suppressed_emails` and get the same per-recipient unsubscribe link automatically.
+- Test mode (`testEmail`) is unaffected.
 
-This lets us put a real, share-safe link in the Round 2 invite emails (e.g. `https://locus.legal/beta/round-2?as=suhatarafdar18@gmail.com`). Email is not a secret here because the page is gated by `submitted_at` (only completed Round 1 testers pass) and the page itself is `noindex`.
+That's it on the backend. No schema changes, no new tables, no new edge function.
 
-### 2. Surface a "I'm on a new device" recovery on the gate card
+### 2. Surface the wider count in the admin UI (small polish)
 
-Below the "Go to /beta" button on the Round 1-first card, add a small inline form: *"Already submitted Round 1? Enter the email you used:"* → calls the same RPC. This way the four eligible testers can self-recover without needing a custom link.
+In `src/pages/AdminUpdates.tsx`, update the recipient hint near the "Send to all users" button to read something like "Sends to all signed-up users + waitlist emails (deduped, suppressed addresses skipped)" so you know what you're firing.
 
-### 3. Then run the real QA
+### 3. Draft the email copy
 
-Once the `as=` param works, I'll:
-- Open `/beta/round-2?as=suhatarafdar18@gmail.com` in the browser tool
-- Fill the NPS slider (the only required field), add a short note in one section
-- Submit and verify a row lands in `beta_feedback_round2` and `beta_testers.round2_submitted_at` is set for Suha
-- Confirm `/admin/beta` Round 2 tab shows the submission and the CSV export contains it
-- Then **delete that QA row** so Suha's real submission isn't pre-populated
+I'll pre-fill a draft broadcast row (or just hand you the markdown to paste) with this structure — copy is yours to tweak in the composer before hitting send:
 
-## Technical details
+- **Subject:** Start your journey on Locus
+- **Preheader:** Apply to firms in one click, sharpen your CV, practice The Bar, and grab live vacancies.
+- **Body (markdown):**
+  - Short opening: "Locus has grown up since you signed up. Here's what's live for you right now."
+  - Four tight sections, each one line + a soft sub-line:
+    - **Directory** — Browse Indian law firms and startups on the India map, and apply to any of them in one click straight from their profile.
+    - **CV Analyser** — Upload your CV, get feedback tuned to how Indian legal recruiting actually works.
+    - **The Bar** — Practice realistic legal challenges (MCQs, speed rounds, briefs, client counseling) and climb a global leaderboard.
+    - **Vacancy Board** — Live, curated internship and job openings, refreshed regularly.
+  - Closing nudge with a single primary CTA.
+- **CTA label:** Start your journey
+- **CTA URL:** `https://locus.legal/app` (signed-in users land in the dashboard; waitlist-only emails land on the marketing site → sign-up)
 
-- **New RPC** `public.find_round2_tester(p_email text) returns table(...)` — `SECURITY DEFINER`, `SET search_path = public`, returns the row only when `lower(email) = lower(p_email) AND submitted_at IS NOT NULL`. Granted to `anon, authenticated`.
-- **`src/pages/BetaRound2.tsx`** — in the boot effect, after checking localStorage, also read `?as=` from `window.location.search` and call the new RPC as a fallback. On success, persist to localStorage and clean the URL with `history.replaceState` so the email isn't kept in the address bar.
-- **Gate card** — add a tiny `<form>` with an email input + "Recover access" button that calls the same RPC.
-- **No schema changes** beyond the RPC.
+### 4. You hit send
 
-## What I won't do
+Open `/admin/updates`, review the draft, optionally do a `testEmail` to yourself first, then "Send to all". The queue handles delivery, retries, and rate limits — no further action needed.
 
-- I won't relax the gate to "anyone with the link" — keep the `submitted_at IS NOT NULL` check.
-- I won't expose Round 1 codes again or resurrect them.
-- No changes to question content, scoring, or the admin dashboard.
+## What this does NOT touch
 
-After approval I'll implement, then run the live submission test and report back with the inserted row's id and the `round2_submitted_at` timestamp.
+- No changes to `update_broadcasts` schema.
+- No changes to the `updates-broadcast` React Email template.
+- No changes to `send-transactional-email`, the queue, or unsubscribe flow.
+- No new RLS policies, no new tables.
+
+## Caveats worth knowing
+
+- **Waitlist emails never explicitly opted into product updates.** This is a one-time relevant product announcement to people who voluntarily gave you their email expecting Locus news, so it's defensible as transactional/expected. The unsubscribe footer is auto-appended by the system, so anyone uninterested can opt out in one click.
+- The email body background stays white (system requirement) even though the app is dark-themed — that's already how the template works.
+- After sending, the broadcast row's `recipient_count` will reflect ~30 (minus any suppressed), and the email log at `/admin/emails` will show per-recipient status.
