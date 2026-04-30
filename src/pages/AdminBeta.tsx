@@ -28,6 +28,17 @@ type FeedbackRow = {
   tester_code: string | null;
 };
 
+type Round2Row = {
+  id: string;
+  tester_name: string;
+  tester_email: string | null;
+  nps_score: number | null;
+  general_notes: string | null;
+  responses: Record<string, unknown>;
+  user_agent: string | null;
+  created_at: string;
+};
+
 type TesterRow = {
   id: string;
   slot_number: number;
@@ -53,9 +64,13 @@ export default function AdminBeta() {
   const isAdmin = useAdminRole();
   const navigate = useNavigate();
   const [rows, setRows] = useState<FeedbackRow[]>([]);
+  const [round2Rows, setRound2Rows] = useState<Round2Row[]>([]);
   const [testers, setTesters] = useState<TesterRow[]>([]);
+  const [round2Submitted, setRound2Submitted] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<"round1" | "round2">("round1");
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [expandedR2Id, setExpandedR2Id] = useState<string | null>(null);
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
 
   useEffect(() => {
