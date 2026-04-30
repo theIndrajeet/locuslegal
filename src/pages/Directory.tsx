@@ -35,7 +35,7 @@ type Channel = "email" | "phone";
 
 const mailNowCount = firms.filter((f) => !!f.email).length;
 const coldCallCount = firms.length - mailNowCount;
-const verifiedCount = firms.filter((f) => (f as { verified?: string }).verified === "verified").length;
+
 
 const typeFilters: { label: string; value: FirmType | "" }[] = [
   { label: "All", value: "" },
@@ -69,18 +69,16 @@ export default function Directory() {
   const [mode, setMode] = useState<Mode>(initialMode);
   const initialChannel: Channel = searchParams.get("channel") === "phone" ? "phone" : "email";
   const [channel, setChannel] = useState<Channel>(initialChannel);
-  const [verifiedOnly, setVerifiedOnly] = useState(searchParams.get("verified") === "1");
   useEffect(() => {
     const next = new URLSearchParams(searchParams);
     if (mode === "startups") next.set("mode", "startups");
     else next.delete("mode");
     if (mode === "firms" && channel === "phone") next.set("channel", "phone");
     else next.delete("channel");
-    if (mode === "firms" && verifiedOnly) next.set("verified", "1");
-    else next.delete("verified");
+    next.delete("verified");
     setSearchParams(next, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, channel, verifiedOnly]);
+  }, [mode, channel]);
 
   const initialQ = searchParams.get("q") ?? "";
   const [searchInput, setSearchInput] = useState(initialQ);
@@ -134,7 +132,7 @@ export default function Directory() {
       const hasEmail = !!f.email;
       if (channel === "email" && !hasEmail) return false;
       if (channel === "phone" && hasEmail) return false;
-      if (verifiedOnly && (f as { verified?: string }).verified !== "verified") return false;
+      
       if (search && !f.name.toLowerCase().includes(search.toLowerCase())) return false;
       if (city && f.city !== city) return false;
       if (area && f.area !== area) return false;
@@ -142,7 +140,7 @@ export default function Directory() {
       if (type && getType(f) !== type) return false;
       return true;
     });
-  }, [search, city, area, tier, type, channel, verifiedOnly]);
+  }, [search, city, area, tier, type, channel]);
 
   // Sorted (verified firms always float to top within current sort)
   const sorted = useMemo(() => {
@@ -166,7 +164,7 @@ export default function Directory() {
   // Reset page on filter change
   useEffect(() => {
     setPage(1);
-  }, [search, city, area, tier, type, sort, channel, verifiedOnly]);
+  }, [search, city, area, tier, type, sort, channel]);
 
   const totalPages = Math.ceil(sorted.length / PAGE_SIZE);
   const paginated = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -317,19 +315,6 @@ export default function Directory() {
                 <span className="font-mono text-[11px] opacity-80">· {coldCallCount.toLocaleString()}</span>
               </button>
             </div>
-            {/* Verified chip */}
-            <button
-              onClick={() => setVerifiedOnly((v) => !v)}
-              className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold border-2 border-foreground transition-all ${
-                verifiedOnly
-                  ? "bg-accent text-accent-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))]"
-                  : "bg-card text-foreground hover:bg-muted"
-              }`}
-              title="Show only independently verified firms"
-            >
-              <ShieldCheck size={13} /> Verified only
-              <span className="font-mono opacity-80">· {verifiedCount}</span>
-            </button>
           </div>
           <p className="text-center text-xs text-muted-foreground mt-2">
             {channel === "email"
