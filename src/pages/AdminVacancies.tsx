@@ -31,7 +31,7 @@ export default function AdminVacancies() {
       .from("vacancies")
       .select("*")
       .order("status", { ascending: true })
-      .order("expires_at", { ascending: false });
+      .order("created_at", { ascending: false });
     if (error) toast.error(error.message);
     setRows((data ?? []) as Vacancy[]);
     setLoading(false);
