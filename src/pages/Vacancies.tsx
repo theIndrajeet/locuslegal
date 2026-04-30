@@ -35,7 +35,7 @@ export default function Vacancies() {
         .in("status", ["live", "archived"])
         .gt("expires_at", cutoff)
         .order("status", { ascending: true })
-        .order("expires_at", { ascending: true });
+        .order("created_at", { ascending: false });
       if (cancelled) return;
       setVacancies((data ?? []) as Vacancy[]);
       setLoading(false);
