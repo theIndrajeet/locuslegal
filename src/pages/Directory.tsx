@@ -317,19 +317,6 @@ export default function Directory() {
                 <span className="font-mono text-[11px] opacity-80">· {coldCallCount.toLocaleString()}</span>
               </button>
             </div>
-            {/* Verified chip */}
-            <button
-              onClick={() => setVerifiedOnly((v) => !v)}
-              className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold border-2 border-foreground transition-all ${
-                verifiedOnly
-                  ? "bg-accent text-accent-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))]"
-                  : "bg-card text-foreground hover:bg-muted"
-              }`}
-              title="Show only independently verified firms"
-            >
-              <ShieldCheck size={13} /> Verified only
-              <span className="font-mono opacity-80">· {verifiedCount}</span>
-            </button>
           </div>
           <p className="text-center text-xs text-muted-foreground mt-2">
             {channel === "email"
