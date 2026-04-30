@@ -366,7 +366,7 @@ export default function AdminUpdates() {
             <div className="divide-y divide-border">
               {history.map((b) => (
                 <div key={b.id} className="p-4 flex items-start justify-between gap-4">
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <div className="font-semibold truncate">{b.subject}</div>
                     <div className="text-xs text-muted-foreground mt-1">
                       {new Date(b.created_at).toLocaleString()} ·
@@ -374,9 +374,65 @@ export default function AdminUpdates() {
                       {b.status === "sent" ? ` · ${b.recipient_count} recipients` : null}
                     </div>
                   </div>
-                  <Button variant="ghost" size="sm" onClick={() => deleteBroadcast(b.id)} aria-label="Delete">
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Button
+                      variant="ghost" size="sm"
+                      onClick={() => loadIntoComposer(b)}
+                      title="Load into composer"
+                      aria-label="Load into composer"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                    {b.status === "draft" && (
+                      <>
+                        <Button
+                          variant="ghost" size="sm"
+                          disabled={busy}
+                          onClick={() => testExistingDraft(b.id)}
+                          title="Send test to me"
+                          aria-label="Send test to me"
+                        >
+                          <TestTube2 className="w-4 h-4" />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="ghost" size="sm"
+                              disabled={busy}
+                              title="Send to all users"
+                              aria-label="Send to all users"
+                            >
+                              <Send className="w-4 h-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Send "{b.subject}" to all users + waitlist?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This will queue this draft to every signed-up Locus user
+                                AND every email on the waitlist (deduped, suppressed
+                                addresses skipped). You can't unsend after this.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => sendExistingToAll(b.id)}>
+                                Send broadcast
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </>
+                    )}
+                    <Button
+                      variant="ghost" size="sm"
+                      onClick={() => deleteBroadcast(b.id)}
+                      title="Delete"
+                      aria-label="Delete"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
