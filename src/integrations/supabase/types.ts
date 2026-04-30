@@ -771,6 +771,57 @@ export type Database = {
           },
         ]
       }
+      firm_suggestions: {
+        Row: {
+          admin_note: string | null
+          created_at: string
+          current_value: string | null
+          evidence: string | null
+          field: string
+          firm_city_snapshot: string | null
+          firm_id: string
+          firm_name_snapshot: string
+          id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          suggested_value: string
+          user_id: string | null
+        }
+        Insert: {
+          admin_note?: string | null
+          created_at?: string
+          current_value?: string | null
+          evidence?: string | null
+          field: string
+          firm_city_snapshot?: string | null
+          firm_id: string
+          firm_name_snapshot: string
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          suggested_value: string
+          user_id?: string | null
+        }
+        Update: {
+          admin_note?: string | null
+          created_at?: string
+          current_value?: string | null
+          evidence?: string | null
+          field?: string
+          firm_city_snapshot?: string | null
+          firm_id?: string
+          firm_name_snapshot?: string
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          suggested_value?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       profile_applications: {
         Row: {
           applied_on: string
