@@ -61,7 +61,7 @@ function getType(firm: (typeof firms)[0]): FirmType {
 }
 
 export default function Directory() {
-  usePageMeta({ title: "Firm Directory", description: "Browse 500+ verified law firms, chambers, and advocates across India. Filter by city, practice area, and tier.", path: "/directory" });
+  usePageMeta({ title: "Firm Directory", description: "Browse 3,600+ Indian law firms — 880+ direct emails and 51 independently verified. Filter by Mail Now or Cold Call.", path: "/directory" });
 
   // Mode (URL-synced)
   const [searchParams, setSearchParams] = useSearchParams();
@@ -471,6 +471,11 @@ export default function Directory() {
                       <span className="text-[11px] font-medium bg-accent/10 text-accent px-2 py-0.5 rounded-full">
                         {getType(f)}
                       </span>
+                      {(f as { verified?: string }).verified === "verified" && (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-accent text-accent-foreground border border-foreground px-2 py-0.5 rounded-full">
+                          <ShieldCheck size={10} /> Verified
+                        </span>
+                      )}
                     </div>
 
                     {f.address && (
