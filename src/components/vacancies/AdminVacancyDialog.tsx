@@ -224,6 +224,32 @@ export default function AdminVacancyDialog({ open, onOpenChange, initial, onSave
         ) : (
           <>
             <div className="space-y-3">
+              <div>
+                <Label>Type *</Label>
+                <div className="grid grid-cols-2 gap-2 mt-1">
+                  {(["internship", "job"] as const).map((t) => {
+                    const Icon = t === "internship" ? GraduationCap : Briefcase;
+                    const active = form.opportunity_type === t;
+                    return (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => update("opportunity_type", t)}
+                        className={cn(
+                          "flex items-center justify-center gap-2 py-2 rounded-md border-2 font-bold text-sm uppercase tracking-wide transition-all",
+                          active
+                            ? "border-foreground bg-accent text-accent-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))]"
+                            : "border-border bg-background text-muted-foreground hover:border-foreground/60",
+                        )}
+                      >
+                        <Icon size={14} />
+                        {t === "internship" ? "Internship" : "Job"}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
                   <Label>Firm name *</Label>
