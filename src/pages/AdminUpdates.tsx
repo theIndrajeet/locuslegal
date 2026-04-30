@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Loader2, Send, Eye, ShieldOff, History, TestTube2, Trash2 } from "lucide-react";
+import { Loader2, Send, Eye, ShieldOff, History, TestTube2, Trash2, Pencil } from "lucide-react";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
 import { Button } from "@/components/ui/button";

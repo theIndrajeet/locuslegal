@@ -1,58 +1,40 @@
-## Goal
+## Problem
 
-Send one branded "Start your journey on Locus" email to all 30 unique addresses (16 signed-up users + 14 waitlist-only emails), highlighting Directory apply, CV Analyser, The Bar, and Vacancy Board.
+The "Locus is open. Start your journey." draft I inserted lives in the database, but the Recent broadcasts list only shows a Delete button. There's no way to:
+- Load a saved draft back into the composer to inspect/edit it
+- Send a test of an existing draft
+- Send an existing draft to all users
 
-## Approach
+Right now `handleTestSend` and `handleSendAll` always call `createDraft()` which inserts a **new** row from the form fields — they never reuse an existing draft. So the row I created via SQL is unreachable from the UI.
 
-Reuse the existing `/admin/updates` flow — same composer, same `updates-broadcast` template, same queue, same unsubscribe handling. Only one piece needs to change: the dispatcher currently pulls recipients from `auth.users` only. We'll widen it to also include waitlist emails.
+## Fix
 
-## Changes
+Update `src/pages/AdminUpdates.tsx` so each draft row in Recent broadcasts gets three actions, plus a small refactor so test/send can target an existing draft id.
 
-### 1. Widen the recipient pool in the dispatcher
+### 1. Refactor send helpers to accept an existing draft id
 
-Edit `supabase/functions/dispatch-updates-broadcast/index.ts`:
+- Extract a `sendBroadcast(id, testEmail?)` helper that just invokes `dispatch-updates-broadcast`.
+- Change `handleTestSend` / `handleSendAll` to: if a draft id is passed in, reuse it; otherwise create one from the composer fields (current behavior preserved).
 
-- After paginating `auth.admin.listUsers`, also `SELECT DISTINCT email FROM waitlist_submissions`.
-- Merge into the same `recipients` array, then dedupe (existing `Array.from(new Set(...))` already handles this).
-- Suppression check + queue enqueue stay exactly as they are — waitlist emails get filtered against `suppressed_emails` and get the same per-recipient unsubscribe link automatically.
-- Test mode (`testEmail`) is unaffected.
+### 2. Add row actions in Recent broadcasts
 
-That's it on the backend. No schema changes, no new tables, no new edge function.
+For every row with `status === "draft"`, show four icon buttons (right-aligned, same row as the existing trash):
 
-### 2. Surface the wider count in the admin UI (small polish)
+- **Load into composer** (Pencil icon) — populate subject / preheader / body / cta fields from the row, scroll to top. Lets you edit and re-send (a fresh draft row is created on send, current row stays as-is).
+- **Send test to me** (TestTube2 icon) — calls `sendBroadcast(row.id, myEmail)`. No new draft created.
+- **Send to all users** (Send icon) — wrapped in the same AlertDialog confirmation, calls `sendBroadcast(row.id)`. No new draft created.
+- **Delete** (Trash2 icon) — unchanged.
 
-In `src/pages/AdminUpdates.tsx`, update the recipient hint near the "Send to all users" button to read something like "Sends to all signed-up users + waitlist emails (deduped, suppressed addresses skipped)" so you know what you're firing.
+For non-draft rows (`sending` / `sent` / `failed`), only show **Load into composer** (useful for duplicating past sends) and **Delete**.
 
-### 3. Draft the email copy
+### 3. Small UX touches
 
-I'll pre-fill a draft broadcast row (or just hand you the markdown to paste) with this structure — copy is yours to tweak in the composer before hitting send:
+- Disable the row's test/send buttons while `busy` is true.
+- After sending an existing draft to all, refresh history so its status flips from `draft` → `sent`.
+- Use compact `size="sm" variant="ghost"` icon buttons with `title=` tooltips so the row stays clean on mobile.
 
-- **Subject:** Start your journey on Locus
-- **Preheader:** Apply to firms in one click, sharpen your CV, practice The Bar, and grab live vacancies.
-- **Body (markdown):**
-  - Short opening: "Locus has grown up since you signed up. Here's what's live for you right now."
-  - Four tight sections, each one line + a soft sub-line:
-    - **Directory** — Browse Indian law firms and startups on the India map, and apply to any of them in one click straight from their profile.
-    - **CV Analyser** — Upload your CV, get feedback tuned to how Indian legal recruiting actually works.
-    - **The Bar** — Practice realistic legal challenges (MCQs, speed rounds, briefs, client counseling) and climb a global leaderboard.
-    - **Vacancy Board** — Live, curated internship and job openings, refreshed regularly.
-  - Closing nudge with a single primary CTA.
-- **CTA label:** Start your journey
-- **CTA URL:** `https://locus.legal/app` (signed-in users land in the dashboard; waitlist-only emails land on the marketing site → sign-up)
+## Result
 
-### 4. You hit send
+Once approved, you'll be able to open `/admin/updates`, find the **"Locus is open. Start your journey."** draft in Recent broadcasts, click **Send test to me** on that exact row, verify it in your inbox, then click **Send to all users** on the same row to dispatch to all 30 recipients — without re-typing anything.
 
-Open `/admin/updates`, review the draft, optionally do a `testEmail` to yourself first, then "Send to all". The queue handles delivery, retries, and rate limits — no further action needed.
-
-## What this does NOT touch
-
-- No changes to `update_broadcasts` schema.
-- No changes to the `updates-broadcast` React Email template.
-- No changes to `send-transactional-email`, the queue, or unsubscribe flow.
-- No new RLS policies, no new tables.
-
-## Caveats worth knowing
-
-- **Waitlist emails never explicitly opted into product updates.** This is a one-time relevant product announcement to people who voluntarily gave you their email expecting Locus news, so it's defensible as transactional/expected. The unsubscribe footer is auto-appended by the system, so anyone uninterested can opt out in one click.
-- The email body background stays white (system requirement) even though the app is dark-themed — that's already how the template works.
-- After sending, the broadcast row's `recipient_count` will reflect ~30 (minus any suppressed), and the email log at `/admin/emails` will show per-recipient status.
+No DB or edge function changes needed; the dispatcher already accepts an existing `broadcastId`.
