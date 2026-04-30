@@ -7,6 +7,7 @@ import { usePageMeta } from "@/hooks/usePageMeta";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/sonner";
 import { BETA_STAGES, TOTAL_TASKS } from "@/content/beta-checklist";
+import { R2_SECTIONS } from "@/content/beta-round2";
 import { cn } from "@/lib/utils";
 
 type TaskResponse = {
@@ -301,7 +302,7 @@ export default function AdminBeta() {
         {testers.length > 0 && (
           <section className="mb-8 border-2 border-foreground bg-card p-5 shadow-[4px_4px_0_0_hsl(var(--foreground))]">
             <h2 className="font-[Sora] text-lg font-black mb-4">
-              Founding Testers · {testers.filter((t) => t.submitted_at).length}/{testers.length} submitted
+              Founding Testers · R1 {testers.filter((t) => t.submitted_at).length}/{testers.length} · R2 {Object.keys(round2Submitted).length}/{testers.filter((t) => t.submitted_at).length}
             </h2>
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
@@ -312,7 +313,8 @@ export default function AdminBeta() {
                     <th className="py-2 pr-3">Email</th>
                     <th className="py-2 pr-3">Public</th>
                     <th className="py-2 pr-3">Claimed</th>
-                    <th className="py-2 pr-3">Submitted</th>
+                    <th className="py-2 pr-3">R1</th>
+                    <th className="py-2 pr-3">R2</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -339,6 +341,18 @@ export default function AdminBeta() {
                           <span className="text-muted-foreground">pending</span>
                         )}
                       </td>
+                      <td className="py-2 pr-3">
+                        {round2Submitted[t.id] ? (
+                          <span className="inline-flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-yellow-400" />
+                            {new Date(round2Submitted[t.id]).toLocaleDateString()}
+                          </span>
+                        ) : t.submitted_at ? (
+                          <span className="text-muted-foreground">eligible</span>
+                        ) : (
+                          <span className="text-muted-foreground/50">—</span>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -346,6 +360,40 @@ export default function AdminBeta() {
             </div>
           </section>
         )}
+
+        {/* Tabs */}
+        <div className="flex items-center gap-2 mb-4 border-b-2 border-foreground/20">
+          {(["round1", "round2"] as const).map((tab) => {
+            const isActive = activeTab === tab;
+            const label = tab === "round1" ? `Round 1 · ${rows.length}` : `Round 2 · ${round2Rows.length}`;
+            return (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setActiveTab(tab)}
+                className={cn(
+                  "px-4 py-2 text-xs font-bold uppercase tracking-wider border-2 border-b-0 transition -mb-[2px]",
+                  isActive
+                    ? "border-foreground bg-card text-foreground"
+                    : "border-transparent text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+
+        {activeTab === "round2" && (
+          <Round2Panel
+            rows={round2Rows}
+            expandedId={expandedR2Id}
+            onToggle={(id) => setExpandedR2Id((prev) => (prev === id ? null : id))}
+          />
+        )}
+
+        {activeTab === "round1" && (
+          <>
 
         {rows.length === 0 ? (
           <div className="border-2 border-dashed border-foreground/30 p-12 text-center text-muted-foreground">
