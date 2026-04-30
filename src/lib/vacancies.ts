@@ -1,10 +1,12 @@
 // Shared vacancy types + helpers for both admin and public surfaces.
 export type VacancyStatus = "live" | "archived" | "deleted";
+export type VacancyOpportunityType = "internship" | "job";
 
 export interface Vacancy {
   id: string;
   firm_name: string;
   role: string;
+  opportunity_type: VacancyOpportunityType;
   location: string | null;
   application_email: string;
   eligibility: string | null;
@@ -17,6 +19,10 @@ export interface Vacancy {
   created_by: string;
   created_at: string;
   updated_at: string;
+}
+
+export function opportunityTypeLabel(t: VacancyOpportunityType): string {
+  return t === "job" ? "Job" : "Internship";
 }
 
 export function daysLeft(expiresAt: string): number {
