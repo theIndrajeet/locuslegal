@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -47,6 +47,7 @@ function intensityClass(count: number): string {
 export default function ActivityHeatmap({ userId }: Props) {
   const [rows, setRows] = useState<ActivityRow[] | null>(null);
   const [loading, setLoading] = useState(true);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -109,6 +110,19 @@ export default function ActivityHeatmap({ userId }: Props) {
     return { grid: weeks, monthLabels: labels, totalContribs: total };
   }, [rows]);
 
+  // Auto-scroll to today (right edge) once the grid is rendered, so most recent
+  // activity is visible by default on narrow viewports.
+  useEffect(() => {
+    if (loading) return;
+    const el = scrollRef.current;
+    if (!el) return;
+    // Defer to next frame so layout is finalised.
+    const id = requestAnimationFrame(() => {
+      el.scrollLeft = el.scrollWidth;
+    });
+    return () => cancelAnimationFrame(id);
+  }, [loading, grid]);
+
   if (loading) {
     return (
       <div className="space-y-2">
@@ -128,7 +142,7 @@ export default function ActivityHeatmap({ userId }: Props) {
           <p className="text-xs text-muted-foreground">Bar attempts + applications</p>
         </div>
 
-        <div className="overflow-x-auto -mx-1 px-1 pb-1">
+        <div ref={scrollRef} className="overflow-x-auto -mx-1 px-1 pb-1 [mask-image:linear-gradient(to_right,black_85%,transparent_100%),linear-gradient(to_left,black_85%,transparent_100%)] [mask-composite:intersect]">
           <div className="inline-flex flex-col gap-1 min-w-full">
             {/* Month labels row */}
             <div className="relative h-3 ml-7" style={{ width: `${WEEKS * 14}px` }}>
