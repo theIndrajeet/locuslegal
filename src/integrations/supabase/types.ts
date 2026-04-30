@@ -1316,6 +1316,16 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      find_round2_tester: {
+        Args: { p_email: string }
+        Returns: {
+          display_name: string
+          email: string
+          id: string
+          round2_submitted_at: string
+          submitted_at: string
+        }[]
+      }
       get_app_dashboard: { Args: { p_user_id: string }; Returns: Json }
       get_bar_dashboard: { Args: { p_user_id: string }; Returns: Json }
       get_beta_tester_self: {
