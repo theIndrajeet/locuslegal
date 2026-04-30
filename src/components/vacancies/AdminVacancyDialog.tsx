@@ -27,6 +27,7 @@ interface FormState {
   eligibility: string;
   stipend: string;
   description: string;
+  task_brief: string;
   source_credit: string;
   expires_in_days: number;
 }

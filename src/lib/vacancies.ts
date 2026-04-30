@@ -12,6 +12,7 @@ export interface Vacancy {
   eligibility: string | null;
   stipend: string | null;
   description: string | null;
+  task_brief: string | null;
   source_credit: string | null;
   posted_at: string;
   expires_at: string;
