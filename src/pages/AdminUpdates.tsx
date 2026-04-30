@@ -115,6 +115,18 @@ export default function AdminUpdates() {
     return null;
   };
 
+  // Low-level dispatcher: invoke the edge function for an existing broadcast id.
+  const dispatchBroadcast = async (id: string, testEmail?: string) => {
+    const { data, error } = await supabase.functions.invoke("dispatch-updates-broadcast", {
+      body: testEmail ? { broadcastId: id, testEmail } : { broadcastId: id },
+    });
+    if (error) throw error;
+    if (data && (data as any).ok === false) {
+      throw new Error((data as any).error || "Send failed");
+    }
+    return data as any;
+  };
+
   const handleTestSend = async () => {
     const err = validate();
     if (err) { toast({ title: err, variant: "destructive" }); return; }
@@ -128,17 +140,12 @@ export default function AdminUpdates() {
       }
       const id = await createDraft();
       if (!id) return;
-      const { data, error } = await supabase.functions.invoke("dispatch-updates-broadcast", {
-        body: { broadcastId: id, testEmail: myEmail },
-      });
-      if (error) throw error;
-      if (data && (data as any).ok === false) {
-        throw new Error((data as any).error || "Send failed");
-      }
+      await dispatchBroadcast(id, myEmail);
       toast({
         title: `Test sent to ${myEmail}`,
         description: "Check your inbox in a few seconds.",
       });
+      await loadHistory();
     } catch (e: any) {
       toast({ title: "Test send failed", description: e?.message ?? String(e), variant: "destructive" });
     } finally {
@@ -153,20 +160,62 @@ export default function AdminUpdates() {
     try {
       const id = await createDraft();
       if (!id) return;
-      const { data, error } = await supabase.functions.invoke("dispatch-updates-broadcast", {
-        body: { broadcastId: id },
-      });
-      if (error) throw error;
-      if (data && (data as any).ok === false) {
-        throw new Error((data as any).error || "Broadcast failed");
-      }
-      const queued = (data as any)?.queued ?? 0;
-      const skipped = (data as any)?.suppressed_skipped ?? 0;
+      const data = await dispatchBroadcast(id);
+      const queued = data?.queued ?? 0;
+      const skipped = data?.suppressed_skipped ?? 0;
       toast({
         title: `Broadcast queued`,
         description: `Sending to ${queued} recipients (${skipped} suppressed/skipped).`,
       });
       reset();
+      await loadHistory();
+    } catch (e: any) {
+      toast({ title: "Broadcast failed", description: e?.message ?? String(e), variant: "destructive" });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // Row actions on existing broadcasts.
+  const loadIntoComposer = (b: BroadcastRow) => {
+    setSubject(b.subject || "");
+    setPreheader(b.preheader || "");
+    setBodyMd(b.body_markdown || "");
+    setCtaLabel(b.cta_label || "");
+    setCtaUrl(b.cta_url || "");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    toast({ title: "Loaded into composer", description: "Edit and re-send as a fresh draft." });
+  };
+
+  const testExistingDraft = async (id: string) => {
+    setBusy(true);
+    try {
+      const { data: u } = await supabase.auth.getUser();
+      const myEmail = u?.user?.email;
+      if (!myEmail) {
+        toast({ title: "Cannot resolve your email", variant: "destructive" });
+        return;
+      }
+      await dispatchBroadcast(id, myEmail);
+      toast({ title: `Test sent to ${myEmail}`, description: "Check your inbox in a few seconds." });
+      await loadHistory();
+    } catch (e: any) {
+      toast({ title: "Test send failed", description: e?.message ?? String(e), variant: "destructive" });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const sendExistingToAll = async (id: string) => {
+    setBusy(true);
+    try {
+      const data = await dispatchBroadcast(id);
+      const queued = data?.queued ?? 0;
+      const skipped = data?.suppressed_skipped ?? 0;
+      toast({
+        title: `Broadcast queued`,
+        description: `Sending to ${queued} recipients (${skipped} suppressed/skipped).`,
+      });
       await loadHistory();
     } catch (e: any) {
       toast({ title: "Broadcast failed", description: e?.message ?? String(e), variant: "destructive" });
