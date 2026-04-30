@@ -324,6 +324,24 @@ export default function AdminVacancyDialog({ open, onOpenChange, initial, onSave
                 <p className="text-xs text-muted-foreground mt-1">{form.description.length} / 800</p>
               </div>
 
+              <div className="rounded-md border-2 border-dashed border-foreground/30 bg-accent/5 p-3">
+                <Label className="flex items-center gap-2 font-extrabold uppercase tracking-wide text-xs">
+                  <ClipboardList size={14} className="text-accent" />
+                  Required task / assignment (optional)
+                </Label>
+                <p className="text-[11px] text-muted-foreground mt-1 mb-2">
+                  Paste the written task the firm wants applicants to submit (research note prompt, sample drafting question, etc.). Shown inline on the card — no PDF needed.
+                </p>
+                <Textarea
+                  value={form.task_brief}
+                  onChange={(e) => update("task_brief", e.target.value)}
+                  className="min-h-[100px]"
+                  placeholder='e.g. "Submit a 500-word note on Section 9 arbitration interim relief, citing 3 recent SC judgments."'
+                  maxLength={2000}
+                />
+                <p className="text-xs text-muted-foreground mt-1">{form.task_brief.length} / 2000</p>
+              </div>
+
               <div>
                 <Label>Source credit (optional)</Label>
                 <Input
