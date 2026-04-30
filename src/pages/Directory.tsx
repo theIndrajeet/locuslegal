@@ -166,7 +166,7 @@ export default function Directory() {
   // Reset page on filter change
   useEffect(() => {
     setPage(1);
-  }, [search, city, area, tier, type, sort]);
+  }, [search, city, area, tier, type, sort, channel, verifiedOnly]);
 
   const totalPages = Math.ceil(sorted.length / PAGE_SIZE);
   const paginated = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -292,6 +292,52 @@ export default function Directory() {
           </button>
         </div>
       </section>
+
+      {mode === "firms" && (
+        <section className="container mx-auto px-4 md:px-8 mb-6">
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            {/* Channel tabs */}
+            <div className="inline-flex items-stretch border-2 border-foreground bg-card shadow-[3px_3px_0_0_hsl(var(--foreground))]">
+              <button
+                onClick={() => setChannel("email")}
+                className={`flex items-center gap-2 px-4 py-2.5 text-sm font-bold transition-colors ${
+                  channel === "email" ? "bg-accent text-accent-foreground" : "text-foreground hover:bg-muted"
+                }`}
+              >
+                <Mail size={14} /> Mail Now
+                <span className="font-mono text-[11px] opacity-80">· {mailNowCount.toLocaleString()}</span>
+              </button>
+              <button
+                onClick={() => setChannel("phone")}
+                className={`flex items-center gap-2 px-4 py-2.5 text-sm font-bold border-l-2 border-foreground transition-colors ${
+                  channel === "phone" ? "bg-accent text-accent-foreground" : "text-foreground hover:bg-muted"
+                }`}
+              >
+                <Phone size={14} /> Cold Call
+                <span className="font-mono text-[11px] opacity-80">· {coldCallCount.toLocaleString()}</span>
+              </button>
+            </div>
+            {/* Verified chip */}
+            <button
+              onClick={() => setVerifiedOnly((v) => !v)}
+              className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold border-2 border-foreground transition-all ${
+                verifiedOnly
+                  ? "bg-accent text-accent-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))]"
+                  : "bg-card text-foreground hover:bg-muted"
+              }`}
+              title="Show only independently verified firms"
+            >
+              <ShieldCheck size={13} /> Verified only
+              <span className="font-mono opacity-80">· {verifiedCount}</span>
+            </button>
+          </div>
+          <p className="text-center text-xs text-muted-foreground mt-2">
+            {channel === "email"
+              ? "Firms with a public email — best matched to the cold-mail playbook."
+              : "Phone-only firms — best for ground-level cold calling."}
+          </p>
+        </section>
+      )}
 
       {/* Live vacancies teaser — appears above filters when there are live postings */}
       <VacancyTeaserStrip />
