@@ -235,7 +235,10 @@ export default function TheBarChallenge() {
         },
       });
       // Notify the dashboard so it refetches stats when the user navigates back.
+      // Also persist a flag so /the-bar can refetch even though the event fires
+      // while it's unmounted (read-after-write race + SPA navigation).
       window.dispatchEvent(new Event("bar:stats-updated"));
+      try { sessionStorage.setItem("bar:lastSubmitAt", String(Date.now())); } catch { /* ignore */ }
     } catch (e) {
       console.error(e);
       toast.error("Network error. Please try again.");
