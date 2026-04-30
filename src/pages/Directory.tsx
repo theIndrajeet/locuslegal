@@ -35,7 +35,7 @@ type Channel = "email" | "phone";
 
 const mailNowCount = firms.filter((f) => !!f.email).length;
 const coldCallCount = firms.length - mailNowCount;
-const verifiedCount = firms.filter((f) => (f as { verified?: string }).verified === "verified").length;
+
 
 const typeFilters: { label: string; value: FirmType | "" }[] = [
   { label: "All", value: "" },
