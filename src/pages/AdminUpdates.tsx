@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Loader2, Send, Eye, ShieldOff, History, TestTube2, Trash2 } from "lucide-react";
+import { Loader2, Send, Eye, ShieldOff, History, TestTube2, Trash2, Pencil } from "lucide-react";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
 import { Button } from "@/components/ui/button";
@@ -115,6 +115,18 @@ export default function AdminUpdates() {
     return null;
   };
 
+  // Low-level dispatcher: invoke the edge function for an existing broadcast id.
+  const dispatchBroadcast = async (id: string, testEmail?: string) => {
+    const { data, error } = await supabase.functions.invoke("dispatch-updates-broadcast", {
+      body: testEmail ? { broadcastId: id, testEmail } : { broadcastId: id },
+    });
+    if (error) throw error;
+    if (data && (data as any).ok === false) {
+      throw new Error((data as any).error || "Send failed");
+    }
+    return data as any;
+  };
+
   const handleTestSend = async () => {
     const err = validate();
     if (err) { toast({ title: err, variant: "destructive" }); return; }
@@ -128,17 +140,12 @@ export default function AdminUpdates() {
       }
       const id = await createDraft();
       if (!id) return;
-      const { data, error } = await supabase.functions.invoke("dispatch-updates-broadcast", {
-        body: { broadcastId: id, testEmail: myEmail },
-      });
-      if (error) throw error;
-      if (data && (data as any).ok === false) {
-        throw new Error((data as any).error || "Send failed");
-      }
+      await dispatchBroadcast(id, myEmail);
       toast({
         title: `Test sent to ${myEmail}`,
         description: "Check your inbox in a few seconds.",
       });
+      await loadHistory();
     } catch (e: any) {
       toast({ title: "Test send failed", description: e?.message ?? String(e), variant: "destructive" });
     } finally {
@@ -153,20 +160,62 @@ export default function AdminUpdates() {
     try {
       const id = await createDraft();
       if (!id) return;
-      const { data, error } = await supabase.functions.invoke("dispatch-updates-broadcast", {
-        body: { broadcastId: id },
-      });
-      if (error) throw error;
-      if (data && (data as any).ok === false) {
-        throw new Error((data as any).error || "Broadcast failed");
-      }
-      const queued = (data as any)?.queued ?? 0;
-      const skipped = (data as any)?.suppressed_skipped ?? 0;
+      const data = await dispatchBroadcast(id);
+      const queued = data?.queued ?? 0;
+      const skipped = data?.suppressed_skipped ?? 0;
       toast({
         title: `Broadcast queued`,
         description: `Sending to ${queued} recipients (${skipped} suppressed/skipped).`,
       });
       reset();
+      await loadHistory();
+    } catch (e: any) {
+      toast({ title: "Broadcast failed", description: e?.message ?? String(e), variant: "destructive" });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // Row actions on existing broadcasts.
+  const loadIntoComposer = (b: BroadcastRow) => {
+    setSubject(b.subject || "");
+    setPreheader(b.preheader || "");
+    setBodyMd(b.body_markdown || "");
+    setCtaLabel(b.cta_label || "");
+    setCtaUrl(b.cta_url || "");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    toast({ title: "Loaded into composer", description: "Edit and re-send as a fresh draft." });
+  };
+
+  const testExistingDraft = async (id: string) => {
+    setBusy(true);
+    try {
+      const { data: u } = await supabase.auth.getUser();
+      const myEmail = u?.user?.email;
+      if (!myEmail) {
+        toast({ title: "Cannot resolve your email", variant: "destructive" });
+        return;
+      }
+      await dispatchBroadcast(id, myEmail);
+      toast({ title: `Test sent to ${myEmail}`, description: "Check your inbox in a few seconds." });
+      await loadHistory();
+    } catch (e: any) {
+      toast({ title: "Test send failed", description: e?.message ?? String(e), variant: "destructive" });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const sendExistingToAll = async (id: string) => {
+    setBusy(true);
+    try {
+      const data = await dispatchBroadcast(id);
+      const queued = data?.queued ?? 0;
+      const skipped = data?.suppressed_skipped ?? 0;
+      toast({
+        title: `Broadcast queued`,
+        description: `Sending to ${queued} recipients (${skipped} suppressed/skipped).`,
+      });
       await loadHistory();
     } catch (e: any) {
       toast({ title: "Broadcast failed", description: e?.message ?? String(e), variant: "destructive" });
@@ -317,7 +366,7 @@ export default function AdminUpdates() {
             <div className="divide-y divide-border">
               {history.map((b) => (
                 <div key={b.id} className="p-4 flex items-start justify-between gap-4">
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <div className="font-semibold truncate">{b.subject}</div>
                     <div className="text-xs text-muted-foreground mt-1">
                       {new Date(b.created_at).toLocaleString()} ·
@@ -325,9 +374,65 @@ export default function AdminUpdates() {
                       {b.status === "sent" ? ` · ${b.recipient_count} recipients` : null}
                     </div>
                   </div>
-                  <Button variant="ghost" size="sm" onClick={() => deleteBroadcast(b.id)} aria-label="Delete">
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Button
+                      variant="ghost" size="sm"
+                      onClick={() => loadIntoComposer(b)}
+                      title="Load into composer"
+                      aria-label="Load into composer"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                    {b.status === "draft" && (
+                      <>
+                        <Button
+                          variant="ghost" size="sm"
+                          disabled={busy}
+                          onClick={() => testExistingDraft(b.id)}
+                          title="Send test to me"
+                          aria-label="Send test to me"
+                        >
+                          <TestTube2 className="w-4 h-4" />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="ghost" size="sm"
+                              disabled={busy}
+                              title="Send to all users"
+                              aria-label="Send to all users"
+                            >
+                              <Send className="w-4 h-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Send "{b.subject}" to all users + waitlist?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This will queue this draft to every signed-up Locus user
+                                AND every email on the waitlist (deduped, suppressed
+                                addresses skipped). You can't unsend after this.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => sendExistingToAll(b.id)}>
+                                Send broadcast
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </>
+                    )}
+                    <Button
+                      variant="ghost" size="sm"
+                      onClick={() => deleteBroadcast(b.id)}
+                      title="Delete"
+                      aria-label="Delete"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
