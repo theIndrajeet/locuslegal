@@ -255,10 +255,11 @@ export default function AdminUpdates() {
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Send to all registered users?</AlertDialogTitle>
+                  <AlertDialogTitle>Send to all users + waitlist?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    This will queue an email to every Locus user (excluding suppressed addresses).
-                    You can't unsend after this.
+                    This will queue an email to every signed-up Locus user
+                    AND every email on the waitlist (deduped, suppressed
+                    addresses skipped). You can't unsend after this.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
