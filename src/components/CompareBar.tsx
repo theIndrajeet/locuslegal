@@ -17,6 +17,7 @@ interface Firm {
   rating?: number | string;
   phone?: string;
   email?: string;
+  verified?: string;
 }
 
 interface CompareBarProps {
@@ -32,6 +33,7 @@ export default function CompareBar({ selected, onRemove, onClear }: CompareBarPr
 
   const rows: { label: string; key: keyof Firm }[] = [
     { label: "Tier", key: "tier" },
+    { label: "Verified", key: "verified" },
     { label: "Rating", key: "rating" },
     { label: "City", key: "city" },
     { label: "Area", key: "area" },
@@ -106,6 +108,14 @@ export default function CompareBar({ selected, onRemove, onClear }: CompareBarPr
                           <a href={`mailto:${f.email}`} className="text-accent hover:underline truncate block max-w-[180px]">{f.email}</a>
                         ) : r.key === "phone" && f.phone ? (
                           <a href={`tel:${f.phone}`} className="text-accent hover:underline">{f.phone}</a>
+                        ) : r.key === "verified" ? (
+                          f.verified === "verified" ? (
+                            <span className="inline-flex items-center gap-1 text-accent font-bold">✓ Verified</span>
+                          ) : f.verified === "likely" ? (
+                            <span className="text-muted-foreground">Listed</span>
+                          ) : (
+                            "—"
+                          )
                         ) : (
                           String(f[r.key] || "—")
                         )}

@@ -7,6 +7,7 @@ import {
   Scale,
   Send,
   Mail,
+  MessageSquarePlus,
 } from "lucide-react";
 import {
   Sidebar,
@@ -25,6 +26,7 @@ const items = [
   { title: "Waitlist", url: "/admin/waitlist", icon: Users },
   { title: "Beta Testers", url: "/admin/beta", icon: ClipboardCheck },
   { title: "Vacancies", url: "/admin/vacancies", icon: Briefcase },
+  { title: "Firm Suggestions", url: "/admin/firm-suggestions", icon: MessageSquarePlus },
   { title: "The Bar", url: "/admin/bar", icon: Scale },
   { title: "Updates", url: "/admin/updates", icon: Send },
   { title: "Email Log", url: "/admin/emails", icon: Mail },

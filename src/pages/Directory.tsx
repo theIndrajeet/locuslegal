@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { usePageMeta } from "@/hooks/usePageMeta";
-import { Building2, MapPin, Star, Phone, Mail, GitCompareArrows, Trophy, ArrowRight, Rocket, Globe, Users, Scale } from "lucide-react";
+import { Building2, MapPin, Star, Phone, Mail, GitCompareArrows, Trophy, ArrowRight, Rocket, Globe, Users, Scale, ShieldCheck } from "lucide-react";
 import { Link } from "react-router-dom";
 import firms from "@/data/firms.json";
 import startupsData from "@/data/startups.json";
@@ -31,6 +31,11 @@ const PAGE_SIZE = 30;
 type FirmType = "Law Firm" | "Chamber" | "Individual Advocate";
 type SortOption = "relevance" | "rating-desc" | "name-asc" | "name-desc" | "tier";
 type Mode = "firms" | "startups";
+type Channel = "email" | "phone";
+
+const mailNowCount = firms.filter((f) => !!f.email).length;
+const coldCallCount = firms.length - mailNowCount;
+const verifiedCount = firms.filter((f) => (f as { verified?: string }).verified === "verified").length;
 
 const typeFilters: { label: string; value: FirmType | "" }[] = [
   { label: "All", value: "" },
@@ -56,19 +61,26 @@ function getType(firm: (typeof firms)[0]): FirmType {
 }
 
 export default function Directory() {
-  usePageMeta({ title: "Firm Directory", description: "Browse 500+ verified law firms, chambers, and advocates across India. Filter by city, practice area, and tier.", path: "/directory" });
+  usePageMeta({ title: "Firm Directory", description: "Browse 3,600+ Indian law firms — 880+ direct emails and 51 independently verified. Filter by Mail Now or Cold Call.", path: "/directory" });
 
   // Mode (URL-synced)
   const [searchParams, setSearchParams] = useSearchParams();
   const initialMode: Mode = searchParams.get("mode") === "startups" ? "startups" : "firms";
   const [mode, setMode] = useState<Mode>(initialMode);
+  const initialChannel: Channel = searchParams.get("channel") === "phone" ? "phone" : "email";
+  const [channel, setChannel] = useState<Channel>(initialChannel);
+  const [verifiedOnly, setVerifiedOnly] = useState(searchParams.get("verified") === "1");
   useEffect(() => {
     const next = new URLSearchParams(searchParams);
     if (mode === "startups") next.set("mode", "startups");
     else next.delete("mode");
+    if (mode === "firms" && channel === "phone") next.set("channel", "phone");
+    else next.delete("channel");
+    if (mode === "firms" && verifiedOnly) next.set("verified", "1");
+    else next.delete("verified");
     setSearchParams(next, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode]);
+  }, [mode, channel, verifiedOnly]);
 
   const initialQ = searchParams.get("q") ?? "";
   const [searchInput, setSearchInput] = useState(initialQ);
@@ -118,6 +130,11 @@ export default function Directory() {
 
   const filtered = useMemo(() => {
     return firms.filter((f) => {
+      // Channel tab
+      const hasEmail = !!f.email;
+      if (channel === "email" && !hasEmail) return false;
+      if (channel === "phone" && hasEmail) return false;
+      if (verifiedOnly && (f as { verified?: string }).verified !== "verified") return false;
       if (search && !f.name.toLowerCase().includes(search.toLowerCase())) return false;
       if (city && f.city !== city) return false;
       if (area && f.area !== area) return false;
@@ -125,29 +142,31 @@ export default function Directory() {
       if (type && getType(f) !== type) return false;
       return true;
     });
-  }, [search, city, area, tier, type]);
+  }, [search, city, area, tier, type, channel, verifiedOnly]);
 
-  // Sorted
+  // Sorted (verified firms always float to top within current sort)
   const sorted = useMemo(() => {
     const arr = [...filtered];
+    const verifiedWeight = (f: typeof firms[0]) => ((f as { verified?: string }).verified === "verified" ? 1 : 0);
     switch (sort) {
       case "rating-desc":
-        return arr.sort((a, b) => (Number(b.rating) || 0) - (Number(a.rating) || 0));
+        return arr.sort((a, b) => (verifiedWeight(b) - verifiedWeight(a)) || ((Number(b.rating) || 0) - (Number(a.rating) || 0)));
       case "name-asc":
-        return arr.sort((a, b) => a.name.localeCompare(b.name));
+        return arr.sort((a, b) => (verifiedWeight(b) - verifiedWeight(a)) || a.name.localeCompare(b.name));
       case "name-desc":
-        return arr.sort((a, b) => b.name.localeCompare(a.name));
+        return arr.sort((a, b) => (verifiedWeight(b) - verifiedWeight(a)) || b.name.localeCompare(a.name));
       case "tier":
-        return arr.sort((a, b) => (a.tier || "").localeCompare(b.tier || ""));
+        return arr.sort((a, b) => (verifiedWeight(b) - verifiedWeight(a)) || (a.tier || "").localeCompare(b.tier || ""));
       default:
-        return arr;
+        return arr.sort((a, b) => verifiedWeight(b) - verifiedWeight(a));
     }
   }, [filtered, sort]);
+
 
   // Reset page on filter change
   useEffect(() => {
     setPage(1);
-  }, [search, city, area, tier, type, sort]);
+  }, [search, city, area, tier, type, sort, channel, verifiedOnly]);
 
   const totalPages = Math.ceil(sorted.length / PAGE_SIZE);
   const paginated = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -273,6 +292,52 @@ export default function Directory() {
           </button>
         </div>
       </section>
+
+      {mode === "firms" && (
+        <section className="container mx-auto px-4 md:px-8 mb-6">
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            {/* Channel tabs */}
+            <div className="inline-flex items-stretch border-2 border-foreground bg-card shadow-[3px_3px_0_0_hsl(var(--foreground))]">
+              <button
+                onClick={() => setChannel("email")}
+                className={`flex items-center gap-2 px-4 py-2.5 text-sm font-bold transition-colors ${
+                  channel === "email" ? "bg-accent text-accent-foreground" : "text-foreground hover:bg-muted"
+                }`}
+              >
+                <Mail size={14} /> Mail Now
+                <span className="font-mono text-[11px] opacity-80">· {mailNowCount.toLocaleString()}</span>
+              </button>
+              <button
+                onClick={() => setChannel("phone")}
+                className={`flex items-center gap-2 px-4 py-2.5 text-sm font-bold border-l-2 border-foreground transition-colors ${
+                  channel === "phone" ? "bg-accent text-accent-foreground" : "text-foreground hover:bg-muted"
+                }`}
+              >
+                <Phone size={14} /> Cold Call
+                <span className="font-mono text-[11px] opacity-80">· {coldCallCount.toLocaleString()}</span>
+              </button>
+            </div>
+            {/* Verified chip */}
+            <button
+              onClick={() => setVerifiedOnly((v) => !v)}
+              className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold border-2 border-foreground transition-all ${
+                verifiedOnly
+                  ? "bg-accent text-accent-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))]"
+                  : "bg-card text-foreground hover:bg-muted"
+              }`}
+              title="Show only independently verified firms"
+            >
+              <ShieldCheck size={13} /> Verified only
+              <span className="font-mono opacity-80">· {verifiedCount}</span>
+            </button>
+          </div>
+          <p className="text-center text-xs text-muted-foreground mt-2">
+            {channel === "email"
+              ? "Firms with a public email — best matched to the cold-mail playbook."
+              : "Phone-only firms — best for ground-level cold calling."}
+          </p>
+        </section>
+      )}
 
       {/* Live vacancies teaser — appears above filters when there are live postings */}
       <VacancyTeaserStrip />
@@ -406,6 +471,11 @@ export default function Directory() {
                       <span className="text-[11px] font-medium bg-accent/10 text-accent px-2 py-0.5 rounded-full">
                         {getType(f)}
                       </span>
+                      {(f as { verified?: string }).verified === "verified" && (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-accent text-accent-foreground border border-foreground px-2 py-0.5 rounded-full">
+                          <ShieldCheck size={10} /> Verified
+                        </span>
+                      )}
                     </div>
 
                     {f.address && (
