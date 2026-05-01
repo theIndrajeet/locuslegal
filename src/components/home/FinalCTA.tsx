@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, ArrowDown } from "lucide-react";
 import { TimelineContent, textVariants } from "@/components/ui/timeline-animation";
 
 export default function FinalCTA() {
@@ -18,11 +18,18 @@ export default function FinalCTA() {
           </p>
         </TimelineContent>
         <TimelineContent index={3} variants={textVariants}>
-          <Link to="/waitlist">
-            <Button size="lg" className="font-heading text-base px-10 py-4">
-              Join the Waitlist <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          </Link>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link to="/waitlist">
+              <Button size="lg" className="font-heading text-base px-8 py-4 w-full sm:w-auto">
+                Join the Waitlist <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+            <a href="#features">
+              <Button variant="neutral" size="lg" className="font-heading text-base px-8 py-4 w-full sm:w-auto">
+                Explore Locus <ArrowDown className="ml-2 h-4 w-4" />
+              </Button>
+            </a>
+          </div>
         </TimelineContent>
       </div>
     </section>

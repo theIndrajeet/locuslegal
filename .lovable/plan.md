@@ -1,20 +1,33 @@
-# Quick win: simplify the footer memory game
+# CTA hierarchy refresh (final)
 
-Drop the demo lab, kill the busy 24-card grid, ship the calmest possible memory game.
+Two surgical edits to the homepage CTA blocks. No new components, no logic, no route changes.
 
-## Changes
+## 1. HomeHero — `src/components/home/HomeHero.tsx` (top of `/`)
 
-1. **`src/components/FooterArcade.tsx`** — keep the existing flip mechanics, change two things:
-   - **Card back**: replace the cluttered 4-symbol composite (asterisk + triangle + clover + trident) with a single small Locus monogram dot — yellow ring + yellow center on a dark card. Quiet, repeats cleanly, reads as one element.
-   - **Grid**: shrink from 12 pairs (24 cards, 8 columns) to **8 pairs (16 cards, 4 columns)**. Win-condition counter updated from `=== 12` to `=== 8`. Mobile breakpoint stays 4 columns. Symbols trim from 12 to the 8 most distinct (triangle, circle, diamond, signal, target, home, square, lightning).
+Current buttons:
+- Primary (yellow): Join the Waitlist → `/waitlist`
+- Secondary (dark): Explore features → `#features`
 
-2. **Remove the demo lab** (no longer needed):
-   - Delete `src/pages/ArcadeLab.tsx`
-   - Delete `src/components/arcade-lab/Lockbox.tsx`
-   - Delete `src/components/arcade-lab/Objection.tsx`
-   - Delete `src/components/arcade-lab/StampSort.tsx`
-   - Remove the `ArcadeLab` lazy import + `/arcade-lab` route from `src/App.tsx`
+After:
+- **Primary (yellow): Start your journey →** → `/auth` (login / sign-up)
+- **Secondary (dark): Explore Locus** → `#features`
 
-No memory updates needed — `mem://features/footer` already says "neobrutalist memory game" which still applies.
+Waitlist link removed from this block.
 
-Approve and I'll ship it.
+## 2. FinalCTA — `src/components/home/FinalCTA.tsx` (bottom of `/`)
+
+Current: single yellow "Join the Waitlist →" button.
+
+After (two prominent buttons, side-by-side, matching the hero pattern):
+- Heading unchanged: **"Get in early. Get in front."**
+- Subcopy unchanged (still mentions the waitlist — keeping it because the primary CTA is the waitlist).
+- **Primary (yellow): Join the Waitlist →** → `/waitlist`
+- **Secondary (dark): Explore Locus** → `#features`
+- Layout: `flex flex-col sm:flex-row gap-4 justify-center` — same row pattern as HomeHero so both buttons read as equally weighty (size `lg`, same padding).
+
+## Technical notes
+
+- Both files already import `Link`, `Button`, and `ArrowRight`. No new imports.
+- `/auth` route already exists in `src/App.tsx`; same destination used by `ProfileMenu` for sign-in.
+- `TimelineContent` animation wrappers preserved in both files.
+- No copy changes anywhere else. `/waitlist` page, navbar, and `RainbowButton` chips untouched.
