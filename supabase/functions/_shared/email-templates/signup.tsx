@@ -11,7 +11,6 @@ import {
   Html,
   Link,
   Preview,
-  Section,
   Text,
 } from 'npm:@react-email/components@0.0.22'
 
@@ -30,36 +29,29 @@ export const SignupEmail = ({
 }: SignupEmailProps) => (
   <Html lang="en" dir="ltr">
     <Head />
-    <Preview>Confirm your email to join Locus</Preview>
+    <Preview>Confirm your email for {siteName}</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Section style={brandBar}>
-          <Text style={brand}>
-            Loc<span style={brandAccent}>us</span>
-          </Text>
-        </Section>
         <Heading style={h1}>Confirm your email</Heading>
         <Text style={text}>
-          Welcome to{' '}
+          Thanks for signing up for{' '}
           <Link href={siteUrl} style={link}>
-            <strong>Locus</strong>
+            <strong>{siteName}</strong>
           </Link>
-          {' '}— the merit-based legal internship platform.
+          !
         </Text>
         <Text style={text}>
-          Tap the button below to verify{' '}
+          Please confirm your email address (
           <Link href={`mailto:${recipient}`} style={link}>
             {recipient}
           </Link>
-          {' '}and unlock your account.
+          ) by clicking the button below:
         </Text>
-        <Section style={btnWrap}>
-          <Button style={button} href={confirmationUrl}>
-            Verify Email
-          </Button>
-        </Section>
+        <Button style={button} href={confirmationUrl}>
+          Verify Email
+        </Button>
         <Text style={footer}>
-          Didn't create an account? You can safely ignore this email.
+          If you didn't create an account, you can safely ignore this email.
         </Text>
       </Container>
     </Body>
@@ -68,14 +60,10 @@ export const SignupEmail = ({
 
 export default SignupEmail
 
-const main = { backgroundColor: '#ffffff', fontFamily: "'Inter', Arial, sans-serif", margin: 0, padding: '40px 0' }
-const container = { maxWidth: '520px', margin: '0 auto', padding: '0', backgroundColor: '#ffffff', border: '2px solid #000000', boxShadow: '6px 6px 0 0 #000000' }
-const brandBar = { padding: '20px 28px', borderBottom: '2px solid #000000', backgroundColor: '#ffffff' }
-const brand = { fontFamily: "'Sora', Arial, sans-serif", fontSize: '24px', fontWeight: 800 as const, color: '#000000', margin: 0, letterSpacing: '-0.02em' }
-const brandAccent = { color: '#000000', backgroundColor: '#FACC15', padding: '0 6px', borderRadius: '2px' }
-const h1 = { fontFamily: "'Sora', Arial, sans-serif", fontSize: '26px', fontWeight: 800 as const, color: '#000000', margin: '28px 28px 16px', letterSpacing: '-0.01em' }
-const text = { fontSize: '15px', color: '#3f3f46', lineHeight: '1.6', margin: '0 28px 18px' }
-const link = { color: '#000000', textDecoration: 'underline', textDecorationColor: '#FACC15', textDecorationThickness: '2px' }
-const btnWrap = { padding: '8px 28px 28px' }
-const button = { backgroundColor: '#FACC15', color: '#000000', fontFamily: "'Sora', Arial, sans-serif", fontSize: '15px', fontWeight: 700 as const, borderRadius: '0px', padding: '14px 24px', textDecoration: 'none', border: '2px solid #000000', display: 'inline-block', boxShadow: '4px 4px 0 0 #000000' }
-const footer = { fontSize: '12px', color: '#71717a', margin: '0 28px 28px', paddingTop: '16px', borderTop: '1px solid #e4e4e7' }
+const main = { backgroundColor: '#ffffff', fontFamily: 'Inter, Arial, sans-serif' }
+const container = { padding: '24px', maxWidth: '560px', margin: '0 auto', border: '2px solid #000000' }
+const h1 = { fontSize: '24px', fontWeight: 'bold', color: '#000000', margin: '0 0 20px' }
+const text = { fontSize: '15px', color: '#3f3f46', lineHeight: '1.6', margin: '0 0 20px' }
+const link = { color: '#000000', textDecoration: 'underline' }
+const button = { backgroundColor: '#FACC15', color: '#000000', fontSize: '15px', fontWeight: 'bold', borderRadius: '4px', padding: '14px 24px', textDecoration: 'none', border: '2px solid #000000', display: 'inline-block' }
+const footer = { fontSize: '12px', color: '#71717a', margin: '32px 0 0' }

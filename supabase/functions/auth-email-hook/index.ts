@@ -38,8 +38,8 @@ const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
 // Configuration
 const SITE_NAME = "locuslegal"
 const SENDER_DOMAIN = "notify.mail.locus.legal"
-const ROOT_DOMAIN = "locus.legal"
-const FROM_DOMAIN = "notify.mail.locus.legal" // Must align with SENDER_DOMAIN — provider rejects mismatched From domains
+const ROOT_DOMAIN = "mail.locus.legal"
+const FROM_DOMAIN = "mail.locus.legal" // Domain shown in From address (may be root or sender subdomain)
 
 // Sample data for preview mode ONLY (not used in actual email sending).
 // URLs are baked in at scaffold time from the project's real data.
@@ -70,6 +70,7 @@ const SAMPLE_DATA: Record<string, object> = {
   },
   email_change: {
     siteName: SITE_NAME,
+    oldEmail: SAMPLE_EMAIL,
     email: SAMPLE_EMAIL,
     newEmail: SAMPLE_EMAIL,
     confirmationUrl: SAMPLE_PROJECT_URL,
@@ -225,6 +226,7 @@ async function handleWebhook(req: Request): Promise<Response> {
     confirmationUrl: payload.data.url,
     token: payload.data.token,
     email: payload.data.email,
+    oldEmail: payload.data.old_email,
     newEmail: payload.data.new_email,
   }
 
