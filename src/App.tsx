@@ -52,6 +52,7 @@ const BetaChecklist = lazy(routeImports.betaChecklist as never);
 const BetaRound2 = lazy(routeImports.betaRound2 as never);
 const NotFound = lazy(routeImports.notFound as never);
 const DockLab = lazy(() => import("./pages/DockLab"));
+const ArcadeLab = lazy(() => import("./pages/ArcadeLab"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -143,6 +144,7 @@ const App = () => (
                   </Route>
                   <Route path="/vacancies" element={<Vacancies />} />
                   <Route path="/dock-lab" element={<DockLab />} />
+                  <Route path="/arcade-lab" element={<ArcadeLab />} />
                 </Route>
                 <Route path="/unsubscribe" element={<Unsubscribe />} />
                 <Route path="/auth" element={<Auth />} />
