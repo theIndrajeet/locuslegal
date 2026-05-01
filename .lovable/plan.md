@@ -1,56 +1,69 @@
-## Insert Batches 07 & 08 — Ethics + Client Counseling
+## Goal
 
-Same pattern as batches 01–06.
+Send one broadcast email to every Locus user (and waitlist) acknowledging the recent maintenance window, and pointing them to the new Bar challenges + new vacancies they may have missed.
 
-### What's in the batches
+This uses your existing **Updates Broadcast** system at `/admin/updates` — no new infrastructure or code needed. I'll just hand you the ready-to-paste copy and you click "Send to all users".
 
-**Batch 07 — `ethics` (15 challenges, area_of_law = `other`)**
-- 5 easy (Conflict of Interest, Confidentiality, Forged Document, Competence, Fee Recovery)
-- 5 medium (Client Perjury, Dual Representation, Withdrawal/Document Fraud, Privileged Document, Client Autonomy)
-- 5 hard (False Alibi, Ongoing Client Fraud, Substantial Relationship, Duty of Candor, Ex Parte Communication)
+## What I'll prepare
 
-**Batch 08 — `client_counseling` (15 challenges, varied areas)**
-- 5 easy: Cheque Dishonour (criminal), Eviction (property), Termination (labour), Defective Goods (other), FIR/Robbery (criminal)
-- 5 medium: Domestic Violence (family), Founder Dispute (corporate), GST Raid (tax), Land Acquisition (property), Shareholder Oppression (corporate)
-- 5 hard: Surveillance/Privacy (constitutional), Foreign Award Enforcement (international), Environmental Clearance (environmental), Medical Negligence (torts), Cross-Border Insolvency (corporate)
+A single draft with all four fields filled in:
 
-### Mapping to `bar_challenges`
+**Subject**
+> You missed a few things while we were under the hood
 
-| difficulty | points_base |
-|------------|-------------|
-| easy       | 50          |
-| medium     | 75          |
-| hard       | 100         |
+**Preheader**
+> New Bar challenges, fresh vacancies, and what was happening behind the scenes.
 
-(Confirmed against existing approved rows of the same `question_type`.)
+**Body (Markdown)**
 
-Each row also gets:
-- `status = 'approved'` — visible in `/the-bar/browse` immediately
-- `created_by = approved_by = 3a7ce47a-d597-470d-b21e-ce27bee27dec` (admin profile)
-- `approved_at = now()`
-- `notified_at = now()` — **email pause respected**: this skips the `bar_challenges_notify_new_fn` trigger, which only fires when `notified_at IS NULL`. No outbound emails.
-- `payload` = full JSON payload from the file (verbatim)
-- `title`, `prompt`, `explanation`, `source_citation` copied from each item
-- `area_of_law` per item
+```
+Hey,
 
-### No code changes
-- `EthicsRenderer` / `PremiumEthics` payload shape (`decision_options`, `correct_decision_id`, `consequence_text`, `followup_options`, `correct_followup_id`, `model_reasoning`) matches the file exactly — verified.
-- `ClientCounselingRenderer` / `PremiumClientCounseling` payload shape (`matter`, `transcript`, `decision_turns[].options`, `correct_option_id`) matches — verified.
-- No schema, RLS, or UI changes.
+Quick note — Locus was under maintenance for a short stretch this week
+while we shipped some upgrades behind the scenes. If you tried to log in
+or got radio silence on notifications, that's why. Everything is back,
+faster, and you may have missed a couple of things worth your time.
 
-### Execution
+**New on The Bar**
+We dropped a fresh batch of challenges across Brief Builder, Ethics, and
+Client Counseling — including bail applications, writ petitions, medical
+negligence, and a few that will genuinely make you think twice before
+hitting submit. Climb the leaderboard while it's still early.
 
-Stage both JSON files into `/tmp`, generate one bulk SQL transaction (parameterised via Python to safely escape `jsonb`), run via `psql` in a single transaction. Verify counts after insert:
+**New vacancies live now**
+The Vacancy Board picked up new internships and openings during the
+quiet period. They expire fast — first to apply, first considered.
 
-```text
-SELECT question_type, difficulty, count(*)
-FROM bar_challenges
-WHERE created_at > now() - interval '5 minutes'
-GROUP BY 1, 2;
+**Heads-up on emails**
+A few of you may not have received notifications during the maintenance
+window. If you saw nothing from us in the last few days, this is the
+catch-up. Going forward, you'll get pinged the moment a new challenge
+or vacancy goes live.
+
+Sorry for the silence — and thanks for sticking around.
+
+— Locus
 ```
 
-Expect: ethics 5/5/5 + client_counseling 5/5/5 = 30 new rows, all `status=approved`, all `notified_at` populated.
+**CTA label**
+> Open Locus
 
-### After insert
-- 30 challenges live on `/the-bar/browse` (filterable by Ethics or Client Counseling, all 3 difficulties).
-- Zero email notifications dispatched (matches the active "pause email notifications until domain fix" instruction).
+**CTA URL**
+> https://locus.legal/the-bar/browse
+
+(Single CTA points to The Bar; the body links can stay as plain references — the system already appends a branded footer + unsubscribe link automatically.)
+
+## How to send
+
+1. I open `/admin/updates`
+2. I paste the four fields above into the composer
+3. You hit **"Send test to me"** first to QA in your inbox
+4. Once it looks right, hit **"Send to all users"** — it queues to every signed-up user + waitlist email, deduped, suppressed addresses skipped
+
+## Notes
+
+- I will NOT auto-send. The plan only pre-fills the composer; the "Send to all" click stays with you.
+- I won't modify any code or add new files — this is pure content in your existing system.
+- If you want a different tone (more apologetic, more casual, shorter), tell me before I draft it into the page.
+
+Want me to also add a "pre-filled draft" button to `/admin/updates` so you can one-click-load this exact copy? Or just paste it in for you this once?

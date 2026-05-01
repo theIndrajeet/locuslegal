@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Loader2, Send, Eye, ShieldOff, History, TestTube2, Trash2, Pencil } from "lucide-react";
+import { Loader2, Send, Eye, ShieldOff, History, TestTube2, Trash2, Pencil, Wrench } from "lucide-react";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
 import { Button } from "@/components/ui/button";
@@ -264,7 +264,36 @@ export default function AdminUpdates() {
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Compose */}
         <Card className="p-6 border-2 border-border space-y-4">
-          <h2 className="text-lg font-bold flex items-center gap-2">Compose</h2>
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <h2 className="text-lg font-bold flex items-center gap-2">Compose</h2>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setSubject("You missed a few things while we were under the hood");
+                setPreheader("New Bar challenges, fresh vacancies, and what was happening behind the scenes.");
+                setBodyMd(
+                  `Hey,\n\n` +
+                  `Quick note — Locus was under maintenance for a short stretch this week while we shipped some upgrades behind the scenes. If you tried to log in or got radio silence on notifications, that's why. Everything is back, faster, and you may have missed a couple of things worth your time.\n\n` +
+                  `**New on The Bar**\n` +
+                  `We dropped a fresh batch of challenges across Brief Builder, Ethics, and Client Counseling — including bail applications, writ petitions, medical negligence, and a few that will genuinely make you think twice before hitting submit. Climb the leaderboard while it's still early.\n\n` +
+                  `**New vacancies live now**\n` +
+                  `The Vacancy Board picked up new internships and openings during the quiet period. They expire fast — first to apply, first considered.\n\n` +
+                  `**Heads-up on emails**\n` +
+                  `A few of you may not have received notifications during the maintenance window. If you saw nothing from us in the last few days, this is the catch-up. Going forward, you'll get pinged the moment a new challenge or vacancy goes live.\n\n` +
+                  `Sorry for the silence — and thanks for sticking around.\n\n` +
+                  `— Locus`
+                );
+                setCtaLabel("Open Locus");
+                setCtaUrl("https://locus.legal/the-bar/browse");
+                window.scrollTo({ top: 0, behavior: "smooth" });
+                toast({ title: "Maintenance catch-up draft loaded", description: "Review, send a test, then broadcast." });
+              }}
+            >
+              <Wrench className="w-4 h-4 mr-2" />
+              Load: Maintenance catch-up
+            </Button>
+          </div>
           <div className="space-y-2">
             <Label htmlFor="subject">Subject *</Label>
             <Input id="subject" value={subject} onChange={(e) => setSubject(e.target.value)}
