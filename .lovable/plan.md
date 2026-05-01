@@ -1,34 +1,26 @@
-I checked the current state. This does not look like a Cloudflare “too many NS records” problem.
-
-What I found:
-- `notify.mail.locus.legal` is verified and ready.
-- The project is currently configured to use `mail.locus.legal` as the email domain.
-- There is also a stale failed email domain entry for `locus.legal` with `provisioning_failed`.
-- Your Cloudflare screenshot shows the correct `notify.mail` delegation to Lovable nameservers.
-- The red banner is most likely stuck because the email preview/setup flow is still seeing stale/failed domain state or cached template build state, not because your current `notify.mail` DNS is wrong.
-
-You should not need to go back to the original workspace or “release” the domain yet. That could make this messier unless the domain is actually owned by another workspace. Right now the active sender path is verified.
+I checked the current email state. The sender domain is verified, so moving back to the old workspace is very unlikely to fix this. The failure shown in your screenshot is not a Cloudflare nameserver loop; it is the email preview builder failing while compiling/rendering templates.
 
 Plan:
-1. Reconcile the email-domain configuration
-   - Keep the verified `mail.locus.legal` / `notify.mail.locus.legal` sender setup for this project.
-   - Clear or bypass the stale failed `locus.legal` email-domain setup state so the project stops looping on the wrong domain.
 
-2. Re-run the managed email infrastructure setup
-   - Refresh the email queue infrastructure, dispatcher scheduling, and project email state.
-   - This is safe/idempotent and should not require changing Cloudflare DNS if `notify.mail` is already verified.
+1. Rebuild auth email templates cleanly
+   - Regenerate the managed auth email template set against the already-verified `mail.locus.legal` domain.
+   - Keep the existing Locus brand direction: white email body, black neobrutalist borders, yellow accent, Sora/Inter tone.
+   - Ensure the auth email hook stays on the queued sending path, so auth emails are retried safely instead of direct-sent.
 
-3. Rebuild the auth email templates cleanly against the verified sender domain
-   - Re-scaffold the auth email templates if necessary.
-   - Preserve the existing Locus styling: white email body, black borders, yellow accent, Sora/Inter feel.
-   - Ensure the auth email service uses `notify.mail.locus.legal` for sending.
+2. Fix the app email preview builder issue
+   - Remove/replace preview-hostile markup in the app email templates, especially the current broadcast template’s raw HTML rendering pattern that can break the preview cache build.
+   - Keep the broadcast email visually consistent, but render preview-safe content so Cloud can build the preview cache.
+   - Confirm the app email template registry only includes templates that can render with static preview data.
 
-4. Redeploy the email services
-   - Redeploy the auth email service and transactional email service after the refresh so the live code matches the verified domain.
+3. Reconcile and redeploy email functions
+   - Re-run the managed email infrastructure reconciliation for the verified domain to refresh the queue/cron/secrets state.
+   - Redeploy the email-related backend functions so Cloud uses the repaired template code, not stale deployed code.
 
-5. Verify the result
-   - Check the email domain status again.
-   - Check recent email service logs for preview/build errors.
-   - Have you click `Retry setup` once after the refresh, then confirm whether the red banner clears.
+4. Validate the result
+   - Check function logs and call the preview path after deployment to make sure previews render instead of failing.
+   - Then you should be able to click **Retry setup** in Cloud → Emails and the “Template build failed” banner should clear.
 
-If this still fails after those steps, the next escalation is not random DNS changes: it would be to remove the stale failed `locus.legal` email-domain entry from Cloud → Emails → Manage Domains, leaving only the verified `mail.locus.legal` setup.
+What not to do:
+- Do not transfer workspaces yet.
+- Do not release the domain unless this repair still fails after the template build is fixed.
+- Do not change Cloudflare nameservers for this issue; the verified domain status shows DNS is already good.

@@ -36,7 +36,7 @@ const UpdatesBroadcastEmail = ({
 
         <Section style={card}>
           <Heading style={h1}>{subject}</Heading>
-          <div
+          <Section
             style={bodyText}
             // bodyHtml is sanitized server-side via DOMPurify before being passed in.
             dangerouslySetInnerHTML={{ __html: bodyHtml }}
