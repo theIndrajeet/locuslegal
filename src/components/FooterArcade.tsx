@@ -191,27 +191,24 @@ export default function FooterArcade() {
   const isWrong = (i: number) => wrongPair.has(i);
 
   return (
-    <section className="relative py-16 px-4 bg-background">
+    <section className="relative py-6 px-4 bg-background border-t border-foreground/10">
       <style>{arcadeStyles}</style>
 
-      <div className="flex flex-col items-center max-w-[440px] mx-auto">
-        <h2 className="font-heading font-extrabold text-foreground text-center mb-8"
-            style={{ fontSize: "clamp(22px, 3vw, 36px)", letterSpacing: "-0.5px" }}>
-          A small game for the road
-        </h2>
-
-        {/* HUD */}
-        <div className="w-full flex justify-between items-center mb-5">
-          <span className="text-foreground/85 text-xs font-mono">Match the pairs.</span>
-          <div className="flex items-center gap-3">
-            <span className="text-foreground/85 text-xs font-mono">Moves</span>
-            <span className="border border-muted-foreground/30 rounded-md px-3 py-1 text-foreground text-xs font-mono tracking-wider min-w-[48px] text-center">
+      <div className="flex flex-col items-center max-w-[640px] mx-auto">
+        {/* HUD — single tight line above the strip */}
+        <div className="w-full flex justify-between items-center mb-2.5">
+          <span className="text-foreground/70 text-[11px] font-mono tracking-wider uppercase">
+            Match the pairs
+          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-foreground/60 text-[10px] font-mono tracking-wider uppercase">Moves</span>
+            <span className="border border-muted-foreground/25 rounded px-2 py-0.5 text-foreground text-[11px] font-mono tracking-wider min-w-[36px] text-center">
               {pad(moves)}
             </span>
           </div>
         </div>
 
-        {/* GRID */}
+        {/* GRID — horizontal 8×2 strip */}
         <div className="fa-grid">
           {cards.map((card, i) => (
             <div
