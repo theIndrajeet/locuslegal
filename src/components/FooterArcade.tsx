@@ -1,96 +1,50 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 
-// ── SVG SYMBOLS (black strokes, recolored for Locus theme) ──────────────────
+// ── SVG SYMBOLS ──────────────────────────────────────────────────────────────
 
-const BACK = `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" width="68" height="68">
-  <g transform="translate(25,25)">
-    <line x1="0" y1="-11" x2="0" y2="11" stroke="#aaa" stroke-width="2.6" stroke-linecap="round"/>
-    <line x1="-11" y1="0" x2="11" y2="0" stroke="#aaa" stroke-width="2.6" stroke-linecap="round"/>
-    <line x1="-8" y1="-8" x2="8" y2="8" stroke="#aaa" stroke-width="2.6" stroke-linecap="round"/>
-    <line x1="8" y1="-8" x2="-8" y2="8" stroke="#aaa" stroke-width="2.6" stroke-linecap="round"/>
-    <circle cx="-11" cy="0" r="2.4" fill="#aaa"/>
-    <circle cx="11" cy="0" r="2.4" fill="#aaa"/>
-    <circle cx="0" cy="-11" r="2.4" fill="#aaa"/>
-    <circle cx="0" cy="11" r="2.4" fill="#aaa"/>
-  </g>
-  <polygon points="75,13 89,37 61,37" fill="#aaa"/>
-  <g transform="translate(25,75)">
-    <ellipse cx="0" cy="-9" rx="6" ry="9" fill="hsl(45,100%,51%)"/>
-    <ellipse cx="0" cy="9" rx="6" ry="9" fill="hsl(45,100%,51%)"/>
-    <ellipse cx="-9" cy="0" rx="9" ry="6" fill="hsl(45,100%,51%)"/>
-    <ellipse cx="9" cy="0" rx="9" ry="6" fill="hsl(45,100%,51%)"/>
-    <circle cx="0" cy="0" r="4.5" fill="hsl(45,100%,51%)"/>
-  </g>
-  <g transform="translate(75,76)">
-    <line x1="0" y1="-13" x2="0" y2="13" stroke="#aaa" stroke-width="2.6" stroke-linecap="round"/>
-    <line x1="-8" y1="-13" x2="-8" y2="2" stroke="#aaa" stroke-width="2.6" stroke-linecap="round"/>
-    <line x1="8" y1="-13" x2="8" y2="2" stroke="#aaa" stroke-width="2.6" stroke-linecap="round"/>
-    <path d="M-8 2 Q-8 11 0 11 Q8 11 8 2" fill="none" stroke="#aaa" stroke-width="2.6" stroke-linecap="round"/>
-    <circle cx="-8" cy="-14" r="2.4" fill="#aaa"/>
-    <circle cx="8" cy="-14" r="2.4" fill="#aaa"/>
-    <circle cx="0" cy="-14" r="2.4" fill="#aaa"/>
-  </g>
+// Card back: a single calm Locus monogram dot. Replaces the previous 4-symbol
+// composite that turned every card into visual noise.
+const BACK = `<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg" width="36" height="36">
+  <circle cx="30" cy="30" r="11" fill="none" stroke="hsl(45,100%,51%)" stroke-width="2.4"/>
+  <circle cx="30" cy="30" r="3.2" fill="hsl(45,100%,51%)"/>
 </svg>`;
 
+// 8 distinct front symbols → 8 pairs → 16 cards on a 4×4 grid.
 const SYM = [
-  `<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg" width="50" height="50">
+  `<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg" width="44" height="44">
     <circle cx="10" cy="12" r="4.5" fill="#000"/><circle cx="10" cy="48" r="4.5" fill="#000"/><circle cx="52" cy="30" r="4.5" fill="#000"/>
     <line x1="10" y1="12" x2="52" y2="30" stroke="#000" stroke-width="3.2" stroke-linecap="round"/>
     <line x1="10" y1="48" x2="52" y2="30" stroke="#000" stroke-width="3.2" stroke-linecap="round"/>
   </svg>`,
-  `<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg" width="50" height="50">
+  `<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg" width="44" height="44">
     <circle cx="30" cy="30" r="18" fill="none" stroke="#000" stroke-width="3.2"/>
     <line x1="30" y1="10" x2="30" y2="50" stroke="#000" stroke-width="3.2" stroke-linecap="round"/>
     <line x1="10" y1="30" x2="50" y2="30" stroke="#000" stroke-width="3.2" stroke-linecap="round"/>
   </svg>`,
-  `<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg" width="50" height="50">
+  `<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg" width="44" height="44">
     <polygon points="30,7 53,30 30,53 7,30" fill="none" stroke="#000" stroke-width="3.2" stroke-linejoin="round"/>
     <polygon points="30,17 43,30 30,43 17,30" fill="#000"/>
   </svg>`,
-  `<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg" width="50" height="50">
-    <path d="M7,30 Q30,10 53,30 Q30,50 7,30Z" fill="none" stroke="#000" stroke-width="3.2"/>
-    <circle cx="30" cy="30" r="8.5" fill="#000"/>
-    <circle cx="33" cy="26" r="3" fill="hsl(45,100%,51%)"/>
-  </svg>`,
-  `<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg" width="50" height="50">
+  `<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg" width="44" height="44">
     <polygon points="30,7 55,51 5,51" fill="none" stroke="#000" stroke-width="3.2" stroke-linejoin="round"/>
     <line x1="30" y1="20" x2="30" y2="37" stroke="#000" stroke-width="3.5" stroke-linecap="round"/>
     <circle cx="30" cy="44" r="3.2" fill="#000"/>
   </svg>`,
-  `<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg" width="50" height="50">
+  `<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg" width="44" height="44">
     <circle cx="30" cy="30" r="20" fill="none" stroke="#000" stroke-width="3"/>
     <circle cx="30" cy="30" r="12" fill="none" stroke="#000" stroke-width="3"/>
     <circle cx="30" cy="30" r="4.5" fill="#000"/>
   </svg>`,
-  `<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg" width="50" height="50">
-    <line x1="30.00" y1="9.00" x2="35.29" y2="22.72" stroke="#000" stroke-width="2.8" stroke-linecap="round"/>
-    <line x1="49.97" y1="23.51" x2="38.56" y2="32.78" stroke="#000" stroke-width="2.8" stroke-linecap="round"/>
-    <line x1="42.34" y1="46.99" x2="30.00" y2="39.00" stroke="#000" stroke-width="2.8" stroke-linecap="round"/>
-    <line x1="17.66" y1="46.99" x2="21.44" y2="32.78" stroke="#000" stroke-width="2.8" stroke-linecap="round"/>
-    <line x1="10.03" y1="23.51" x2="24.71" y2="22.72" stroke="#000" stroke-width="2.8" stroke-linecap="round"/>
-    <polygon points="30.00,9.00 35.29,22.72 49.97,23.51 38.56,32.78 42.34,46.99 30.00,39.00 17.66,46.99 21.44,32.78 10.03,23.51 24.71,22.72" fill="#000" stroke="none"/>
-  </svg>`,
-  `<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg" width="50" height="50">
-    <path d="M8,20 Q19,12 30,20 Q41,28 52,20" fill="none" stroke="#000" stroke-width="3.2" stroke-linecap="round"/>
-    <path d="M8,31 Q19,23 30,31 Q41,39 52,31" fill="none" stroke="#000" stroke-width="3.2" stroke-linecap="round"/>
-    <path d="M8,42 Q19,34 30,42 Q41,50 52,42" fill="none" stroke="#000" stroke-width="3.2" stroke-linecap="round"/>
-  </svg>`,
-  `<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg" width="50" height="50">
+  `<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg" width="44" height="44">
     <line x1="30" y1="52" x2="30" y2="13" stroke="#000" stroke-width="3.2" stroke-linecap="round"/>
     <polyline points="16,27 30,11 44,27" fill="none" stroke="#000" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round"/>
     <line x1="17" y1="52" x2="43" y2="52" stroke="#000" stroke-width="3.2" stroke-linecap="round"/>
   </svg>`,
-  `<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg" width="50" height="50">
-    <circle cx="19" cy="30" r="12" fill="none" stroke="#000" stroke-width="3.2"/>
-    <circle cx="41" cy="30" r="12" fill="none" stroke="#000" stroke-width="3.2"/>
-    <circle cx="19" cy="30" r="4" fill="#000"/>
-    <circle cx="41" cy="30" r="4" fill="#000"/>
-  </svg>`,
-  `<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg" width="50" height="50">
+  `<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg" width="44" height="44">
     <rect x="13" y="13" width="34" height="34" rx="3" fill="none" stroke="#000" stroke-width="3.2" transform="rotate(45 30 30)"/>
     <circle cx="30" cy="30" r="5.5" fill="#000"/>
   </svg>`,
-  `<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg" width="50" height="50">
+  `<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg" width="44" height="44">
     <polyline points="37,7 21,32 33,32 23,53" fill="none" stroke="#000" stroke-width="3.8" stroke-linejoin="round" stroke-linecap="round"/>
   </svg>`,
 ];
@@ -100,9 +54,9 @@ const SYM = [
 const arcadeStyles = `
 .fa-grid {
   display: grid;
-  grid-template-columns: repeat(8, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 12px;
-  max-width: 960px;
+  max-width: 440px;
   width: 100%;
 }
 .fa-card {
@@ -149,9 +103,6 @@ const arcadeStyles = `
   80%     { transform: rotateY(180deg) translateX(4px); }
 }
 .fa-card.wrong .fa-card-inner { animation: fa-shake 0.38s ease; }
-@media (max-width: 680px) {
-  .fa-grid { grid-template-columns: repeat(6, 1fr); gap: 8px; }
-}
 `;
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
@@ -169,6 +120,8 @@ function shuffle<T>(arr: T[]): T[] {
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
+const PAIR_COUNT = 8;
+
 // ── COMPONENT ─────────────────────────────────────────────────────────────────
 
 export default function FooterArcade() {
@@ -181,7 +134,7 @@ export default function FooterArcade() {
   const locked = useRef(false);
 
   const initGame = useCallback(() => {
-    const symIndices = Array.from({ length: 12 }, (_, i) => i);
+    const symIndices = Array.from({ length: PAIR_COUNT }, (_, i) => i);
     const deck = shuffle([...symIndices, ...symIndices]).map((sym, id) => ({ sym, id }));
     setCards(deck);
     setFlippedIndices([]);
@@ -214,7 +167,7 @@ export default function FooterArcade() {
         setMatchedSyms(newMatched);
         setFlippedIndices([]);
         locked.current = false;
-        if (newMatched.size === 12) {
+        if (newMatched.size === PAIR_COUNT) {
           setTimeout(() => setWon(true), 500);
         }
       } else {
@@ -238,18 +191,18 @@ export default function FooterArcade() {
     <section className="relative py-16 px-4 bg-background">
       <style>{arcadeStyles}</style>
 
-      <div className="flex flex-col items-center max-w-[960px] mx-auto">
-        <h2 className="font-heading font-extrabold text-foreground text-center mb-10"
-            style={{ fontSize: "clamp(26px, 3.5vw, 52px)", letterSpacing: "-0.5px" }}>
-          Welcome to the footer arcade
+      <div className="flex flex-col items-center max-w-[440px] mx-auto">
+        <h2 className="font-heading font-extrabold text-foreground text-center mb-8"
+            style={{ fontSize: "clamp(22px, 3vw, 36px)", letterSpacing: "-0.5px" }}>
+          A small game for the road
         </h2>
 
         {/* HUD */}
-        <div className="w-full flex justify-between items-center mb-6">
-          <span className="text-foreground/85 text-sm font-mono">Pick a card. Match a card.</span>
-          <div className="flex items-center gap-3.5">
-            <span className="text-foreground/85 text-sm font-mono">Moves</span>
-            <span className="border border-muted-foreground/30 rounded-md px-4 py-1.5 text-foreground text-sm font-mono tracking-wider min-w-[56px] text-center">
+        <div className="w-full flex justify-between items-center mb-5">
+          <span className="text-foreground/85 text-xs font-mono">Match the pairs.</span>
+          <div className="flex items-center gap-3">
+            <span className="text-foreground/85 text-xs font-mono">Moves</span>
+            <span className="border border-muted-foreground/30 rounded-md px-3 py-1 text-foreground text-xs font-mono tracking-wider min-w-[48px] text-center">
               {pad(moves)}
             </span>
           </div>
@@ -277,7 +230,7 @@ export default function FooterArcade() {
         className={`fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 transition-opacity duration-500 ${won ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
         style={{ background: "hsla(0, 0%, 3%, 0.93)" }}
       >
-        <span className="font-heading font-extrabold text-foreground text-5xl">You won ✦</span>
+        <span className="font-heading font-extrabold text-foreground text-5xl">You won</span>
         <span className="text-muted-foreground text-[15px] font-mono">
           Completed in {moves} move{moves === 1 ? "" : "s"}
         </span>
