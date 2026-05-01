@@ -1,33 +1,14 @@
-# CTA hierarchy refresh (final)
+# Fix: swap CTA on the actual homepage hero
 
-Two surgical edits to the homepage CTA blocks. No new components, no logic, no route changes.
+I edited the wrong hero file last time — the homepage uses `RotatingHero.tsx`, not `HomeHero.tsx`. That's why your screenshot still shows "Join the Waitlist".
 
-## 1. HomeHero — `src/components/home/HomeHero.tsx` (top of `/`)
+## Change
 
-Current buttons:
-- Primary (yellow): Join the Waitlist → `/waitlist`
-- Secondary (dark): Explore features → `#features`
+`src/components/home/RotatingHero.tsx` (lines 124–136), primary button only:
 
-After:
-- **Primary (yellow): Start your journey →** → `/auth` (login / sign-up)
-- **Secondary (dark): Explore Locus** → `#features`
+- **Before:** `Join the Waitlist` → `/waitlist`
+- **After:** `Start your journey` → `/auth`
 
-Waitlist link removed from this block.
+Secondary button (`Explore Locus` → `/directory`) stays exactly as-is.
 
-## 2. FinalCTA — `src/components/home/FinalCTA.tsx` (bottom of `/`)
-
-Current: single yellow "Join the Waitlist →" button.
-
-After (two prominent buttons, side-by-side, matching the hero pattern):
-- Heading unchanged: **"Get in early. Get in front."**
-- Subcopy unchanged (still mentions the waitlist — keeping it because the primary CTA is the waitlist).
-- **Primary (yellow): Join the Waitlist →** → `/waitlist`
-- **Secondary (dark): Explore Locus** → `#features`
-- Layout: `flex flex-col sm:flex-row gap-4 justify-center` — same row pattern as HomeHero so both buttons read as equally weighty (size `lg`, same padding).
-
-## Technical notes
-
-- Both files already import `Link`, `Button`, and `ArrowRight`. No new imports.
-- `/auth` route already exists in `src/App.tsx`; same destination used by `ProfileMenu` for sign-in.
-- `TimelineContent` animation wrappers preserved in both files.
-- No copy changes anywhere else. `/waitlist` page, navbar, and `RainbowButton` chips untouched.
+That's the entire fix — one button label + one link target.
