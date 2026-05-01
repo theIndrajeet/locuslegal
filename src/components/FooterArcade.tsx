@@ -54,16 +54,19 @@ const SYM = [
 const arcadeStyles = `
 .fa-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-  max-width: 440px;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 8px;
+  max-width: 640px;
   width: 100%;
+}
+@media (max-width: 520px) {
+  .fa-grid { grid-template-columns: repeat(8, 1fr); gap: 5px; }
 }
 .fa-card {
   aspect-ratio: 1;
   cursor: pointer;
   perspective: 700px;
-  border-radius: 14px;
+  border-radius: 8px;
 }
 .fa-card-inner {
   position: relative;
@@ -71,7 +74,7 @@ const arcadeStyles = `
   height: 100%;
   transform-style: preserve-3d;
   transition: transform 0.42s cubic-bezier(0.4, 0.2, 0.2, 1);
-  border-radius: 14px;
+  border-radius: 8px;
 }
 .fa-card.flipped .fa-card-inner,
 .fa-card.matched .fa-card-inner {
@@ -80,7 +83,7 @@ const arcadeStyles = `
 .fa-card-face {
   position: absolute;
   inset: 0;
-  border-radius: 14px;
+  border-radius: 8px;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
   display: flex;
