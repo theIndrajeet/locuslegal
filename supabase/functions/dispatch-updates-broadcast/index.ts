@@ -182,7 +182,7 @@ Deno.serve(async (req) => {
 function buildTemplateData(bc: any) {
   return {
     subject: bc.subject,
-    bodyHtml: bc.body_html,
+    bodyMarkdown: bc.body_markdown,
     ctaLabel: bc.cta_label || undefined,
     ctaUrl: bc.cta_url || undefined,
     preheader: bc.preheader || undefined,
