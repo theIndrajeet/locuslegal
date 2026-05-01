@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, XCircle, ArrowRight, Home, Sparkles, Check, X } from "lucide-react";
+import { CheckCircle2, XCircle, ArrowRight, Home, Sparkles, Check, X, Share2 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { toast } from "sonner";
 import { formatDesignation } from "@/lib/bar/display";
 import type { BarDesignation } from "@/lib/bar/types";
 import { RitChatPanel } from "./rit/RitChatPanel";
+import { shareOrCopy, withRef } from "@/lib/share";
 
 export interface ResultScreenProps {
   attempt_id?: string | null;
@@ -159,6 +161,23 @@ export function ResultScreen(props: ResultScreenProps) {
             <Home size={16} /> Back to Dashboard
           </Button>
         </Link>
+        <Button
+          size="lg"
+          variant="outline"
+          className="gap-2 w-full sm:w-auto"
+          onClick={async () => {
+            const type = challenge_meta?.question_type?.replace(/_/g, " ") ?? "legal";
+            const text = is_correct
+              ? `Just earned ${points_awarded} pts on a ${type} challenge at Locus — practice law for free.`
+              : `Just attempted a ${type} challenge at Locus — sharpening my legal reasoning.`;
+            const url = withRef("https://locus.legal/the-bar", "bar-result");
+            const r = await shareOrCopy({ title: "Locus — The Bar", text, url });
+            if (r === "copied") toast.success("Result copied to clipboard");
+            else if (r === "failed") toast.error("Couldn't share");
+          }}
+        >
+          <Share2 size={16} /> Share result
+        </Button>
       </div>
     </div>
   );

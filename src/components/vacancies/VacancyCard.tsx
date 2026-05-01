@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Briefcase, MapPin, Coins, GraduationCap, Mail, AlertTriangle, Clock, ChevronDown, Check, RotateCw, ClipboardList } from "lucide-react";
+import { Briefcase, MapPin, Coins, GraduationCap, Mail, AlertTriangle, Clock, ChevronDown, Check, RotateCw, ClipboardList, Share2 } from "lucide-react";
 import { format, parseISO } from "date-fns";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   type Vacancy,
@@ -11,6 +12,7 @@ import {
 } from "@/lib/vacancies";
 import { useCountdown } from "@/lib/useCountdown";
 import { cn } from "@/lib/utils";
+import { shareOrCopy, withRef } from "@/lib/share";
 
 interface Props {
   vacancy: Vacancy;
