@@ -1,37 +1,34 @@
-I checked the current state. It can be fixed. The sender domain itself is verified: `notify.mail.locus.legal` is ready.
+I’m sorry this has dragged on. I checked the current state: the sender domain `notify.mail.locus.legal` is verified, the email hook exists, and the auth templates are present. The blocker is now the auth template preview build failure, not DNS.
 
-The remaining failure is different from the earlier template build issue. Recent email logs show app emails are now reaching the queue, but the provider rejects them with:
+Plan to fix it in one pass:
 
-```text
-sender_domain_mismatch: From address domain must align with the sender domain
-```
+1. Rebuild the auth email template set from a known-safe baseline
+   - Replace the six auth templates with simpler React Email components that avoid the fragile inline TypeScript patterns currently present in the template files.
+   - Keep the Locus branding: black/white/yellow, Sora-style headings, Inter-style body, hard borders, and neobrutalist button treatment.
+   - Keep the email body background white for compatibility with email clients.
 
-That means the code is sending through `notify.mail.locus.legal` while showing the From address as `noreply@locus.legal`. The email provider requires those to align for this setup.
+2. Fix the auth email hook configuration
+   - Keep the required `auth-email-hook` function name.
+   - Keep the queue-based sending path so auth emails get retry safety and logging.
+   - Ensure the sender domain remains exactly `notify.mail.locus.legal`.
+   - Remove any unnecessary preview/build pitfalls while preserving the preview endpoint.
 
-Plan:
+3. Re-run email infrastructure setup once
+   - Refresh the queue/cron/runtime configuration idempotently so the dispatcher has the current secrets and domain setup.
+   - This is safe to run again and is specifically meant to recover stuck email infrastructure.
 
-1. Align the From address domain
-   - Update the email sender configuration in the email backend functions so the visible From address uses the verified sender domain: `noreply@notify.mail.locus.legal`.
-   - Apply this consistently to both app emails and auth emails so signup/reset/app emails do not fail with the same mismatch.
+4. Deploy the changed functions immediately
+   - Deploy `auth-email-hook` so the fixed auth templates become active.
+   - Deploy `process-email-queue` to ensure queued emails can drain.
 
-2. Keep the verified infrastructure intact
-   - Do not change Cloudflare, nameservers, workspace, or DNS.
-   - Do not move back to the old workspace.
-   - Keep `notify.mail.locus.legal` as the verified sender domain.
+5. Validate instead of guessing
+   - Check the email domain status again.
+   - Open/test the auth email preview for signup and password reset.
+   - If preview still fails, read the backend function logs immediately and fix the exact compile/runtime error rather than retrying the same setup loop.
 
-3. Redeploy email functions
-   - Redeploy the email sending functions so the live backend uses the corrected sender configuration.
-   - Include the queue processor and preview/auth/app email functions to avoid stale deployed code.
+What I will not do:
+- I will not ask you to switch providers.
+- I will not keep retrying the same setup button without changing the broken templates.
+- I will not expose or change unrelated app functionality.
 
-4. Reconcile email infrastructure
-   - Re-run the managed email infrastructure setup after the code fix to refresh the project email state and queue/cron wiring.
-
-5. Validate with logs
-   - Trigger or inspect the next email send.
-   - Confirm the old `sender_domain_mismatch` error disappears from the send logs.
-   - If the dashboard still shows the old banner, retry setup in Cloud → Emails after deployment; this time the domain is verified and the sender alignment error should be gone.
-
-Expected result:
-- The domain remains verified.
-- Email sends stop failing with `sender_domain_mismatch`.
-- The setup should be recoverable without changing workspaces or DNS.
+After approval, I’ll implement this directly and report only the final status plus any specific error if the preview build still fails.
