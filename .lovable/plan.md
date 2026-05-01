@@ -1,69 +1,36 @@
-## Goal
+## Audit Result: Emails Are Currently Broken
 
-Send one broadcast email to every Locus user (and waitlist) acknowledging the recent maintenance window, and pointing them to the new Bar challenges + new vacancies they may have missed.
+I checked every piece of the email pipeline. The good news: all three notification flows (Updates broadcast, New Bar Challenge, New Vacancy) are correctly wired into `send-transactional-email`, the templates are registered, and the queue/cron is in place.
 
-This uses your existing **Updates Broadcast** system at `/admin/updates` — no new infrastructure or code needed. I'll just hand you the ready-to-paste copy and you click "Send to all users".
+**The bad news:** the project's verified email domain was switched to **`notify.mail.locus.legal`**, but the sender Edge Function is still hardcoded to the OLD subdomain **`notify.locus.legal`** (which is no longer the active project domain). Every send will be rejected by the email API with "No email domain record found".
 
-## What I'll prepare
+### Current state
+| Component | Status |
+|---|---|
+| Verified domain | `notify.mail.locus.legal` ✅ |
+| `send-transactional-email` SENDER_DOMAIN | `notify.locus.legal` ❌ stale |
+| `send-transactional-email` FROM_DOMAIN | `locus.legal` ✅ ok |
+| Updates broadcast → `updates-broadcast` template | ✅ wired |
+| New Bar Challenge → `new-bar-challenge` template | ✅ wired (DB trigger → `dispatch-content-notification`) |
+| New Vacancy → `new-vacancy` template | ✅ wired (DB trigger → `dispatch-content-notification`) |
+| Queue dispatcher (`process-email-queue`) | ✅ deployed |
+| Suppression + unsubscribe flow | ✅ working |
 
-A single draft with all four fields filled in:
+### The fix (one-line code change + redeploy)
 
-**Subject**
-> You missed a few things while we were under the hood
+1. Update `supabase/functions/send-transactional-email/index.ts`:
+   - `SENDER_DOMAIN = "notify.mail.locus.legal"` (was `"notify.locus.legal"`)
+   - Leave `FROM_DOMAIN = "locus.legal"` so the From header still reads `noreply@locus.legal` (cleaner branding).
+2. Redeploy `send-transactional-email` (mandatory — Edge Functions serve last-deployed code).
+3. Verify by sending a test from `/admin/updates` ("Send test to me") and watching `Cloud → Emails` for a `sent` row.
 
-**Preheader**
-> New Bar challenges, fresh vacancies, and what was happening behind the scenes.
+### After the fix — what will work automatically
+- **Updates broadcast** (`/admin/updates`): admin-triggered, sends to all auth users + waitlist.
+- **New Bar Challenge**: when an admin sets a challenge to `status='approved'`, the Postgres trigger fires `dispatch-content-notification` → emails every user.
+- **New Vacancy**: when a vacancy goes `status='live'`, the same trigger fires → emails every user.
+- All three respect the suppression list and per-recipient unsubscribe tokens.
 
-**Body (Markdown)**
+### Not changed
+No template, no DB schema, no trigger, no queue config — only the stale subdomain constant.
 
-```
-Hey,
-
-Quick note — Locus was under maintenance for a short stretch this week
-while we shipped some upgrades behind the scenes. If you tried to log in
-or got radio silence on notifications, that's why. Everything is back,
-faster, and you may have missed a couple of things worth your time.
-
-**New on The Bar**
-We dropped a fresh batch of challenges across Brief Builder, Ethics, and
-Client Counseling — including bail applications, writ petitions, medical
-negligence, and a few that will genuinely make you think twice before
-hitting submit. Climb the leaderboard while it's still early.
-
-**New vacancies live now**
-The Vacancy Board picked up new internships and openings during the
-quiet period. They expire fast — first to apply, first considered.
-
-**Heads-up on emails**
-A few of you may not have received notifications during the maintenance
-window. If you saw nothing from us in the last few days, this is the
-catch-up. Going forward, you'll get pinged the moment a new challenge
-or vacancy goes live.
-
-Sorry for the silence — and thanks for sticking around.
-
-— Locus
-```
-
-**CTA label**
-> Open Locus
-
-**CTA URL**
-> https://locus.legal/the-bar/browse
-
-(Single CTA points to The Bar; the body links can stay as plain references — the system already appends a branded footer + unsubscribe link automatically.)
-
-## How to send
-
-1. I open `/admin/updates`
-2. I paste the four fields above into the composer
-3. You hit **"Send test to me"** first to QA in your inbox
-4. Once it looks right, hit **"Send to all users"** — it queues to every signed-up user + waitlist email, deduped, suppressed addresses skipped
-
-## Notes
-
-- I will NOT auto-send. The plan only pre-fills the composer; the "Send to all" click stays with you.
-- I won't modify any code or add new files — this is pure content in your existing system.
-- If you want a different tone (more apologetic, more casual, shorter), tell me before I draft it into the page.
-
-Want me to also add a "pre-filled draft" button to `/admin/updates` so you can one-click-load this exact copy? Or just paste it in for you this once?
+Approve and I'll apply the one-line fix and redeploy.
