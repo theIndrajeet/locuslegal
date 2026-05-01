@@ -148,23 +148,42 @@ export default function VacancyCard({ vacancy, onApply, archived = false, applic
 
       {/* Footer */}
       <div className="flex items-center justify-between gap-3 pt-3 border-t border-border/50">
-        <div className="text-xs text-muted-foreground truncate">
-          {appState === "applied" && lastActionOn ? (
-            <span className="inline-flex items-center gap-1.5 font-semibold text-accent">
-              <Check size={12} /> Applied {format(parseISO(lastActionOn), "d MMM")}
-            </span>
-          ) : appState === "followed_up" && lastActionOn ? (
-            <span className="inline-flex items-center gap-1.5 font-semibold text-accent">
-              <Check size={12} /> Followed up {format(parseISO(lastActionOn), "d MMM")}
-            </span>
-          ) : appState === "followup_ready" && lastActionOn ? (
-            <span className="inline-flex items-center gap-1.5 text-foreground/80">
-              Sent {format(parseISO(lastActionOn), "d MMM")} · time to nudge
-            </span>
-          ) : vacancy.source_credit ? (
-            <span>{vacancy.source_credit}</span>
-          ) : (
-            <span>Apply by email</span>
+        <div className="text-xs text-muted-foreground truncate flex items-center gap-2 min-w-0">
+          <span className="truncate">
+            {appState === "applied" && lastActionOn ? (
+              <span className="inline-flex items-center gap-1.5 font-semibold text-accent">
+                <Check size={12} /> Applied {format(parseISO(lastActionOn), "d MMM")}
+              </span>
+            ) : appState === "followed_up" && lastActionOn ? (
+              <span className="inline-flex items-center gap-1.5 font-semibold text-accent">
+                <Check size={12} /> Followed up {format(parseISO(lastActionOn), "d MMM")}
+              </span>
+            ) : appState === "followup_ready" && lastActionOn ? (
+              <span className="inline-flex items-center gap-1.5 text-foreground/80">
+                Sent {format(parseISO(lastActionOn), "d MMM")} · time to nudge
+              </span>
+            ) : vacancy.source_credit ? (
+              <span>{vacancy.source_credit}</span>
+            ) : (
+              <span>Apply by email</span>
+            )}
+          </span>
+          {!isClosed && (
+            <button
+              type="button"
+              aria-label="Share this opportunity"
+              title="Share"
+              onClick={async (e) => {
+                e.stopPropagation();
+                const url = withRef(`https://locus.legal/vacancies#vacancy-${vacancy.id}`, "vacancy");
+                const text = `${vacancy.role} at ${vacancy.firm_name} — via Locus`;
+                const r = await shareOrCopy({ title: "Locus — Vacancy", text, url });
+                if (r === "copied") toast.success("Link copied");
+              }}
+              className="shrink-0 p-1 rounded-md text-muted-foreground hover:text-accent hover:bg-accent/10 transition-colors"
+            >
+              <Share2 size={12} />
+            </button>
           )}
         </div>
 
