@@ -91,33 +91,23 @@ Deno.serve(async (req) => {
     )
   }
 
-  // verify_jwt = false at the gateway. Validate in-function: accept either
-  // (a) byte-equality with the env service-role key, OR (b) any JWT whose
-  // `role` claim is `service_role`. The pg_cron job authenticates with the
-  // service-role key stored in vault — that token may not be byte-identical
-  // to the env var (e.g., after a key rotation), but its claims will still
-  // identify it as a service-role token.
-  const authHeader = req.headers.get('Authorization') || ''
-  const presentedToken = authHeader.replace(/^Bearer\s+/i, '').trim()
-  let authorized = false
-  if (presentedToken) {
-    if (presentedToken === supabaseServiceKey) {
-      authorized = true
-    } else {
-      const claims = parseJwtClaims(presentedToken)
-      if (claims && claims.role === 'service_role') {
-        authorized = true
-      }
-    }
-  }
-  if (!authorized) {
-    console.warn('process-email-queue: unauthorized caller', {
-      hasToken: Boolean(presentedToken),
-      tokenPrefix: presentedToken ? presentedToken.slice(0, 12) + '...' : null,
-    })
+  const authHeader = req.headers.get('Authorization')
+  if (!authHeader?.startsWith('Bearer ')) {
     return new Response(
       JSON.stringify({ error: 'Unauthorized' }),
       { status: 401, headers: { 'Content-Type': 'application/json' } }
+    )
+  }
+
+  // Defense in depth: verify_jwt=true already requires a valid JWT at the
+  // gateway layer. This adds an explicit role check so only service-role
+  // callers can trigger queue processing.
+  const token = authHeader.slice('Bearer '.length).trim()
+  const claims = parseJwtClaims(token)
+  if (claims?.role !== 'service_role') {
+    return new Response(
+      JSON.stringify({ error: 'Forbidden' }),
+      { status: 403, headers: { 'Content-Type': 'application/json' } }
     )
   }
 
