@@ -424,14 +424,14 @@ Make it jurisdiction-appropriate. Reference specific statutory provisions where 
   const copyOutput = (tool: ToolType) => {
     const text = rawText[tool];
     if (!text) return;
-    navigator.clipboard.writeText(text).then(() => toast.success("Copied to clipboard!"));
+    navigator.clipboard.writeText(text + WATERMARK_DOC).then(() => toast.success("Copied to clipboard!"));
   };
 
   const downloadOutput = (tool: ToolType) => {
     const text = rawText[tool];
     if (!text) return;
     const fname = { nda: "NDA_Agreement", checklist: "Data_Protection_Checklist", dpa: "Data_Processing_Addendum", internship: "Internship_Agreement", freelancer: "Freelancer_Contract", tos: "Terms_of_Service" }[tool];
-    const blob = new Blob([text], { type: "text/plain" });
+    const blob = new Blob([text + WATERMARK_DOC], { type: "text/plain" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = `${fname}_Locus_${new Date().toISOString().slice(0, 10)}.txt`;
