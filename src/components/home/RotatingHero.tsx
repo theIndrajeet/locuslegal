@@ -122,9 +122,9 @@ export default function RotatingHero() {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/waitlist">
+            <Link to="/auth">
               <Button size="lg" className="font-heading text-base px-8 py-4">
-                Join the Waitlist
+                Start your journey
                 <ArrowRight className="ml-1 h-4 w-4" />
               </Button>
             </Link>
