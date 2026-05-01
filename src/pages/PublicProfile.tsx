@@ -14,6 +14,7 @@ import { RankBadgeBlock } from "@/components/bar/RankBadgeBlock";
 import type { BarDesignation } from "@/lib/bar/types";
 import ActivityHeatmap from "@/components/profile/ActivityHeatmap";
 import { useNavigate } from "react-router-dom";
+import { withRef } from "@/lib/share";
 
 interface BarStats {
   designation: BarDesignation;
@@ -206,7 +207,7 @@ export default function PublicProfile() {
   }, [loading, profile, internships.length, moots.length, publications.length]);
 
   const handleShare = async () => {
-    const url = `${window.location.origin}/u/${username}`;
+    const url = withRef(`${window.location.origin}/u/${username}`, "profile");
     try {
       await navigator.clipboard.writeText(url);
       toast.success("Link copied");

@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Star, MapPin, Phone, Mail, ExternalLink, Sparkles, ShieldCheck, Eye, MessageSquarePlus } from "lucide-react";
+import { Star, MapPin, Phone, Mail, ExternalLink, Sparkles, ShieldCheck, Eye, MessageSquarePlus, Share2 } from "lucide-react";
+import { toast } from "sonner";
 import {
   Sheet,
   SheetContent,
@@ -10,6 +11,7 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import DraftEmailDialog, { type DraftEmailTarget } from "@/components/apply/DraftEmailDialog";
 import SuggestFixDialog from "@/components/directory/SuggestFixDialog";
+import { shareOrCopy, withRef } from "@/lib/share";
 
 type FirmType = "Law Firm" | "Chamber" | "Individual Advocate";
 
@@ -64,7 +66,24 @@ export default function FirmDrawer({ firm, type, open, onOpenChange }: FirmDrawe
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
         <SheetHeader className="mb-6">
-          <SheetTitle className="font-heading text-xl leading-tight">{firm.name}</SheetTitle>
+          <div className="flex items-start justify-between gap-2">
+            <SheetTitle className="font-heading text-xl leading-tight">{firm.name}</SheetTitle>
+            <button
+              type="button"
+              aria-label="Share this firm"
+              title="Share"
+              onClick={async () => {
+                const slug = encodeURIComponent(firm.name);
+                const url = withRef(`https://locus.legal/directory?firm=${slug}`, "firm");
+                const text = `${firm.name}${firm.city ? `, ${firm.city}` : ""} — found via Locus`;
+                const r = await shareOrCopy({ title: "Locus — Firm Directory", text, url });
+                if (r === "copied") toast.success("Link copied");
+              }}
+              className="shrink-0 p-1.5 rounded-md text-muted-foreground hover:text-accent hover:bg-accent/10 transition-colors"
+            >
+              <Share2 size={16} />
+            </button>
+          </div>
           <SheetDescription className="sr-only">Details for {firm.name}</SheetDescription>
         </SheetHeader>
 

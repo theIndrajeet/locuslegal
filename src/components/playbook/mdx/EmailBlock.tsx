@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Copy, Check } from "lucide-react";
+import { WATERMARK_PLAYBOOK_TEMPLATE } from "@/lib/share";
 
 export function EmailBlock({
   subject,
@@ -15,7 +16,7 @@ export function EmailBlock({
   const wordCount = body.trim().split(/\s+/).filter(Boolean).length;
 
   const handleCopy = async () => {
-    const full = `Subject: ${subject}\n\n${body}`;
+    const full = `Subject: ${subject}\n\n${body}${WATERMARK_PLAYBOOK_TEMPLATE}`;
     try {
       await navigator.clipboard.writeText(full);
       setCopied(true);
