@@ -110,7 +110,7 @@ export default function Objection() {
         if (g[i] !== k) continue;
         const v = score(g, i);
         if (v === "hit") return "hit";
-        if (v === "near") s = s === "hit" ? s : "near";
+        if (v === "near") s = "near";
         else if (s === "") s = "miss";
       }
     }
