@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { useFeatureVotes } from "@/hooks/useFeatureVotes";
 import { FeatureVoteButton } from "@/components/FeatureVoteButton";
 import { TOOL_CATALOG, type ToolType, type CategoryType } from "@/data/tools";
+import { WATERMARK_DOC } from "@/lib/share";
 
 const TABS: { id: ToolType; num: string; label: string }[] = [
   { id: "nda", num: "01", label: "NDA Generator" },

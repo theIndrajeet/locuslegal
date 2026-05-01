@@ -206,7 +206,7 @@ export default function PublicProfile() {
   }, [loading, profile, internships.length, moots.length, publications.length]);
 
   const handleShare = async () => {
-    const url = `${window.location.origin}/u/${username}`;
+    const url = withRef(`${window.location.origin}/u/${username}`, "profile");
     try {
       await navigator.clipboard.writeText(url);
       toast.success("Link copied");

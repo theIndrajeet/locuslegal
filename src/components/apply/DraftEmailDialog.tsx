@@ -463,7 +463,9 @@ export default function DraftEmailDialog({ open, onOpenChange, target, onSent }:
   }, [open, isFollowup, user]);
 
   const copyAll = async () => {
-    const text = `Subject: ${subject}\n\n${body}`;
+    // Watermark sits BELOW the signature; student can leave it or delete it.
+    // We never modify the body the recruiter actually reads.
+    const text = `Subject: ${subject}\n\n${body}${WATERMARK_EMAIL_SIG}`;
     try {
       await navigator.clipboard.writeText(text);
       toast.success("Email copied to clipboard");
@@ -477,8 +479,10 @@ export default function DraftEmailDialog({ open, onOpenChange, target, onSent }:
     const truncated = body.length > 1800;
     const sendBody = truncated ? body.slice(0, 1800) : body;
     const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+    // Gmail URL stays clean — recruiter never sees the watermark.
     const url = buildGmailUrl(target.email, subject, sendBody);
-    const plainText = `Subject: ${subject}\n\n${body}`;
+    // Clipboard fallback gets the soft watermark below the student's signature.
+    const plainText = `Subject: ${subject}\n\n${body}${WATERMARK_EMAIL_SIG}`;
 
     // CRITICAL: trigger the open synchronously inside the user gesture — no awaits before this.
     if (isMobile) {
