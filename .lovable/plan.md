@@ -1,26 +1,37 @@
-I checked the current email state. The sender domain is verified, so moving back to the old workspace is very unlikely to fix this. The failure shown in your screenshot is not a Cloudflare nameserver loop; it is the email preview builder failing while compiling/rendering templates.
+I checked the current state. It can be fixed. The sender domain itself is verified: `notify.mail.locus.legal` is ready.
+
+The remaining failure is different from the earlier template build issue. Recent email logs show app emails are now reaching the queue, but the provider rejects them with:
+
+```text
+sender_domain_mismatch: From address domain must align with the sender domain
+```
+
+That means the code is sending through `notify.mail.locus.legal` while showing the From address as `noreply@locus.legal`. The email provider requires those to align for this setup.
 
 Plan:
 
-1. Rebuild auth email templates cleanly
-   - Regenerate the managed auth email template set against the already-verified `mail.locus.legal` domain.
-   - Keep the existing Locus brand direction: white email body, black neobrutalist borders, yellow accent, Sora/Inter tone.
-   - Ensure the auth email hook stays on the queued sending path, so auth emails are retried safely instead of direct-sent.
+1. Align the From address domain
+   - Update the email sender configuration in the email backend functions so the visible From address uses the verified sender domain: `noreply@notify.mail.locus.legal`.
+   - Apply this consistently to both app emails and auth emails so signup/reset/app emails do not fail with the same mismatch.
 
-2. Fix the app email preview builder issue
-   - Remove/replace preview-hostile markup in the app email templates, especially the current broadcast template’s raw HTML rendering pattern that can break the preview cache build.
-   - Keep the broadcast email visually consistent, but render preview-safe content so Cloud can build the preview cache.
-   - Confirm the app email template registry only includes templates that can render with static preview data.
+2. Keep the verified infrastructure intact
+   - Do not change Cloudflare, nameservers, workspace, or DNS.
+   - Do not move back to the old workspace.
+   - Keep `notify.mail.locus.legal` as the verified sender domain.
 
-3. Reconcile and redeploy email functions
-   - Re-run the managed email infrastructure reconciliation for the verified domain to refresh the queue/cron/secrets state.
-   - Redeploy the email-related backend functions so Cloud uses the repaired template code, not stale deployed code.
+3. Redeploy email functions
+   - Redeploy the email sending functions so the live backend uses the corrected sender configuration.
+   - Include the queue processor and preview/auth/app email functions to avoid stale deployed code.
 
-4. Validate the result
-   - Check function logs and call the preview path after deployment to make sure previews render instead of failing.
-   - Then you should be able to click **Retry setup** in Cloud → Emails and the “Template build failed” banner should clear.
+4. Reconcile email infrastructure
+   - Re-run the managed email infrastructure setup after the code fix to refresh the project email state and queue/cron wiring.
 
-What not to do:
-- Do not transfer workspaces yet.
-- Do not release the domain unless this repair still fails after the template build is fixed.
-- Do not change Cloudflare nameservers for this issue; the verified domain status shows DNS is already good.
+5. Validate with logs
+   - Trigger or inspect the next email send.
+   - Confirm the old `sender_domain_mismatch` error disappears from the send logs.
+   - If the dashboard still shows the old banner, retry setup in Cloud → Emails after deployment; this time the domain is verified and the sender alignment error should be gone.
+
+Expected result:
+- The domain remains verified.
+- Email sends stop failing with `sender_domain_mismatch`.
+- The setup should be recoverable without changing workspaces or DNS.
