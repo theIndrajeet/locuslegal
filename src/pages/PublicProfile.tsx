@@ -14,6 +14,7 @@ import { RankBadgeBlock } from "@/components/bar/RankBadgeBlock";
 import type { BarDesignation } from "@/lib/bar/types";
 import ActivityHeatmap from "@/components/profile/ActivityHeatmap";
 import { useNavigate } from "react-router-dom";
+import { withRef } from "@/lib/share";
 
 interface BarStats {
   designation: BarDesignation;

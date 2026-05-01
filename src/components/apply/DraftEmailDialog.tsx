@@ -9,6 +9,7 @@ import { Loader2, Sparkles, Copy, Mail, AlertCircle, FileText, ChevronLeft, Chev
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthSession } from "@/hooks/useAuthSession";
+import { WATERMARK_EMAIL_SIG } from "@/lib/share";
 
 export interface DraftEmailTarget {
   id: string; // unique key for caching
