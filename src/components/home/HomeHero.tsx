@@ -34,14 +34,14 @@ export default function HomeHero() {
 
           <TimelineContent index={5} variants={textVariants} amount={0.1}>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link to="/waitlist">
+              <Link to="/auth">
                 <Button size="lg" className="font-heading text-base px-8 py-4 w-full sm:w-auto">
-                  Join the Waitlist <ArrowRight className="ml-2 h-4 w-4" />
+                  Start your journey <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
               <a href="#features">
                 <Button variant="neutral" size="lg" className="font-heading text-base px-8 py-4 w-full sm:w-auto">
-                  Explore features <ArrowDown className="ml-2 h-4 w-4" />
+                  Explore Locus <ArrowDown className="ml-2 h-4 w-4" />
                 </Button>
               </a>
             </div>
