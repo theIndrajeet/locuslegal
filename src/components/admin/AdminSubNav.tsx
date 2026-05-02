@@ -6,8 +6,6 @@ import {
   ClipboardCheck,
   Briefcase,
   Scale,
-  Send,
-  Mail,
   type LucideIcon,
 } from "lucide-react";
 
@@ -16,8 +14,6 @@ const tabs: { to: string; label: string; short: string; icon: LucideIcon }[] = [
   { to: "/admin/beta", label: "Beta Testers", short: "Beta", icon: ClipboardCheck },
   { to: "/admin/vacancies", label: "Vacancies", short: "Vacancies", icon: Briefcase },
   { to: "/admin/bar", label: "The Bar", short: "Bar", icon: Scale },
-  { to: "/admin/updates", label: "Updates", short: "Updates", icon: Send },
-  { to: "/admin/emails", label: "Email Log", short: "Emails", icon: Mail },
 ];
 
 export default function AdminSubNav() {
