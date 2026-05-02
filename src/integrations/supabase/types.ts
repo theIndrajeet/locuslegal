@@ -718,6 +718,27 @@ export type Database = {
         }
         Relationships: []
       }
+      email_stream_unsubscribes: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          stream: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          stream: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          stream?: string
+        }
+        Relationships: []
+      }
       email_unsubscribe_tokens: {
         Row: {
           created_at: string
@@ -818,6 +839,33 @@ export type Database = {
           reviewed_by?: string | null
           status?: string
           suggested_value?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      notification_log: {
+        Row: {
+          entity_id: string | null
+          id: string
+          recipient_email: string
+          sent_at: string
+          stream: string
+          user_id: string | null
+        }
+        Insert: {
+          entity_id?: string | null
+          id?: string
+          recipient_email: string
+          sent_at?: string
+          stream: string
+          user_id?: string | null
+        }
+        Update: {
+          entity_id?: string | null
+          id?: string
+          recipient_email?: string
+          sent_at?: string
+          stream?: string
           user_id?: string | null
         }
         Relationships: []
