@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
   // Fetch emails via auth admin (need service role)
   const { data: { users } = { users: [] } } = await supabase.auth.admin.listUsers({ perPage: 1000 }) as any
   const emails: { id: string; email: string }[] = (users || [])
-    .filter((u: any) => u.email)
+    .filter((u: any) => u.email && !u.email.endsWith("@locus.internal"))
     .map((u: any) => ({ id: u.id, email: u.email }))
 
   let sent = 0
