@@ -1,71 +1,38 @@
-# Plan: Remove transactional (app) email system
+I’m sorry — you’re right to be frustrated. The Cloud screen is showing a real failure: the auth email preview cache cannot build, so the previous “it’s ready” answer was premature.
 
-Keeps branded auth emails (signup / password reset / magic link / etc.) working as-is. Removes everything related to **app emails** — updates broadcasts, vacancy notifications, bar challenge notifications.
+What I found from the read-only check:
 
-If you actually want auth templates gone too, say so and I'll extend this.
+- `auth.locus.legal` is verified.
+- The project is currently configured in Cloud Emails as `locus.legal`, not the hardcoded values inside the auth email function.
+- The deployed auth email function/templates still contain stale sender-domain references to `send.locus.legal`.
+- The Cloud preview says “Template build failed / Preview cache build failed”, which usually means the deployed auth email function or templates need to be regenerated/redeployed against the current Cloud email configuration.
+- The email queue tables and cron job exist, but older email send logs show “Emails disabled for this project” for app emails, so I will also ensure the Cloud email switch is enabled before retesting.
 
-## What gets deleted
+Plan to fix it:
 
-### Edge functions (full folders)
-- `supabase/functions/send-transactional-email/`
-- `supabase/functions/preview-transactional-email/`
-- `supabase/functions/process-email-queue/`
-- `supabase/functions/handle-email-unsubscribe/`
-- `supabase/functions/handle-email-suppression/`
-- `supabase/functions/dispatch-updates-broadcast/`
-- `supabase/functions/dispatch-content-notification/`
-- `supabase/functions/admin-email-log/`
+1. Re-enable project emails
+   - Ensure Cloud Emails is enabled so auth previews and sending are not blocked by the project-level email switch.
 
-Plus undeploy them via the Supabase tool so they stop responding.
+2. Refresh the shared email infrastructure
+   - Run the managed email infrastructure setup again. This is safe/idempotent and refreshes the queue worker, credentials, cron scheduling, and sender configuration.
 
-### Templates
-- `supabase/functions/_shared/transactional-email-templates/` (entire folder: `registry.ts`, `updates-broadcast.tsx`, `new-vacancy.tsx`, `new-bar-challenge.tsx`)
+3. Regenerate the auth email function/templates against the current configured domain
+   - Re-scaffold the auth templates with overwrite confirmation so stale `send.locus.legal` references are replaced with the currently configured Cloud email domain.
+   - Keep Locus branding: black/white/yellow, Sora/Inter, neobrutalist borders and hard shadows.
+   - Preserve the custom branded copy, but remove wrong sender-domain text.
 
-### Admin pages + routes
-- `src/pages/AdminUpdates.tsx`
-- `src/pages/AdminEmails.tsx`
-- `src/pages/Unsubscribe.tsx`
-- Remove their `<Route>` entries from `src/App.tsx`
-- Remove the "Updates" and "Emails" tiles from `src/components/admin/AdminTiles.tsx` and any sidebar entries in `src/components/admin/AdminSidebar.tsx` / `AdminSubNav.tsx`
+4. Redeploy the email functions
+   - Redeploy the auth email function so Cloud preview uses the latest code.
+   - Redeploy the queue processor if the infrastructure refresh indicates it needs it.
 
-### Call sites (where `send-transactional-email` / `dispatch-content-notification` / `dispatch-updates-broadcast` are invoked)
-I'll grep for `supabase.functions.invoke('send-transactional-email'`, `'dispatch-content-notification'`, `'dispatch-updates-broadcast'`, `'preview-transactional-email'`, `'admin-email-log'` and remove each call (and any surrounding "send notification" UI buttons in the admin vacancy / admin bar dialogs).
+5. Verify the fix
+   - Open/check the auth preview path through Cloud by testing the password reset and signup previews.
+   - Check function logs for startup/render errors.
+   - Check the send log after a test password reset if needed.
+   - Confirm whether Cloud preview now renders instead of showing “Failed to build preview”.
 
-Likely affected files (to confirm during exploration):
-- `src/pages/AdminVacancies.tsx` / `src/components/vacancies/AdminVacancyDialog.tsx`
-- `src/pages/AdminBar.tsx` / `src/components/admin-bar/ChallengeForm.tsx`
+Expected result:
 
-### Config
-- `supabase/config.toml`: remove the `[functions.*]` blocks for the deleted functions, leaving only `auth-email-hook`.
-
-### Memory
-- Update `mem://index.md` to remove "Updates Broadcast" and the "email log viewer" mention in "Admin Dashboard".
-- Delete `mem://features/updates-broadcast`.
-
-## What stays
-
-- All auth templates in `supabase/functions/_shared/email-templates/` (signup, magic-link, recovery, invite, email-change, reauthentication)
-- `supabase/functions/auth-email-hook/`
-- Lovable Emails domain stays enabled — auth emails keep sending branded
-- `email_send_log`, `suppressed_emails`, `email_unsubscribe_tokens`, `email_send_state` DB tables and the `process-email-queue` cron remain untouched on the DB side. The queue dispatcher edge function gets removed, so the cron will start erroring on each tick. **I'll either (a) leave it — harmless but noisy in logs, or (b) drop the cron job via a migration.** I'll go with (b) — drop the `process-email-queue` cron job in a migration so logs stay clean. Tables stay (historical data, used by auth send log).
-
-## Order of operations
-
-1. Grep for all invocations of the deleted functions; list every file to edit.
-2. Remove call sites + UI buttons.
-3. Delete admin pages, remove routes, remove tiles/sidebar links.
-4. Delete edge function folders.
-5. Delete transactional template folder.
-6. Update `supabase/config.toml`.
-7. Migration: `SELECT cron.unschedule('process-email-queue');` (guarded with `IF EXISTS`).
-8. Undeploy the removed edge functions.
-9. Update memory.
-
-## Risks / things you should know
-
-- **Undoable via History tab**, but easier to do now than to manually rebuild.
-- After this, posting a new vacancy or a new Bar challenge will **no longer email subscribers**. The Updates Broadcast admin tool is gone entirely.
-- Auth emails (signup confirm, password reset) are untouched.
-- If you want to add transactional emails back later, we'd re-scaffold the whole system from scratch.
-
-Approve and I'll execute end-to-end.
+- The orange “Template build failed” banner should clear after retry/setup completes.
+- Signup and password-reset previews should render in Cloud.
+- Auth emails should use the verified Cloud email setup and the correct sender configuration instead of stale `send.locus.legal` values.
