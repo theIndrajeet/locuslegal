@@ -1,35 +1,18 @@
-Yes — this screenshot helps a lot. It shows the real failing request: the auth email preview endpoint is returning 422 with “Email hook returned an error,” while the domain itself is verified. That means DNS is not the problem anymore; the preview builder is calling the deployed auth email hook and the hook is failing while rendering/serving the template preview.
+## Fix preview endpoint 401 in auth-email-hook
 
-Plan to fix it:
+The `/preview` endpoint in `supabase/functions/auth-email-hook/index.ts` rejects Lovable's preview builder with 401 because it requires `Authorization: Bearer <LOVABLE_API_KEY>`, which the preview service doesn't send. That cascades into the "Template build failed" / 422 banner.
 
-1. Rebuild the auth email hook from the managed template scaffold
-   - Replace the current deployed hook with the current managed auth-email-hook structure.
-   - Keep the required function name unchanged so auth email routing stays intact.
-   - Preserve the project’s Locus branding after the scaffold is restored.
+### Changes
 
-2. Correct the sender/domain constants
-   - Use `auth.locus.legal` as the verified sender domain.
-   - Avoid the current mismatch where the hook still shows root-domain values in places that should be tied to the verified email sender.
-   - Normalize the display site name to `Locus`, not `locuslegal`.
+1. **`supabase/functions/auth-email-hook/index.ts`** (lines 94–102)
+   - Remove the `LOVABLE_API_KEY` / `Authorization` check inside `handlePreview`.
+   - Keep CORS preflight handling and JSON body parsing intact.
+   - The webhook handler (the other `LOVABLE_API_KEY` usage at line 135) stays untouched — only the preview path becomes open.
 
-3. Fix the preview route specifically
-   - Make the `/preview` route return a clear HTML preview for `signup`, `recovery`, `magiclink`, and `invite`.
-   - Add defensive error handling around template rendering so preview failures produce useful logs instead of only a generic 422 in the Cloud UI.
-   - Ensure preview sample props match what each template expects.
+2. **Redeploy** `auth-email-hook`.
 
-4. Redeploy the required email functions
-   - Deploy the auth email hook after changes.
-   - Deploy the queue processor as well if infrastructure refresh indicates it needs to be refreshed.
+3. **Verify** by hitting `/preview` for `signup` and `recovery` and confirming a 200 with rendered HTML, then asking you to click Retry on the Emails banner.
 
-5. Verify directly before asking you to retry
-   - Check the deployed hook logs after deployment.
-   - Test the preview endpoint path directly through Lovable Cloud tooling.
-   - Confirm the verified domain remains `auth.locus.legal`.
-   - Then you can click Retry setup / preview again in Cloud → Emails.
+### Not in scope (noted for later)
 
-Technical notes:
-- The screenshot proves the orange banner is caused by preview-cache build failure, not DNS verification.
-- The deployed hook is booting, but boot logs alone do not prove template rendering succeeds.
-- I also saw the current hook has `SENDER_DOMAIN = auth.locus.legal` but `FROM_DOMAIN = locus.legal` and `SITE_NAME = locuslegal`; I’ll normalize those while keeping the email body on the required white background and Locus neobrutalist styling.
-
-After approval I’ll do the recovery in one pass and verify the preview endpoint before handing it back.
+- `SENDER_DOMAIN` vs `FROM_DOMAIN` mismatch — does not block preview/build; can be aligned in a follow-up to tighten SPF/DKIM alignment.
