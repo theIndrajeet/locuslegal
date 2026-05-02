@@ -8,10 +8,12 @@ import type { TemplateEntry } from './registry.ts'
 interface Props { firmName?: string; role?: string; status?: string; siteUrl?: string }
 
 const STATUS_COPY: Record<string, { eyebrow: string; headline: string; body: string }> = {
-  interviewing: { eyebrow: 'Status update', headline: 'You moved to interviewing.', body: 'Time to prep. Open the application to log notes and next steps.' },
+  interview_scheduled: { eyebrow: 'Status update', headline: 'Interview scheduled.', body: 'Time to prep. Open the application to log notes and next steps.' },
+  interviewed: { eyebrow: 'Status update', headline: 'Interview done.', body: 'Mark how it went so we can nudge you on follow-up timing.' },
   offer: { eyebrow: 'Big news', headline: 'Offer received.', body: 'Congratulations. Mark it as accepted or declined when you know.' },
-  rejected: { eyebrow: 'Status update', headline: 'Closed out — onto the next.', body: "We've logged this one. The application tracker has 4 more leads waiting." },
+  rejected: { eyebrow: 'Status update', headline: 'Closed out — onto the next.', body: "We've logged this one. Your tracker still has live leads waiting." },
   accepted: { eyebrow: 'Locked in', headline: 'Offer accepted.', body: "We've updated your tracker. Best of luck." },
+  acknowledged: { eyebrow: 'Status update', headline: 'They acknowledged.', body: 'A reply landed in your inbox. Keep the thread warm.' },
 }
 
 const AppStatus = ({ firmName = 'a firm', role = 'a role', status = 'interviewing', siteUrl = 'https://locus.legal' }: Props) => {

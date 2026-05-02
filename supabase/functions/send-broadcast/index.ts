@@ -88,7 +88,10 @@ Deno.serve(async (req) => {
 
   // Log broadcast
   await supabase.from('update_broadcasts').insert({
-    id, subject, body_html: bodyHtml, cta_url: ctaUrl, sent_at: new Date().toISOString(), recipient_count: queued,
+    id, subject, body_markdown: bodyMarkdown, body_html: bodyHtml,
+    cta_label: ctaLabel, cta_url: ctaUrl, status: 'sent',
+    sent_at: new Date().toISOString(), recipient_count: queued,
+    created_by: user.id, sent_by: user.id,
   })
 
   return new Response(JSON.stringify({ ok: true, queued, broadcastId: id }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
