@@ -39,6 +39,7 @@ interface Profile {
   subjects_of_interest: string[] | null;
   created_at: string;
   open_to_opportunities: boolean;
+  is_pace_setter?: boolean;
 }
 
 interface Internship {
