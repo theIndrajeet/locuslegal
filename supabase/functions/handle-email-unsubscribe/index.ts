@@ -30,46 +30,35 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: 'Server configuration error' }, 500)
   }
 
-  // Extract token from query params (GET) or body (POST)
+  // Extract token + optional stream from query params (GET) or body (POST)
   const url = new URL(req.url)
   let token: string | null = url.searchParams.get('token')
+  let stream: string | null = url.searchParams.get('stream')
 
   if (req.method === 'POST') {
-    // Detect RFC 8058 one-click unsubscribe: POST with form-encoded body
-    // containing "List-Unsubscribe=One-Click". Email clients (Gmail, Apple Mail,
-    // etc.) send this when the user clicks "Unsubscribe" in the mail UI.
     const contentType = req.headers.get('content-type') ?? ''
     if (contentType.includes('application/x-www-form-urlencoded')) {
       const formText = await req.text()
       const params = new URLSearchParams(formText)
-      // For one-click, token comes from query param (already set above).
-      // Otherwise, token may be in the form body.
       if (!params.get('List-Unsubscribe')) {
         const formToken = params.get('token')
-        if (formToken) {
-          token = formToken
-        }
+        if (formToken) token = formToken
+        const formStream = params.get('stream')
+        if (formStream) stream = formStream
       }
     } else {
-      // JSON body (from the app's unsubscribe page)
       try {
         const body = await req.json()
-        if (body.token) {
-          token = body.token
-        }
-      } catch {
-        // Fall through — token stays from query param
-      }
+        if (body.token) token = body.token
+        if (body.stream) stream = body.stream
+      } catch { /* keep query params */ }
     }
   }
 
-  if (!token) {
-    return jsonResponse({ error: 'Token is required' }, 400)
-  }
+  if (!token) return jsonResponse({ error: 'Token is required' }, 400)
 
   const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-  // Look up the token
   const { data: tokenRecord, error: lookupError } = await supabase
     .from('email_unsubscribe_tokens')
     .select('*')
@@ -80,17 +69,33 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: 'Invalid or expired token' }, 404)
   }
 
-  if (tokenRecord.used_at) {
-    return jsonResponse({ valid: false, reason: 'already_unsubscribed' })
-  }
-
-  // GET: Validate token (the app's unsubscribe page calls this on load)
+  // GET: validate
   if (req.method === 'GET') {
-    return jsonResponse({ valid: true })
+    return jsonResponse({ valid: true, email: tokenRecord.email, stream })
   }
 
-  // POST: Process the unsubscribe
-  // Atomic check-and-update to avoid TOCTOU race
+  // POST: process
+  if (stream) {
+    // Per-stream opt-out
+    const { error: streamErr } = await supabase
+      .from('email_stream_unsubscribes')
+      .upsert(
+        { email: tokenRecord.email.toLowerCase(), stream },
+        { onConflict: 'email,stream', ignoreDuplicates: true }
+      )
+    if (streamErr) {
+      console.error('Failed stream unsub', streamErr)
+      return jsonResponse({ error: 'Failed to unsubscribe' }, 500)
+    }
+    console.log('Stream unsubscribed', { email: tokenRecord.email, stream })
+    return jsonResponse({ success: true, scope: 'stream', stream })
+  }
+
+  // Global unsubscribe
+  if (tokenRecord.used_at) {
+    return jsonResponse({ success: false, reason: 'already_unsubscribed' })
+  }
+
   const { data: updated, error: updateError } = await supabase
     .from('email_unsubscribe_tokens')
     .update({ used_at: new Date().toISOString() })
@@ -108,7 +113,6 @@ Deno.serve(async (req) => {
     return jsonResponse({ success: false, reason: 'already_unsubscribed' })
   }
 
-  // Add email to suppressed list (upsert to handle duplicates)
   const { error: suppressError } = await supabase
     .from('suppressed_emails')
     .upsert(
@@ -117,14 +121,10 @@ Deno.serve(async (req) => {
     )
 
   if (suppressError) {
-    console.error('Failed to suppress email', {
-      error: suppressError,
-      email: tokenRecord.email,
-    })
+    console.error('Failed to suppress email', { error: suppressError, email: tokenRecord.email })
     return jsonResponse({ error: 'Failed to process unsubscribe' }, 500)
   }
 
-  console.log('Email unsubscribed', { email: tokenRecord.email })
-
-  return jsonResponse({ success: true })
+  console.log('Email globally unsubscribed', { email: tokenRecord.email })
+  return jsonResponse({ success: true, scope: 'global' })
 })
