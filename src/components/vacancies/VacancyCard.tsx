@@ -189,9 +189,7 @@ export default function VacancyCard({ vacancy, onApply, archived = false, applic
               </span>
             ) : vacancy.source_credit ? (
               <span>{vacancy.source_credit}</span>
-            ) : (
-              <span>Apply by email</span>
-            )}
+            ) : null}
           </span>
           {!isClosed && (
             <button
@@ -205,9 +203,9 @@ export default function VacancyCard({ vacancy, onApply, archived = false, applic
                 const r = await shareOrCopy({ title: "Locus — Vacancy", text, url });
                 if (r === "copied") toast.success("Link copied");
               }}
-              className="shrink-0 inline-flex items-center justify-center h-7 w-7 rounded-md border-2 border-foreground/70 bg-background text-foreground hover:bg-accent hover:text-accent-foreground hover:border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_0_hsl(var(--foreground))] transition-all"
+              className="shrink-0 inline-flex items-center justify-center h-7 w-7 rounded-md text-muted-foreground hover:text-accent hover:bg-accent/10 transition-colors"
             >
-              <Share2 size={14} strokeWidth={2.5} />
+              <Share2 size={14} strokeWidth={2} />
             </button>
           )}
           {!isClosed && application && appState !== "idle" && (
