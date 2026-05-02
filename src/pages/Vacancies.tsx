@@ -115,10 +115,26 @@ export default function Vacancies() {
     () => (typeFilter === "all" ? vacancies : vacancies.filter((v) => v.opportunity_type === typeFilter)),
     [vacancies, typeFilter],
   );
-  const live = useMemo(
-    () => filtered.filter((v) => v.status === "live" && new Date(v.expires_at).getTime() > Date.now()),
-    [filtered],
-  );
+  const live = useMemo(() => {
+    const liveOnly = filtered.filter(
+      (v) => v.status === "live" && new Date(v.expires_at).getTime() > Date.now(),
+    );
+    // Bubble vacancies whose follow-up is due to the very top so users
+    // see "time to nudge" cards first when they land on the page.
+    const followupDueIds = new Set<string>();
+    liveOnly.forEach((v) => {
+      const app = appMap.get(v.id);
+      if (!app) return;
+      const last = app.lastFollowupOn ?? app.appliedOn;
+      const days = Math.floor((Date.now() - new Date(last).getTime()) / 86_400_000);
+      if (!app.lastFollowupOn && days >= 3) followupDueIds.add(v.id);
+    });
+    if (followupDueIds.size === 0) return liveOnly;
+    return [
+      ...liveOnly.filter((v) => followupDueIds.has(v.id)),
+      ...liveOnly.filter((v) => !followupDueIds.has(v.id)),
+    ];
+  }, [filtered, appMap]);
   const archived = useMemo(
     () => filtered.filter((v) => !(v.status === "live" && new Date(v.expires_at).getTime() > Date.now())),
     [filtered],
@@ -229,6 +245,7 @@ export default function Vacancies() {
                     vacancy={v}
                     onApply={handleApply}
                     application={appMap.get(v.id) ?? null}
+                    onDeleted={() => void refreshApplications()}
                   />
                 ))}
                 {/* Fill the empty desktop cell when live count is odd */}
