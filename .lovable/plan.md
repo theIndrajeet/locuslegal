@@ -1,23 +1,23 @@
-## Add "NEW" tag for fresh vacancies
+## Soft-remove non-Google sign-in
 
-Show a bold neobrutalist **NEW** badge on any vacancy whose `posted_at` is within the last **48 hours**, so users can instantly spot freshly added opportunities on `/vacancies`.
+Make Google the only visible sign-in method on `/auth`, while keeping email/password and Apple **enabled in the backend** as an invisible safety net so existing 6 non-Google users (incl. admin fallback) aren't locked out.
 
-### Where it appears
-`src/components/vacancies/VacancyCard.tsx` — header row, next to the existing `Job` / `Internship` and `Task required` chips.
+### Changes — `src/pages/Auth.tsx`
 
-### Behaviour
-- Compute `isNew = (Date.now() - new Date(vacancy.posted_at).getTime()) < 48h`.
-- Hide the badge when the vacancy is `archived` / closed (no point flagging stale items as new).
-- Pure derived state from `posted_at` — no DB changes, no admin toggle. The moment a vacancy is inserted via the admin dialog, it shows up tagged automatically; the tag drops off after 48 h on the next render.
+1. **Hide the Apple button** entirely.
+2. **Hide the email/password form, username field, "Forgot password" link, and the "Sign up / Sign in" toggle** from the default view.
+3. Keep "Continue with Google" as the single primary CTA, with copy: *"Continue with Google to access your account."*
+4. Add a hidden escape hatch: if the URL contains `?legacy=1` (e.g. `/auth?legacy=1`), the old email/password form re-appears under a small "Legacy sign-in" divider. This gives the 3 affected Gmail users a recovery path if they ever ask, without exposing it publicly.
+5. All existing handlers (`handleSubmit`, `handleForgotPassword`, `/reset-password` route) stay intact — just no UI surface unless `?legacy=1` is set.
 
-### Visual
-- Yellow accent fill, black border, hard shadow, uppercase Sora — matches existing chip language.
-- Tiny pulsing dot to draw the eye (CSS `animate-pulse`, no new deps).
-- Label: `NEW` (zero emojis, per brand rules).
+### Backend
+- **No Cloud auth provider changes.** Email/password and Apple stay enabled at the provider level. This guarantees zero lockouts for the 6 existing non-Google accounts and zero migration risk.
+- **No DB changes.**
 
-### Helper
-Add a small `isFreshVacancy(posted_at, hours = 48)` helper to `src/lib/vacancies.ts` so the threshold is reusable (e.g. later for the `VacancyTeaserStrip` on the homepage if desired).
+### Net effect
+- **New users:** see one button only → Google.
+- **Existing Google users (12):** zero change.
+- **Existing email/Apple/phone users (6):** sessions keep working; if they need to re-login, send them `/auth?legacy=1` (or the Gmail-based ones can just hit "Continue with Google" with the same email and Supabase will match by verified email).
 
 ### Out of scope
-- No changes to admin dialog, schema, or notifications (the existing `new-vacancy` transactional email already covers push notification).
-- Teaser strip stays untouched unless you want the same badge there — easy follow-up.
+Removing accounts, disabling auth providers, deleting the `/reset-password` page, or migrating existing users — all reversible later if you want a hard cut.
