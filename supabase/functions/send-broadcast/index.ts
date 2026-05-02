@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
   }
 
   const { data: { users } = { users: [] } } = await supabase.auth.admin.listUsers({ perPage: 1000 }) as any
-  const emailMap = new Map<string, string>((users || []).map((u: any) => [u.id, u.email]).filter(([, e]) => !!e))
+  const emailMap = new Map<string, string>((users || []).map((u: any) => [u.id, u.email]).filter(([, e]: [string, string]) => !!e && !e.endsWith("@locus.internal")))
 
   let queued = 0
   for (const uid of userIds) {
