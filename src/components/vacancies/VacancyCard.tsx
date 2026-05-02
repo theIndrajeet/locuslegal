@@ -1,8 +1,19 @@
 import { useState } from "react";
-import { Briefcase, MapPin, Coins, GraduationCap, Mail, AlertTriangle, Clock, ChevronDown, Check, RotateCw, ClipboardList, Share2 } from "lucide-react";
+import { Briefcase, MapPin, Coins, GraduationCap, Mail, AlertTriangle, Clock, ChevronDown, Check, RotateCw, ClipboardList, Share2, X, Loader2 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { supabase } from "@/integrations/supabase/client";
 import {
   type Vacancy,
   daysLeft,
@@ -20,11 +31,14 @@ interface Props {
   onApply?: (v: Vacancy, opts?: { followup?: boolean }) => void;
   archived?: boolean;
   application?: VacancyApplication | null;
+  onDeleted?: () => void;
 }
 
-export default function VacancyCard({ vacancy, onApply, archived = false, application }: Props) {
+export default function VacancyCard({ vacancy, onApply, archived = false, application, onDeleted }: Props) {
   const [expanded, setExpanded] = useState(false);
   const [taskOpen, setTaskOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const hasTask = !!vacancy.task_brief && vacancy.task_brief.trim().length > 0;
   const days = daysLeft(vacancy.expires_at);
   const tone = urgencyTone(days);
