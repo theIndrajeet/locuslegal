@@ -9,6 +9,7 @@ import {
   urgencyTone,
   type VacancyApplication,
   applicationStateFor,
+  isFreshVacancy,
 } from "@/lib/vacancies";
 import { useCountdown } from "@/lib/useCountdown";
 import { cn } from "@/lib/utils";
@@ -29,6 +30,7 @@ export default function VacancyCard({ vacancy, onApply, archived = false, applic
   const tone = urgencyTone(days);
   const { label: countdownLabel, expired } = useCountdown(vacancy.expires_at);
   const isClosed = archived || expired;
+  const isNew = !isClosed && isFreshVacancy(vacancy.posted_at);
 
   const { state: appState, daysUntilFollowup, lastActionOn } = applicationStateFor(application);
 
@@ -66,6 +68,15 @@ export default function VacancyCard({ vacancy, onApply, archived = false, applic
               <span className="ml-1 inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded-md border-2 border-foreground/80 bg-foreground text-background">
                 <ClipboardList size={10} />
                 Task required
+              </span>
+            )}
+            {isNew && (
+              <span
+                className="ml-1 inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded-md border-2 border-foreground bg-accent text-accent-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))]"
+                aria-label="Newly added vacancy"
+              >
+                <span className="inline-block h-1.5 w-1.5 rounded-full bg-foreground animate-pulse" />
+                New
               </span>
             )}
           </p>
