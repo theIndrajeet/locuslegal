@@ -1,38 +1,34 @@
-I’m sorry — you’re right to be frustrated. The Cloud screen is showing a real failure: the auth email preview cache cannot build, so the previous “it’s ready” answer was premature.
+I checked the current state instead of guessing:
 
-What I found from the read-only check:
+- `auth.locus.legal` is verified and ready.
+- The project email configuration is still attached to `locus.legal`, while the email hook/templates were changed to send from `auth.locus.legal`.
+- The email preview pane is still failing before it can render the password reset template.
+- The queue tables and scheduled queue worker exist.
+- The recent send log still contains `Emails disabled for this project` failures, so the project-level email switch also needs to be refreshed.
 
-- `auth.locus.legal` is verified.
-- The project is currently configured in Cloud Emails as `locus.legal`, not the hardcoded values inside the auth email function.
-- The deployed auth email function/templates still contain stale sender-domain references to `send.locus.legal`.
-- The Cloud preview says “Template build failed / Preview cache build failed”, which usually means the deployed auth email function or templates need to be regenerated/redeployed against the current Cloud email configuration.
-- The email queue tables and cron job exist, but older email send logs show “Emails disabled for this project” for app emails, so I will also ensure the Cloud email switch is enabled before retesting.
-
-Plan to fix it:
+Plan to fix this properly:
 
 1. Re-enable project emails
-   - Ensure Cloud Emails is enabled so auth previews and sending are not blocked by the project-level email switch.
+   - Refresh the Cloud email state so custom auth emails are active again, not disabled.
 
-2. Refresh the shared email infrastructure
-   - Run the managed email infrastructure setup again. This is safe/idempotent and refreshes the queue worker, credentials, cron scheduling, and sender configuration.
+2. Re-bind the project to the verified sender domain
+   - Ensure the project uses the verified `auth.locus.legal` sender domain rather than the root `locus.legal` entry for auth email sending.
+   - Keep `locus.legal` as the app/site URL where appropriate, but use `auth.locus.legal` only as the sender domain.
 
-3. Regenerate the auth email function/templates against the current configured domain
-   - Re-scaffold the auth templates with overwrite confirmation so stale `send.locus.legal` references are replaced with the currently configured Cloud email domain.
-   - Keep Locus branding: black/white/yellow, Sora/Inter, neobrutalist borders and hard shadows.
-   - Preserve the custom branded copy, but remove wrong sender-domain text.
+3. Rebuild the managed auth email setup
+   - Re-run the managed auth-template scaffolding with overwrite so the hook is regenerated against the active email configuration.
+   - Preserve/reapply the Locus neobrutalist branding: white email body, black borders/shadows, yellow CTA, Sora-style headings, Inter-style body, and footer-only `Locus by LexRoot` usage.
 
-4. Redeploy the email functions
-   - Redeploy the auth email function so Cloud preview uses the latest code.
-   - Redeploy the queue processor if the infrastructure refresh indicates it needs it.
+4. Deploy and verify the email hook
+   - Redeploy the auth email hook.
+   - Directly test the deployed preview endpoint with the correct managed authorization path, then check logs for actual runtime/build errors.
+   - If the function still fails to build, remove the risky custom pieces causing preview compilation issues and redeploy a minimal branded version first, then layer branding back in.
 
-5. Verify the fix
-   - Open/check the auth preview path through Cloud by testing the password reset and signup previews.
-   - Check function logs for startup/render errors.
-   - Check the send log after a test password reset if needed.
-   - Confirm whether Cloud preview now renders instead of showing “Failed to build preview”.
+5. Refresh queue infrastructure only if needed
+   - The queue tables and scheduled worker already exist; I will only refresh the infrastructure if the logs still show disabled-email or queue-dispatch failures after re-enabling.
 
-Expected result:
+6. Final user-facing verification
+   - Confirm the orange `Template build failed` / `Preview cache build failed` banner is cleared or identify the exact remaining blocker.
+   - Provide direct buttons for Email settings plus signup and password reset previews.
 
-- The orange “Template build failed” banner should clear after retry/setup completes.
-- Signup and password-reset previews should render in Cloud.
-- Auth emails should use the verified Cloud email setup and the correct sender configuration instead of stale `send.locus.legal` values.
+I’m sorry this has dragged on. The likely root issue is not DNS anymore; it is the project’s active email configuration not matching the verified sender domain plus stale/disabled email state. The fix is to refresh those managed settings and redeploy from that correct state, not keep telling you to click retry.
