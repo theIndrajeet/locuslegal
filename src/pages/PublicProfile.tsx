@@ -479,6 +479,7 @@ export default function PublicProfile() {
               ))}
             </TabsContent>
           </Tabs>
+          )}
         </main>
       </div>
     </section>
