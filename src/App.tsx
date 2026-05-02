@@ -8,6 +8,7 @@ import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import Layout from "./components/Layout";
 import Index from "./pages/Index";
 import RouteSkeleton from "./components/RouteSkeleton";
+import Unsubscribe from "./pages/Unsubscribe";
 import { useVersionCheck } from "@/hooks/useVersionCheck";
 import { routeImports, prefetchCommonRoutes } from "@/lib/prefetch";
 import { CommandPaletteProvider } from "@/components/search/useCommandPalette";
@@ -157,6 +158,7 @@ const App = () => (
                 <Route path="/choose-username" element={<ChooseUsername />} />
                 <Route path="/beta" element={<BetaChecklist />} />
                 <Route path="/beta/round-2" element={<BetaRound2 />} />
+                <Route path="/unsubscribe" element={<Unsubscribe />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>
