@@ -1,30 +1,19 @@
-## Surface follow-up-ready vacancies + allow deletion
+## Make Share + Delete (X) buttons more prominent on vacancy cards
 
-Two related improvements to the `/vacancies` page experience.
+Right now both the Share and X buttons in `src/components/vacancies/VacancyCard.tsx` are rendered as bare 12px ghost icons — they blend into the muted-foreground status text and are easy to miss (visible in the screenshot).
 
-### 1. Float "time to nudge" cards to the top
+### Change
+Restyle both icon buttons in the card footer to match the project's neobrutalist language used elsewhere on the card:
 
-In `src/pages/Vacancies.tsx`, change the `live` `useMemo` so that vacancies whose application has reached the follow-up window (state `followup_ready`) are sorted to the front of the live grid. Other live vacancies keep their existing order (status + created_at). Add `appMap` to the memo's dependency list. No styling change — the existing yellow "Draft follow-up" card already stands out.
+- 28x28 px square (`h-7 w-7`), centered icon at 14px, `strokeWidth={2.5}` for visual weight.
+- 2px border + hard 2px box-shadow (`shadow-[2px_2px_0_0_...]`).
+- Hover: translate down-right by 1px and shrink shadow to 1px (the same press-effect the "Draft application" button already uses).
+- **Share button:** foreground border + accent yellow hover fill.
+- **Delete (X) button:** destructive (red) border, destructive icon color, full destructive fill on hover. Stays distinguishable from share.
+- Truncated text now sits next to two clearly tappable chips, fixing the cramped "time to nu... [share] [x]" overflow seen on mobile.
 
-### 2. Add a delete-application action on the card
-
-When a card is in `applied`, `followed_up`, or `followup_ready` state (i.e. an application exists), show a small ghost X button in the footer-left area of `src/components/vacancies/VacancyCard.tsx`, next to the "Sent / Applied" status text. Clicking it opens a `<AlertDialog>` with this copy:
-
-> **Remove this application?**  
-> This will permanently delete your record for **{firm} — {role}**. The follow-up reminder and "Applied" badge will disappear. This cannot be undone.
->
-> Buttons: *Cancel* | *Delete permanently* (destructive)
-
-On confirm:
-- Call `supabase.from("profile_applications").delete().eq("id", application.id)`.
-- Toast success/failure.
-- Notify parent via a new `onDeleted?: () => void` prop so `Vacancies.tsx` can call `refreshApplications()` — same callback already wired through `DraftEmailDialog`'s `onSent`.
-
-### Files touched
-- `src/pages/Vacancies.tsx` — sort logic + pass `onDeleted={refreshApplications}` to `VacancyCard`.
-- `src/components/vacancies/VacancyCard.tsx` — add delete button, AlertDialog, supabase delete call, `onDeleted` prop.
+No layout/copy changes. Only the two button class strings + icon size/strokeWidth update.
 
 ### Out of scope
-- No DB migration. `profile_applications` already allows owners to delete (existing RLS on user_id).
-- The delete only removes the local tracker row — it does not recall any sent email.
-- Archived/closed vacancy cards already hide action buttons; the delete control follows the same rule (only shown on live cards with an application).
+- Confirm dialog text and behavior stay as-is.
+- The follow-up "time to nudge" status text is unchanged (it can still truncate; the chips no longer compete with it for attention).
