@@ -1,19 +1,30 @@
-## Multi-email recognition in the application drafter
+## Surface follow-up-ready vacancies + allow deletion
 
-Right now the drafter passes `target.email` to Gmail/mailto verbatim. If a firm/vacancy lists multiple addresses (e.g. `intern@firm.com, hr@firm.com` or `intern@firm.com / partner@firm.com`), only the first character-for-character string ends up in the To field and the rest are silently dropped. Students miss the partner copy that firms often expect.
+Two related improvements to the `/vacancies` page experience.
 
-### Fix — `src/components/apply/DraftEmailDialog.tsx` only
+### 1. Float "time to nudge" cards to the top
 
-1. **Add `parseEmailList(raw)` helper** that splits on commas, semicolons, slashes, the word "and", and whitespace, strips brackets/quotes, validates with a basic email regex, and de-dupes case-insensitively. Returns `{ to: firstAddress, cc: [...rest] }`.
-2. **Update `buildGmailUrl(to, subject, body, cc[])`** to append `&cc=...` for the Gmail web URL and `&cc=...` for the mailto fallback.
-3. **In `openInGmail()`**, replace the single `target.email` argument with `parseEmailList(target.email)` and pass `cc` through to `buildGmailUrl`.
-4. **Toast feedback:** when CCs are auto-detected, swap the success toast to *"Opening Gmail. N address(es) auto-CC'd."* so the student knows it happened.
+In `src/pages/Vacancies.tsx`, change the `live` `useMemo` so that vacancies whose application has reached the follow-up window (state `followup_ready`) are sorted to the front of the live grid. Other live vacancies keep their existing order (status + created_at). Add `appMap` to the memo's dependency list. No styling change — the existing yellow "Draft follow-up" card already stands out.
 
-### Why this place
-- All three sources (Vacancies, FirmDrawer, StartupDrawer) funnel through this one dialog, so the change covers every entry point with a single edit.
-- The application-tracker logging stays unchanged (it stores `firm_name_snapshot`, not the email list).
+### 2. Add a delete-application action on the card
+
+When a card is in `applied`, `followed_up`, or `followup_ready` state (i.e. an application exists), show a small ghost X button in the footer-left area of `src/components/vacancies/VacancyCard.tsx`, next to the "Sent / Applied" status text. Clicking it opens a `<AlertDialog>` with this copy:
+
+> **Remove this application?**  
+> This will permanently delete your record for **{firm} — {role}**. The follow-up reminder and "Applied" badge will disappear. This cannot be undone.
+>
+> Buttons: *Cancel* | *Delete permanently* (destructive)
+
+On confirm:
+- Call `supabase.from("profile_applications").delete().eq("id", application.id)`.
+- Toast success/failure.
+- Notify parent via a new `onDeleted?: () => void` prop so `Vacancies.tsx` can call `refreshApplications()` — same callback already wired through `DraftEmailDialog`'s `onSent`.
+
+### Files touched
+- `src/pages/Vacancies.tsx` — sort logic + pass `onDeleted={refreshApplications}` to `VacancyCard`.
+- `src/components/vacancies/VacancyCard.tsx` — add delete button, AlertDialog, supabase delete call, `onDeleted` prop.
 
 ### Out of scope
-- No DB schema change. Vacancy `application_email` and firm/startup email columns continue to accept whatever string the admin enters — we just split it intelligently at send time.
-- No edits to `draft-application-email` edge function (it never sees the recipient).
-- The `<input value={target.email}>` recipient preview in the dialog (if any) is left as-is — the parsed split happens only when opening Gmail/mailto.
+- No DB migration. `profile_applications` already allows owners to delete (existing RLS on user_id).
+- The delete only removes the local tracker row — it does not recall any sent email.
+- Archived/closed vacancy cards already hide action buttons; the delete control follows the same rule (only shown on live cards with an application).

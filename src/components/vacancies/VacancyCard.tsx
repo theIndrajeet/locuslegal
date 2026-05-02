@@ -1,8 +1,19 @@
 import { useState } from "react";
-import { Briefcase, MapPin, Coins, GraduationCap, Mail, AlertTriangle, Clock, ChevronDown, Check, RotateCw, ClipboardList, Share2 } from "lucide-react";
+import { Briefcase, MapPin, Coins, GraduationCap, Mail, AlertTriangle, Clock, ChevronDown, Check, RotateCw, ClipboardList, Share2, X, Loader2 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { supabase } from "@/integrations/supabase/client";
 import {
   type Vacancy,
   daysLeft,
@@ -20,11 +31,14 @@ interface Props {
   onApply?: (v: Vacancy, opts?: { followup?: boolean }) => void;
   archived?: boolean;
   application?: VacancyApplication | null;
+  onDeleted?: () => void;
 }
 
-export default function VacancyCard({ vacancy, onApply, archived = false, application }: Props) {
+export default function VacancyCard({ vacancy, onApply, archived = false, application, onDeleted }: Props) {
   const [expanded, setExpanded] = useState(false);
   const [taskOpen, setTaskOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const hasTask = !!vacancy.task_brief && vacancy.task_brief.trim().length > 0;
   const days = daysLeft(vacancy.expires_at);
   const tone = urgencyTone(days);
@@ -196,7 +210,60 @@ export default function VacancyCard({ vacancy, onApply, archived = false, applic
               <Share2 size={12} />
             </button>
           )}
+          {!isClosed && application && appState !== "idle" && (
+            <button
+              type="button"
+              aria-label="Remove this application from your tracker"
+              title="Remove application"
+              disabled={deleting}
+              onClick={(e) => {
+                e.stopPropagation();
+                setConfirmDelete(true);
+              }}
+              className="shrink-0 p-1 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50"
+            >
+              {deleting ? <Loader2 size={12} className="animate-spin" /> : <X size={12} />}
+            </button>
+          )}
         </div>
+
+        <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Remove this application?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently delete your tracker record for{" "}
+                <strong>{vacancy.firm_name} — {vacancy.role}</strong>. The follow-up reminder
+                and "Applied" badge will disappear. This action cannot be undone — it does not
+                recall any email you've already sent.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={async () => {
+                  if (!application) return;
+                  setDeleting(true);
+                  const { error } = await supabase
+                    .from("profile_applications")
+                    .delete()
+                    .eq("id", application.id);
+                  setDeleting(false);
+                  if (error) {
+                    toast.error("Couldn't remove. Try again.");
+                    return;
+                  }
+                  toast.success("Application removed.");
+                  setConfirmDelete(false);
+                  onDeleted?.();
+                }}
+              >
+                Delete permanently
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {!isClosed && onApply && appState === "idle" && (
           <Button
