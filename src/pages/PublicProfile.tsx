@@ -39,6 +39,7 @@ interface Profile {
   subjects_of_interest: string[] | null;
   created_at: string;
   open_to_opportunities: boolean;
+  is_pace_setter?: boolean;
 }
 
 interface Internship {
@@ -370,13 +371,27 @@ export default function PublicProfile() {
             </div>
           )}
 
-          {/* Activity heatmap */}
-          <Card>
-            <CardContent className="pt-5 pb-4">
-              <ActivityHeatmap userId={profile.id} />
-            </CardContent>
-          </Card>
+          {profile.is_pace_setter && (
+            <div className="border-2 border-foreground bg-accent text-accent-foreground p-5 shadow-[4px_4px_0_0_hsl(var(--foreground))]">
+              <p className="font-heading font-extrabold uppercase tracking-wider text-sm">
+                Locus practice account
+              </p>
+              <p className="text-sm mt-1.5 leading-relaxed">
+                Benchmark stats so the leaderboard isn't empty. Not a real user — no internships, moots, or publications to show.
+              </p>
+            </div>
+          )}
 
+          {/* Activity heatmap */}
+          {!profile.is_pace_setter && (
+            <Card>
+              <CardContent className="pt-5 pb-4">
+                <ActivityHeatmap userId={profile.id} />
+              </CardContent>
+            </Card>
+          )}
+
+          {!profile.is_pace_setter && (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList>
               <TabsTrigger value="experience">Experience ({internships.length})</TabsTrigger>
@@ -464,6 +479,7 @@ export default function PublicProfile() {
               ))}
             </TabsContent>
           </Tabs>
+          )}
         </main>
       </div>
     </section>

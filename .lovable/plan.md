@@ -1,100 +1,59 @@
-# Email Notification System — Plan
+# Pace-Setter Accounts for The Bar Leaderboard
 
-Built on existing infrastructure (`auth-email-hook`, pgmq queues, `email_send_log`, `suppressed_emails`, `email_unsubscribe_tokens`). No vacancy/bar/broadcast emails currently exist — we are adding them now. Excludes: send-transactional-email function rebuild, in-app bell, user-facing preferences UI.
+Goal: seed a handful of benchmark accounts so the leaderboard never looks empty, without deceiving real users. Zero leaderboard tells, honest profile disclosure, no automated activity.
 
 ## Decisions locked in
 
-- **Granularity:** No in-app toggle. Everyone is opted in by default. Opt-out happens via per-stream + global "unsubscribe all" links in every email footer.
-- **Cadence:** Instant for application-tracker events. Daily 8am IST digest for vacancies and bar challenges.
-- **Storage:** Email-only. No `/notifications` bell.
-- **Broadcasts:** Admin markdown editor + send-to-segment, using existing `update_broadcasts` table.
+- **Quantity**: 4 pace-setter accounts, scattered across rank distribution (one near top, two mid, one lower-mid)
+- **Leaderboard UI**: no tell — same row treatment as humans
+- **Profile disclosure**: neobrutalist callout reading *"Locus practice account — benchmark stats, not a real user."*
+- **Profile content**: display name + avatar + seeded stats only. No college, designation, bio, CV, internships, moots, publications.
+- **Activity**: one-time seed of `bar_user_stats`. No `bar_attempts`, no cron, no XP drift. Real users naturally overtake them.
+- **Names**: diverse Indian pool (Zoya Khan, Aryan Dsouza, Vikram Singh, Meera Iyer)
 
-## Streams to build (5)
+## Implementation
 
-1. **Welcome email** — Instant on signup. Branded intro + 3 CTAs (complete profile, browse vacancies, try The Bar).
-2. **Profile completion nudge** — T+48h post-signup if profile <50% complete (no college/CV/subjects). One-shot.
-3. **Application tracker** — Instant on `profile_applications.status` change (sent → interviewing/offer/rejected). Plus weekly Sunday recap ("X apps sent, Y awaiting reply").
-4. **Vacancy digest** — Daily 8am IST. New `live` vacancies posted in last 24h. Uses `vacancies.notified_at` to avoid re-sending.
-5. **Bar challenge digest** — Daily 8am IST. New `approved` challenges in last 24h. Uses `bar_challenges.notified_at`.
-6. **Admin broadcasts** — Manual fire from `/admin/broadcasts`. Markdown → HTML, segment picker (all users / has applications / opted-in), uses existing `update_broadcasts` table.
-
-## Architecture
-
-```text
-   Trigger (DB trigger / cron / admin click)
-              │
-              ▼
-   build-notification edge fn  ──► reads opt-outs from email_unsubscribe_tokens
-              │                     (filters out unsubscribed addresses)
-              ▼
-   enqueue_email() → pgmq (transactional_emails queue)
-              │
-              ▼
-   process-email-queue (existing cron, every 5s)
-              │
-              ▼
-   Lovable Email API → email_send_log
+### 1. Schema change (migration)
+Add a single boolean flag to `profiles`:
 ```
-
-All emails route through the existing pgmq queue — same retry/DLQ/rate-limit safety as auth emails.
-
-## Database changes
-
-1. **Extend `email_unsubscribe_tokens`** — add `stream text` column (NULL = global unsub, otherwise: `welcome | nudges | applications | vacancies | bar | broadcasts`). One row per (email, stream).
-2. **New `notification_log` table** — dedupe key per (user_id, stream, entity_id) so we never double-send a vacancy alert. Append-only.
-3. **Trigger on `profile_applications`** — fires `enqueue_email` on status change.
-4. **Trigger on `auth.users` insert** (via existing `handle_new_user` extension) — enqueues welcome email.
-5. **pg_cron jobs**:
-   - Daily 08:00 IST (`30 2 * * *` UTC) → `send-vacancy-digest` + `send-bar-digest`
-   - Daily 03:00 IST → `send-profile-nudges` (scans for T+48h incomplete profiles)
-   - Sunday 09:00 IST → `send-application-recap`
-
-## Edge functions (new)
-
-- `send-welcome-email` (instant, called from signup flow)
-- `send-application-status-email` (instant, called from DB trigger via pg_net)
-- `send-vacancy-digest` (cron-invoked)
-- `send-bar-digest` (cron-invoked)
-- `send-profile-nudge` (cron-invoked)
-- `send-application-recap` (cron-invoked)
-- `send-broadcast` (admin-invoked from `/admin/broadcasts`)
-- `handle-email-unsubscribe` (public GET endpoint for footer links — already partially scaffolded; extend to handle stream param)
-
-All share `_shared/email-templates/` (extend existing folder with 6 new templates matching neobrutalist branding: black bg, yellow accents, Sora/Inter, 3px borders).
-
-## Admin UI
-
-New route `/admin/broadcasts`:
-- List view: all `update_broadcasts` rows with status/sent_at/recipient_count
-- Editor: subject, preheader, markdown body (rendered to HTML server-side), CTA label/url
-- Segment picker: All users · Has applications · Opted-in to broadcasts · Beta testers
-- "Send test to me" + "Send to segment" buttons
-- Confirms recipient count before firing
-
-## Footer (every notification email)
-
+alter table profiles add column is_pace_setter boolean not null default false;
 ```
-Unsubscribe from [stream] emails  ·  Unsubscribe from all
-```
+That's the only schema change. No new table, no enum, no role.
 
-Both links hit `handle-email-unsubscribe?token=…&stream=…`.
+### 2. Seed data (insert)
+Create 4 auth users (via admin API in a one-shot edge function or manual seed script), then for each:
+- `profiles` row: username, display_name, avatar_url (DiceBear or initials avatar), `is_pace_setter = true`, `bar_leaderboard_opt_out = false`
+- `bar_user_stats` row: realistic spread
+  - Setter A: ~2,400 pts, 88% accuracy, 14-day streak (top-5 territory)
+  - Setter B: ~1,650 pts, 81% accuracy, 9-day streak
+  - Setter C: ~1,100 pts, 76% accuracy, 6-day streak
+  - Setter D: ~640 pts, 71% accuracy, 3-day streak
+- No `bar_user_stats_by_area` rows (keeps profile area-breakdown empty, signalling "limited data" naturally)
 
-## Out of scope (for this build)
+### 3. Profile page
+On the Bar profile route, when `profile.is_pace_setter === true`:
+- Render a neobrutalist callout above stats: thick black border, yellow background, Sora heading: **"Locus practice account"** + body: *"Benchmark stats so the leaderboard isn't empty. Not a real user."*
+- Hide tabs/sections for: internships, moots, publications, CV, applications, area breakdown
+- Keep visible: display name, avatar, total points, accuracy, streaks
 
-- Reply notifications on Bar forum threads (deferred — needs reply notification infra first)
-- "We miss you" re-engagement (deferred — needs activity tracking)
-- CV-stale reminders (deferred)
-- In-app notifications bell
+### 4. Leaderboard
+No code changes. Pace-setters render identically to humans.
 
-## Build order (suggested)
+### 5. Notifications
+Update the welcome / digest / nudge edge functions to skip any user where `is_pace_setter = true` (these accounts have no real inbox we care about; avoids bounces). One-line filter in each `send-*` function's recipient query.
 
-1. DB migration (stream column, notification_log, triggers)
-2. Shared template scaffolding + footer component
-3. Welcome email (smallest, validates pipeline)
-4. Application status emails (instant, high-signal)
-5. Vacancy + Bar daily digests
-6. Profile nudge + Sunday recap
-7. Admin broadcasts UI + send function
-8. Memory update: replace the "no transactional emails" rule with the new policy
+## Files touched
 
-Ready to implement. Approve and I'll start with the migration + welcome email as the first deployable slice.
+- `supabase/migrations/<new>.sql` — add `is_pace_setter` column
+- `scripts/seed-pace-setters.ts` (or a one-shot edge function) — create 4 auth users + profile + stats rows
+- `src/pages/BarProfile.tsx` (or wherever the bar profile renders) — disclosure callout + section hiding
+- `supabase/functions/send-welcome-email/index.ts`, `send-vacancy-digest`, `send-bar-digest`, `send-profile-nudge`, `send-application-recap`, `send-broadcast` — exclude pace-setters from recipient lists
+
+## Out of scope (deferred)
+
+- Cron-driven XP drift
+- Pace-setters posting in The Bar threads
+- Localized name pools beyond the initial 4
+- Admin UI to add/edit pace-setters (do via SQL for now)
+
+Reply "go" and I'll switch to build mode and ship it.
