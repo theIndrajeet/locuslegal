@@ -37,6 +37,11 @@ export function urgencyTone(days: number): "fresh" | "soon" | "expired" {
   return "fresh";
 }
 
+export function isFreshVacancy(postedAt: string, hours = 48): boolean {
+  const ms = Date.now() - new Date(postedAt).getTime();
+  return ms >= 0 && ms < hours * 60 * 60 * 1000;
+}
+
 export function formatExpiry(expiresAt: string): string {
   const d = daysLeft(expiresAt);
   if (d <= 0) return "Closed";
