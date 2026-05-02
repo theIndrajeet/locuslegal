@@ -192,14 +192,34 @@ function buildHighlights(user: UserContext, target: DraftEmailTarget | null): Hi
   return chips;
 }
 
-function buildGmailUrl(to: string, subject: string, body: string): string {
+// Parse a free-form email field that may contain multiple addresses separated
+// by commas, semicolons, slashes, "and", or whitespace. First valid address is
+// the primary `to`; the rest become `cc`.
+function parseEmailList(raw: string): { to: string; cc: string[] } {
+  if (!raw) return { to: "", cc: [] };
+  const tokens = raw
+    .split(/[,;/]|\s+and\s+|\s+/i)
+    .map((t) => t.trim().replace(/^[<("']+|[>)"']+$/g, ""))
+    .filter((t) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(t));
+  const seen = new Set<string>();
+  const unique = tokens.filter((t) => {
+    const k = t.toLowerCase();
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+  return { to: unique[0] ?? raw.trim(), cc: unique.slice(1) };
+}
+
+function buildGmailUrl(to: string, subject: string, body: string, cc: string[] = []): string {
   const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+  const ccParam = cc.length ? `&cc=${encodeURIComponent(cc.join(","))}` : "";
   if (isMobile) {
-    return `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    return `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}${ccParam}`;
   }
   return `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(
     to,
-  )}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  )}${ccParam}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
 export default function DraftEmailDialog({ open, onOpenChange, target, onSent }: Props) {
@@ -480,8 +500,9 @@ export default function DraftEmailDialog({ open, onOpenChange, target, onSent }:
     const truncated = body.length > 1800;
     const sendBody = truncated ? body.slice(0, 1800) : body;
     const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+    const { to: primaryTo, cc } = parseEmailList(target.email);
     // Gmail URL stays clean — recruiter never sees the watermark.
-    const url = buildGmailUrl(target.email, subject, sendBody);
+    const url = buildGmailUrl(primaryTo, subject, sendBody, cc);
     // Clipboard fallback gets the soft watermark below the student's signature.
     const plainText = `Subject: ${subject}\n\n${body}${WATERMARK_EMAIL_SIG}`;
 
@@ -501,6 +522,10 @@ export default function DraftEmailDialog({ open, onOpenChange, target, onSent }:
     if (truncated) {
       toast.info("Body was long — full email copied to clipboard. Paste if it truncates.", {
         duration: 6000,
+      });
+    } else if (cc.length) {
+      toast.success(`Opening Gmail. ${cc.length} address${cc.length > 1 ? "es" : ""} auto-CC'd.`, {
+        duration: 5000,
       });
     } else {
       toast.success("Opening Gmail. Plain text also copied — paste if it looks encoded.", {
