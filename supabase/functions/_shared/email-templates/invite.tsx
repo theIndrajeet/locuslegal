@@ -8,9 +8,11 @@ import {
   Container,
   Head,
   Heading,
+  Hr,
   Html,
   Link,
   Preview,
+  Section,
   Text,
 } from 'npm:@react-email/components@0.0.22'
 
@@ -22,29 +24,42 @@ interface InviteEmailProps {
 
 export const InviteEmail = ({
   siteName,
-  siteUrl,
   confirmationUrl,
 }: InviteEmailProps) => (
   <Html lang="en" dir="ltr">
     <Head />
-    <Preview>You've been invited to join {siteName}</Preview>
+    <Preview>You've been invited to {siteName}</Preview>
     <Body style={main}>
-      <Container style={container}>
-        <Heading style={h1}>You've been invited</Heading>
-        <Text style={text}>
-          You've been invited to join{' '}
-          <Link href={siteUrl} style={link}>
-            <strong>{siteName}</strong>
+      <Container style={wrap}>
+        <Section style={wordmarkRow}>
+          <Text style={wordmark}>
+            Loc<span style={accentBox}>us</span>
+          </Text>
+        </Section>
+        <Section style={card}>
+          <Text style={eyebrow}>INVITATION</Text>
+          <Heading style={h1}>You're in.</Heading>
+          <Text style={text}>
+            You've been invited to join {siteName} — the merit-based home for
+            legal internships in India. Accept the invite to set up your
+            account and start applying.
+          </Text>
+          <Section style={ctaRow}>
+            <Button style={button} href={confirmationUrl}>
+              Accept invite
+            </Button>
+          </Section>
+          <Text style={fallbackLabel}>Or paste this link into your browser:</Text>
+          <Link href={confirmationUrl} style={fallbackLink}>
+            {confirmationUrl}
           </Link>
-          . Click the button below to accept the invitation and create your
-          account.
-        </Text>
-        <Button style={button} href={confirmationUrl}>
-          Accept Invitation
-        </Button>
+          <Hr style={hr} />
+          <Text style={meta}>
+            Wasn't expecting this? You can safely ignore this email.
+          </Text>
+        </Section>
         <Text style={footer}>
-          If you weren't expecting this invitation, you can safely ignore this
-          email.
+          Locus by LexRoot · sent from send.locus.legal
         </Text>
       </Container>
     </Body>
@@ -53,10 +68,19 @@ export const InviteEmail = ({
 
 export default InviteEmail
 
-const main = { backgroundColor: '#ffffff', fontFamily: 'Inter, Arial, sans-serif' }
-const container = { padding: '24px', maxWidth: '560px', margin: '0 auto', border: '2px solid #000000' }
-const h1 = { fontSize: '24px', fontWeight: 'bold', color: '#000000', margin: '0 0 20px' }
-const text = { fontSize: '15px', color: '#3f3f46', lineHeight: '1.6', margin: '0 0 20px' }
-const link = { color: '#000000', textDecoration: 'underline' }
-const button = { backgroundColor: '#FACC15', color: '#000000', fontSize: '15px', fontWeight: 'bold', borderRadius: '4px', padding: '14px 24px', textDecoration: 'none', border: '2px solid #000000', display: 'inline-block' }
-const footer = { fontSize: '12px', color: '#71717a', margin: '32px 0 0' }
+const main = { backgroundColor: '#ffffff', fontFamily: 'Inter, Helvetica, Arial, sans-serif', margin: 0, padding: '32px 16px' }
+const wrap = { maxWidth: '560px', margin: '0 auto' }
+const wordmarkRow = { padding: '0 0 20px', textAlign: 'left' as const }
+const wordmark = { fontFamily: 'Sora, Helvetica, Arial, sans-serif', fontSize: '28px', fontWeight: 800, color: '#0A0A0A', letterSpacing: '-0.02em', margin: 0 }
+const accentBox = { backgroundColor: '#FFE600', border: '2px solid #0A0A0A', padding: '0 6px', marginLeft: '2px' }
+const card = { backgroundColor: '#ffffff', border: '3px solid #0A0A0A', boxShadow: '6px 6px 0 #0A0A0A', padding: '32px 28px' }
+const eyebrow = { fontFamily: 'Sora, Helvetica, Arial, sans-serif', fontSize: '11px', fontWeight: 700, color: '#0A0A0A', letterSpacing: '0.18em', margin: '0 0 12px', textTransform: 'uppercase' as const }
+const h1 = { fontFamily: 'Sora, Helvetica, Arial, sans-serif', fontSize: '28px', fontWeight: 700, color: '#0A0A0A', letterSpacing: '-0.02em', lineHeight: 1.15, margin: '0 0 18px' }
+const text = { fontSize: '15px', color: '#2B2B2B', lineHeight: 1.6, margin: '0 0 24px' }
+const ctaRow = { padding: '4px 0 24px' }
+const button = { backgroundColor: '#FFE600', color: '#0A0A0A', fontFamily: 'Sora, Helvetica, Arial, sans-serif', fontSize: '15px', fontWeight: 700, padding: '14px 26px', textDecoration: 'none', border: '3px solid #0A0A0A', borderRadius: 0, display: 'inline-block', boxShadow: '4px 4px 0 #0A0A0A' }
+const fallbackLabel = { fontSize: '12px', color: '#6B6B6B', margin: '0 0 6px' }
+const fallbackLink = { fontSize: '12px', color: '#0A0A0A', wordBreak: 'break-all' as const, textDecoration: 'underline' }
+const hr = { border: 'none', borderTop: '2px solid #0A0A0A', margin: '24px 0 16px' }
+const meta = { fontSize: '12px', color: '#6B6B6B', lineHeight: 1.5, margin: 0 }
+const footer = { fontFamily: 'Sora, Helvetica, Arial, sans-serif', fontSize: '11px', color: '#6B6B6B', textAlign: 'center' as const, letterSpacing: '0.08em', margin: '20px 0 0' }
