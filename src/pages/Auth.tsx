@@ -25,6 +25,8 @@ export default function Auth() {
       ? nextParam
       : null;
   const postLoginPath = safeNext ?? "/app";
+  // Hidden escape hatch for legacy email/password accounts: /auth?legacy=1
+  const showLegacy = searchParams.get("legacy") === "1";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -118,13 +120,11 @@ export default function Auth() {
             {isLogin ? "Welcome back" : "Join Locus"}
           </h1>
           <p className="text-muted-foreground mt-2 text-sm">
-            {isLogin
-              ? "Sign in to continue."
-              : "Create your account to get started."}
+            Continue with Google to access your account.
           </p>
         </div>
 
-        {/* Social Login Buttons */}
+        {/* Google sign-in — single visible method */}
         <div className="space-y-3">
           <Button
             type="button"
@@ -140,93 +140,90 @@ export default function Auth() {
             </svg>
             Continue with Google
           </Button>
-          <Button
-            type="button"
-            className="w-full gap-2 bg-secondary text-secondary-foreground border-2 border-border hover:bg-muted font-semibold"
-            disabled={loading}
-            onClick={() => handleSocialLogin("apple")}
-          >
-            <svg className="w-5 h-5 fill-secondary-foreground" viewBox="0 0 24 24">
-              <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
-            </svg>
-            Continue with Apple
-          </Button>
+          <p className="text-center text-[11px] text-muted-foreground">
+            One tap. No passwords to remember.
+          </p>
         </div>
 
-        {/* Separator */}
-        <div className="flex items-center gap-4">
-          <div className="flex-1 h-px bg-border" />
-          <span className="text-xs text-muted-foreground uppercase tracking-wider">or</span>
-          <div className="flex-1 h-px bg-border" />
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="username">Username</Label>
-            <Input
-              id="username"
-              type="text"
-              required
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder={isLogin ? "Your username" : "Choose a username (no spaces)"}
-              className="mt-1"
-            />
-          </div>
-
-          {!isLogin && (
-            <div>
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                className="mt-1"
-              />
+        {showLegacy && (
+          <>
+            <div className="flex items-center gap-4">
+              <div className="flex-1 h-px bg-border" />
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                Legacy sign-in
+              </span>
+              <div className="flex-1 h-px bg-border" />
             </div>
-          )}
 
-          <div>
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              required
-              minLength={6}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="mt-1"
-            />
-          </div>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <Label htmlFor="username">Username</Label>
+                <Input
+                  id="username"
+                  type="text"
+                  required
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder={isLogin ? "Your username" : "Choose a username (no spaces)"}
+                  className="mt-1"
+                />
+              </div>
 
-          {isLogin && (
-            <button
-              type="button"
-              onClick={handleForgotPassword}
-              className="text-xs text-accent hover:underline"
-            >
-              Forgot password?
-            </button>
-          )}
+              {!isLogin && (
+                <div>
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    className="mt-1"
+                  />
+                </div>
+              )}
 
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Loading..." : isLogin ? "Sign In" : "Create Account"}
-          </Button>
-        </form>
+              <div>
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  required
+                  minLength={6}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="mt-1"
+                />
+              </div>
 
-        <p className="text-center text-sm text-muted-foreground">
-          {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
-          <button
-            onClick={() => setIsLogin(!isLogin)}
-            className="text-accent hover:underline font-medium"
-          >
-            {isLogin ? "Sign up" : "Sign in"}
-          </button>
-        </p>
+              {isLogin && (
+                <button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  className="text-xs text-accent hover:underline"
+                >
+                  Forgot password?
+                </button>
+              )}
+
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? "Loading..." : isLogin ? "Sign In" : "Create Account"}
+              </Button>
+            </form>
+
+            <p className="text-center text-sm text-muted-foreground">
+              {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
+              <button
+                onClick={() => setIsLogin(!isLogin)}
+                className="text-accent hover:underline font-medium"
+              >
+                {isLogin ? "Sign up" : "Sign in"}
+              </button>
+            </p>
+          </>
+        )}
 
         {/* Locus+ teaser — discreet, no signup required */}
         <Link
