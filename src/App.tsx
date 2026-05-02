@@ -4,7 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner, toast } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import Layout from "./components/Layout";
 import Index from "./pages/Index";
 import RouteSkeleton from "./components/RouteSkeleton";
@@ -100,6 +100,18 @@ const IdlePrefetcher = () => {
   return null;
 };
 
+// Re-fires Meta Pixel PageView on every client-side route change. The base
+// snippet in index.html only tracks the initial hard load; SPA navigations
+// need a manual fbq() call so retargeting + conversion attribution works.
+const MetaPixelTracker = () => {
+  const location = useLocation();
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.fbq !== "function") return;
+    window.fbq("track", "PageView");
+  }, [location.pathname, location.search]);
+  return null;
+};
+
 const App = () => (
   <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
     <QueryClientProvider client={queryClient}>
@@ -109,6 +121,7 @@ const App = () => (
         <VersionWatcher />
         <IdlePrefetcher />
         <BrowserRouter>
+          <MetaPixelTracker />
           <CommandPaletteProvider>
             <Suspense fallback={<RouteSkeleton />}>
               <Routes>
