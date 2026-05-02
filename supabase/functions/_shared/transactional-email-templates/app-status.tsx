@@ -16,8 +16,8 @@ const STATUS_COPY: Record<string, { eyebrow: string; headline: string; body: str
   acknowledged: { eyebrow: 'Status update', headline: 'They acknowledged.', body: 'A reply landed in your inbox. Keep the thread warm.' },
 }
 
-const AppStatus = ({ firmName = 'a firm', role = 'a role', status = 'interviewing', siteUrl = 'https://locus.legal' }: Props) => {
-  const copy = STATUS_COPY[status] ?? STATUS_COPY.interviewing
+const AppStatus = ({ firmName = 'a firm', role = 'a role', status = 'interview_scheduled', siteUrl = 'https://locus.legal' }: Props) => {
+  const copy = STATUS_COPY[status] ?? STATUS_COPY.interview_scheduled
   return (
     <Html lang="en" dir="ltr">
       <Head /><Preview>{copy.headline}</Preview>
