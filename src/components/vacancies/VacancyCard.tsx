@@ -205,9 +205,9 @@ export default function VacancyCard({ vacancy, onApply, archived = false, applic
                 const r = await shareOrCopy({ title: "Locus — Vacancy", text, url });
                 if (r === "copied") toast.success("Link copied");
               }}
-              className="shrink-0 p-1 rounded-md text-muted-foreground hover:text-accent hover:bg-accent/10 transition-colors"
+              className="shrink-0 inline-flex items-center justify-center h-7 w-7 rounded-md border-2 border-foreground/70 bg-background text-foreground hover:bg-accent hover:text-accent-foreground hover:border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_0_hsl(var(--foreground))] transition-all"
             >
-              <Share2 size={12} />
+              <Share2 size={14} strokeWidth={2.5} />
             </button>
           )}
           {!isClosed && application && appState !== "idle" && (
@@ -220,9 +220,9 @@ export default function VacancyCard({ vacancy, onApply, archived = false, applic
                 e.stopPropagation();
                 setConfirmDelete(true);
               }}
-              className="shrink-0 p-1 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50"
+              className="shrink-0 inline-flex items-center justify-center h-7 w-7 rounded-md border-2 border-destructive/70 bg-background text-destructive hover:bg-destructive hover:text-destructive-foreground hover:border-destructive shadow-[2px_2px_0_0_hsl(var(--destructive))] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_0_hsl(var(--destructive))] transition-all disabled:opacity-50"
             >
-              {deleting ? <Loader2 size={12} className="animate-spin" /> : <X size={12} />}
+              {deleting ? <Loader2 size={14} className="animate-spin" /> : <X size={14} strokeWidth={2.5} />}
             </button>
           )}
         </div>
