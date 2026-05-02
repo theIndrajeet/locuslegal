@@ -32,11 +32,8 @@ export const routeImports = {
   adminBeta: () => import("@/pages/AdminBeta"),
   vacancies: () => import("@/pages/Vacancies"),
   adminVacancies: () => import("@/pages/AdminVacancies"),
-  adminUpdates: () => import("@/pages/AdminUpdates"),
   adminDashboard: () => import("@/pages/AdminDashboard"),
-  adminEmails: () => import("@/pages/AdminEmails"),
   adminFirmSuggestions: () => import("@/pages/AdminFirmSuggestions"),
-  unsubscribe: () => import("@/pages/Unsubscribe"),
   notFound: () => import("@/pages/NotFound"),
 } satisfies Record<string, Importer>;
 
@@ -65,11 +62,8 @@ const pathToKey: Array<[RegExp, keyof typeof routeImports]> = [
   [/^\/admin\/bar/, "adminBar"],
   [/^\/admin\/beta/, "adminBeta"],
   [/^\/admin\/vacancies/, "adminVacancies"],
-  [/^\/admin\/updates/, "adminUpdates"],
-  [/^\/admin\/emails/, "adminEmails"],
   [/^\/admin\/firm-suggestions/, "adminFirmSuggestions"],
   [/^\/admin$/, "adminDashboard"],
-  [/^\/unsubscribe/, "unsubscribe"],
   [/^\/vacancies/, "vacancies"],
   [/^\/applications/, "applicationTracker"],
   [/^\/beta\/round-2/, "betaRound2"],

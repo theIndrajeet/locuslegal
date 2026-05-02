@@ -1365,10 +1365,6 @@ export type Database = {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
       }
-      dispatch_content_notification: {
-        Args: { p_id: string; p_kind: string }
-        Returns: undefined
-      }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number

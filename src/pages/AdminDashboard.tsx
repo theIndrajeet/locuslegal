@@ -4,10 +4,9 @@ import {
   ClipboardCheck,
   Briefcase,
   Scale,
-  Send,
-  Mail,
   RefreshCw,
   Activity,
+  MessageSquarePlus,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { usePageMeta } from "@/hooks/usePageMeta";
@@ -23,9 +22,6 @@ interface Stats {
   vacanciesExpiringSoon: number;
   barPending: number;
   barAttempts24h: number;
-  lastBroadcast: { subject: string; sent_at: string | null; recipients: number } | null;
-  emailsSent24h: number;
-  emailsFailed24h: number;
 }
 
 const EMPTY: Stats = {
@@ -37,9 +33,6 @@ const EMPTY: Stats = {
   vacanciesExpiringSoon: 0,
   barPending: 0,
   barAttempts24h: 0,
-  lastBroadcast: null,
-  emailsSent24h: 0,
-  emailsFailed24h: 0,
 };
 
 export default function AdminDashboard() {
@@ -67,8 +60,6 @@ export default function AdminDashboard() {
       vacSoonRes,
       barPendingRes,
       barAttemptsRes,
-      lastBroadcastRes,
-      emailLogRes,
     ] = await Promise.all([
       supabase.from("waitlist_submissions").select("*", { count: "exact", head: true }),
       supabase.from("waitlist_submissions").select("*", { count: "exact", head: true }).gte("created_at", sevenDays),
@@ -78,11 +69,7 @@ export default function AdminDashboard() {
       supabase.from("vacancies").select("*", { count: "exact", head: true }).eq("status", "live").gt("expires_at", new Date().toISOString()).lt("expires_at", threeDays),
       supabase.from("bar_challenges").select("*", { count: "exact", head: true }).eq("status", "draft"),
       supabase.from("bar_attempts").select("*", { count: "exact", head: true }).gte("attempted_at", oneDay),
-      supabase.from("update_broadcasts").select("subject, sent_at, recipient_count").order("created_at", { ascending: false }).limit(1).maybeSingle(),
-      supabase.functions.invoke("admin-email-log", { body: { rangeDays: 1, limit: 1 } }),
     ]);
-
-    const emailStats = (emailLogRes.data as { stats?: { sent: number; failed: number } } | null)?.stats;
 
     setStats({
       waitlistTotal: waitlistTotalRes.count ?? 0,
@@ -93,15 +80,6 @@ export default function AdminDashboard() {
       vacanciesExpiringSoon: vacSoonRes.count ?? 0,
       barPending: barPendingRes.count ?? 0,
       barAttempts24h: barAttemptsRes.count ?? 0,
-      lastBroadcast: lastBroadcastRes.data
-        ? {
-            subject: lastBroadcastRes.data.subject,
-            sent_at: lastBroadcastRes.data.sent_at,
-            recipients: lastBroadcastRes.data.recipient_count ?? 0,
-          }
-        : null,
-      emailsSent24h: emailStats?.sent ?? 0,
-      emailsFailed24h: emailStats?.failed ?? 0,
     });
     setLoading(false);
   };
@@ -167,26 +145,6 @@ export default function AdminDashboard() {
           loading={loading}
         />
         <StatCard
-          label="Emails Sent (24h)"
-          value={stats.emailsSent24h}
-          sub={`${stats.emailsFailed24h} failed`}
-          icon={Mail}
-          loading={loading}
-        />
-        <StatCard
-          label="Last Broadcast"
-          value={stats.lastBroadcast?.recipients ?? 0}
-          sub={
-            stats.lastBroadcast?.sent_at
-              ? `sent ${new Date(stats.lastBroadcast.sent_at).toLocaleDateString()}`
-              : stats.lastBroadcast
-              ? "draft"
-              : "none"
-          }
-          icon={Send}
-          loading={loading}
-        />
-        <StatCard
           label="Activity (24h)"
           value={stats.barAttempts24h + stats.waitlist7d}
           sub="bar + waitlist"
@@ -226,16 +184,10 @@ export default function AdminDashboard() {
             icon={Scale}
           />
           <ToolTile
-            to="/admin/updates"
-            title="Updates Broadcast"
-            description="Compose and send product updates to all users."
-            icon={Send}
-          />
-          <ToolTile
-            to="/admin/emails"
-            title="Email Log"
-            description="Delivery health, failures, and template breakdown."
-            icon={Mail}
+            to="/admin/firm-suggestions"
+            title="Firm Suggestions"
+            description="Review user-submitted firm fixes and additions."
+            icon={MessageSquarePlus}
           />
         </div>
       </section>

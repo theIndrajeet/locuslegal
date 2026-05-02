@@ -5,8 +5,6 @@ import {
   ClipboardCheck,
   Briefcase,
   Scale,
-  Send,
-  Mail,
   MessageSquarePlus,
 } from "lucide-react";
 import {
@@ -28,8 +26,6 @@ const items = [
   { title: "Vacancies", url: "/admin/vacancies", icon: Briefcase },
   { title: "Firm Suggestions", url: "/admin/firm-suggestions", icon: MessageSquarePlus },
   { title: "The Bar", url: "/admin/bar", icon: Scale },
-  { title: "Updates", url: "/admin/updates", icon: Send },
-  { title: "Email Log", url: "/admin/emails", icon: Mail },
 ];
 
 export default function AdminSidebar() {

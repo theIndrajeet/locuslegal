@@ -41,12 +41,9 @@ const AdminBar = lazy(routeImports.adminBar as never);
 const AdminBeta = lazy(routeImports.adminBeta as never);
 const Vacancies = lazy(routeImports.vacancies as never);
 const AdminVacancies = lazy(routeImports.adminVacancies as never);
-const AdminUpdates = lazy(routeImports.adminUpdates as never);
 const AdminDashboard = lazy(routeImports.adminDashboard as never);
-const AdminEmails = lazy(routeImports.adminEmails as never);
 const AdminFirmSuggestions = lazy(routeImports.adminFirmSuggestions as never);
 const AdminLayout = lazy(() => import("./components/admin/AdminLayout"));
-const Unsubscribe = lazy(routeImports.unsubscribe as never);
 const ApplicationTracker = lazy(routeImports.applicationTracker as never);
 const BetaChecklist = lazy(routeImports.betaChecklist as never);
 const BetaRound2 = lazy(routeImports.betaRound2 as never);
@@ -150,14 +147,11 @@ const App = () => (
                     <Route path="bar" element={<AdminBar />} />
                     <Route path="beta" element={<AdminBeta />} />
                     <Route path="vacancies" element={<AdminVacancies />} />
-                    <Route path="updates" element={<AdminUpdates />} />
-                    <Route path="emails" element={<AdminEmails />} />
                     <Route path="firm-suggestions" element={<AdminFirmSuggestions />} />
                   </Route>
                   <Route path="/vacancies" element={<Vacancies />} />
                   <Route path="/dock-lab" element={<DockLab />} />
                 </Route>
-                <Route path="/unsubscribe" element={<Unsubscribe />} />
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/choose-username" element={<ChooseUsername />} />
