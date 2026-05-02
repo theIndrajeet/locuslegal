@@ -147,22 +147,41 @@ Deno.serve(async (req) => {
   }
 
   if (suppressed) {
-    // Log the suppressed attempt
     await supabase.from('email_send_log').insert({
       message_id: messageId,
       template_name: templateName,
       recipient_email: effectiveRecipient,
       status: 'suppressed',
     })
-
     console.log('Email suppressed', { effectiveRecipient, templateName })
     return new Response(
       JSON.stringify({ success: false, reason: 'email_suppressed' }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
+  }
+
+  // 2b. Check per-stream opt-out
+  const stream = (template as any).stream as string | undefined
+  if (stream) {
+    const { data: streamOptOut } = await supabase
+      .from('email_stream_unsubscribes')
+      .select('id')
+      .eq('email', effectiveRecipient.toLowerCase())
+      .eq('stream', stream)
+      .maybeSingle()
+    if (streamOptOut) {
+      await supabase.from('email_send_log').insert({
+        message_id: messageId,
+        template_name: templateName,
+        recipient_email: effectiveRecipient,
+        status: 'suppressed',
+        error_message: `stream_opt_out:${stream}`,
+      })
+      return new Response(
+        JSON.stringify({ success: false, reason: 'stream_opt_out' }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
   }
 
   // 3. Get or create unsubscribe token (one token per email address)
