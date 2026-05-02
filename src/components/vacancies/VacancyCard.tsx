@@ -210,7 +210,60 @@ export default function VacancyCard({ vacancy, onApply, archived = false, applic
               <Share2 size={12} />
             </button>
           )}
+          {!isClosed && application && appState !== "idle" && (
+            <button
+              type="button"
+              aria-label="Remove this application from your tracker"
+              title="Remove application"
+              disabled={deleting}
+              onClick={(e) => {
+                e.stopPropagation();
+                setConfirmDelete(true);
+              }}
+              className="shrink-0 p-1 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50"
+            >
+              {deleting ? <Loader2 size={12} className="animate-spin" /> : <X size={12} />}
+            </button>
+          )}
         </div>
+
+        <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Remove this application?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently delete your tracker record for{" "}
+                <strong>{vacancy.firm_name} — {vacancy.role}</strong>. The follow-up reminder
+                and "Applied" badge will disappear. This action cannot be undone — it does not
+                recall any email you've already sent.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={async () => {
+                  if (!application) return;
+                  setDeleting(true);
+                  const { error } = await supabase
+                    .from("profile_applications")
+                    .delete()
+                    .eq("id", application.id);
+                  setDeleting(false);
+                  if (error) {
+                    toast.error("Couldn't remove. Try again.");
+                    return;
+                  }
+                  toast.success("Application removed.");
+                  setConfirmDelete(false);
+                  onDeleted?.();
+                }}
+              >
+                Delete permanently
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {!isClosed && onApply && appState === "idle" && (
           <Button
