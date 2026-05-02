@@ -36,10 +36,10 @@ const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
 }
 
 // Configuration
-const SITE_NAME = "locuslegal"
+const SITE_NAME = "Locus"
 const SENDER_DOMAIN = "auth.locus.legal"
 const ROOT_DOMAIN = "locus.legal"
-const FROM_DOMAIN = "locus.legal" // Domain shown in From address (may be root or sender subdomain)
+const FROM_DOMAIN = "auth.locus.legal" // Domain shown in From address (must be the verified sender subdomain)
 
 // Sample data for preview mode ONLY (not used in actual email sending).
 // URLs are baked in at scaffold time from the project's real data.
