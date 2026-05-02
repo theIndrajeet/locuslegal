@@ -1,34 +1,35 @@
-I checked the current state instead of guessing:
+Yes — this screenshot helps a lot. It shows the real failing request: the auth email preview endpoint is returning 422 with “Email hook returned an error,” while the domain itself is verified. That means DNS is not the problem anymore; the preview builder is calling the deployed auth email hook and the hook is failing while rendering/serving the template preview.
 
-- `auth.locus.legal` is verified and ready.
-- The project email configuration is still attached to `locus.legal`, while the email hook/templates were changed to send from `auth.locus.legal`.
-- The email preview pane is still failing before it can render the password reset template.
-- The queue tables and scheduled queue worker exist.
-- The recent send log still contains `Emails disabled for this project` failures, so the project-level email switch also needs to be refreshed.
+Plan to fix it:
 
-Plan to fix this properly:
+1. Rebuild the auth email hook from the managed template scaffold
+   - Replace the current deployed hook with the current managed auth-email-hook structure.
+   - Keep the required function name unchanged so auth email routing stays intact.
+   - Preserve the project’s Locus branding after the scaffold is restored.
 
-1. Re-enable project emails
-   - Refresh the Cloud email state so custom auth emails are active again, not disabled.
+2. Correct the sender/domain constants
+   - Use `auth.locus.legal` as the verified sender domain.
+   - Avoid the current mismatch where the hook still shows root-domain values in places that should be tied to the verified email sender.
+   - Normalize the display site name to `Locus`, not `locuslegal`.
 
-2. Re-bind the project to the verified sender domain
-   - Ensure the project uses the verified `auth.locus.legal` sender domain rather than the root `locus.legal` entry for auth email sending.
-   - Keep `locus.legal` as the app/site URL where appropriate, but use `auth.locus.legal` only as the sender domain.
+3. Fix the preview route specifically
+   - Make the `/preview` route return a clear HTML preview for `signup`, `recovery`, `magiclink`, and `invite`.
+   - Add defensive error handling around template rendering so preview failures produce useful logs instead of only a generic 422 in the Cloud UI.
+   - Ensure preview sample props match what each template expects.
 
-3. Rebuild the managed auth email setup
-   - Re-run the managed auth-template scaffolding with overwrite so the hook is regenerated against the active email configuration.
-   - Preserve/reapply the Locus neobrutalist branding: white email body, black borders/shadows, yellow CTA, Sora-style headings, Inter-style body, and footer-only `Locus by LexRoot` usage.
+4. Redeploy the required email functions
+   - Deploy the auth email hook after changes.
+   - Deploy the queue processor as well if infrastructure refresh indicates it needs to be refreshed.
 
-4. Deploy and verify the email hook
-   - Redeploy the auth email hook.
-   - Directly test the deployed preview endpoint with the correct managed authorization path, then check logs for actual runtime/build errors.
-   - If the function still fails to build, remove the risky custom pieces causing preview compilation issues and redeploy a minimal branded version first, then layer branding back in.
+5. Verify directly before asking you to retry
+   - Check the deployed hook logs after deployment.
+   - Test the preview endpoint path directly through Lovable Cloud tooling.
+   - Confirm the verified domain remains `auth.locus.legal`.
+   - Then you can click Retry setup / preview again in Cloud → Emails.
 
-5. Refresh queue infrastructure only if needed
-   - The queue tables and scheduled worker already exist; I will only refresh the infrastructure if the logs still show disabled-email or queue-dispatch failures after re-enabling.
+Technical notes:
+- The screenshot proves the orange banner is caused by preview-cache build failure, not DNS verification.
+- The deployed hook is booting, but boot logs alone do not prove template rendering succeeds.
+- I also saw the current hook has `SENDER_DOMAIN = auth.locus.legal` but `FROM_DOMAIN = locus.legal` and `SITE_NAME = locuslegal`; I’ll normalize those while keeping the email body on the required white background and Locus neobrutalist styling.
 
-6. Final user-facing verification
-   - Confirm the orange `Template build failed` / `Preview cache build failed` banner is cleared or identify the exact remaining blocker.
-   - Provide direct buttons for Email settings plus signup and password reset previews.
-
-I’m sorry this has dragged on. The likely root issue is not DNS anymore; it is the project’s active email configuration not matching the verified sender domain plus stale/disabled email state. The fix is to refresh those managed settings and redeploy from that correct state, not keep telling you to click retry.
+After approval I’ll do the recovery in one pass and verify the preview endpoint before handing it back.
