@@ -1,19 +1,24 @@
-## Make Share + Delete (X) buttons more prominent on vacancy cards
+## Install Meta Pixel (ID: 6748646345221689)
 
-Right now both the Share and X buttons in `src/components/vacancies/VacancyCard.tsx` are rendered as bare 12px ghost icons — they blend into the muted-foreground status text and are easy to miss (visible in the screenshot).
+### What ships
 
-### Change
-Restyle both icon buttons in the card footer to match the project's neobrutalist language used elsewhere on the card:
+1. **Base pixel in `index.html`** — standard Meta snippet in `<head>` initializing pixel `6748646345221689` and firing `PageView`. `<noscript>` fallback `<img>` placed in `<body>` (HTML5 rule — `<noscript>` in `<head>` may only contain metadata).
+2. **SPA pageview tracker** — small `useEffect` in `src/App.tsx` that listens to React Router location changes and calls `fbq('track', 'PageView')` on every route change (Meta's base snippet only fires once on hard load; SPAs need manual re-fires).
+3. **TypeScript shim** — declare `window.fbq` in `src/vite-env.d.ts` so future `fbq(...)` calls type-check cleanly.
 
-- 28x28 px square (`h-7 w-7`), centered icon at 14px, `strokeWidth={2.5}` for visual weight.
-- 2px border + hard 2px box-shadow (`shadow-[2px_2px_0_0_...]`).
-- Hover: translate down-right by 1px and shrink shadow to 1px (the same press-effect the "Draft application" button already uses).
-- **Share button:** foreground border + accent yellow hover fill.
-- **Delete (X) button:** destructive (red) border, destructive icon color, full destructive fill on hover. Stays distinguishable from share.
-- Truncated text now sits next to two clearly tappable chips, fixing the cramped "time to nu... [share] [x]" overflow seen on mobile.
+### What does NOT ship now
 
-No layout/copy changes. Only the two button class strings + icon size/strokeWidth update.
+- No conversion events (Lead, CompleteRegistration, etc.). We'll wire those per-campaign when you run ads — typically on waitlist submit, Bar attempt complete, vacancy click.
+- No cookie banner / consent gating. Flag for later if you target EU traffic.
 
-### Out of scope
-- Confirm dialog text and behavior stay as-is.
-- The follow-up "time to nudge" status text is unchanged (it can still truncate; the chips no longer compete with it for attention).
+### Files touched
+
+- `index.html` — add pixel snippet + noscript img
+- `src/App.tsx` — add route-change PageView hook
+- `src/vite-env.d.ts` — add `fbq` global type
+
+### Verification after deploy
+
+Install Meta's "Pixel Helper" Chrome extension, load `locus.legal`, navigate between pages — should see PageView fire on each route.
+
+Approve and I'll ship it.
