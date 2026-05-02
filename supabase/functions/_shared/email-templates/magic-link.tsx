@@ -8,11 +8,8 @@ import {
   Container,
   Head,
   Heading,
-  Hr,
   Html,
-  Link,
   Preview,
-  Section,
   Text,
 } from 'npm:@react-email/components@0.0.22'
 
@@ -27,38 +24,19 @@ export const MagicLinkEmail = ({
 }: MagicLinkEmailProps) => (
   <Html lang="en" dir="ltr">
     <Head />
-    <Preview>Your one-time sign-in link for {siteName}</Preview>
+    <Preview>Your login link for {siteName}</Preview>
     <Body style={main}>
-      <Container style={wrap}>
-        <Section style={wordmarkRow}>
-          <Text style={wordmark}>
-            Loc<span style={accentBox}>us</span>
-          </Text>
-        </Section>
-        <Section style={card}>
-          <Text style={eyebrow}>ONE-TIME LINK</Text>
-          <Heading style={h1}>Your sign-in link</Heading>
-          <Text style={text}>
-            Click below to sign in to {siteName}. This link works once and
-            expires shortly — no password needed.
-          </Text>
-          <Section style={ctaRow}>
-            <Button style={button} href={confirmationUrl}>
-              Sign in to Locus
-            </Button>
-          </Section>
-          <Text style={fallbackLabel}>Or paste this link into your browser:</Text>
-          <Link href={confirmationUrl} style={fallbackLink}>
-            {confirmationUrl}
-          </Link>
-          <Hr style={hr} />
-          <Text style={meta}>
-            Didn't request this? You can safely ignore this email — your
-            account stays untouched.
-          </Text>
-        </Section>
+      <Container style={container}>
+        <Heading style={h1}>Your login link</Heading>
+        <Text style={text}>
+          Click the button below to log in to {siteName}. This link will expire
+          shortly.
+        </Text>
+        <Button style={button} href={confirmationUrl}>
+          Log In
+        </Button>
         <Text style={footer}>
-          Locus by LexRoot · sent from send.locus.legal
+          If you didn't request this link, you can safely ignore this email.
         </Text>
       </Container>
     </Body>
@@ -67,19 +45,26 @@ export const MagicLinkEmail = ({
 
 export default MagicLinkEmail
 
-const main = { backgroundColor: '#ffffff', fontFamily: 'Inter, Helvetica, Arial, sans-serif', margin: 0, padding: '32px 16px' }
-const wrap = { maxWidth: '560px', margin: '0 auto' }
-const wordmarkRow = { padding: '0 0 20px', textAlign: 'left' as const }
-const wordmark = { fontFamily: 'Sora, Helvetica, Arial, sans-serif', fontSize: '28px', fontWeight: 800, color: '#0A0A0A', letterSpacing: '-0.02em', margin: 0 }
-const accentBox = { backgroundColor: '#FFE600', border: '2px solid #0A0A0A', padding: '0 6px', marginLeft: '2px' }
-const card = { backgroundColor: '#ffffff', border: '3px solid #0A0A0A', boxShadow: '6px 6px 0 #0A0A0A', padding: '32px 28px' }
-const eyebrow = { fontFamily: 'Sora, Helvetica, Arial, sans-serif', fontSize: '11px', fontWeight: 700, color: '#0A0A0A', letterSpacing: '0.18em', margin: '0 0 12px', textTransform: 'uppercase' as const }
-const h1 = { fontFamily: 'Sora, Helvetica, Arial, sans-serif', fontSize: '28px', fontWeight: 700, color: '#0A0A0A', letterSpacing: '-0.02em', lineHeight: 1.15, margin: '0 0 18px' }
-const text = { fontSize: '15px', color: '#2B2B2B', lineHeight: 1.6, margin: '0 0 24px' }
-const ctaRow = { padding: '4px 0 24px' }
-const button = { backgroundColor: '#FFE600', color: '#0A0A0A', fontFamily: 'Sora, Helvetica, Arial, sans-serif', fontSize: '15px', fontWeight: 700, padding: '14px 26px', textDecoration: 'none', border: '3px solid #0A0A0A', borderRadius: 0, display: 'inline-block', boxShadow: '4px 4px 0 #0A0A0A' }
-const fallbackLabel = { fontSize: '12px', color: '#6B6B6B', margin: '0 0 6px' }
-const fallbackLink = { fontSize: '12px', color: '#0A0A0A', wordBreak: 'break-all' as const, textDecoration: 'underline' }
-const hr = { border: 'none', borderTop: '2px solid #0A0A0A', margin: '24px 0 16px' }
-const meta = { fontSize: '12px', color: '#6B6B6B', lineHeight: 1.5, margin: 0 }
-const footer = { fontFamily: 'Sora, Helvetica, Arial, sans-serif', fontSize: '11px', color: '#6B6B6B', textAlign: 'center' as const, letterSpacing: '0.08em', margin: '20px 0 0' }
+const main = { backgroundColor: '#ffffff', fontFamily: 'Arial, sans-serif' }
+const container = { padding: '20px 25px' }
+const h1 = {
+  fontSize: '22px',
+  fontWeight: 'bold' as const,
+  color: '#000000',
+  margin: '0 0 20px',
+}
+const text = {
+  fontSize: '14px',
+  color: '#55575d',
+  lineHeight: '1.5',
+  margin: '0 0 25px',
+}
+const button = {
+  backgroundColor: '#000000',
+  color: '#ffffff',
+  fontSize: '14px',
+  borderRadius: '8px',
+  padding: '12px 20px',
+  textDecoration: 'none',
+}
+const footer = { fontSize: '12px', color: '#999999', margin: '30px 0 0' }
