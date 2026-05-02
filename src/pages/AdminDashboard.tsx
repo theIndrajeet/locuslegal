@@ -7,6 +7,7 @@ import {
   RefreshCw,
   Activity,
   MessageSquarePlus,
+  Megaphone,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { usePageMeta } from "@/hooks/usePageMeta";
@@ -188,6 +189,12 @@ export default function AdminDashboard() {
             title="Firm Suggestions"
             description="Review user-submitted firm fixes and additions."
             icon={MessageSquarePlus}
+          />
+          <ToolTile
+            to="/admin/broadcasts"
+            title="Broadcasts"
+            description="Send a one-off update email to a chosen segment."
+            icon={Megaphone}
           />
         </div>
       </section>

@@ -44,6 +44,7 @@ const Vacancies = lazy(routeImports.vacancies as never);
 const AdminVacancies = lazy(routeImports.adminVacancies as never);
 const AdminDashboard = lazy(routeImports.adminDashboard as never);
 const AdminFirmSuggestions = lazy(routeImports.adminFirmSuggestions as never);
+const AdminBroadcasts = lazy(routeImports.adminBroadcasts as never);
 const AdminLayout = lazy(() => import("./components/admin/AdminLayout"));
 const ApplicationTracker = lazy(routeImports.applicationTracker as never);
 const BetaChecklist = lazy(routeImports.betaChecklist as never);
@@ -149,6 +150,7 @@ const App = () => (
                     <Route path="beta" element={<AdminBeta />} />
                     <Route path="vacancies" element={<AdminVacancies />} />
                     <Route path="firm-suggestions" element={<AdminFirmSuggestions />} />
+                    <Route path="broadcasts" element={<AdminBroadcasts />} />
                   </Route>
                   <Route path="/vacancies" element={<Vacancies />} />
                   <Route path="/dock-lab" element={<DockLab />} />

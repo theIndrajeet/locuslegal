@@ -6,6 +6,7 @@ import {
   Briefcase,
   Scale,
   MessageSquarePlus,
+  Megaphone,
 } from "lucide-react";
 import {
   Sidebar,
@@ -26,6 +27,7 @@ const items = [
   { title: "Vacancies", url: "/admin/vacancies", icon: Briefcase },
   { title: "Firm Suggestions", url: "/admin/firm-suggestions", icon: MessageSquarePlus },
   { title: "The Bar", url: "/admin/bar", icon: Scale },
+  { title: "Broadcasts", url: "/admin/broadcasts", icon: Megaphone },
 ];
 
 export default function AdminSidebar() {
