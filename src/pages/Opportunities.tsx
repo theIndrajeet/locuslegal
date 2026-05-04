@@ -411,6 +411,27 @@ function metaChips(i: AnyOpportunity) {
   }
 }
 
+function linkifyText(text: string): React.ReactNode[] {
+  const urlRegex = /(https?:\/\/[^\s<>()]+[^\s<>().,;:!?'"])/gi;
+  const parts = text.split(urlRegex);
+  return parts.map((part, i) => {
+    if (i % 2 === 1) {
+      return (
+        <a
+          key={i}
+          href={part}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline decoration-accent decoration-2 underline-offset-2 font-semibold text-foreground hover:text-accent break-all"
+        >
+          {part}
+        </a>
+      );
+    }
+    return <span key={i}>{part}</span>;
+  });
+}
+
 function DetailDialog({ item, onClose }: { item: AnyOpportunity | null; onClose: () => void }) {
   const [copied, setCopied] = useState(false);
   useEffect(() => { if (!item) setCopied(false); }, [item]);
