@@ -18,6 +18,7 @@ import { template as vacancyInstant } from './vacancy-instant.tsx'
 import { template as barDigest } from './bar-digest.tsx'
 import { template as broadcast } from './broadcast.tsx'
 import { template as appRecap } from './app-recap.tsx'
+import { template as opportunityDigest } from './opportunity-digest.tsx'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'welcome': welcome,
@@ -28,4 +29,5 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'bar-digest': barDigest,
   'broadcast': broadcast,
   'app-recap': appRecap,
+  'opportunity-digest': opportunityDigest,
 }
