@@ -51,6 +51,7 @@ const BetaChecklist = lazy(routeImports.betaChecklist as never);
 const BetaRound2 = lazy(routeImports.betaRound2 as never);
 const NotFound = lazy(routeImports.notFound as never);
 const DockLab = lazy(() => import("./pages/DockLab"));
+const OpportunitiesPreview = lazy(() => import("./pages/OpportunitiesPreview"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -153,6 +154,7 @@ const App = () => (
                     <Route path="broadcasts" element={<AdminBroadcasts />} />
                   </Route>
                   <Route path="/vacancies" element={<Vacancies />} />
+                  <Route path="/opportunities-preview" element={<OpportunitiesPreview />} />
                   <Route path="/dock-lab" element={<DockLab />} />
                 </Route>
                 <Route path="/auth" element={<Auth />} />
