@@ -499,11 +499,28 @@ serve(async (req) => {
       cgpa: v.data.user.cgpa && v.data.user.cgpa >= 7.0 ? `${v.data.user.cgpa.toFixed(2)}/10` : null,
     };
 
+    const rewriteBlock = !isFollowup && v.data.current_draft
+      ? `\n\nREWRITE MODE — the sender has an existing draft and wants it changed.
+
+CURRENT DRAFT (rewrite this — do NOT just lightly edit it):
+SUBJECT: ${v.data.current_draft.subject}
+BODY:
+${v.data.current_draft.body}
+${v.data.rewrite_notes ? `\nSENDER'S REWRITE INSTRUCTIONS (apply these strongly, they override generic defaults):\n"""${v.data.rewrite_notes}"""\n` : ""}
+REWRITE RULES:
+- Treat the sender's instructions as the highest-priority signal. If they ask to add a fact, that fact MUST appear concretely in the new draft.
+- Keep only the verifiable facts (name, college, role, dates, the target's name). Drop generic filler.
+- Change the OPENING SENTENCE — it must be structurally different from the current draft's opener.
+- Vary paragraph structure and sentence rhythm noticeably from the current draft.
+- The new draft must read as a meaningfully different email, not a cosmetic edit.
+- All HARD RULES, blocklists and recipient-type rules above still apply.`
+      : "";
+
     const userPrompt = isFollowup
       ? `TARGET:\n${JSON.stringify(v.data.target, null, 2)}\n\nSENDER:\n${JSON.stringify(
           { display_name: v.data.user.display_name, college: v.data.user.college, degree: v.data.user.degree }, null, 2,
         )}${originalBlock}\n\nDraft the SHORT follow-up email now via the draft_email tool.`
-      : `${buildTypeBlock(v.data.recipient_type)}\n\nTARGET:\n${JSON.stringify(v.data.target, null, 2)}\n\nSENDER:\n${JSON.stringify(senderForPrompt, null, 2)}\n\nROLE: ${v.data.role}\nTONE: ${v.data.tone}${briefBlock}\n\nDraft the email now via the draft_email tool.`;
+      : `${buildTypeBlock(v.data.recipient_type)}\n\nTARGET:\n${JSON.stringify(v.data.target, null, 2)}\n\nSENDER:\n${JSON.stringify(senderForPrompt, null, 2)}\n\nROLE: ${v.data.role}\nTONE: ${v.data.tone}${briefBlock}${rewriteBlock}\n\nDraft the email now via the draft_email tool.`;
 
     const activeSystemPrompt = isFollowup
       ? FOLLOWUP_SYSTEM_PROMPT
