@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { shareOrCopy, withRef } from "@/lib/share";
+import { ShareIconButton } from "@/components/ShareIconButton";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
