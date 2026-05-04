@@ -154,6 +154,7 @@ const App = () => (
                     <Route path="broadcasts" element={<AdminBroadcasts />} />
                   </Route>
                   <Route path="/vacancies" element={<Vacancies />} />
+                  <Route path="/opportunities-preview" element={<OpportunitiesPreview />} />
                   <Route path="/dock-lab" element={<DockLab />} />
                 </Route>
                 <Route path="/auth" element={<Auth />} />
