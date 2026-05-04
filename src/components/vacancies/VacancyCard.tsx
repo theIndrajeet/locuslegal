@@ -40,6 +40,8 @@ export default function VacancyCard({ vacancy, onApply, archived = false, applic
   const [taskOpen, setTaskOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const viewedRef = useRef(false);
   const hasTask = !!vacancy.task_brief && vacancy.task_brief.trim().length > 0;
   const days = daysLeft(vacancy.expires_at);
   const tone = urgencyTone(days);
@@ -49,8 +51,29 @@ export default function VacancyCard({ vacancy, onApply, archived = false, applic
 
   const { state: appState, daysUntilFollowup, lastActionOn } = applicationStateFor(application);
 
+  // Fire vacancy_view once when card scrolls into view
+  useEffect(() => {
+    if (!cardRef.current || viewedRef.current) return;
+    const el = cardRef.current;
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (e.isIntersecting && !viewedRef.current) {
+            viewedRef.current = true;
+            void track("vacancy_view", { vacancy_id: vacancy.id, type: vacancy.opportunity_type });
+            io.disconnect();
+          }
+        }
+      },
+      { threshold: 0.5 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [vacancy.id, vacancy.opportunity_type]);
+
   return (
     <div
+      ref={cardRef}
       id={`vacancy-${vacancy.id}`}
       className={cn(
         "relative bg-card border-2 rounded-2xl p-5 md:p-6 transition-all",
@@ -266,7 +289,10 @@ export default function VacancyCard({ vacancy, onApply, archived = false, applic
 
         {!isClosed && onApply && appState === "idle" && (
           <Button
-            onClick={() => onApply(vacancy)}
+            onClick={() => {
+              void track("vacancy_apply_clicked", { vacancy_id: vacancy.id, mode: "initial" });
+              onApply(vacancy);
+            }}
             className="font-bold border-2 border-foreground/80 shadow-[3px_3px_0_0_hsl(var(--foreground))] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_0_hsl(var(--foreground))] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
           >
             <Mail size={14} className="mr-1.5" />
