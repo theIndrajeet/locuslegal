@@ -199,7 +199,9 @@ export default function AppHome() {
           bio={data.bio}
         />
 
-        <ProfileStrengthMeter variant="full" {...meterInputs} />
+        <div data-tour="profile-strength">
+          <ProfileStrengthMeter variant="full" {...meterInputs} />
+        </div>
 
         <section className="border-2 border-border bg-card p-5 shadow-[3px_3px_0_0_hsl(var(--border))]">
           <div className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-3">
@@ -213,7 +215,7 @@ export default function AppHome() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Mobile order: Pipeline (1) → Practice (2) → Showcase (3); Desktop: Practice → Pipeline → Showcase */}
-            <div className="order-2 md:order-1">
+            <div className="order-2 md:order-1" data-tour="practice">
               <PracticePane
                 designation={data.bar.designation}
                 totalPoints={data.bar.totalPoints}
@@ -221,7 +223,7 @@ export default function AppHome() {
                 totalAttempts={data.bar.totalAttempts}
               />
             </div>
-            <div className="order-1 md:order-2">
+            <div className="order-1 md:order-2" data-tour="pipeline">
               <PipelinePane userId={data.userId} />
             </div>
             <div className="order-3 md:order-3">

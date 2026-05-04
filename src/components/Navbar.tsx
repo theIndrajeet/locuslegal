@@ -115,6 +115,7 @@ export default function Navbar() {
                 onMouseEnter={prefetch}
                 onFocus={prefetch}
                 onTouchStart={prefetch}
+                data-tour={l.href === "/opportunities" ? "opportunities-nav" : undefined}
                 className={`text-sm font-medium transition-colors duration-300 ${
                   isActive(l.href)
                     ? "text-accent"
