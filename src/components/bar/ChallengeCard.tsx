@@ -1,8 +1,8 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
-import { Share2 } from "lucide-react";
 import { toast } from "sonner";
+import { ShareIconButton } from "@/components/ShareIconButton";
 import { AREA_OF_LAW_LABELS, QUESTION_TYPE_LABELS } from "@/lib/bar/constants";
 import type { AreaOfLaw, Difficulty, QuestionType } from "@/lib/bar/types";
 import { isPremiumType } from "@/lib/bar/premium";
@@ -56,16 +56,12 @@ export function ChallengeCard({
       }`}
     >
       {!disabled && (
-        <button
-          type="button"
-          aria-label="Share this challenge"
-          title="Share"
-          onClick={handleShare}
-          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleShare(e); }}
-          className="absolute top-2 right-2 z-10 inline-flex items-center justify-center h-7 w-7 rounded-md text-muted-foreground hover:text-accent hover:bg-accent/10 transition-colors"
-        >
-          <Share2 size={13} />
-        </button>
+        <ShareIconButton
+          size="sm"
+          label="Share this challenge"
+          onShare={handleShare}
+          className="absolute top-2 right-2 z-10"
+        />
       )}
       <div className="flex items-start justify-between gap-2 pr-8">
         <div className="flex flex-wrap items-center gap-1.5">

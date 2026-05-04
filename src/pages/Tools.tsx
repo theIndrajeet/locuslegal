@@ -6,7 +6,7 @@ import { useFeatureVotes } from "@/hooks/useFeatureVotes";
 import { FeatureVoteButton } from "@/components/FeatureVoteButton";
 import { TOOL_CATALOG, type ToolType, type CategoryType } from "@/data/tools";
 import { WATERMARK_DOC, shareOrCopy, withRef } from "@/lib/share";
-import { Share2 } from "lucide-react";
+import { ShareIconButton } from "@/components/ShareIconButton";
 
 const TABS: { id: ToolType; num: string; label: string }[] = [
   { id: "nda", num: "01", label: "NDA Generator" },
@@ -653,12 +653,10 @@ Make it jurisdiction-appropriate. Reference specific statutory provisions where 
                   <div className="lt-cat-top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span className="lt-cat-num">{tool.num}</span>
                     {!tool.comingSoon && (
-                      <button
-                        type="button"
-                        aria-label={`Share ${tool.label}`}
-                        title="Share"
-                        onClick={async (e) => {
-                          e.stopPropagation();
+                      <ShareIconButton
+                        size="sm"
+                        label={`Share ${tool.label}`}
+                        onShare={async () => {
                           const url = withRef(
                             tool.href ? `${window.location.origin}${tool.href}` : `${window.location.origin}/tools`,
                             "tool-share",
@@ -667,10 +665,7 @@ Make it jurisdiction-appropriate. Reference specific statutory provisions where 
                           const r = await shareOrCopy({ title: "Locus — Legal Tools", text, url });
                           if (r === "copied") toast.success("Link copied");
                         }}
-                        className="inline-flex items-center justify-center h-7 w-7 rounded-md text-muted-foreground hover:text-accent hover:bg-accent/10 transition-colors"
-                      >
-                        <Share2 size={13} />
-                      </button>
+                      />
                     )}
                   </div>
                   <div className="lt-cat-title">{tool.label}</div>

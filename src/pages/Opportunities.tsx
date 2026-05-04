@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { shareOrCopy, withRef } from "@/lib/share";
+import { ShareIconButton } from "@/components/ShareIconButton";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -381,23 +382,16 @@ function OpportunityCard({ item, onClick }: { item: AnyOpportunity; onClick: () 
           {item.source_credit ? `Source: ${item.source_credit}` : "Curated by Locus"}
         </span>
         <div className="flex items-center gap-1 shrink-0">
-          <span
-            role="button"
-            tabIndex={0}
-            aria-label="Share this opportunity"
-            title="Share"
-            onClick={async (e) => {
-              e.stopPropagation();
+          <ShareIconButton
+            size="sm"
+            label="Share this opportunity"
+            onShare={async () => {
               const url = withRef(`${window.location.origin}/opportunities?focus=${item.id}`, "opportunity-share");
               const text = `${titleOf(item)} — ${organiserOf(item)} · via Locus`;
               const r = await shareOrCopy({ title: "Locus — Opportunity", text, url });
               if (r === "copied") toast.success("Link copied");
             }}
-            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.stopPropagation(); (e.currentTarget as HTMLElement).click(); } }}
-            className="inline-flex items-center justify-center h-7 w-7 rounded-md text-muted-foreground hover:text-accent hover:bg-accent/10 transition-colors cursor-pointer"
-          >
-            <Share2 size={14} strokeWidth={2} />
-          </span>
+          />
           <span className="text-xs font-bold text-accent inline-flex items-center gap-1 group-hover:underline">
             View details <ExternalLink size={12} />
           </span>
