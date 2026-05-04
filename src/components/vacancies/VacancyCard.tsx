@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Briefcase, MapPin, Coins, GraduationCap, Mail, AlertTriangle, Clock, ChevronDown, Check, RotateCw, ClipboardList, Share2, X, Loader2 } from "lucide-react";
+import { track } from "@/lib/analytics";
 import { format, parseISO } from "date-fns";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
