@@ -33,14 +33,20 @@ export function TourProvider({ children, onFinish, onSkip }: Props) {
   const [running, setRunning] = useState(false);
 
   const start = useCallback((s: TourStep[]) => {
-    // Filter out steps whose anchor isn't in the DOM right now
-    // (e.g. SearchFab is hidden on mobile, PracticePane hidden when
-    // OnboardingChecklist is shown). Keeps tour graceful instead of
-    // floating tooltips in empty corners.
+    // Filter out steps whose anchor isn't in the DOM right now OR is rendered
+    // with zero layout (e.g. SearchFab is `hidden md:flex` on mobile — it
+    // matches querySelector but has 0×0 box, which would put the spotlight
+    // on the page edge). Keeps tour graceful instead of floating tooltips
+    // in empty corners.
     const resolvable =
       typeof document === "undefined"
         ? s
-        : s.filter((step) => !!document.querySelector(step.target));
+        : s.filter((step) => {
+            const el = document.querySelector(step.target);
+            if (!el) return false;
+            const r = el.getBoundingClientRect();
+            return r.width > 0 && r.height > 0;
+          });
     if (resolvable.length === 0) return;
     setSteps(resolvable);
     setStepIndex(0);
