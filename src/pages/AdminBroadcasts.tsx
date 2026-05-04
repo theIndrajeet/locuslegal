@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { Megaphone, Send, Users, Briefcase, Sparkles, Beaker, Eye } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Megaphone, Send, Users, Briefcase, Sparkles, Beaker, Eye, Copy, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,9 @@ type Segment = "all" | "beta" | "applicants";
 interface Broadcast {
   id: string;
   subject: string;
+  body_markdown: string | null;
+  cta_label: string | null;
+  cta_url: string | null;
   recipient_count: number;
   status: string;
   sent_at: string | null;
@@ -38,17 +41,34 @@ export default function AdminBroadcasts() {
   const [testing, setTesting] = useState(false);
   const [history, setHistory] = useState<Broadcast[]>([]);
   const [showPreviewMobile, setShowPreviewMobile] = useState(false);
+  const [loadedFrom, setLoadedFrom] = useState<{ id: string; subject: string; sent_at: string | null; status: string } | null>(null);
+  const composerRef = useRef<HTMLDivElement>(null);
 
   const loadHistory = async () => {
     const { data } = await supabase
       .from("update_broadcasts")
-      .select("id, subject, recipient_count, status, sent_at, created_at")
+      .select("id, subject, body_markdown, cta_label, cta_url, recipient_count, status, sent_at, created_at")
       .order("created_at", { ascending: false })
       .limit(20);
     setHistory((data as Broadcast[]) ?? []);
   };
 
   useEffect(() => { void loadHistory(); }, []);
+
+  const handleLoad = (b: Broadcast) => {
+    setSubject(b.subject ?? "");
+    setBodyMarkdown(b.body_markdown ?? "");
+    setCtaLabel(b.cta_label ?? "");
+    setCtaUrl(b.cta_url ?? "");
+    setLoadedFrom({ id: b.id, subject: b.subject, sent_at: b.sent_at, status: b.status });
+    toast.success("Loaded into composer — edit and send as a new broadcast");
+    setTimeout(() => composerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+  };
+
+  const handleClearLoad = () => {
+    setSubject(""); setBodyMarkdown(""); setCtaLabel(""); setCtaUrl("");
+    setLoadedFrom(null);
+  };
 
   const previewHtml = useMemo(
     () => (bodyMarkdown.trim() ? mdToHtml(bodyMarkdown) : ""),
@@ -96,7 +116,7 @@ export default function AdminBroadcasts() {
       return;
     }
     toast.success(`Queued to ${queued} recipients${skipped ? ` · ${skipped} skipped` : ""}${failed ? ` · ${failed} failed` : ""}`);
-    setSubject(""); setBodyMarkdown(""); setCtaLabel(""); setCtaUrl("");
+    setSubject(""); setBodyMarkdown(""); setCtaLabel(""); setCtaUrl(""); setLoadedFrom(null);
     void loadHistory();
   };
 
@@ -186,8 +206,23 @@ export default function AdminBroadcasts() {
         </p>
       </header>
 
-      <div className="grid lg:grid-cols-[minmax(0,1fr)_minmax(0,440px)] gap-8 mb-10">
+      <div ref={composerRef} className="grid lg:grid-cols-[minmax(0,1fr)_minmax(0,440px)] gap-8 mb-10">
         <section className="border-2 border-foreground bg-card p-6 shadow-[6px_6px_0_0_hsl(var(--foreground))] space-y-5">
+          {loadedFrom && (
+            <div className="flex items-start gap-3 border-2 border-accent bg-accent/10 p-3">
+              <Copy className="w-4 h-4 mt-0.5 text-accent shrink-0" />
+              <div className="flex-1 min-w-0 text-xs">
+                <p className="font-mono uppercase tracking-widest text-[10px] text-muted-foreground">Editing copy of</p>
+                <p className="font-heading font-extrabold truncate">{loadedFrom.subject}</p>
+                <p className="text-muted-foreground mt-0.5">
+                  {loadedFrom.sent_at ? `Sent ${new Date(loadedFrom.sent_at).toLocaleString()}` : `Draft`} · sends as a brand-new broadcast — pick a segment below
+                </p>
+              </div>
+              <Button type="button" variant="ghost" size="sm" onClick={handleClearLoad} className="h-7 px-2 shrink-0">
+                <X className="w-3.5 h-3.5 mr-1" /> Clear
+              </Button>
+            </div>
+          )}
           <div>
             <Label className="font-mono text-[10px] uppercase tracking-widest">Subject</Label>
             <Input
@@ -298,18 +333,29 @@ export default function AdminBroadcasts() {
         ) : (
           <div className="border-2 border-foreground bg-card divide-y-2 divide-foreground">
             {history.map((b) => (
-              <div key={b.id} className="p-4 flex items-center justify-between gap-4">
+              <button
+                key={b.id}
+                type="button"
+                onClick={() => handleLoad(b)}
+                className="w-full text-left p-4 flex items-center justify-between gap-4 hover:bg-accent/10 transition-colors group"
+                title="Load into composer to edit and resend"
+              >
                 <div className="min-w-0 flex-1">
                   <p className="font-heading font-extrabold truncate">{b.subject}</p>
                   <p className="text-xs text-muted-foreground mt-1">
                     {b.sent_at ? new Date(b.sent_at).toLocaleString() : "Draft"} · {b.status}
                   </p>
                 </div>
-                <div className="font-mono text-xs uppercase tracking-widest text-right shrink-0">
-                  <div className="font-heading text-2xl font-black text-accent leading-none">{b.recipient_count}</div>
-                  <div className="text-muted-foreground">recipients</div>
+                <div className="flex items-center gap-4 shrink-0">
+                  <div className="font-mono text-xs uppercase tracking-widest text-right">
+                    <div className="font-heading text-2xl font-black text-accent leading-none">{b.recipient_count}</div>
+                    <div className="text-muted-foreground">recipients</div>
+                  </div>
+                  <span className="hidden sm:inline-flex items-center gap-1.5 border-2 border-foreground px-2.5 py-1 text-[10px] font-mono uppercase tracking-widest bg-background group-hover:bg-accent group-hover:text-accent-foreground transition-colors">
+                    <Copy className="w-3 h-3" /> Load
+                  </span>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         )}
