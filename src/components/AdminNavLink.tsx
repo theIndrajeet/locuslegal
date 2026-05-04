@@ -1,7 +1,7 @@
 /**
  * AdminNavLink — only checks admin role (and pulls supabase) on idle, after
  * the home page has stabilized. Keeps the navbar render free of supabase
- * dependencies for anonymous visitors.
+ * dependencies for anonymous visitors. Shows for any admin scope.
  */
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
@@ -10,11 +10,9 @@ import { prefetchRoute } from "@/lib/prefetch";
 
 export default function AdminNavLink() {
   const [enabled, setEnabled] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [show, setShow] = useState(false);
   const location = useLocation();
 
-  // Defer the decision to mount until idle so the supabase-backed hook
-  // doesn't run during the home page's critical render.
   useEffect(() => {
     const ric = (window as unknown as {
       requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
@@ -27,11 +25,8 @@ export default function AdminNavLink() {
     }
   }, []);
 
-  // Only when enabled do we dynamically pull the admin-role hook (which
-  // pulls supabase). React rules don't allow conditional hook calls, so we
-  // mount a tiny child that runs the hook only when needed.
   if (!enabled) return null;
-  return <AdminCheck onResult={setIsAdmin} render={isAdmin} location={location.pathname} />;
+  return <AdminCheck onResult={setShow} render={show} location={location.pathname} />;
 }
 
 function AdminCheck({
@@ -43,12 +38,12 @@ function AdminCheck({
   render: boolean;
   location: string;
 }) {
-  // Lazy-imported so the bundle of useAdminRole + supabase only loads here.
-  const [Hook, setHook] = useState<null | (() => boolean | null)>(null);
+  type AccessHook = () => { ready: boolean; hasAnyScope: boolean };
+  const [Hook, setHook] = useState<null | AccessHook>(null);
   useEffect(() => {
     let cancelled = false;
     import("@/hooks/useAdminRole").then((m) => {
-      if (!cancelled) setHook(() => m.useAdminRole);
+      if (!cancelled) setHook(() => m.useAdminAccess);
     });
     return () => {
       cancelled = true;
@@ -65,15 +60,15 @@ function AdminCheckInner({
   render,
   location,
 }: {
-  Hook: () => boolean | null;
+  Hook: () => { ready: boolean; hasAnyScope: boolean };
   onResult: (v: boolean) => void;
   render: boolean;
   location: string;
 }) {
-  const isAdmin = Hook();
+  const { ready, hasAnyScope } = Hook();
   useEffect(() => {
-    if (typeof isAdmin === "boolean") onResult(isAdmin);
-  }, [isAdmin, onResult]);
+    if (ready) onResult(hasAnyScope);
+  }, [ready, hasAnyScope, onResult]);
 
   if (!render) return null;
   const active = location === "/admin" || location.startsWith("/admin/");
