@@ -48,7 +48,7 @@ export const EmailChangeEmail = ({ siteName, oldEmail, newEmail, confirmationUrl
             Didn&apos;t request this change? Secure your account by resetting your password.
           </Text>
         </Section>
-        <Text style={footerBrand}>Locus by LexRoot · auth.locus.legal</Text>
+        <Text style={footerBrand}>Locus by LexRoot · locus.legal</Text>
       </Container>
     </Body>
   </Html>

@@ -42,7 +42,7 @@ export const MagicLinkEmail = ({ siteName, confirmationUrl }: MagicLinkEmailProp
             Didn&apos;t request this? You can safely ignore this email.
           </Text>
         </Section>
-        <Text style={footerBrand}>Locus by LexRoot · auth.locus.legal</Text>
+        <Text style={footerBrand}>Locus by LexRoot · locus.legal</Text>
       </Container>
     </Body>
   </Html>

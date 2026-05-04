@@ -37,7 +37,7 @@ const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
 
 // Configuration
 const SITE_NAME = "locuslegal"
-const SENDER_DOMAIN = "auth.locus.legal"
+const SENDER_DOMAIN = "open.locus.legal"
 const ROOT_DOMAIN = "locus.legal"
 const FROM_DOMAIN = "locus.legal" // Domain shown in From address (may be root or sender subdomain)
 
