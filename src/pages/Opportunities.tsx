@@ -29,6 +29,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthSession } from "@/hooks/useAuthSession";
@@ -285,8 +286,10 @@ export default function Opportunities() {
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-6 h-6 animate-spin text-accent" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <OpportunitySkeletonCard key={i} />
+            ))}
           </div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-16 text-muted-foreground border-2 border-dashed border-border rounded-xl">
