@@ -179,6 +179,12 @@ export default function AdminDashboard() {
             icon={Briefcase}
           />
           <ToolTile
+            to="/admin/opportunities"
+            title="Opportunities"
+            description="Post CFPs, moots, and competitions with AI paste-extract."
+            icon={Briefcase}
+          />
+          <ToolTile
             to="/admin/bar"
             title="The Bar"
             description="Sources, challenges, stats, and AI generation log."
