@@ -489,6 +489,8 @@ export default function DraftEmailDialog({ open, onOpenChange, target, onSent }:
         cgpa: user.cgpa,
         is_nlu: detectIsNlu(user.college),
       },
+      rewrite_notes: rewriteNotes.trim() || null,
+      current_draft: hasDraft ? { subject, body } : null,
     };
 
     const invokeOnce = () => supabase.functions.invoke("draft-application-email", { body: payload });
