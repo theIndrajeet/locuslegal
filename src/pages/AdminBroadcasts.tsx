@@ -41,17 +41,34 @@ export default function AdminBroadcasts() {
   const [testing, setTesting] = useState(false);
   const [history, setHistory] = useState<Broadcast[]>([]);
   const [showPreviewMobile, setShowPreviewMobile] = useState(false);
+  const [loadedFrom, setLoadedFrom] = useState<{ id: string; subject: string; sent_at: string | null; status: string } | null>(null);
+  const composerRef = useRef<HTMLDivElement>(null);
 
   const loadHistory = async () => {
     const { data } = await supabase
       .from("update_broadcasts")
-      .select("id, subject, recipient_count, status, sent_at, created_at")
+      .select("id, subject, body_markdown, cta_label, cta_url, recipient_count, status, sent_at, created_at")
       .order("created_at", { ascending: false })
       .limit(20);
     setHistory((data as Broadcast[]) ?? []);
   };
 
   useEffect(() => { void loadHistory(); }, []);
+
+  const handleLoad = (b: Broadcast) => {
+    setSubject(b.subject ?? "");
+    setBodyMarkdown(b.body_markdown ?? "");
+    setCtaLabel(b.cta_label ?? "");
+    setCtaUrl(b.cta_url ?? "");
+    setLoadedFrom({ id: b.id, subject: b.subject, sent_at: b.sent_at, status: b.status });
+    toast.success("Loaded into composer — edit and send as a new broadcast");
+    setTimeout(() => composerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+  };
+
+  const handleClearLoad = () => {
+    setSubject(""); setBodyMarkdown(""); setCtaLabel(""); setCtaUrl("");
+    setLoadedFrom(null);
+  };
 
   const previewHtml = useMemo(
     () => (bodyMarkdown.trim() ? mdToHtml(bodyMarkdown) : ""),
