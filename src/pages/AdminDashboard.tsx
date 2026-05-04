@@ -85,7 +85,7 @@ export default function AdminDashboard() {
     const oneDay = new Date(Date.now() - 86400000).toISOString();
     const threeDays = new Date(Date.now() + 3 * 86400000).toISOString();
 
-    const tasks: Promise<unknown>[] = [];
+    const tasks: PromiseLike<unknown>[] = [];
     const indexes: Record<string, number> = {};
 
     if (showWaitlist) {
