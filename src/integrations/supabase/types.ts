@@ -521,6 +521,13 @@ export type Database = {
             referencedRelation: "beta_testers"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "beta_feedback_tester_id_fkey"
+            columns: ["tester_id"]
+            isOneToOne: false
+            referencedRelation: "beta_testers_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       beta_feedback_round2: {
@@ -1379,6 +1386,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      beta_testers_public: {
+        Row: {
+          claimed_at: string | null
+          created_at: string | null
+          display_name: string | null
+          id: string | null
+          intro_line_index: number | null
+          is_public: boolean | null
+          personal_note: string | null
+          round2_submitted_at: string | null
+          slot_number: number | null
+          submitted_at: string | null
+        }
+        Insert: {
+          claimed_at?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          id?: string | null
+          intro_line_index?: number | null
+          is_public?: boolean | null
+          personal_note?: string | null
+          round2_submitted_at?: string | null
+          slot_number?: number | null
+          submitted_at?: string | null
+        }
+        Update: {
+          claimed_at?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          id?: string | null
+          intro_line_index?: number | null
+          is_public?: boolean | null
+          personal_note?: string | null
+          round2_submitted_at?: string | null
+          slot_number?: number | null
+          submitted_at?: string | null
+        }
+        Relationships: []
       }
     }
     Functions: {
