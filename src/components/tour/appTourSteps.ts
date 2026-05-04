@@ -22,15 +22,15 @@ export const APP_TOUR_STEPS: TourStep[] = [
     placement: "right",
   },
   {
-    target: '[data-tour="opportunities-nav"]',
+    target: '[data-tour="opportunities-nav"], [data-tour="opportunities-nav-mobile"]',
     title: "Browse opportunities",
     body: "Vacancies, calls for papers, moots, competitions — every opening worth your time, in one feed.",
-    placement: "bottom",
+    placement: "auto",
   },
   {
-    target: '[data-tour="search"]',
+    target: '[data-tour="search"], [data-tour="search-mobile"]',
     title: "Search anything, fast",
-    body: "Press Cmd+K (or Ctrl+K) anywhere on Locus to jump to firms, guides, tools, opportunities — instantly.",
-    placement: "left",
+    body: "Tap search to jump to firms, guides, tools, opportunities — instantly. (Cmd+K on desktop.)",
+    placement: "auto",
   },
 ];
