@@ -121,7 +121,7 @@ export default function OpportunitiesPreview() {
 
         {/* Two-tier nav: top groups, bottom sub-streams */}
         <div className="sticky top-0 z-10 bg-background -mx-1 px-1 pt-2 pb-3 mb-6 space-y-3">
-          <div className="flex flex-wrap gap-2 border-b-2 border-foreground/15 pb-3">
+          <div className="flex flex-wrap justify-center gap-2 border-b-2 border-foreground/15 pb-3">
             {GROUPS.map((g) => {
               const active = activeGroup === g.key;
               const groupCount = SAMPLE_DATA.filter((i) => g.streams.includes(i.stream)).length;
@@ -146,7 +146,7 @@ export default function OpportunitiesPreview() {
           </div>
 
           {currentGroup.streams.length > 1 && (
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap justify-center gap-2">
               <button
                 onClick={() => setFilter(null)}
                 className={cn(
