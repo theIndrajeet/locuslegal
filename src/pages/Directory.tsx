@@ -448,37 +448,33 @@ export default function Directory() {
                     onClick={() => { setDrawerFirm(f); setDrawerOpen(true); }}
                   >
                     {/* Top-right actions: Share + Compare */}
-                    <div className="absolute top-3 right-3 flex items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={async (e) => {
-                          e.stopPropagation();
+                    <div className="absolute top-3 right-3 flex items-center gap-1.5 z-10">
+                      <ShareIconButton
+                        size="sm"
+                        label="Share this firm"
+                        onShare={async () => {
                           const slug = encodeURIComponent(f.name);
                           const url = withRef(`https://locus.legal/directory?firm=${slug}`, "firm-card");
                           const text = `${f.name}${f.city ? `, ${f.city}` : ""} — found via Locus`;
                           const r = await shareOrCopy({ title: "Locus — Firm Directory", text, url });
                           if (r === "copied") toast.success("Link copied");
                         }}
-                        aria-label="Share this firm"
-                        title="Share"
-                        className="w-6 h-6 rounded-md flex items-center justify-center text-muted-foreground hover:text-accent hover:bg-accent/10 transition-colors"
-                      >
-                        <Share2 size={12} />
-                      </button>
+                      />
                       <button
                         onClick={(e) => { e.stopPropagation(); toggleCompare(f); }}
-                        className={`w-6 h-6 rounded-md border-2 flex items-center justify-center text-xs transition-all ${
+                        className={`h-7 w-7 rounded-md border-2 flex items-center justify-center text-xs transition-all ${
                           isCompared
                             ? "bg-accent border-accent text-accent-foreground"
-                            : "border-border/50 text-transparent hover:border-accent/40 group-hover:border-border"
+                            : "border-border/40 text-transparent hover:border-accent/40"
                         }`}
                         title="Compare"
+                        aria-label="Compare this firm"
                       >
                         {isCompared && <GitCompareArrows size={12} />}
                       </button>
                     </div>
 
-                    <div className="flex items-start justify-between gap-2 mb-3 pr-8">
+                    <div className="flex items-start justify-between gap-2 mb-3 pr-20">
                       <h3 className="font-heading text-base font-bold leading-tight group-hover:text-accent transition-colors line-clamp-2">
                         {f.name}
                       </h3>
@@ -639,23 +635,20 @@ export default function Directory() {
                     style={{ animationDelay: `${Math.min(i * 30, 300)}ms`, animationFillMode: "both" }}
                     onClick={() => { setDrawerStartup(s); setStartupDrawerOpen(true); }}
                   >
-                    <button
-                      type="button"
-                      onClick={async (e) => {
-                        e.stopPropagation();
-                        const slug = encodeURIComponent(s.name);
-                        const url = withRef(`https://locus.legal/directory?mode=startups&startup=${slug}`, "startup-card");
-                        const parts = [s.name, s.city, s.sector].filter(Boolean).join(" · ");
-                        const r = await shareOrCopy({ title: "Locus — Startups & SMEs", text: `${parts} — found via Locus`, url });
-                        if (r === "copied") toast.success("Link copied");
-                      }}
-                      aria-label="Share this startup"
-                      title="Share"
-                      className="absolute top-3 right-3 w-6 h-6 rounded-md flex items-center justify-center text-muted-foreground hover:text-accent hover:bg-accent/10 transition-colors z-10"
-                    >
-                      <Share2 size={12} />
-                    </button>
-                    <div className="flex items-start justify-between gap-2 mb-3">
+                    <div className="absolute top-3 right-3 z-10">
+                      <ShareIconButton
+                        size="sm"
+                        label="Share this startup"
+                        onShare={async () => {
+                          const slug = encodeURIComponent(s.name);
+                          const url = withRef(`https://locus.legal/directory?mode=startups&startup=${slug}`, "startup-card");
+                          const parts = [s.name, s.city, s.sector].filter(Boolean).join(" · ");
+                          const r = await shareOrCopy({ title: "Locus — Startups & SMEs", text: `${parts} — found via Locus`, url });
+                          if (r === "copied") toast.success("Link copied");
+                        }}
+                      />
+                    </div>
+                    <div className="flex items-start justify-between gap-2 mb-3 pr-10">
                       <h3 className="font-heading text-base font-bold leading-tight group-hover:text-accent transition-colors line-clamp-2">{s.name}</h3>
                       {s.hasLegalDept?.toLowerCase() === "yes" && (
                         <span className="flex items-center gap-1 text-[10px] font-semibold bg-secondary text-secondary-foreground px-2 py-1 rounded-full whitespace-nowrap shrink-0">
