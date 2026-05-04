@@ -67,6 +67,10 @@ interface HighlightChip {
   matches?: boolean; // overlaps with target
 }
 
+type RecipientType =
+  | "tier1_firm" | "tier2_firm" | "ip_boutique" | "tax_boutique" | "disputes_boutique"
+  | "sc_chamber" | "hc_chamber" | "inhouse_corporate" | "inhouse_tech" | "legaltech_startup";
+
 interface BriefState {
   fit_reason: string | null;
   role: string;
@@ -76,6 +80,70 @@ interface BriefState {
   signature_line: string;
   work_mode: string | null;
   highlight_ids: string[];
+  recipient_type: RecipientType;
+}
+
+const RECIPIENT_TYPE_OPTIONS: Array<{ value: RecipientType; label: string }> = [
+  { value: "tier1_firm", label: "Tier-1 firm" },
+  { value: "tier2_firm", label: "Mid-tier firm" },
+  { value: "ip_boutique", label: "IP boutique" },
+  { value: "tax_boutique", label: "Tax boutique" },
+  { value: "disputes_boutique", label: "Disputes boutique" },
+  { value: "sc_chamber", label: "SC chamber" },
+  { value: "hc_chamber", label: "HC chamber" },
+  { value: "inhouse_corporate", label: "In-house (corporate)" },
+  { value: "inhouse_tech", label: "In-house (tech)" },
+  { value: "legaltech_startup", label: "Legal-tech startup" },
+];
+
+// Hard-coded NLU list (knowledge base §A8). Lowercase substring match against college.
+const NLU_KEYWORDS = [
+  "nlsiu", "national law school of india",
+  "nalsar",
+  "nlu delhi", "national law university delhi", "nludelhi",
+  "nujs", "west bengal national university",
+  "gnlu", "gujarat national law",
+  "nliu", "national law institute university",
+  "nluj", "national law university jodhpur",
+  "hnlu", "hidayatullah",
+  "rgnul", "rajiv gandhi national",
+  "rmlnlu", "ram manohar lohiya national",
+  "nluo", "national law university odisha",
+  "mnlu", "maharashtra national law",
+  "dsnlu", "damodaram sanjivayya",
+  "cnlu", "chanakya national law",
+  "tnnlu", "tamil nadu national law",
+  "nlu assam", "national law university assam",
+  "nusrl", "national university of study and research in law",
+  "dnlu", "dharmashastra national",
+  "hpnlu", "himachal pradesh national",
+];
+
+function detectIsNlu(college: string | null | undefined): boolean {
+  if (!college) return false;
+  const c = college.toLowerCase();
+  return NLU_KEYWORDS.some((k) => c.includes(k));
+}
+
+function inferRecipientType(target: DraftEmailTarget | null): RecipientType {
+  if (!target) return "tier2_firm";
+  if (target.kind === "startup") {
+    const sector = (target.sector ?? "").toLowerCase();
+    if (/legal[\s-]?tech|lawtech|legaltech/.test(sector)) return "legaltech_startup";
+    if (/saas|software|tech|app|platform|ai|ml|fintech|crypto/.test(sector)) return "inhouse_tech";
+    return "inhouse_corporate";
+  }
+  const type = (target.type ?? "").toLowerCase();
+  const name = target.name.toLowerCase();
+  const TIER1 = ["cyril amarchand", "amarchand mangaldas", "azb", "shardul amarchand", "trilegal", "khaitan", "j sagar", "jsa", "luthra", "l&l", "nishith desai", "s&r", "induslaw"];
+  if (TIER1.some((f) => name.includes(f))) return "tier1_firm";
+  if (/ip|patent|trademark/.test(type) || /ip|patent|trademark/.test(name)) return "ip_boutique";
+  if (/\btax\b|gst|customs/.test(type) || /\btax\b|gst|customs/.test(name)) return "tax_boutique";
+  if (/dispute|litigation|arbitration/.test(type)) return "disputes_boutique";
+  if (/chamber|advocate/.test(type) || /chambers?$/.test(name)) {
+    return /supreme|sc\b/.test(type + " " + name) ? "sc_chamber" : "hc_chamber";
+  }
+  return "tier2_firm";
 }
 
 const FIT_OPTIONS = [
