@@ -299,6 +299,8 @@ interface Body {
   brief?: Brief | null;
   mode?: "initial" | "followup";
   original?: { applied_on: string; role: string } | null;
+  rewrite_notes?: string | null;
+  current_draft?: { subject: string; body: string } | null;
   user: {
     display_name: string | null; college: string | null;
     degree: string | null; graduation_year: number | null;
