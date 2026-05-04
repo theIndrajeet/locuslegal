@@ -333,18 +333,29 @@ export default function AdminBroadcasts() {
         ) : (
           <div className="border-2 border-foreground bg-card divide-y-2 divide-foreground">
             {history.map((b) => (
-              <div key={b.id} className="p-4 flex items-center justify-between gap-4">
+              <button
+                key={b.id}
+                type="button"
+                onClick={() => handleLoad(b)}
+                className="w-full text-left p-4 flex items-center justify-between gap-4 hover:bg-accent/10 transition-colors group"
+                title="Load into composer to edit and resend"
+              >
                 <div className="min-w-0 flex-1">
                   <p className="font-heading font-extrabold truncate">{b.subject}</p>
                   <p className="text-xs text-muted-foreground mt-1">
                     {b.sent_at ? new Date(b.sent_at).toLocaleString() : "Draft"} · {b.status}
                   </p>
                 </div>
-                <div className="font-mono text-xs uppercase tracking-widest text-right shrink-0">
-                  <div className="font-heading text-2xl font-black text-accent leading-none">{b.recipient_count}</div>
-                  <div className="text-muted-foreground">recipients</div>
+                <div className="flex items-center gap-4 shrink-0">
+                  <div className="font-mono text-xs uppercase tracking-widest text-right">
+                    <div className="font-heading text-2xl font-black text-accent leading-none">{b.recipient_count}</div>
+                    <div className="text-muted-foreground">recipients</div>
+                  </div>
+                  <span className="hidden sm:inline-flex items-center gap-1.5 border-2 border-foreground px-2.5 py-1 text-[10px] font-mono uppercase tracking-widest bg-background group-hover:bg-accent group-hover:text-accent-foreground transition-colors">
+                    <Copy className="w-3 h-3" /> Load
+                  </span>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         )}
