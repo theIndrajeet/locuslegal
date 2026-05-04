@@ -65,8 +65,8 @@ function FakeDashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Control bar */}
-      <div className="sticky top-0 z-40 border-b-2 border-foreground/80 bg-card/95 backdrop-blur">
+      {/* Control bar — offset below the fixed global navbar */}
+      <div className="sticky top-16 z-30 mt-16 mx-4 md:mx-6 border-2 border-foreground/80 bg-card/95 backdrop-blur rounded-xl shadow-[4px_4px_0_0_hsl(var(--foreground))]">
         <div className="max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center gap-3">
           <div>
             <div className="font-heading text-sm font-extrabold uppercase tracking-wider text-foreground">
