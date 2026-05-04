@@ -368,6 +368,16 @@ function validateBody(b: any): { ok: true; data: Body } | { ok: false; error: st
       original: b.original && typeof b.original === "object" && b.original.applied_on
         ? { applied_on: String(b.original.applied_on).slice(0, 30), role: String(b.original.role ?? "Legal Internship").slice(0, 100) }
         : null,
+      rewrite_notes: typeof b.rewrite_notes === "string" && b.rewrite_notes.trim()
+        ? b.rewrite_notes.trim().slice(0, 500) : null,
+      current_draft: b.current_draft && typeof b.current_draft === "object"
+        && typeof b.current_draft.subject === "string" && typeof b.current_draft.body === "string"
+        && b.current_draft.body.trim()
+        ? {
+            subject: String(b.current_draft.subject).slice(0, 200),
+            body: String(b.current_draft.body).slice(0, 4000),
+          }
+        : null,
       user: {
         display_name: b.user.display_name ? String(b.user.display_name).slice(0, 100) : null,
         college: b.user.college ? String(b.user.college).slice(0, 200) : null,
