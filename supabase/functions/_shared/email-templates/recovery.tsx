@@ -42,7 +42,7 @@ export const RecoveryEmail = ({ siteName, confirmationUrl }: RecoveryEmailProps)
             Didn&apos;t request a reset? Ignore this email and your password stays the same.
           </Text>
         </Section>
-        <Text style={footerBrand}>Locus by LexRoot · auth.locus.legal</Text>
+        <Text style={footerBrand}>Locus by LexRoot · locus.legal</Text>
       </Container>
     </Body>
   </Html>

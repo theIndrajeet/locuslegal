@@ -37,7 +37,7 @@ export const ReauthenticationEmail = ({ token }: ReauthenticationEmailProps) => 
             This code expires shortly. Locus staff will never ask for it.
           </Text>
         </Section>
-        <Text style={footerBrand}>Locus by LexRoot · auth.locus.legal</Text>
+        <Text style={footerBrand}>Locus by LexRoot · locus.legal</Text>
       </Container>
     </Body>
   </Html>
