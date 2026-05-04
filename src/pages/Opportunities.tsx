@@ -411,6 +411,27 @@ function metaChips(i: AnyOpportunity) {
   }
 }
 
+function linkifyText(text: string): React.ReactNode[] {
+  const urlRegex = /(https?:\/\/[^\s<>()]+[^\s<>().,;:!?'"])/gi;
+  const parts = text.split(urlRegex);
+  return parts.map((part, i) => {
+    if (i % 2 === 1) {
+      return (
+        <a
+          key={i}
+          href={part}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline decoration-accent decoration-2 underline-offset-2 font-semibold text-foreground hover:text-accent break-all"
+        >
+          {part}
+        </a>
+      );
+    }
+    return <span key={i}>{part}</span>;
+  });
+}
+
 function DetailDialog({ item, onClose }: { item: AnyOpportunity | null; onClose: () => void }) {
   const [copied, setCopied] = useState(false);
   useEffect(() => { if (!item) setCopied(false); }, [item]);
@@ -549,8 +570,8 @@ function DetailDialog({ item, onClose }: { item: AnyOpportunity | null; onClose:
                   <GraduationCap size={16} className="text-accent" />
                   <h4 className="text-sm font-extrabold uppercase tracking-wider">Eligibility</h4>
                 </div>
-                <p className="text-sm text-foreground/85 leading-relaxed whitespace-pre-wrap">
-                  {eligibility}
+                <p className="text-sm text-foreground/85 leading-relaxed whitespace-pre-wrap break-words">
+                  {linkifyText(eligibility!)}
                 </p>
               </section>
             )}
@@ -561,8 +582,8 @@ function DetailDialog({ item, onClose }: { item: AnyOpportunity | null; onClose:
                 <h4 className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground mb-2">
                   About
                 </h4>
-                <p className="text-sm text-foreground/85 whitespace-pre-wrap leading-relaxed max-w-prose">
-                  {item.description}
+                <p className="text-sm text-foreground/85 whitespace-pre-wrap leading-relaxed max-w-prose break-words">
+                  {linkifyText(item.description)}
                 </p>
               </section>
             )}
