@@ -570,8 +570,8 @@ function DetailDialog({ item, onClose }: { item: AnyOpportunity | null; onClose:
                   <GraduationCap size={16} className="text-accent" />
                   <h4 className="text-sm font-extrabold uppercase tracking-wider">Eligibility</h4>
                 </div>
-                <p className="text-sm text-foreground/85 leading-relaxed whitespace-pre-wrap">
-                  {eligibility}
+                <p className="text-sm text-foreground/85 leading-relaxed whitespace-pre-wrap break-words">
+                  {linkifyText(eligibility!)}
                 </p>
               </section>
             )}
