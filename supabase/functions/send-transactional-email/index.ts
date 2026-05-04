@@ -30,9 +30,17 @@ function generateToken(): string {
     .join('')
 }
 
-// Auth note: this function uses verify_jwt = true in config.toml, so Supabase's
-// gateway validates the caller's JWT (anon or service_role) before the request
-// reaches this code. No in-function auth check is needed.
+// Auth: verify_jwt is FALSE at the gateway because the new signing-keys system
+// rejects sb_secret_... format service-role keys as "invalid JWT" before code runs.
+// We validate in code instead — see mem://fixes/edge-function-invoke-401.
+function parseJwtClaims(token: string): any | null {
+  try {
+    const parts = token.split('.')
+    if (parts.length !== 3) return null
+    const pad = (s: string) => s + '='.repeat((4 - (s.length % 4)) % 4)
+    return JSON.parse(atob(pad(parts[1].replace(/-/g, '+').replace(/_/g, '/'))))
+  } catch { return null }
+}
 
 Deno.serve(async (req) => {
   // Handle CORS preflight
@@ -52,6 +60,26 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     )
+  }
+
+  // In-function auth gate: accept service-role secret OR any valid JWT
+  // (service_role from cron, authenticated user from client invokes).
+  const authHeader = req.headers.get('Authorization') || ''
+  const presented = authHeader.replace(/^Bearer\s+/i, '').trim()
+  const claims = presented ? parseJwtClaims(presented) : null
+  const authorized =
+    !!presented &&
+    (presented === supabaseServiceKey ||
+      (claims && (claims.role === 'service_role' || claims.role === 'authenticated' || !!claims.sub)))
+  if (!authorized) {
+    console.warn('send-transactional-email: unauthorized', {
+      hasAuth: !!authHeader,
+      tokenLen: presented.length,
+    })
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
   }
 
   // Parse request body

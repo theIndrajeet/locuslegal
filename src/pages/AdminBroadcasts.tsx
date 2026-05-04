@@ -77,16 +77,25 @@ export default function AdminBroadcasts() {
     setSending(false);
 
     if (error) {
-      toast.error(error.message || "Failed to send broadcast");
+      // Try to read the error body returned by the edge function
+      let detail = "";
+      try {
+        const ctx: any = (error as any).context;
+        if (ctx?.json) detail = (await ctx.json())?.detail ?? (await ctx.json())?.error ?? "";
+        else if (ctx?.text) detail = await ctx.text();
+      } catch { /* noop */ }
+      toast.error(detail ? `Send failed: ${detail}` : (error.message || "Failed to send broadcast"));
       return;
     }
     const queued = data?.queued ?? 0;
     const skipped = data?.skippedNoEmail ?? 0;
+    const failed = data?.failed ?? 0;
     if (queued === 0) {
-      toast.error(`Queued 0 recipients${skipped ? ` (${skipped} skipped)` : ""}. Check edge function logs.`);
+      const why = data?.firstError ? ` — ${data.firstError}` : "";
+      toast.error(`Queued 0 recipients${skipped ? ` (${skipped} skipped)` : ""}${failed ? ` (${failed} failed)` : ""}${why}`);
       return;
     }
-    toast.success(`Queued to ${queued} recipients${skipped ? ` · ${skipped} skipped` : ""}`);
+    toast.success(`Queued to ${queued} recipients${skipped ? ` · ${skipped} skipped` : ""}${failed ? ` · ${failed} failed` : ""}`);
     setSubject(""); setBodyMarkdown(""); setCtaLabel(""); setCtaUrl("");
     void loadHistory();
   };
@@ -108,7 +117,13 @@ export default function AdminBroadcasts() {
     });
     setTesting(false);
     if (error) {
-      toast.error(error.message || "Test send failed");
+      let detail = "";
+      try {
+        const ctx: any = (error as any).context;
+        if (ctx?.json) { const j = await ctx.json(); detail = j?.detail ?? j?.error ?? ""; }
+        else if (ctx?.text) detail = await ctx.text();
+      } catch { /* noop */ }
+      toast.error(detail ? `Test failed: ${detail}` : (error.message || "Test send failed"));
       return;
     }
     toast.success(`Test sent to ${data?.sentTo ?? "you"} — check your inbox`);
