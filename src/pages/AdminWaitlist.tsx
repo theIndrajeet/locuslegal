@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { useAdminRole } from "@/hooks/useAdminRole";
+import { useAdminAccess } from "@/hooks/useAdminRole";
 
 interface Submission {
   id: string;
@@ -16,7 +16,8 @@ export default function AdminWaitlist() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("all");
   const navigate = useNavigate();
-  const isAdmin = useAdminRole();
+  const { ready: adminReady, hasScope } = useAdminAccess();
+  const isAdmin = !adminReady ? null : hasScope("waitlist_admin");
 
   useEffect(() => {
     if (isAdmin === null) return;

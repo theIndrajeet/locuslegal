@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Loader2, Plus, ShieldOff, Pencil, Archive, Trash2, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAdminRole } from "@/hooks/useAdminRole";
+import { useAdminAccess } from "@/hooks/useAdminRole";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,8 @@ export default function AdminVacancies() {
     path: "/admin/vacancies",
   });
 
-  const isAdmin = useAdminRole();
+  const { ready: adminReady, hasScope } = useAdminAccess();
+  const isAdmin = !adminReady ? null : hasScope("opportunities_admin");
   const { userId } = useAuthSession();
   const [rows, setRows] = useState<Vacancy[]>([]);
   const [loading, setLoading] = useState(true);
