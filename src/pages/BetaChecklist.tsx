@@ -111,13 +111,12 @@ export default function BetaChecklist() {
   // Load roster + totals + restore tester from localStorage
   const refreshRoster = async () => {
     const { data: publicRows } = await supabase
-      .from("beta_testers")
+      .from("beta_testers_public" as any)
       .select("slot_number, display_name, submitted_at")
-      .eq("is_public", true)
       .order("slot_number", { ascending: true });
     if (publicRows) {
       setRoster(
-        publicRows.map((r) => ({
+        (publicRows as any[]).map((r) => ({
           slot_number: r.slot_number,
           display_name: r.display_name,
           submitted: !!r.submitted_at,
