@@ -35,17 +35,19 @@ import {
   STREAM_META,
 } from "@/components/opportunities-preview/sampleData";
 
-const STREAM_ORDER: Array<OpportunityStream | "all"> = [
-  "all",
-  "internship",
-  "job",
-  "cfp",
-  "moot",
-  "competition",
+type GroupKey = "career" | "academic" | "contests";
+
+const GROUPS: Array<{
+  key: GroupKey;
+  label: string;
+  streams: OpportunityStream[];
+}> = [
+  { key: "career", label: "Career", streams: ["internship", "job"] },
+  { key: "academic", label: "Academic", streams: ["cfp", "moot"] },
+  { key: "contests", label: "Contests", streams: ["competition"] },
 ];
 
-function streamLabel(s: OpportunityStream | "all"): string {
-  if (s === "all") return "All";
+function streamLabel(s: OpportunityStream): string {
   if (s === "cfp") return "CFPs";
   if (s === "internship") return "Internships";
   if (s === "job") return "Jobs";
@@ -69,16 +71,21 @@ export default function OpportunitiesPreview() {
     description: "Visual preview of the v2 opportunities board.",
   });
 
-  const [filter, setFilter] = useState<OpportunityStream | "all">("all");
+  const [activeGroup, setActiveGroup] = useState<GroupKey>("career");
+  const [filter, setFilter] = useState<OpportunityStream | null>(null);
   const [selected, setSelected] = useState<AnyOpportunity | null>(null);
+
+  const currentGroup = GROUPS.find((g) => g.key === activeGroup)!;
+  const activeStreams: OpportunityStream[] = filter
+    ? [filter]
+    : currentGroup.streams;
 
   const items = useMemo(() => {
     const sorted = [...SAMPLE_DATA].sort(
       (a, b) => new Date(b.posted_at).getTime() - new Date(a.posted_at).getTime(),
     );
-    if (filter === "all") return sorted;
-    return sorted.filter((i) => i.stream === filter);
-  }, [filter]);
+    return sorted.filter((i) => activeStreams.includes(i.stream));
+  }, [activeStreams]);
 
   const liveCount = SAMPLE_DATA.length;
 
@@ -112,25 +119,66 @@ export default function OpportunitiesPreview() {
           </p>
         </header>
 
-        {/* Segmented control */}
-        <div className="flex flex-wrap gap-2 mb-6 sticky top-0 z-10 bg-background py-2 -mx-1 px-1">
-          {STREAM_ORDER.map((s) => {
-            const active = filter === s;
-            return (
+        {/* Two-tier nav: top groups, bottom sub-streams */}
+        <div className="sticky top-0 z-10 bg-background -mx-1 px-1 pt-2 pb-3 mb-6 space-y-3">
+          <div className="flex flex-wrap gap-2 border-b-2 border-foreground/15 pb-3">
+            {GROUPS.map((g) => {
+              const active = activeGroup === g.key;
+              const groupCount = SAMPLE_DATA.filter((i) => g.streams.includes(i.stream)).length;
+              return (
+                <button
+                  key={g.key}
+                  onClick={() => { setActiveGroup(g.key); setFilter(null); }}
+                  className={cn(
+                    "inline-flex items-center gap-2 px-4 py-2 rounded-xl border-2 text-sm font-bold uppercase tracking-wider transition-all",
+                    active
+                      ? "border-foreground bg-foreground text-background shadow-[3px_3px_0_0_hsl(var(--accent))]"
+                      : "border-foreground/70 bg-background text-foreground hover:bg-muted shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_0_hsl(var(--foreground))]",
+                  )}
+                >
+                  {g.label}
+                  <span className={cn("text-[10px] px-1.5 py-0.5 rounded-md font-mono", active ? "bg-background/20 text-background" : "bg-muted text-muted-foreground")}>
+                    {groupCount}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {currentGroup.streams.length > 1 && (
+            <div className="flex flex-wrap gap-2">
               <button
-                key={s}
-                onClick={() => setFilter(s)}
+                onClick={() => setFilter(null)}
                 className={cn(
-                  "inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border-2 text-xs md:text-sm font-bold uppercase tracking-wider transition-all",
-                  active
-                    ? "border-foreground bg-foreground text-background shadow-[3px_3px_0_0_hsl(var(--accent))]"
-                    : "border-foreground/70 bg-background text-foreground hover:bg-muted shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_0_hsl(var(--foreground))]",
+                  "inline-flex items-center px-3 py-1.5 rounded-full border-2 text-xs font-bold uppercase tracking-wider transition-all",
+                  filter === null
+                    ? "border-foreground bg-foreground text-background"
+                    : "border-foreground/40 bg-background text-foreground hover:bg-muted",
                 )}
               >
-                {streamLabel(s)}
+                All {currentGroup.label}
               </button>
-            );
-          })}
+              {currentGroup.streams.map((s) => {
+                const active = filter === s;
+                const Icon = STREAM_META[s].icon;
+                return (
+                  <button
+                    key={s}
+                    onClick={() => setFilter(s)}
+                    className={cn(
+                      "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border-2 text-xs font-bold uppercase tracking-wider transition-all",
+                      active
+                        ? "border-foreground bg-foreground text-background"
+                        : "border-foreground/40 bg-background text-foreground hover:bg-muted",
+                    )}
+                  >
+                    <Icon size={12} />
+                    {streamLabel(s)}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Feed */}
