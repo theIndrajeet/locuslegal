@@ -234,6 +234,6 @@ serve(async (req) => {
   } catch (e) {
     console.error("suggest-topics error:", e);
     await finalizeLog({ outcome: "ai_error", error_message: e instanceof Error ? e.message : "Unknown" });
-    return json(500, { error: e instanceof Error ? e.message : "Unknown" });
+    return json(500, { error: "Internal server error. Please try again." });
   }
 });
