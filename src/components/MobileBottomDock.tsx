@@ -35,7 +35,7 @@ const ALL_NAV: NavItem[] = [
 
 const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
 const MORPH_SPRING = { type: "spring" as const, stiffness: 520, damping: 38, mass: 0.7 };
-const IDLE_MS = 1500;
+const IDLE_MS = 4500;
 
 type ContextAction = "join" | "log" | null;
 
