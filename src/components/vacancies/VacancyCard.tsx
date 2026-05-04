@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { Briefcase, MapPin, Coins, GraduationCap, Mail, AlertTriangle, Clock, ChevronDown, Check, RotateCw, ClipboardList, Share2, X, Loader2 } from "lucide-react";
+import { Briefcase, MapPin, Coins, GraduationCap, Mail, AlertTriangle, Clock, ChevronDown, Check, RotateCw, ClipboardList, X, Loader2 } from "lucide-react";
+import { ShareIconButton } from "@/components/ShareIconButton";
 import { track } from "@/lib/analytics";
 import { format, parseISO } from "date-fns";
 import { toast } from "sonner";
@@ -216,21 +217,16 @@ export default function VacancyCard({ vacancy, onApply, archived = false, applic
             ) : null}
           </span>
           {!isClosed && (
-            <button
-              type="button"
-              aria-label="Share this opportunity"
-              title="Share"
-              onClick={async (e) => {
-                e.stopPropagation();
+            <ShareIconButton
+              size="sm"
+              label="Share this opportunity"
+              onShare={async () => {
                 const url = withRef(`https://locus.legal/vacancies#vacancy-${vacancy.id}`, "vacancy");
                 const text = `${vacancy.role} at ${vacancy.firm_name} — via Locus`;
                 const r = await shareOrCopy({ title: "Locus — Vacancy", text, url });
                 if (r === "copied") toast.success("Link copied");
               }}
-              className="shrink-0 inline-flex items-center justify-center h-7 w-7 rounded-md text-muted-foreground hover:text-accent hover:bg-accent/10 transition-colors"
-            >
-              <Share2 size={14} strokeWidth={2} />
-            </button>
+            />
           )}
           {!isClosed && application && appState !== "idle" && (
             <button

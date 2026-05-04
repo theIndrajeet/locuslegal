@@ -1,10 +1,11 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { usePageMeta } from "@/hooks/usePageMeta";
-import { Building2, MapPin, Star, Phone, Mail, GitCompareArrows, Trophy, ArrowRight, Rocket, Globe, Users, Scale, ShieldCheck, Share2 } from "lucide-react";
+import { Building2, MapPin, Star, Phone, Mail, GitCompareArrows, Trophy, ArrowRight, Rocket, Globe, Users, Scale, ShieldCheck } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { shareOrCopy, withRef } from "@/lib/share";
+import { ShareIconButton } from "@/components/ShareIconButton";
 import firms from "@/data/firms.json";
 import startupsData from "@/data/startups.json";
 import FirmDrawer from "@/components/FirmDrawer";
