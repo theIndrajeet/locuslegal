@@ -1704,6 +1704,16 @@ export type Database = {
           submitted_at: string
         }[]
       }
+      find_user_for_admin: {
+        Args: { p_query: string }
+        Returns: {
+          display_name: string
+          email: string
+          id: string
+          is_already_admin: boolean
+          username: string
+        }[]
+      }
       get_app_dashboard: { Args: { p_user_id: string }; Returns: Json }
       get_bar_dashboard: { Args: { p_user_id: string }; Returns: Json }
       get_beta_tester_self: {
@@ -1763,6 +1773,7 @@ export type Database = {
         }[]
       }
       get_public_profile: { Args: { p_username: string }; Returns: Json }
+      grant_admin_role: { Args: { p_user_id: string }; Returns: undefined }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1772,6 +1783,16 @@ export type Database = {
       }
       increment_visit_count: { Args: never; Returns: number }
       is_admin: { Args: { uid: string }; Returns: boolean }
+      list_admins: {
+        Args: never
+        Returns: {
+          display_name: string
+          email: string
+          id: string
+          is_self: boolean
+          username: string
+        }[]
+      }
       mark_beta_tester_round2_submitted: {
         Args: { p_id: string }
         Returns: undefined
@@ -1795,6 +1816,7 @@ export type Database = {
           read_ct: number
         }[]
       }
+      revoke_admin_role: { Args: { p_user_id: string }; Returns: undefined }
       vacancies_lifecycle_tick: { Args: never; Returns: undefined }
     }
     Enums: {
