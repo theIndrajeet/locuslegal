@@ -132,7 +132,7 @@ export default function AdminDashboard() {
           loading={loading}
         />
         <StatCard
-          label="Live Vacancies"
+          label="Live Opportunities"
           value={stats.vacanciesLive}
           sub={`${stats.vacanciesExpiringSoon} expiring in 3d`}
           icon={Briefcase}
