@@ -150,7 +150,7 @@ const App = () => (
                     <Route path="waitlist" element={<AdminWaitlist />} />
                     <Route path="bar" element={<AdminBar />} />
                     <Route path="beta" element={<AdminBeta />} />
-                    <Route path="vacancies" element={<AdminVacancies />} />
+                    <Route path="vacancies" element={<Navigate to="/admin/opportunities" replace />} />
                     <Route path="opportunities" element={<AdminOpportunities />} />
                     <Route path="firm-suggestions" element={<AdminFirmSuggestions />} />
                     <Route path="broadcasts" element={<AdminBroadcasts />} />

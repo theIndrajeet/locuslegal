@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Loader2, Plus, ShieldOff, Trash2, ExternalLink, Briefcase, FileText, Gavel, Trophy } from "lucide-react";
+import { Loader2, Plus, ShieldOff, Trash2, Briefcase, FileText, Gavel, Trophy, Pencil, Archive } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdminRole } from "@/hooks/useAdminRole";
 import { useAuthSession } from "@/hooks/useAuthSession";
@@ -10,6 +10,8 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import PasteExtractDialog, { type OppStream } from "@/components/admin/opportunities/PasteExtractDialog";
+import AdminVacancyDialog from "@/components/vacancies/AdminVacancyDialog";
+import { type Vacancy, daysLeft } from "@/lib/vacancies";
 
 type Row = Record<string, any> & { id: string; status: string; expires_at: string };
 
@@ -18,6 +20,115 @@ const TABLES = [
   { key: "moot" as const, table: "moots", label: "Moots", icon: Gavel, titleField: "competition_name", subField: "organiser" },
   { key: "competition" as const, table: "competitions", label: "Competitions", icon: Trophy, titleField: "title", subField: "organiser" },
 ];
+
+function VacanciesPanel({ userId }: { userId: string }) {
+  const [rows, setRows] = useState<Vacancy[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<Vacancy | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("vacancies")
+      .select("*")
+      .order("status", { ascending: true })
+      .order("created_at", { ascending: false });
+    if (error) toast.error(error.message);
+    setRows((data ?? []) as Vacancy[]);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { void load(); }, [load]);
+
+  const archive = async (v: Vacancy) => {
+    const { error } = await supabase.from("vacancies")
+      .update({ status: "archived", expires_at: new Date().toISOString() }).eq("id", v.id);
+    if (error) toast.error(error.message); else { toast.success("Archived."); void load(); }
+  };
+  const remove = async (v: Vacancy) => {
+    if (!confirm(`Permanently delete "${v.firm_name} — ${v.role}"?`)) return;
+    const { error } = await supabase.from("vacancies").delete().eq("id", v.id);
+    if (error) toast.error(error.message); else { toast.success("Deleted."); void load(); }
+  };
+
+  const live = rows.filter((r) => r.status === "live" && new Date(r.expires_at).getTime() > Date.now());
+  const expired = rows.filter((r) => !(r.status === "live" && new Date(r.expires_at).getTime() > Date.now()));
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-end">
+        <Button
+          onClick={() => { setEditing(null); setOpen(true); }}
+          className="font-bold border-2 border-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))]"
+        >
+          <Plus size={16} className="mr-1.5" /> Add vacancy
+        </Button>
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center py-10"><Loader2 className="w-5 h-5 animate-spin text-accent" /></div>
+      ) : (
+        <>
+          <section>
+            <h3 className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-2">Live ({live.length})</h3>
+            <div className="grid gap-3">
+              {live.length === 0 && <p className="text-sm text-muted-foreground">Nothing live.</p>}
+              {live.map((v) => (
+                <Card key={v.id} className="border-2 border-foreground p-4">
+                  <div className="flex items-start justify-between gap-3 flex-wrap">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-heading font-bold">{v.firm_name} — {v.role}</div>
+                      <div className="text-[11px] font-mono text-muted-foreground mt-1">
+                        {v.opportunity_type} · {daysLeft(v.expires_at)}d left · expires {new Date(v.expires_at).toLocaleString()}
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => { setEditing(v); setOpen(true); }}><Pencil size={14} /></Button>
+                      <Button size="sm" variant="outline" onClick={() => archive(v)}><Archive size={14} /></Button>
+                      <Button size="sm" variant="outline" onClick={() => remove(v)}><Trash2 size={14} /></Button>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </section>
+
+          <section>
+            <h3 className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-2">Archived / Expired ({expired.length})</h3>
+            <div className="grid gap-3">
+              {expired.length === 0 && <p className="text-sm text-muted-foreground">None yet.</p>}
+              {expired.map((v) => (
+                <Card key={v.id} className="border-2 border-foreground p-4 opacity-60">
+                  <div className="flex items-start justify-between gap-3 flex-wrap">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-heading font-bold">{v.firm_name} — {v.role}</div>
+                      <div className="text-[11px] font-mono text-muted-foreground mt-1">
+                        {v.status} · expired {new Date(v.expires_at).toLocaleString()}
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => { setEditing(v); setOpen(true); }}><Pencil size={14} /></Button>
+                      <Button size="sm" variant="outline" onClick={() => remove(v)}><Trash2 size={14} /></Button>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </section>
+        </>
+      )}
+
+      <AdminVacancyDialog
+        open={open}
+        onOpenChange={setOpen}
+        initial={editing}
+        onSaved={load}
+        userId={userId}
+      />
+    </div>
+  );
+}
 
 function StreamPanel({
   stream,
@@ -201,16 +312,7 @@ export default function AdminOpportunities() {
         </TabsList>
 
         <TabsContent value="vacancies" className="mt-6">
-          <Card className="border-2 border-foreground p-6 text-center space-y-3">
-            <p className="text-sm text-muted-foreground">
-              Vacancies (internships + jobs) keep their dedicated admin with the original AI extractor.
-            </p>
-            <Button asChild className="font-bold border-2 border-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))]">
-              <Link to="/admin/vacancies">
-                <ExternalLink size={14} className="mr-1.5" /> Open Vacancies admin
-              </Link>
-            </Button>
-          </Card>
+          <VacanciesPanel userId={userId ?? ""} />
         </TabsContent>
 
         {TABLES.map((t) => (

@@ -1,34 +1,47 @@
-# Fix Opportunities filter bar (mobile-first)
+# Unify Opportunities Admin + Richer Public Detail
 
-The sticky filter strip on `/opportunities` looks cramped on mobile (390px) — group tabs wrap awkwardly, count badges collide with labels, and the sub-filter row competes visually with the primary tabs. Redesign for clarity at small widths while keeping the neobrutalist feel.
+Two changes:
 
-## Changes (single file: `src/pages/Opportunities.tsx`, lines 119–178)
+## 1. Admin: embed Vacancies CRUD inside `/admin/opportunities`
 
-### 1. Group tabs → full-width segmented control on mobile
-- Replace `flex flex-wrap justify-center gap-2` with a 3-column grid (`grid grid-cols-3 gap-2`) so the three groups (Career / Academic / Contests) always fit in one row at any viewport.
-- Stack count above label on mobile (`flex-col`) and inline on `sm+` (`sm:flex-row`).
-- Reduce padding (`px-2 py-2.5`) and use `text-xs sm:text-sm` so labels never truncate.
-- Keep brutalist border + shadow, but drop the count pill background when active (just dim opacity) — current `bg-background/20` looks muddy on yellow.
+Currently the Vacancies tab on `/admin/opportunities` just shows a "Open Vacancies admin" link redirecting to `/admin/vacancies`. Bring it inline so all four streams live under one umbrella.
 
-### 2. Sub-filter pills → horizontal scroll strip
-- Wrap the pill row in `flex overflow-x-auto no-scrollbar -mx-4 px-4` so it scrolls on mobile instead of wrapping to two lines.
-- Add `whitespace-nowrap shrink-0` to each pill.
-- Drop the dividing `border-b-2` between groups and pills — replace with subtle `gap-2.5` spacing so the bar reads as one unit.
+**Edit `src/pages/AdminOpportunities.tsx`:**
+- Add a new `VacanciesPanel` component (mirrors existing `StreamPanel` shape — Live + Archived sections, Add/Edit/Archive/Delete buttons).
+- Reuses existing `AdminVacancyDialog` from `src/components/vacancies/AdminVacancyDialog.tsx` (which already has the AI paste-extract flow).
+- Vacancies tab content swaps from the redirect card to `<VacanciesPanel userId={userId} />`.
+- Remove `ExternalLink` import; add `Pencil`, `Archive`, `daysLeft`, `Vacancy` type imports.
 
-### 3. Sticky polish
-- Add `backdrop-blur-md bg-background/85` to the sticky container so cards scrolling underneath aren't visible through gaps.
-- Tighten vertical padding (`pt-2 pb-2.5` → `py-2`).
-- Hide sub-filter row entirely when only one stream in group (already done) — keep.
+**Sidebar/redirect cleanup** (`src/components/admin/AdminSidebar.tsx`, `src/App.tsx`):
+- Remove the "Vacancies" sidebar item (now lives under "Opportunities").
+- Keep `/admin/vacancies` route alive but make it `<Navigate to="/admin/opportunities" replace />` so old bookmarks still land somewhere sensible.
 
-### 4. Header tweak
-- On mobile, center the header subtitle and reduce `mb-8` → `mb-5` so the filter bar sits closer to the title.
+## 2. Public: richer detail dialogs for CFPs / Moots / Competitions
+
+The current `DetailDialog` in `src/pages/Opportunities.tsx` shows a flat 2-column key/value `<dl>` — fine for vacancies but underwhelming for the long-form streams.
+
+**Edit `src/pages/Opportunities.tsx`:**
+- Replace flat `DetailFields` with a structured layout per stream:
+  - **Hero band** (top of dialog): big stream pill, title, organiser/publisher, prominent countdown chip in accent color, posted-on date.
+  - **Key facts grid** (3-col on desktop, 2-col mobile): icon + label + value tiles for the most important specs (Mode, Venue/Location, Deadline, Prize/Stipend, Word limit, Fee, Eligibility-summary, Peer review badge, Co-author badge, Event window).
+  - **About section**: full description with proper prose styling (`whitespace-pre-wrap`, increased line-height, max-width).
+  - **Eligibility callout**: separate bordered block when eligibility text is long (>80 chars), with `GraduationCap` icon header.
+  - **Source attribution footer**: small muted line "Curated by Locus" or "Source: X" with a divider above.
+  - **Sticky CTA bar** at dialog bottom: brutalist button + secondary "Copy link" button (deep-link to `/opportunities?focus=<id>`).
+- Use Lucide icons consistently: `Calendar`, `Clock`, `MapPin`, `Globe`, `Trophy`, `Coins`, `FileText`, `GraduationCap`, `BadgeCheck`, `Users`.
+- Vacancy detail keeps current shape but gains the same hero band + sticky CTA for visual parity.
+- Add scroll-fade gradient at the bottom of the scrollable area.
+
+**No DB or edge function changes.** All data already exists on the row.
+
+## Files
+
+- Edit: `src/pages/AdminOpportunities.tsx`
+- Edit: `src/pages/Opportunities.tsx` (DetailDialog + DetailFields rewrite)
+- Edit: `src/components/admin/AdminSidebar.tsx` (remove standalone Vacancies entry)
+- Edit: `src/App.tsx` (redirect `/admin/vacancies` → `/admin/opportunities`)
 
 ## Out of scope
-- Card grid layout (looks fine).
-- Detail dialog.
-- Empty/loading states.
-
-## QA
-- Test at 390px (mobile), 768px (tablet), 1280px (desktop).
-- Confirm 3 groups always fit one row on 320px+.
-- Confirm sub-filter pills scroll horizontally on mobile when 3+ streams.
+- Cron schedule for `send-opportunity-digest` (separate ask).
+- New fields on tables.
+- Public list-card redesign (only the modal).
