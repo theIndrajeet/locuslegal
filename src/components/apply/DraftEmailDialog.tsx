@@ -550,6 +550,7 @@ export default function DraftEmailDialog({ open, onOpenChange, target, onSent }:
       setWarnings(result.warnings ?? []);
       draftCache.set(target.id, { subject: result.subject, body: result.body });
       briefCache.set(target.id, brief);
+      setRewriteNotes("");
     } catch (e) {
       console.error("[DraftEmailDialog] generate threw", e);
       toast.error(e instanceof Error ? e.message : "Couldn't generate email");
