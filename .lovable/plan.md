@@ -1,35 +1,10 @@
-## Plan: Move Guidelines/Submission buttons to the marked area
+## Plan: Apply unified neobrutalist X button to Sheet primitive
 
-I found the buttons are still rendered above the title in the opportunity modal hero band. I’ll move them to the bottom row of that same hero band, aligned with the `Posted ...` timestamp.
+Update `src/components/ui/sheet.tsx` (lines 60–63) to replace the low-opacity close button with the same bold chip used in Dialog:
 
-### Change in `src/pages/Opportunities.tsx`
+- 36×36 chip, 2px foreground border, hard `2px 2px 0 0` shadow
+- Press-down hover (translate + shadow shrink), yellow accent on hover
+- `strokeWidth={3}` X icon, `z-50` to sit above content
+- Identical spacing (`right-3 top-3`) so it matches Dialog
 
-1. Remove the current quick-link block from above the modal title.
-2. Replace the standalone `Posted ...` paragraph with a flex row:
-
-```text
-Posted 4 MAY 2026                         [Guidelines] [Submission]
-```
-
-3. Keep the exact same link logic:
-   - `Guidelines` uses `brochure_url`
-   - `Submission` uses `submission_url`, `registration_url`, or `application_url` depending on stream
-4. Use responsive wrapping so on narrow screens it becomes:
-
-```text
-Posted 4 MAY 2026
-[Guidelines] [Submission]
-```
-
-### Result
-
-The hero band order will be:
-
-```text
-[type pill]                              [countdown]
-Title
-Organiser
-Posted 4 MAY 2026                       [Guidelines] [Submission]
-```
-
-No data/query/date logic changes.
+This single change updates every side sheet across the site (FirmDrawer, StartupDrawer, MobileFilterSheet, etc.).
