@@ -617,6 +617,150 @@ export type Database = {
         }
         Relationships: []
       }
+      cfps: {
+        Row: {
+          co_authorship_allowed: boolean
+          contact_email: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          eligibility: string | null
+          expires_at: string
+          id: string
+          notified_at: string | null
+          peer_reviewed: boolean
+          posted_at: string
+          publication_name: string
+          publication_type: Database["public"]["Enums"]["cfp_publication_type"]
+          source_credit: string | null
+          status: Database["public"]["Enums"]["opp_status"]
+          submission_deadline: string
+          submission_fee: string | null
+          submission_url: string | null
+          theme: string | null
+          updated_at: string
+          word_limit_max: number | null
+          word_limit_min: number | null
+        }
+        Insert: {
+          co_authorship_allowed?: boolean
+          contact_email?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          eligibility?: string | null
+          expires_at: string
+          id?: string
+          notified_at?: string | null
+          peer_reviewed?: boolean
+          posted_at?: string
+          publication_name: string
+          publication_type?: Database["public"]["Enums"]["cfp_publication_type"]
+          source_credit?: string | null
+          status?: Database["public"]["Enums"]["opp_status"]
+          submission_deadline: string
+          submission_fee?: string | null
+          submission_url?: string | null
+          theme?: string | null
+          updated_at?: string
+          word_limit_max?: number | null
+          word_limit_min?: number | null
+        }
+        Update: {
+          co_authorship_allowed?: boolean
+          contact_email?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          eligibility?: string | null
+          expires_at?: string
+          id?: string
+          notified_at?: string | null
+          peer_reviewed?: boolean
+          posted_at?: string
+          publication_name?: string
+          publication_type?: Database["public"]["Enums"]["cfp_publication_type"]
+          source_credit?: string | null
+          status?: Database["public"]["Enums"]["opp_status"]
+          submission_deadline?: string
+          submission_fee?: string | null
+          submission_url?: string | null
+          theme?: string | null
+          updated_at?: string
+          word_limit_max?: number | null
+          word_limit_min?: number | null
+        }
+        Relationships: []
+      }
+      competitions: {
+        Row: {
+          application_url: string | null
+          category: Database["public"]["Enums"]["competition_category"]
+          created_at: string
+          created_by: string
+          deadline: string
+          description: string | null
+          eligibility: string | null
+          event_date: string | null
+          expires_at: string
+          fee: string | null
+          id: string
+          mode: Database["public"]["Enums"]["event_mode"] | null
+          notified_at: string | null
+          organiser: string
+          posted_at: string
+          prize_or_stipend: string | null
+          source_credit: string | null
+          status: Database["public"]["Enums"]["opp_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          application_url?: string | null
+          category?: Database["public"]["Enums"]["competition_category"]
+          created_at?: string
+          created_by: string
+          deadline: string
+          description?: string | null
+          eligibility?: string | null
+          event_date?: string | null
+          expires_at: string
+          fee?: string | null
+          id?: string
+          mode?: Database["public"]["Enums"]["event_mode"] | null
+          notified_at?: string | null
+          organiser: string
+          posted_at?: string
+          prize_or_stipend?: string | null
+          source_credit?: string | null
+          status?: Database["public"]["Enums"]["opp_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          application_url?: string | null
+          category?: Database["public"]["Enums"]["competition_category"]
+          created_at?: string
+          created_by?: string
+          deadline?: string
+          description?: string | null
+          eligibility?: string | null
+          event_date?: string | null
+          expires_at?: string
+          fee?: string | null
+          id?: string
+          mode?: Database["public"]["Enums"]["event_mode"] | null
+          notified_at?: string | null
+          organiser?: string
+          posted_at?: string
+          prize_or_stipend?: string | null
+          source_credit?: string | null
+          status?: Database["public"]["Enums"]["opp_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       cv_analyses: {
         Row: {
           analysis: Json
@@ -847,6 +991,81 @@ export type Database = {
           status?: string
           suggested_value?: string
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      moots: {
+        Row: {
+          area_of_law: string | null
+          competition_name: string
+          created_at: string
+          created_by: string
+          description: string | null
+          edition: string | null
+          eligibility: string | null
+          event_end_date: string | null
+          event_start_date: string | null
+          expires_at: string
+          id: string
+          mode: Database["public"]["Enums"]["event_mode"]
+          notified_at: string | null
+          organiser: string
+          posted_at: string
+          prize_pool: string | null
+          registration_deadline: string
+          registration_url: string | null
+          source_credit: string | null
+          status: Database["public"]["Enums"]["opp_status"]
+          updated_at: string
+          venue: string | null
+        }
+        Insert: {
+          area_of_law?: string | null
+          competition_name: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          edition?: string | null
+          eligibility?: string | null
+          event_end_date?: string | null
+          event_start_date?: string | null
+          expires_at: string
+          id?: string
+          mode?: Database["public"]["Enums"]["event_mode"]
+          notified_at?: string | null
+          organiser: string
+          posted_at?: string
+          prize_pool?: string | null
+          registration_deadline: string
+          registration_url?: string | null
+          source_credit?: string | null
+          status?: Database["public"]["Enums"]["opp_status"]
+          updated_at?: string
+          venue?: string | null
+        }
+        Update: {
+          area_of_law?: string | null
+          competition_name?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          edition?: string | null
+          eligibility?: string | null
+          event_end_date?: string | null
+          event_start_date?: string | null
+          expires_at?: string
+          id?: string
+          mode?: Database["public"]["Enums"]["event_mode"]
+          notified_at?: string | null
+          organiser?: string
+          posted_at?: string
+          prize_pool?: string | null
+          registration_deadline?: string
+          registration_url?: string | null
+          source_credit?: string | null
+          status?: Database["public"]["Enums"]["opp_status"]
+          updated_at?: string
+          venue?: string | null
         }
         Relationships: []
       }
@@ -1558,6 +1777,7 @@ export type Database = {
         }
         Returns: number
       }
+      opportunities_lifecycle_tick: { Args: never; Returns: undefined }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {
@@ -1637,6 +1857,19 @@ export type Database = {
         | "user_submitted"
         | "other"
       bar_source_type: "pdf_extraction" | "topic_prompt" | "manual"
+      cfp_publication_type: "journal" | "blog" | "magazine" | "book" | "other"
+      competition_category:
+        | "essay"
+        | "quiz"
+        | "debate"
+        | "negotiation"
+        | "adr"
+        | "hackathon"
+        | "fellowship"
+        | "scholarship"
+        | "conference"
+        | "workshop"
+        | "other"
       degree_type:
         | "BA LLB"
         | "BBA LLB"
@@ -1644,6 +1877,7 @@ export type Database = {
         | "LLB (3yr)"
         | "LLM"
         | "Other"
+      event_mode: "offline" | "online" | "hybrid"
       moot_result:
         | "winner"
         | "runner_up"
@@ -1651,6 +1885,7 @@ export type Database = {
         | "quarter_finalist"
         | "participant"
       moot_role: "speaker" | "researcher" | "both"
+      opp_status: "live" | "archived"
       vacancy_opportunity_type: "internship" | "job"
       vacancy_status: "live" | "archived" | "deleted"
     }
@@ -1855,6 +2090,20 @@ export const Constants = {
         "other",
       ],
       bar_source_type: ["pdf_extraction", "topic_prompt", "manual"],
+      cfp_publication_type: ["journal", "blog", "magazine", "book", "other"],
+      competition_category: [
+        "essay",
+        "quiz",
+        "debate",
+        "negotiation",
+        "adr",
+        "hackathon",
+        "fellowship",
+        "scholarship",
+        "conference",
+        "workshop",
+        "other",
+      ],
       degree_type: [
         "BA LLB",
         "BBA LLB",
@@ -1863,6 +2112,7 @@ export const Constants = {
         "LLM",
         "Other",
       ],
+      event_mode: ["offline", "online", "hybrid"],
       moot_result: [
         "winner",
         "runner_up",
@@ -1871,6 +2121,7 @@ export const Constants = {
         "participant",
       ],
       moot_role: ["speaker", "researcher", "both"],
+      opp_status: ["live", "archived"],
       vacancy_opportunity_type: ["internship", "job"],
       vacancy_status: ["live", "archived", "deleted"],
     },
