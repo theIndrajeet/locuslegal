@@ -519,7 +519,7 @@ function DetailDialog({ item, onClose }: { item: AnyOpportunity | null; onClose:
 
         {/* Scrollable body */}
         <div className="relative">
-          <div className="px-6 py-5 space-y-6 overflow-y-auto max-h-[calc(88vh-13rem)]">
+          <div className="px-6 pt-5 pb-10 space-y-6 overflow-y-auto max-h-[calc(88vh-13rem)]">
             {/* Key facts grid */}
             {facts.length > 0 && (
               <section>
@@ -575,8 +575,8 @@ function DetailDialog({ item, onClose }: { item: AnyOpportunity | null; onClose:
             </div>
           </div>
 
-          {/* Scroll fade */}
-          <div aria-hidden className="pointer-events-none absolute bottom-0 inset-x-0 h-6 bg-gradient-to-t from-background to-transparent" />
+          {/* Scroll fade — short so the Source line isn't clipped */}
+          <div aria-hidden className="pointer-events-none absolute bottom-0 inset-x-0 h-3 bg-gradient-to-t from-background to-transparent" />
         </div>
 
         {/* Sticky CTA bar */}
