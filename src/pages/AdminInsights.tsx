@@ -155,7 +155,8 @@ export default function AdminInsights() {
     path: "/admin/insights",
   });
 
-  const { isAdmin, loading: adminLoading } = useAdminAccess();
+  const { isAdmin, ready: adminReady } = useAdminAccess();
+  const adminLoading = !adminReady;
   const [range, setRange] = useState<Range>("7d");
   const [summary, setSummary] = useState<Summary | null>(null);
   const [funnel, setFunnel] = useState<InstallFunnel | null>(null);
