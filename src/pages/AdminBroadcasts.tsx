@@ -116,7 +116,7 @@ export default function AdminBroadcasts() {
       return;
     }
     toast.success(`Queued to ${queued} recipients${skipped ? ` · ${skipped} skipped` : ""}${failed ? ` · ${failed} failed` : ""}`);
-    setSubject(""); setBodyMarkdown(""); setCtaLabel(""); setCtaUrl("");
+    setSubject(""); setBodyMarkdown(""); setCtaLabel(""); setCtaUrl(""); setLoadedFrom(null);
     void loadHistory();
   };
 
