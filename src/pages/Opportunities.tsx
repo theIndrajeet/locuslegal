@@ -69,12 +69,12 @@ export default function Opportunities() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      const nowIso = new Date().toISOString();
       const [vacRes, cfpRes, mootRes, compRes] = await Promise.all([
-        supabase.from("vacancies").select("*").in("status", ["live", "archived"]).gt("expires_at", cutoff),
-        supabase.from("cfps").select("*").in("status", ["live", "archived"]).gt("expires_at", cutoff),
-        supabase.from("moots").select("*").in("status", ["live", "archived"]).gt("expires_at", cutoff),
-        supabase.from("competitions").select("*").in("status", ["live", "archived"]).gt("expires_at", cutoff),
+        supabase.from("vacancies").select("*").eq("status", "live").gt("expires_at", nowIso),
+        supabase.from("cfps").select("*").eq("status", "live").gt("expires_at", nowIso),
+        supabase.from("moots").select("*").eq("status", "live").gt("expires_at", nowIso),
+        supabase.from("competitions").select("*").eq("status", "live").gt("expires_at", nowIso),
       ]);
       if (cancelled) return;
       const merged: AnyOpportunity[] = [];
