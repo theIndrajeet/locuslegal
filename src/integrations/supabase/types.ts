@@ -1710,7 +1710,7 @@ export type Database = {
           display_name: string
           email: string
           id: string
-          is_already_admin: boolean
+          roles: string[]
           username: string
         }[]
       }
@@ -1773,7 +1773,17 @@ export type Database = {
         }[]
       }
       get_public_profile: { Args: { p_username: string }; Returns: Json }
-      grant_admin_role: { Args: { p_user_id: string }; Returns: undefined }
+      grant_role: {
+        Args: {
+          p_role: Database["public"]["Enums"]["app_role"]
+          p_user_id: string
+        }
+        Returns: undefined
+      }
+      has_admin_scope: {
+        Args: { scope: Database["public"]["Enums"]["app_role"]; uid: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1790,6 +1800,7 @@ export type Database = {
           email: string
           id: string
           is_self: boolean
+          roles: string[]
           username: string
         }[]
       }
@@ -1816,7 +1827,13 @@ export type Database = {
           read_ct: number
         }[]
       }
-      revoke_admin_role: { Args: { p_user_id: string }; Returns: undefined }
+      revoke_role: {
+        Args: {
+          p_role: Database["public"]["Enums"]["app_role"]
+          p_user_id: string
+        }
+        Returns: undefined
+      }
       vacancies_lifecycle_tick: { Args: never; Returns: undefined }
     }
     Enums: {
