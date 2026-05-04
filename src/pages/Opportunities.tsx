@@ -473,14 +473,15 @@ function DetailDialog({ item, onClose }: { item: AnyOpportunity | null; onClose:
   const showEligibilityCallout = !!eligibility && eligibility.length > 80;
 
   const copyLink = async () => {
-    const url = `${window.location.origin}/opportunities?focus=${item.id}`;
-    try {
-      await navigator.clipboard.writeText(url);
+    const url = withRef(`${window.location.origin}/opportunities?focus=${item.id}`, "opportunity-share");
+    const text = `${titleOf(item)} — ${organiserOf(item)} · via Locus`;
+    const r = await shareOrCopy({ title: "Locus — Opportunity", text, url });
+    if (r === "copied") {
       setCopied(true);
       toast.success("Link copied");
       setTimeout(() => setCopied(false), 1800);
-    } catch {
-      toast.error("Couldn't copy link");
+    } else if (r === "failed") {
+      toast.error("Couldn't share");
     }
   };
 
