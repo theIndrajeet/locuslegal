@@ -1,28 +1,22 @@
-## What's wrong
+## Premium-up the Directory firm cards
 
-The "Marked as open to opportunities" notice in the screenshot is a **sonner toast** (fired from `src/components/app/IdentityRow.tsx:41` when the user toggles their Open/Closed badge). Two problems:
+The "before" screenshot showed three problems in the card top-right corner:
+1. Empty Compare box looks like a missing checkbox sitting next to the share icon.
+2. Rating "5" pill crashes into the title row, fighting the share/compare cluster.
+3. Title gets squeezed → long firm names truncate prematurely.
 
-1. **It sits at the bottom** of the screen, where it overlaps the mobile dock and the Applications card — feels like part of the page rather than a notification. Sonner's default position is `bottom-right`, but on narrow mobile viewports it stretches across the bottom.
-2. **It lingers** because the global Toaster has no explicit `duration` — it inherits sonner's 4s default, which on mobile (where the user keeps the screen still) reads as "stuck there forever".
+### The fix (one file: `src/pages/Directory.tsx`, firm card block)
 
-This affects every toast across the app (`shareOrCopy` confirmations, save confirmations, error toasts, etc.) — they're all in the wrong spot.
-
-## The fix
-
-One file: `src/components/ui/sonner.tsx`.
-
-- Add `position="top-center"` to the global `<Toaster>` so every toast appears centered at the top of the viewport, well clear of the mobile dock.
-- Add `duration={3000}` so toasts auto-dismiss after 3 seconds (was implicit 4s).
-- Keep all existing class styling intact.
-
-That's it — every toast site (IdentityRow, share buttons, profile saves, etc.) automatically gets the new position and duration. No per-call changes needed.
+- **Top-right cluster:** Share icon stays always visible. Compare box becomes invisible by default and **fades in on card hover** OR when the user already has at least one item in the compare list (so an active session never has hidden controls). When the firm itself is in the compare list, the box stays solid yellow.
+- **Title row:** drop the rating pill from this row; title gets the full card width minus a small `pr-10` gutter for the share button. Two-line firm names now breathe.
+- **Rating moves into the chip row** (right next to Tier 1 / Law Firm / Verified) as a clean inline marker — `★ 5` in accent yellow, pushed right with `ml-auto`. No pill background, just star + number, so it reads as metadata rather than a competing badge.
 
 ### Out of scope
 
-- Replacing the toast with an inline pill on IdentityRow — the toast pattern is correct, it's just positioned badly.
-- Changing the `toast.success(...)` copy in IdentityRow.
-- Touching the legacy `<Toaster />` from `@/components/ui/toaster` (shadcn radix toaster) — it's not the one rendering this message; sonner is.
+- Startup cards already have a clean corner (just share icon) — no change needed.
+- CompareBar component itself.
+- FirmDrawer rating display.
 
 ### File touched
 
-- `src/components/ui/sonner.tsx` — add `position` and `duration` props.
+- `src/pages/Directory.tsx` — firm card top section only (~lines 451–501).

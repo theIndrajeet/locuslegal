@@ -448,8 +448,8 @@ export default function Directory() {
                     style={{ animationDelay: `${Math.min(i * 30, 300)}ms`, animationFillMode: "both" }}
                     onClick={() => { setDrawerFirm(f); setDrawerOpen(true); }}
                   >
-                    {/* Top-right actions: Share + Compare */}
-                    <div className="absolute top-3 right-3 flex items-center gap-1.5 z-10">
+                    {/* Top-right actions: Share always; Compare reveals on hover or when active */}
+                    <div className="absolute top-3 right-3 flex items-center gap-1 z-10">
                       <ShareIconButton
                         size="sm"
                         label="Share this firm"
@@ -463,30 +463,27 @@ export default function Directory() {
                       />
                       <button
                         onClick={(e) => { e.stopPropagation(); toggleCompare(f); }}
-                        className={`h-7 w-7 rounded-md border-2 flex items-center justify-center text-xs transition-all ${
+                        className={`h-7 w-7 rounded-md border-2 flex items-center justify-center transition-all ${
                           isCompared
-                            ? "bg-accent border-accent text-accent-foreground"
-                            : "border-border/40 text-transparent hover:border-accent/40"
+                            ? "bg-accent border-accent text-accent-foreground opacity-100"
+                            : compareList.length > 0
+                              ? "border-border/60 text-muted-foreground hover:border-accent hover:text-accent opacity-100"
+                              : "border-border/40 text-muted-foreground hover:border-accent hover:text-accent opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
                         }`}
-                        title="Compare"
-                        aria-label="Compare this firm"
+                        title={isCompared ? "Remove from compare" : "Add to compare"}
+                        aria-label={isCompared ? "Remove from compare" : "Add to compare"}
                       >
-                        {isCompared && <GitCompareArrows size={12} />}
+                        <GitCompareArrows size={12} />
                       </button>
                     </div>
 
-                    <div className="flex items-start justify-between gap-2 mb-3 pr-20">
+                    <div className="mb-3 pr-10">
                       <h3 className="font-heading text-base font-bold leading-tight group-hover:text-accent transition-colors line-clamp-2">
                         {f.name}
                       </h3>
-                      {f.rating && (
-                        <span className="flex items-center gap-1 text-xs font-semibold bg-accent/10 text-accent px-2 py-1 rounded-full whitespace-nowrap shrink-0">
-                          <Star size={11} /> {f.rating}
-                        </span>
-                      )}
                     </div>
 
-                    <div className="flex flex-wrap gap-2 mb-3">
+                    <div className="flex flex-wrap items-center gap-2 mb-3">
                       <span className="text-[11px] font-medium bg-secondary text-secondary-foreground px-2 py-0.5 rounded-full">
                         {f.tier}
                       </span>
@@ -496,6 +493,11 @@ export default function Directory() {
                       {(f as { verified?: string }).verified === "verified" && (
                         <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-accent text-accent-foreground border border-foreground px-2 py-0.5 rounded-full">
                           <ShieldCheck size={10} /> Verified
+                        </span>
+                      )}
+                      {f.rating && (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-accent ml-auto whitespace-nowrap">
+                          <Star size={11} className="fill-accent" /> {f.rating}
                         </span>
                       )}
                     </div>
