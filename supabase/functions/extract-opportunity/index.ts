@@ -14,7 +14,13 @@ const SYSTEMS: Record<Stream, string> = {
 - publication_name: required (e.g. "NLSIR Vol 38" or the symposium / journal name).
 - publication_type: one of journal | blog | magazine | other.
 - theme: short topic, null if generic.
-- submission_deadline: ISO datetime. CRITICAL: if the post lists multiple dates (registration, abstract, presentation, full paper), pick the ABSTRACT submission deadline (or the headline submission deadline when there is no abstract stage). Do NOT pick the registration date or the presentation/event date. If only a date is given, use end-of-day UTC (T23:59:59Z).
+- submission_deadline: ISO datetime, OR null. STRICT RULES:
+  * The date MUST appear LITERALLY in the text (e.g. "Deadline: 30 May 2026", "Last date: ...", "Submissions close on ...").
+  * If the post says "rolling", "year-round", "ongoing", "all year round", "on a rolling basis", or has NO explicit date, return null. Do NOT invent a date.
+  * NEVER fall back to December 31, end-of-year, end-of-month, or "+30 days from today". If unsure, return null.
+  * If multiple dates appear (registration, abstract, presentation, full paper), pick the one literally labelled the SUBMISSION / LAST DATE deadline. Prefer the ABSTRACT deadline when both abstract and full paper deadlines are listed.
+  * Do NOT pick the event/presentation date.
+  * If only a date is given (no time), use end-of-day UTC (T23:59:59Z).
 - word_limit_min / word_limit_max: integers (use the abstract limits if both abstract and full paper limits are given), null if absent.
 - co_authorship_allowed: boolean (default false if unclear).
 - submission_fee: free-form string (e.g. "Free", "INR 500"), null if unspecified.
@@ -32,7 +38,7 @@ const SYSTEMS: Record<Stream, string> = {
 - area_of_law: short string, null if absent.
 - mode: one of online | offline | hybrid (default offline).
 - event_start_date / event_end_date: YYYY-MM-DD or null.
-- registration_deadline: ISO datetime. This is the REGISTRATION CLOSE date, not the event date or memorial date. End-of-day UTC if date-only.
+- registration_deadline: ISO datetime, OR null. STRICT: must appear literally in the text as a registration-close date. If the post only mentions the event/memorial date or says "rolling", return null. Never invent a date, never fall back to Dec 31 / end-of-year. End-of-day UTC if date-only.
 - venue: city/place, null if online.
 - prize_pool: free-form, null if unspecified.
 - eligibility: one-line, null if not stated.
@@ -44,7 +50,7 @@ const SYSTEMS: Record<Stream, string> = {
 - title: required.
 - organiser: required.
 - category: one of essay | quiz | research_paper | policy | case_study | negotiation | mediation | client_counselling | hackathon | debate | drafting | other.
-- deadline: ISO datetime. This is the PRIMARY submission/application deadline, not the event date. End-of-day UTC if date-only.
+- deadline: ISO datetime, OR null. STRICT: must appear literally in the text as the application/submission deadline. If only the event date is given, or the post says "rolling" / has no date, return null. Never invent a date, never fall back to Dec 31 / end-of-year. End-of-day UTC if date-only.
 - event_date: YYYY-MM-DD or null.
 - mode: online | offline | hybrid or null.
 - prize_or_stipend: free-form, null if unspecified.
@@ -65,7 +71,7 @@ const TOOLS: Record<Stream, any> = {
         publication_name: { type: "string" },
         publication_type: { type: "string", enum: ["journal", "blog", "magazine", "other"] },
         theme: { type: ["string", "null"] },
-        submission_deadline: { type: "string" },
+        submission_deadline: { type: ["string", "null"] },
         word_limit_min: { type: ["integer", "null"] },
         word_limit_max: { type: ["integer", "null"] },
         co_authorship_allowed: { type: "boolean" },
@@ -78,7 +84,7 @@ const TOOLS: Record<Stream, any> = {
         description: { type: ["string", "null"] },
         source_credit: { type: ["string", "null"] },
       },
-      required: ["publication_name", "publication_type", "submission_deadline"],
+      required: ["publication_name", "publication_type"],
       additionalProperties: false,
     },
   },
@@ -94,7 +100,7 @@ const TOOLS: Record<Stream, any> = {
         mode: { type: "string", enum: ["online", "offline", "hybrid"] },
         event_start_date: { type: ["string", "null"] },
         event_end_date: { type: ["string", "null"] },
-        registration_deadline: { type: "string" },
+        registration_deadline: { type: ["string", "null"] },
         venue: { type: ["string", "null"] },
         prize_pool: { type: ["string", "null"] },
         eligibility: { type: ["string", "null"] },
@@ -103,7 +109,7 @@ const TOOLS: Record<Stream, any> = {
         description: { type: ["string", "null"] },
         source_credit: { type: ["string", "null"] },
       },
-      required: ["competition_name", "organiser", "registration_deadline"],
+      required: ["competition_name", "organiser"],
       additionalProperties: false,
     },
   },
@@ -115,7 +121,7 @@ const TOOLS: Record<Stream, any> = {
         title: { type: "string" },
         organiser: { type: "string" },
         category: { type: "string", enum: ["essay", "quiz", "research_paper", "policy", "case_study", "negotiation", "mediation", "client_counselling", "hackathon", "debate", "drafting", "other"] },
-        deadline: { type: "string" },
+        deadline: { type: ["string", "null"] },
         event_date: { type: ["string", "null"] },
         mode: { type: ["string", "null"], enum: ["online", "offline", "hybrid", null] },
         prize_or_stipend: { type: ["string", "null"] },
@@ -126,7 +132,7 @@ const TOOLS: Record<Stream, any> = {
         description: { type: ["string", "null"] },
         source_credit: { type: ["string", "null"] },
       },
-      required: ["title", "organiser", "category", "deadline"],
+      required: ["title", "organiser", "category"],
       additionalProperties: false,
     },
   },
