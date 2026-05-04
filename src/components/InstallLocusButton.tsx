@@ -197,19 +197,36 @@ export default function InstallLocusButton() {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 8, scale: 0.96 }}
                   transition={{ duration: 0.2, ease: EASE }}
-                  className="bg-background border-2 border-foreground rounded-2xl px-4 py-3 shadow-[4px_4px_0_0_hsl(var(--accent))] max-w-xs"
+                  className="bg-background border-2 border-foreground rounded-2xl px-4 py-3 shadow-[4px_4px_0_0_hsl(var(--accent))] max-w-[280px]"
                 >
-                  <div className="font-sora font-bold text-sm text-foreground mb-1.5">
+                  <div className="font-sora font-bold text-sm text-foreground mb-2">
                     Install Loc<span className="text-accent">us</span> on iPhone
                   </div>
-                  <div className="flex items-center flex-wrap gap-1.5 text-muted-foreground font-inter text-xs leading-relaxed">
-                    <span>Tap</span>
-                    <Share size={14} strokeWidth={2.4} className="text-accent" />
-                    <span>then</span>
-                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 border border-foreground/40 rounded">
-                      <Plus size={11} strokeWidth={2.6} />
-                      <span className="font-medium">Add to Home Screen</span>
-                    </span>
+                  <ol className="space-y-1.5 text-muted-foreground font-inter text-xs leading-relaxed">
+                    <li className="flex items-start gap-1.5">
+                      <span className="font-bold text-foreground shrink-0">1.</span>
+                      <span className="flex items-center flex-wrap gap-1.5">
+                        <span>Tap</span>
+                        <Share size={14} strokeWidth={2.4} className="text-accent" />
+                      </span>
+                    </li>
+                    <li className="flex items-start gap-1.5">
+                      <span className="font-bold text-foreground shrink-0">2.</span>
+                      <span>Scroll down → tap <span className="font-medium text-foreground">View More</span></span>
+                    </li>
+                    <li className="flex items-start gap-1.5">
+                      <span className="font-bold text-foreground shrink-0">3.</span>
+                      <span className="flex items-center flex-wrap gap-1.5">
+                        <span>Tap</span>
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 border border-foreground/40 rounded">
+                          <Plus size={11} strokeWidth={2.6} />
+                          <span className="font-medium">Add to Home Screen</span>
+                        </span>
+                      </span>
+                    </li>
+                  </ol>
+                  <div className="mt-2 pt-2 border-t border-foreground/10 text-muted-foreground/80 font-inter text-[11px] leading-snug">
+                    Give it a second — iPhone fetches the icon after you tap Add.
                   </div>
                 </motion.div>
               )}
