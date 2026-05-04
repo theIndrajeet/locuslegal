@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { UserCircle, LogOut, KeyRound, PenLine, User, ExternalLink, Shield, Briefcase } from "lucide-react";
+import { UserCircle, LogOut, KeyRound, PenLine, User, ExternalLink, Shield, Briefcase, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useAdminAccess } from "@/hooks/useAdminRole";
+import { useReplayTour } from "@/hooks/useReplayTour";
 import type { Session } from "@supabase/supabase-js";
 
 export default function ProfileMenu() {
@@ -15,6 +16,7 @@ export default function ProfileMenu() {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
   const { hasAnyScope, hasScope } = useAdminAccess();
+  const replayTour = useReplayTour();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -123,6 +125,15 @@ export default function ProfileMenu() {
               className="flex items-center gap-2 w-full px-3 py-2 text-sm text-foreground rounded-md hover:bg-muted transition-colors"
             >
               <KeyRound size={16} /> Change Password
+            </button>
+
+            <Divider />
+
+            <button
+              onClick={() => { setOpen(false); replayTour(); }}
+              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-foreground rounded-md hover:bg-muted transition-colors"
+            >
+              <Sparkles size={16} /> Replay product tour
             </button>
 
             <Divider />
