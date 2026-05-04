@@ -10,7 +10,14 @@ import {
   MapPin,
   Trophy,
   Loader2,
+  Calendar,
+  BadgeCheck,
+  Users,
+  Mail,
+  Link2,
+  Check,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
