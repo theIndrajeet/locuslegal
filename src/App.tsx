@@ -51,6 +51,7 @@ const BetaChecklist = lazy(routeImports.betaChecklist as never);
 const BetaRound2 = lazy(routeImports.betaRound2 as never);
 const NotFound = lazy(routeImports.notFound as never);
 const DockLab = lazy(() => import("./pages/DockLab"));
+const TourLab = lazy(() => import("./pages/TourLab"));
 const Opportunities = lazy(() => import("./pages/Opportunities"));
 const AdminOpportunities = lazy(() => import("./pages/AdminOpportunities"));
 const AdminAdmins = lazy(() => import("./pages/AdminAdmins"));
@@ -161,6 +162,7 @@ const App = () => (
                   <Route path="/opportunities" element={<Opportunities />} />
                   <Route path="/opportunities-preview" element={<Navigate to="/opportunities" replace />} />
                   <Route path="/dock-lab" element={<DockLab />} />
+                  <Route path="/tour-lab" element={<TourLab />} />
                 </Route>
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
