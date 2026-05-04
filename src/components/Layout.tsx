@@ -8,6 +8,7 @@ import AppTour from "./tour/AppTour";
 // Defer the mobile dock — it's a fixed-position overlay that only appears on
 // scroll, so it doesn't need to be in the home-page critical bundle.
 const MobileBottomDock = lazy(() => import("./MobileBottomDock"));
+const InstallLocusButton = lazy(() => import("./InstallLocusButton"));
 
 export default function Layout() {
   // Auth state is handled by useAuthSession + Auth.tsx directly. We deliberately
@@ -26,6 +27,7 @@ export default function Layout() {
         <Footer />
         <Suspense fallback={null}>
           <MobileBottomDock />
+          <InstallLocusButton />
         </Suspense>
       </div>
     </AppTour>
