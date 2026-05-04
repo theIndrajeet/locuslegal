@@ -106,18 +106,18 @@ export default function Opportunities() {
   return (
     <div className="min-h-screen bg-background pt-16">
       <div className="max-w-6xl mx-auto px-4 py-8 md:py-12">
-        <header className="mb-8 text-center md:text-left">
+        <header className="mb-5 md:mb-8 text-center md:text-left">
           <h1 className="font-heading text-4xl md:text-5xl font-extrabold tracking-tight text-foreground">
             Opportunit<span className="text-accent">ies</span>
           </h1>
-          <p className="mt-2 text-base md:text-lg text-muted-foreground max-w-2xl">
+          <p className="mt-2 text-sm md:text-lg text-muted-foreground max-w-2xl mx-auto md:mx-0">
             Internships, jobs, calls for papers, moots, and competitions —
             curated, in one place. {liveCount} live right now.
           </p>
         </header>
 
-        <div className="sticky top-16 z-10 bg-background -mx-1 px-1 pt-2 pb-3 mb-6 space-y-3">
-          <div className="flex flex-wrap justify-center gap-2 border-b-2 border-foreground/15 pb-3">
+        <div className="sticky top-16 z-10 -mx-4 px-4 py-2 mb-6 bg-background/85 backdrop-blur-md space-y-2.5">
+          <div className="grid grid-cols-3 gap-2">
             {GROUPS.map((g) => {
               const active = activeGroup === g.key;
               const groupCount = items.filter((i) => g.streams.includes(i.stream)).length;
@@ -126,14 +126,17 @@ export default function Opportunities() {
                   key={g.key}
                   onClick={() => { setActiveGroup(g.key); setFilter(null); }}
                   className={cn(
-                    "inline-flex items-center gap-2 px-4 py-2 rounded-xl border-2 text-sm font-bold uppercase tracking-wider transition-all",
+                    "flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 px-2 py-2.5 rounded-xl border-2 text-xs sm:text-sm font-bold uppercase tracking-wider transition-all",
                     active
                       ? "border-foreground bg-foreground text-background shadow-[3px_3px_0_0_hsl(var(--accent))]"
                       : "border-foreground/70 bg-background text-foreground hover:bg-muted shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_0_hsl(var(--foreground))]",
                   )}
                 >
-                  {g.label}
-                  <span className={cn("text-[10px] px-1.5 py-0.5 rounded-md font-mono", active ? "bg-background/20 text-background" : "bg-muted text-muted-foreground")}>
+                  <span>{g.label}</span>
+                  <span className={cn(
+                    "text-[10px] px-1.5 rounded-md font-mono leading-tight",
+                    active ? "opacity-70" : "bg-muted text-muted-foreground",
+                  )}>
                     {groupCount}
                   </span>
                 </button>
@@ -142,11 +145,11 @@ export default function Opportunities() {
           </div>
 
           {currentGroup.streams.length > 1 && (
-            <div className="flex flex-wrap justify-center gap-2">
+            <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4">
               <button
                 onClick={() => setFilter(null)}
                 className={cn(
-                  "inline-flex items-center px-3 py-1.5 rounded-full border-2 text-xs font-bold uppercase tracking-wider transition-all",
+                  "shrink-0 whitespace-nowrap inline-flex items-center px-3 py-1.5 rounded-full border-2 text-xs font-bold uppercase tracking-wider transition-all",
                   filter === null
                     ? "border-foreground bg-foreground text-background"
                     : "border-foreground/40 bg-background text-foreground hover:bg-muted",
@@ -162,7 +165,7 @@ export default function Opportunities() {
                     key={s}
                     onClick={() => setFilter(s)}
                     className={cn(
-                      "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border-2 text-xs font-bold uppercase tracking-wider transition-all",
+                      "shrink-0 whitespace-nowrap inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border-2 text-xs font-bold uppercase tracking-wider transition-all",
                       active
                         ? "border-foreground bg-foreground text-background"
                         : "border-foreground/40 bg-background text-foreground hover:bg-muted",
