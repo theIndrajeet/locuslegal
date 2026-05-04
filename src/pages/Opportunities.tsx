@@ -582,8 +582,8 @@ function DetailDialog({ item, onClose }: { item: AnyOpportunity | null; onClose:
                 <h4 className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground mb-2">
                   About
                 </h4>
-                <p className="text-sm text-foreground/85 whitespace-pre-wrap leading-relaxed max-w-prose">
-                  {item.description}
+                <p className="text-sm text-foreground/85 whitespace-pre-wrap leading-relaxed max-w-prose break-words">
+                  {linkifyText(item.description)}
                 </p>
               </section>
             )}
