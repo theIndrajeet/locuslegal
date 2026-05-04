@@ -1,24 +1,27 @@
-# Give the mobile dock more time before it collapses
+# Add Share button to Directory cards (Firms + Startups)
 
-## What happens today
-`src/components/MobileBottomDock.tsx` collapses the expanded nav pill back to the single active-page chip after **1.5 seconds** of idle (no scroll, no tap). That's too short — by the time you finish reading the labels, it's already gone.
+The FirmDrawer/StartupDrawer already have Share — but you have to open the drawer to use it. Add a Share2 icon directly on each grid card so it works at-a-glance, just like Vacancies.
 
-```ts
-const IDLE_MS = 1500; // line 38
-```
+## Firm cards (`src/pages/Directory.tsx`, ~L448–459)
+Replace the lone Compare checkbox at top-right with a small action group: **Share + Compare**, both 24×24, gap-1.
 
-This timer fires:
-- on initial mount
-- after every scroll event
-- on route change
-- after tapping the collapsed pill to expand it
-- after using Search / context action / nav link
+- Share button: `Share2` icon, muted → accent on hover.
+- `e.stopPropagation()` so it doesn't open the drawer.
+- URL: `https://locus.legal/directory?firm={encodeURIComponent(name)}` + `withRef(..., "firm-card")`.
+- Copy: `"{name}, {city} — found via Locus"`.
+- Toast `"Link copied"` on copied result.
 
-## Change
-Bump `IDLE_MS` from `1500` to `4500` (4.5 seconds). Keeps the auto-collapse behaviour intact — just gives users meaningful time to read and tap.
+## Startup cards (`src/pages/Directory.tsx`, ~L615–649)
+Add an absolute-positioned `Share2` button at top-right corner (startup cards currently have nothing there).
 
-That's the only line touched. No other behaviour or visual change.
+- URL: `https://locus.legal/directory?mode=startups&startup={encodeURIComponent(name)}` + `withRef(..., "startup-card")`.
+- Copy: `"{name}{, city}{ · sector} — found via Locus"`.
 
-## Why 4.5s and not longer
-- 4–5s is the standard "snackbar / toast" dwell time — long enough to read 7 nav labels comfortably, short enough that the dock still feels responsive and gets out of the way.
-- If after testing you want it longer (e.g. 6s) or want it to **stay open until tap-outside**, that's a one-line tweak we can do next.
+## Imports
+Add to existing lucide import: `Share2`. Add at top: `import { toast } from "sonner";` and `import { shareOrCopy, withRef } from "@/lib/share";`.
+
+## What stays the same
+- Card click still opens drawer.
+- Compare checkbox unchanged in behaviour (just sits beside Share now on firm cards).
+- Drawer Share buttons remain (mirrors site-wide pattern).
+- No layout/visual disruption — Share icon is the same compact 24px treatment as Compare.
