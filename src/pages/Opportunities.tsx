@@ -296,33 +296,148 @@ function metaChips(i: AnyOpportunity) {
 }
 
 function DetailDialog({ item, onClose }: { item: AnyOpportunity | null; onClose: () => void }) {
-  return (
-    <Dialog open={!!item} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-        {item && (
-          <>
-            <DialogHeader>
-              <span className={cn("self-start inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded-md border-2 border-foreground/80 mb-2", STREAM_META[item.stream].pillBg, STREAM_META[item.stream].pillText)}>
-                {STREAM_META[item.stream].pillLabel}
-              </span>
-              <DialogTitle className="font-heading text-2xl font-extrabold tracking-tight">
-                {titleOf(item)}
-              </DialogTitle>
-              <DialogDescription className="text-sm">{organiserOf(item)}</DialogDescription>
-            </DialogHeader>
+  const [copied, setCopied] = useState(false);
+  useEffect(() => { if (!item) setCopied(false); }, [item]);
 
-            <div className="mt-4 space-y-4">
-              <DetailFields item={item} />
-              {item.description && (
-                <div>
-                  <h4 className="text-xs uppercase tracking-wider font-bold text-muted-foreground mb-1">About</h4>
-                  <p className="text-sm text-foreground/80 whitespace-pre-wrap">{item.description}</p>
+  if (!item) {
+    return (
+      <Dialog open={false} onOpenChange={(o) => !o && onClose()}>
+        <DialogContent />
+      </Dialog>
+    );
+  }
+
+  const meta = STREAM_META[item.stream];
+  const Icon = meta.icon;
+  const cd = countdown(deadlineOf(item));
+  const facts = factTiles(item);
+  const eligibility = (item as any).eligibility as string | null | undefined;
+  const showEligibilityCallout = !!eligibility && eligibility.length > 80;
+
+  const copyLink = async () => {
+    const url = `${window.location.origin}/opportunities?focus=${item.id}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      toast.success("Link copied");
+      setTimeout(() => setCopied(false), 1800);
+    } catch {
+      toast.error("Couldn't copy link");
+    }
+  };
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-2xl max-h-[88vh] p-0 overflow-hidden border-2 border-foreground shadow-[6px_6px_0_0_hsl(var(--foreground))]">
+        {/* Hero band */}
+        <div className={cn("relative px-6 pt-6 pb-5 border-b-2 border-foreground/80 overflow-hidden")}>
+          <span aria-hidden className={cn("absolute inset-x-0 top-0 h-1.5", meta.accentBg)} />
+          <div className="flex items-start justify-between gap-3 mb-3">
+            <span className={cn(
+              "inline-flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider px-2 py-1 rounded-md border-2 border-foreground/80",
+              meta.pillBg, meta.pillText,
+            )}>
+              <Icon size={12} />
+              {meta.pillLabel}
+            </span>
+            <span className={cn(
+              "shrink-0 inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border-2 border-foreground/80",
+              cd.tone === "expired" ? "bg-muted text-muted-foreground"
+                : cd.tone === "soon" ? "bg-background text-foreground"
+                : "bg-accent text-accent-foreground",
+            )}>
+              {cd.tone === "soon" ? <AlertTriangle size={12} /> : <Clock size={12} />}
+              {cd.label}
+            </span>
+          </div>
+          <DialogHeader className="space-y-1.5 text-left">
+            <DialogTitle className="font-heading text-2xl md:text-3xl font-extrabold tracking-tight leading-tight">
+              {titleOf(item)}
+            </DialogTitle>
+            <DialogDescription className="text-sm font-medium">
+              {organiserOf(item)}
+            </DialogDescription>
+          </DialogHeader>
+          <p className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground mt-3">
+            Posted {new Date(item.posted_at).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}
+          </p>
+        </div>
+
+        {/* Scrollable body */}
+        <div className="relative">
+          <div className="px-6 py-5 space-y-6 overflow-y-auto max-h-[calc(88vh-13rem)]">
+            {/* Key facts grid */}
+            {facts.length > 0 && (
+              <section>
+                <h4 className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground mb-2.5">
+                  Key details
+                </h4>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5">
+                  {facts.map((f, i) => (
+                    <div key={i} className="border-2 border-foreground/15 rounded-lg p-2.5 bg-muted/30">
+                      <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider font-bold text-muted-foreground mb-1">
+                        <f.icon size={11} />
+                        {f.label}
+                      </div>
+                      <div className="text-sm font-semibold text-foreground/90 break-words leading-snug">
+                        {f.value}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              )}
-              <CtaButton item={item} />
+              </section>
+            )}
+
+            {/* Eligibility callout (long text) */}
+            {showEligibilityCallout && (
+              <section className="border-2 border-foreground/80 rounded-xl p-4 bg-accent/10">
+                <div className="flex items-center gap-2 mb-2">
+                  <GraduationCap size={16} className="text-accent" />
+                  <h4 className="text-sm font-extrabold uppercase tracking-wider">Eligibility</h4>
+                </div>
+                <p className="text-sm text-foreground/85 leading-relaxed whitespace-pre-wrap">
+                  {eligibility}
+                </p>
+              </section>
+            )}
+
+            {/* About */}
+            {item.description && (
+              <section>
+                <h4 className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground mb-2">
+                  About
+                </h4>
+                <p className="text-sm text-foreground/85 whitespace-pre-wrap leading-relaxed max-w-prose">
+                  {item.description}
+                </p>
+              </section>
+            )}
+
+            {/* Source attribution */}
+            <div className="pt-3 border-t border-border/50">
+              <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
+                {item.source_credit ? `Source: ${item.source_credit}` : "Curated by Locus"}
+              </p>
             </div>
-          </>
-        )}
+          </div>
+
+          {/* Scroll fade */}
+          <div aria-hidden className="pointer-events-none absolute bottom-0 inset-x-0 h-6 bg-gradient-to-t from-background to-transparent" />
+        </div>
+
+        {/* Sticky CTA bar */}
+        <div className="border-t-2 border-foreground/80 bg-background px-6 py-3.5 flex items-center justify-between gap-3 flex-wrap">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={copyLink}
+            className="border-2 border-foreground/70 font-bold gap-1.5"
+          >
+            {copied ? <Check size={14} /> : <Link2 size={14} />}
+            {copied ? "Copied" : "Copy link"}
+          </Button>
+          <CtaButton item={item} />
+        </div>
       </DialogContent>
     </Dialog>
   );
@@ -353,64 +468,72 @@ function CtaButton({ item }: { item: AnyOpportunity }) {
   if (!href) {
     return <p className="text-xs text-muted-foreground italic">No public link provided. Check the source for details.</p>;
   }
+  const isMail = href.startsWith("mailto:");
   return (
     <Button
       asChild
-      className="font-bold border-2 border-foreground/80 shadow-[3px_3px_0_0_hsl(var(--foreground))] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_0_hsl(var(--foreground))]"
+      className="font-bold border-2 border-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_0_hsl(var(--foreground))]"
     >
       <a href={href} target={href.startsWith("http") ? "_blank" : undefined} rel="noreferrer">
-        {label} <ExternalLink size={14} className="ml-1.5" />
+        {label} {isMail ? <Mail size={14} className="ml-1.5" /> : <ExternalLink size={14} className="ml-1.5" />}
       </a>
     </Button>
   );
 }
 
-function DetailFields({ item }: { item: AnyOpportunity }) {
-  const rows: Array<[string, string]> = [];
+type FactTile = { icon: any; label: string; value: string };
+
+function factTiles(item: AnyOpportunity): FactTile[] {
+  const tiles: FactTile[] = [];
+  const fmtDate = (d: string) => new Date(d).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+  const fmtDateTime = (d: string) => new Date(d).toLocaleString(undefined, { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+
   switch (item.stream) {
     case "internship":
     case "job":
-      if (item.location) rows.push(["Location", item.location]);
-      if (item.stipend) rows.push(["Stipend", item.stipend]);
-      if (item.eligibility) rows.push(["Eligibility", item.eligibility]);
-      rows.push(["Deadline", new Date(item.expires_at).toLocaleDateString()]);
-      rows.push(["Apply via", item.application_email]);
+      tiles.push({ icon: Clock, label: "Deadline", value: fmtDate(item.expires_at) });
+      if (item.location) tiles.push({ icon: MapPin, label: "Location", value: item.location });
+      if (item.stipend) tiles.push({ icon: Coins, label: "Stipend", value: item.stipend });
+      if (item.eligibility && item.eligibility.length <= 80) tiles.push({ icon: GraduationCap, label: "Eligibility", value: item.eligibility });
+      tiles.push({ icon: Mail, label: "Apply via", value: item.application_email });
       break;
     case "cfp":
-      if (item.theme) rows.push(["Theme", item.theme]);
-      rows.push(["Deadline", new Date(item.deadline).toLocaleString()]);
-      if (item.word_limit_min || item.word_limit_max) rows.push(["Word limit", `${item.word_limit_min ?? "—"}–${item.word_limit_max ?? "—"}`]);
-      rows.push(["Co-authorship", item.co_authorship_allowed ? "Allowed" : "Single author"]);
-      if (item.submission_fee) rows.push(["Submission fee", item.submission_fee]);
-      rows.push(["Review", item.peer_reviewed ? "Peer-reviewed" : "Editorial"]);
-      if (item.eligibility) rows.push(["Eligibility", item.eligibility]);
+      tiles.push({ icon: Clock, label: "Submission deadline", value: fmtDateTime(item.deadline) });
+      if (item.theme) tiles.push({ icon: FileText, label: "Theme", value: item.theme });
+      tiles.push({ icon: FileText, label: "Publication", value: prettify(item.publication_type) });
+      if (item.word_limit_min || item.word_limit_max) {
+        tiles.push({ icon: FileText, label: "Word limit", value: `${item.word_limit_min ?? "—"}–${item.word_limit_max ?? "—"}` });
+      }
+      tiles.push({ icon: Users, label: "Authorship", value: item.co_authorship_allowed ? "Co-authors allowed" : "Single author" });
+      tiles.push({ icon: BadgeCheck, label: "Review", value: item.peer_reviewed ? "Peer-reviewed" : "Editorial" });
+      if (item.submission_fee) tiles.push({ icon: Coins, label: "Submission fee", value: item.submission_fee });
+      if (item.eligibility && item.eligibility.length <= 80) tiles.push({ icon: GraduationCap, label: "Eligibility", value: item.eligibility });
       break;
     case "moot":
-      rows.push(["Mode", prettify(item.mode)]);
-      if (item.venue) rows.push(["Venue", item.venue]);
-      if (item.event_start_date && item.event_end_date) rows.push(["Event dates", `${item.event_start_date} → ${item.event_end_date}`]);
-      rows.push(["Registration deadline", new Date(item.deadline).toLocaleString()]);
-      if (item.prize_pool) rows.push(["Prize pool", item.prize_pool]);
-      if (item.area_of_law) rows.push(["Area of law", item.area_of_law]);
-      if (item.eligibility) rows.push(["Eligibility", item.eligibility]);
+      tiles.push({ icon: Clock, label: "Registration deadline", value: fmtDateTime(item.deadline) });
+      tiles.push({ icon: Globe, label: "Mode", value: prettify(item.mode) });
+      if (item.venue) tiles.push({ icon: MapPin, label: "Venue", value: item.venue });
+      if (item.event_start_date && item.event_end_date) {
+        tiles.push({ icon: Calendar, label: "Event window", value: `${fmtDate(item.event_start_date)} → ${fmtDate(item.event_end_date)}` });
+      } else if (item.event_start_date) {
+        tiles.push({ icon: Calendar, label: "Event date", value: fmtDate(item.event_start_date) });
+      }
+      if (item.area_of_law) tiles.push({ icon: BadgeCheck, label: "Area of law", value: item.area_of_law });
+      if (item.prize_pool) tiles.push({ icon: Trophy, label: "Prize pool", value: item.prize_pool });
+      if (item.eligibility && item.eligibility.length <= 80) tiles.push({ icon: GraduationCap, label: "Eligibility", value: item.eligibility });
       break;
     case "competition":
-      rows.push(["Category", prettify(item.category)]);
-      if (item.mode) rows.push(["Mode", prettify(item.mode)]);
-      rows.push(["Deadline", new Date(item.deadline).toLocaleString()]);
-      if (item.event_date) rows.push(["Event date", item.event_date]);
-      if (item.prize_or_stipend) rows.push(["Prize / stipend", item.prize_or_stipend]);
-      if (item.fee) rows.push(["Fee", item.fee]);
-      if (item.eligibility) rows.push(["Eligibility", item.eligibility]);
+      tiles.push({ icon: Clock, label: "Deadline", value: fmtDateTime(item.deadline) });
+      tiles.push({ icon: BadgeCheck, label: "Category", value: prettify(item.category) });
+      if (item.mode) tiles.push({ icon: Globe, label: "Mode", value: prettify(item.mode) });
+      if (item.event_date) tiles.push({ icon: Calendar, label: "Event date", value: fmtDate(item.event_date) });
+      if (item.prize_or_stipend) tiles.push({ icon: Trophy, label: "Prize / stipend", value: item.prize_or_stipend });
+      if (item.fee) tiles.push({ icon: Coins, label: "Fee", value: item.fee });
+      if (item.eligibility && item.eligibility.length <= 80) tiles.push({ icon: GraduationCap, label: "Eligibility", value: item.eligibility });
       break;
   }
-  return (
-    <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2.5 text-sm">
-      {rows.map(([k, v]) => (
-        <div key={k} className="flex flex-col">
-          <dt className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">{k}</dt>
-          <dd className="text-foreground/90 break-words">{v}</dd>
-        </div>
+  return tiles;
+}
       ))}
     </dl>
   );
