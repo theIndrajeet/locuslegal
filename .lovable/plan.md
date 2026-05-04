@@ -1,27 +1,32 @@
-# Add Share button to Directory cards (Firms + Startups)
+# Add suggestion chips to "One line they should remember about you"
 
-The FirmDrawer/StartupDrawer already have Share — but you have to open the drawer to use it. Add a Share2 icon directly on each grid card so it works at-a-glance, just like Vacancies.
+Step 3 of the Draft Application Email wizard (`src/components/apply/DraftEmailDialog.tsx`, ~L781–799) currently has only a placeholder. Add tappable suggestion chips above the input — personalised first, then generic fallbacks — so users can pick one with a single tap and still edit it.
 
-## Firm cards (`src/pages/Directory.tsx`, ~L448–459)
-Replace the lone Compare checkbox at top-right with a small action group: **Share + Compare**, both 24×24, gap-1.
+## Where
+`src/components/apply/DraftEmailDialog.tsx`, the `step === 2` block.
 
-- Share button: `Share2` icon, muted → accent on hover.
-- `e.stopPropagation()` so it doesn't open the drawer.
-- URL: `https://locus.legal/directory?firm={encodeURIComponent(name)}` + `withRef(..., "firm-card")`.
-- Copy: `"{name}, {city} — found via Locus"`.
-- Toast `"Link copied"` on copied result.
+## How chips are built
+A `useMemo`-style inline list, max **5 chips**, dedup'd, each ≤140 chars:
 
-## Startup cards (`src/pages/Directory.tsx`, ~L615–649)
-Add an absolute-positioned `Share2` button at top-right corner (startup cards currently have nothing there).
+**Personalised (from loaded `user` profile, in order):**
+1. Top internship → `"{role} at {firm_name}"` (or `"Interned at {firm_name}"`)
+2. Top moot → `"{result} at {competition}"` (or `"Mooted at {competition}"`)
+3. Top publication → `"Published \"{title}\" in {publisher}"`
+4. CGPA ≥ 7.5 → `"{cgpa} CGPA at {college}"`
+5. Subjects of interest → `"Deep interest in {sub1} & {sub2}"`
 
-- URL: `https://locus.legal/directory?mode=startups&startup={encodeURIComponent(name)}` + `withRef(..., "startup-card")`.
-- Copy: `"{name}{, city}{ · sector} — found via Locus"`.
+**Generic fallbacks (fill remaining slots):**
+- Drafted my first commercial contract at 19
+- Comfortable with research, citations, and tight deadlines
+- Top of class in Contract Law
+- Ghost-wrote a published case comment last semester
+- Built my own legal-research workflow during COVID
 
-## Imports
-Add to existing lucide import: `Share2`. Add at top: `import { toast } from "sonner";` and `import { shareOrCopy, withRef } from "@/lib/share";`.
+## UI
+Small pill chips matching the existing wizard pill style (border, rounded-full, 11px, hover → accent border). Active chip (when its text exactly matches the input) gets the solid accent fill, mirroring `MODE_OPTIONS` / `DURATION_OPTIONS` selected state. Tapping a chip just sets `signature_line` — the input stays editable, the 0/140 counter still works.
 
-## What stays the same
-- Card click still opens drawer.
-- Compare checkbox unchanged in behaviour (just sits beside Share now on firm cards).
-- Drawer Share buttons remain (mirrors site-wide pattern).
-- No layout/visual disruption — Share icon is the same compact 24px treatment as Compare.
+## Why this is good
+- Zero friction for users who don't know what to write.
+- Personalised picks pull from data they already entered (internships / moots / publications / CGPA / subjects), so the first 1–2 chips will usually be ready-to-send.
+- Generic chips cover edge cases (no profile data yet).
+- Doesn't change wizard flow, layout, or generation pipeline — just gives input shortcuts.

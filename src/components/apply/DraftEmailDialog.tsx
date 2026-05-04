@@ -779,12 +779,67 @@ export default function DraftEmailDialog({ open, onOpenChange, target, onSent }:
               )}
 
               {/* Step 3: Edge */}
-              {step === 2 && (
+              {step === 2 && (() => {
+                const suggestions: string[] = [];
+                const seen = new Set<string>();
+                const push = (s: string) => {
+                  const t = s.trim();
+                  if (!t || t.length > 140) return;
+                  const key = t.toLowerCase();
+                  if (seen.has(key)) return;
+                  seen.add(key);
+                  suggestions.push(t);
+                };
+                const topInt = user?.internships?.[0];
+                if (topInt?.firm_name) {
+                  push(topInt.role ? `${topInt.role} at ${topInt.firm_name}` : `Interned at ${topInt.firm_name}`);
+                }
+                const topMoot = user?.moots?.[0];
+                if (topMoot?.competition_name) {
+                  push(topMoot.result ? `${topMoot.result} at ${topMoot.competition_name}` : `Mooted at ${topMoot.competition_name}`);
+                }
+                const topPub = user?.publications?.[0];
+                if (topPub?.title && topPub?.publisher) push(`Published "${topPub.title}" in ${topPub.publisher}`);
+                if (user?.cgpa && user.cgpa >= 7.5) push(`${user.cgpa} CGPA at ${user.college || "law school"}`);
+                if (user?.subjects_of_interest?.length) {
+                  const subs = user.subjects_of_interest.slice(0, 2).join(" & ");
+                  push(`Deep interest in ${subs}`);
+                }
+                push("Drafted my first commercial contract at 19");
+                push("Comfortable with research, citations, and tight deadlines");
+                push("Top of class in Contract Law");
+                push("Ghost-wrote a published case comment last semester");
+                push("Built my own legal-research workflow during COVID");
+                const picks = suggestions.slice(0, 5);
+
+                return (
                 <div className="space-y-3">
                   <div className="space-y-1.5">
                     <Label className="font-mono text-[10px] uppercase tracking-widest">
                       One line they should remember about you
                     </Label>
+                    {picks.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 pt-0.5">
+                        {picks.map((s) => {
+                          const active = brief.signature_line.trim() === s;
+                          return (
+                            <button
+                              key={s}
+                              type="button"
+                              onClick={() => setBrief((b) => ({ ...b, signature_line: s }))}
+                              title="Use this"
+                              className={`px-2.5 py-1 rounded-full border text-[11px] font-medium leading-tight transition-colors text-left ${
+                                active
+                                  ? "border-accent bg-accent text-accent-foreground"
+                                  : "border-border bg-background hover:bg-muted hover:border-accent/40"
+                              }`}
+                            >
+                              {s}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
                     <Input
                       value={brief.signature_line}
                       onChange={(e) =>
