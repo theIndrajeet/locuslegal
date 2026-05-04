@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef } from "react";
 import { Link, useParams, Navigate } from "react-router-dom";
 import { MDXProvider } from "@mdx-js/react";
-import { ArrowLeft, ArrowRight, Clock, Download, Layers, Users } from "lucide-react";
+import { ArrowLeft, ArrowRight, Clock, Download, Layers, Users, Share2 } from "lucide-react";
+import { toast } from "sonner";
+import { shareOrCopy, withRef } from "@/lib/share";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { getGuideBySlug, getNextGuide, type Audience } from "@/content/playbook";
 import { mdxComponents } from "@/components/playbook/mdx/mdxComponents";
@@ -120,6 +122,20 @@ export default function PlaybookGuide() {
                 >
                   {guide.audience}
                 </span>
+                <button
+                  type="button"
+                  aria-label="Share this guide"
+                  title="Share"
+                  onClick={async () => {
+                    const url = withRef(`${window.location.origin}/playbook/${slug}`, "playbook-reader");
+                    const text = `${guide.title} — a Locus Playbook guide`;
+                    const r = await shareOrCopy({ title: "Locus — Playbook", text, url });
+                    if (r === "copied") toast.success("Link copied");
+                  }}
+                  className="inline-flex items-center justify-center h-7 w-7 rounded-md text-muted-foreground hover:text-accent hover:bg-accent/10 transition-colors"
+                >
+                  <Share2 size={14} />
+                </button>
               </div>
             </div>
 

@@ -1,10 +1,13 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
+import { Share2 } from "lucide-react";
+import { toast } from "sonner";
 import { AREA_OF_LAW_LABELS, QUESTION_TYPE_LABELS } from "@/lib/bar/constants";
 import type { AreaOfLaw, Difficulty, QuestionType } from "@/lib/bar/types";
 import { isPremiumType } from "@/lib/bar/premium";
 import { PremiumBadge } from "@/components/bar/premium/PremiumBadge";
+import { shareOrCopy, withRef } from "@/lib/share";
 
 interface ChallengeCardProps {
   id: string;
@@ -35,15 +38,36 @@ export function ChallengeCard({
 }: ChallengeCardProps) {
   const preview = prompt.length > 120 ? prompt.slice(0, 120).trimEnd() + "…" : prompt;
 
+  const handleShare = async (e: React.MouseEvent | React.KeyboardEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const url = withRef(`${window.location.origin}/the-bar/challenge/${id}`, "bar-challenge");
+    const text = `Try this Bar challenge on Locus: ${preview}`;
+    const r = await shareOrCopy({ title: "Locus — The Bar", text, url });
+    if (r === "copied") toast.success("Link copied");
+  };
+
   const inner = (
     <Card
-      className={`border-2 border-border p-5 h-full flex flex-col gap-3 transition-all ${
+      className={`relative border-2 border-border p-5 h-full flex flex-col gap-3 transition-all ${
         disabled
           ? "opacity-50 cursor-not-allowed"
           : "hover:border-accent hover:-translate-y-0.5 hover:shadow-[4px_4px_0_0_hsl(var(--accent))] cursor-pointer"
       }`}
     >
-      <div className="flex items-start justify-between gap-2">
+      {!disabled && (
+        <button
+          type="button"
+          aria-label="Share this challenge"
+          title="Share"
+          onClick={handleShare}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleShare(e); }}
+          className="absolute top-2 right-2 z-10 inline-flex items-center justify-center h-7 w-7 rounded-md text-muted-foreground hover:text-accent hover:bg-accent/10 transition-colors"
+        >
+          <Share2 size={13} />
+        </button>
+      )}
+      <div className="flex items-start justify-between gap-2 pr-8">
         <div className="flex flex-wrap items-center gap-1.5">
           <Badge variant="outline" className="text-xs">
             {QUESTION_TYPE_LABELS[question_type]}

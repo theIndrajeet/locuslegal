@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import { usePageMeta } from "@/hooks/usePageMeta";
-import { FileText, Download, ScanSearch, CalendarCheck, Eye, ArrowRight, Pin } from "lucide-react";
+import { FileText, Download, ScanSearch, CalendarCheck, Eye, ArrowRight, Pin, Share2 } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
+import { toast } from "sonner";
+import { shareOrCopy, withRef } from "@/lib/share";
 import { useFeatureVotes } from "@/hooks/useFeatureVotes";
 import { FeatureVoteButton } from "@/components/FeatureVoteButton";
 import {
@@ -239,7 +241,7 @@ export default function Resources() {
                 </p>
 
                 {r.hasPreview ? (
-                  <div className="flex gap-3">
+                  <div className="flex flex-wrap gap-3">
                     <a
                       href={r.downloadHref}
                       download
@@ -254,6 +256,20 @@ export default function Resources() {
                     >
                       <Eye size={16} />
                       Preview
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Share this resource"
+                      title="Share"
+                      onClick={async () => {
+                        const url = withRef(`${window.location.origin}/resources?open=${r.previewKey}`, "resource-share");
+                        const text = `${r.title} — free legal resource on Locus`;
+                        const res = await shareOrCopy({ title: "Locus — Resources", text, url });
+                        if (res === "copied") toast.success("Link copied");
+                      }}
+                      className="inline-flex items-center justify-center h-10 w-10 rounded-lg border border-border text-muted-foreground hover:text-accent hover:border-accent/40 transition-all"
+                    >
+                      <Share2 size={16} />
                     </button>
                   </div>
                 ) : (

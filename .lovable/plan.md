@@ -1,30 +1,55 @@
-## Problem
+# Add Share buttons across Locus
 
-`/admin/admins` shows "No admins (0)" and the network tab shows a 400 on `rpc/list_admins`. Postgres logs confirm:
+## Where Share already exists (audit)
+- `VacancyCard` — Share2 button in card footer, uses `shareOrCopy` + `withRef` ✓
+- `FirmDrawer` — Share2 in firm detail drawer ✓
+- `bar/ResultScreen` — "Share result" after attempt ✓
+- `PublicProfile` — "Share profile" button ✓
 
-> ERROR: structure of query does not match function result type
+Pattern is identical everywhere: `Share2` lucide icon + `shareOrCopy({title, text, url: withRef(url, 'share')})` + toast on result.
 
-## Root Cause
+## Where Share is missing (gaps to fill)
 
-Both `public.list_admins()` and `public.find_user_for_admin(p_query)` declare their `email` return column as `text`, but they `SELECT u.email FROM auth.users u`, where `auth.users.email` is `character varying`. Postgres rejects the row shape — nothing comes back, the UI sees zero admins, and the search box would also fail the moment anyone typed.
+### 1. Opportunities (`src/pages/Opportunities.tsx`)
+- **`OpportunityCard`** (~L328) — add a small Share2 icon button in the card footer, alongside the existing CTA. Mirrors `VacancyCard` exactly.
+- **`DetailDialog`** (~L435) — add a "Share" button in the dialog header next to the close/CTA. URL: `https://locus.legal/opportunities?id={stream}-{id}` (use existing deep-link param if present, else just `/opportunities`).
+- Copy: `"{title} — {org} · via Locus"` for jobs/internships/CFPs/moots/competitions, ref=`opportunity-share`.
 
-This is why Ritika (and every other scoped admin) doesn't appear in "Current Admins" even though her `opportunities_admin` row exists in `user_roles`.
+### 2. Playbook (`src/components/playbook/GuideCard.tsx` + `src/pages/PlaybookGuide.tsx`)
+- **`GuideCard`** — small Share2 button in card corner. URL: `/playbook/{slug}`, ref=`playbook-card`.
+- **`PlaybookGuide`** reader — Share button in the guide header (next to MarkComplete). Copy: `"{guide title} — a Locus Playbook guide"`.
 
-## Fix
+### 3. Startups (`src/components/StartupDrawer.tsx`)
+- Mirror `FirmDrawer` exactly — Share2 button in drawer header. URL: `/directory?startup={slug}` (or current deep-link convention), ref=`startup-share`.
 
-Migration that re-creates both functions with an explicit `u.email::text` cast. Bodies are otherwise unchanged — same security check (`is_admin(auth.uid())`), same scopes, same column order.
+### 4. The Bar — Challenge (`src/components/bar/ChallengeCard.tsx`)
+- Add Share2 to the challenge card so users can share a specific challenge before attempting. URL: `/bar/c/{slug}` (or current route), ref=`bar-challenge`.
+- Copy: `"Try this Bar challenge on Locus: {title}"`.
+- (ResultScreen already has share — leave it.)
 
-Functions to update:
-- `public.list_admins()` — cast `u.email::text AS email`
-- `public.find_user_for_admin(p_query text)` — same cast
+### 5. Tools (`src/pages/Tools.tsx`)
+- Add a Share2 icon on each tool card. URL: `/tools#{tool-id}`, ref=`tool-share`.
+- Copy: `"{tool name} — free legal tool on Locus"`.
 
-No frontend changes needed. After the migration:
-- Current Admins list will populate (you, Ritika, and anyone else with an admin-family role)
-- The "Find a user" search will return results
-- Granting/revoking already works (those RPCs return `void`, no shape issue)
+### 6. Resources (`src/pages/Resources.tsx`)
+- Add Share2 next to each resource's Download button. URL: `/resources#{resource-id}`, ref=`resource-share`.
+- Copy: `"{resource title} — free legal resource on Locus"`.
 
-## Technical notes
+## Out of scope (intentionally skipped)
+- Admin pages, Auth, ProfileEdit, AppHome, ApplicationTracker — internal/private, sharing makes no sense.
+- Directory firm cards — already covered by `FirmDrawer`.
+- Index/Hero — site-wide, browser share covers this.
+- Bar Leaderboard / History — personal data, privacy concern.
 
-- Both functions stay `SECURITY DEFINER` with `search_path = public` and the existing `is_admin` gate.
-- We're not touching `auth.users` or any reserved schema — only re-defining two `public` functions.
-- No code, types, or RLS changes.
+## Implementation details
+- **Helper used everywhere:** `shareOrCopy` + `withRef` from `@/lib/share` (already exported).
+- **Icon:** `Share2` from `lucide-react`, `size={14}` for compact card buttons, `size={16}` for drawer/header buttons — matches existing usage.
+- **Button style:** `Button variant="neutral" size="sm"` (or `icon`) to match VacancyCard's neobrutalist treatment.
+- **Toast feedback:** on result `"shared"` → no toast (native sheet shown); `"copied"` → `toast.success("Link copied")`; `"failed"` → `toast.error("Couldn't share")`. Same as VacancyCard.
+- **URL building:** use `window.location.origin + path` then wrap in `withRef(url, '<source>')`. Always pass a `ref` value so we can attribute share traffic in analytics later.
+- **No new dependencies, no DB changes, no edge functions.** Pure UI addition.
+
+## Acceptance
+- Every card/drawer listed above has a visible Share2 button.
+- Clicking it opens the native share sheet on mobile, copies link on desktop, and toasts accordingly.
+- Each share URL contains a unique `ref=` value so we can later report which surface drove the most shares.

@@ -16,8 +16,10 @@ import {
   Mail,
   Link2,
   Check,
+  Share2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { shareOrCopy, withRef } from "@/lib/share";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -371,13 +373,32 @@ function OpportunityCard({ item, onClick }: { item: AnyOpportunity; onClick: () 
         ))}
       </div>
 
-      <div className="mt-4 pt-3 border-t border-border/50 flex items-center justify-between">
+      <div className="mt-4 pt-3 border-t border-border/50 flex items-center justify-between gap-2">
         <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold truncate">
           {item.source_credit ? `Source: ${item.source_credit}` : "Curated by Locus"}
         </span>
-        <span className="text-xs font-bold text-accent inline-flex items-center gap-1 group-hover:underline shrink-0">
-          View details <ExternalLink size={12} />
-        </span>
+        <div className="flex items-center gap-1 shrink-0">
+          <span
+            role="button"
+            tabIndex={0}
+            aria-label="Share this opportunity"
+            title="Share"
+            onClick={async (e) => {
+              e.stopPropagation();
+              const url = withRef(`${window.location.origin}/opportunities?focus=${item.id}`, "opportunity-share");
+              const text = `${titleOf(item)} — ${organiserOf(item)} · via Locus`;
+              const r = await shareOrCopy({ title: "Locus — Opportunity", text, url });
+              if (r === "copied") toast.success("Link copied");
+            }}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.stopPropagation(); (e.currentTarget as HTMLElement).click(); } }}
+            className="inline-flex items-center justify-center h-7 w-7 rounded-md text-muted-foreground hover:text-accent hover:bg-accent/10 transition-colors cursor-pointer"
+          >
+            <Share2 size={14} strokeWidth={2} />
+          </span>
+          <span className="text-xs font-bold text-accent inline-flex items-center gap-1 group-hover:underline">
+            View details <ExternalLink size={12} />
+          </span>
+        </div>
       </div>
     </button>
   );
@@ -452,14 +473,15 @@ function DetailDialog({ item, onClose }: { item: AnyOpportunity | null; onClose:
   const showEligibilityCallout = !!eligibility && eligibility.length > 80;
 
   const copyLink = async () => {
-    const url = `${window.location.origin}/opportunities?focus=${item.id}`;
-    try {
-      await navigator.clipboard.writeText(url);
+    const url = withRef(`${window.location.origin}/opportunities?focus=${item.id}`, "opportunity-share");
+    const text = `${titleOf(item)} — ${organiserOf(item)} · via Locus`;
+    const r = await shareOrCopy({ title: "Locus — Opportunity", text, url });
+    if (r === "copied") {
       setCopied(true);
       toast.success("Link copied");
       setTimeout(() => setCopied(false), 1800);
-    } catch {
-      toast.error("Couldn't copy link");
+    } else if (r === "failed") {
+      toast.error("Couldn't share");
     }
   };
 
@@ -608,8 +630,8 @@ function DetailDialog({ item, onClose }: { item: AnyOpportunity | null; onClose:
             onClick={copyLink}
             className="border-2 border-foreground/70 font-bold gap-1.5"
           >
-            {copied ? <Check size={14} /> : <Link2 size={14} />}
-            {copied ? "Copied" : "Copy link"}
+            {copied ? <Check size={14} /> : <Share2 size={14} />}
+            {copied ? "Copied" : "Share"}
           </Button>
           <div className="flex items-center gap-2 ml-auto flex-wrap">
             {(item as any).brochure_url ? (
