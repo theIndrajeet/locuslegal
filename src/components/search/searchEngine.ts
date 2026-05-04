@@ -32,7 +32,7 @@ const RESOURCES: ResourceIndex[] = [
 const PAGES: { title: string; href: string; description: string; keywords: string[] }[] = [
   { title: "Home", href: "/", description: "Locus landing page.", keywords: ["home", "landing"] },
   { title: "Directory", href: "/directory", description: "Search 3,600+ Indian law firms — 880+ direct emails.", keywords: ["firms", "lawyers", "search"] },
-  { title: "Vacancies", href: "/vacancies", description: "Live curated legal internship vacancies.", keywords: ["vacancies", "openings", "hiring", "jobs", "internship"] },
+  { title: "Opportunities", href: "/opportunities", description: "Live curated internships, jobs, CFPs, moots & competitions.", keywords: ["vacancies", "openings", "hiring", "jobs", "internship", "cfp", "moot", "competition", "opportunities"] },
   { title: "Playbook", href: "/playbook", description: "Step-by-step guides for law students.", keywords: ["guides", "case files"] },
   { title: "Resources", href: "/resources", description: "Templates, trackers, mentorship.", keywords: ["templates", "downloads"] },
   { title: "Tools", href: "/tools", description: "Legal document generators.", keywords: ["nda", "dpa", "contract"] },
@@ -50,19 +50,29 @@ let vacanciesCache: VacancyLite[] | null = null;
 let vacanciesPromise: Promise<VacancyLite[]> | null = null;
 let vacanciesAt = 0;
 
+type CfpLite = { id: string; publication_name: string; theme: string | null; expires_at: string };
+type MootLite = { id: string; competition_name: string; organiser: string; expires_at: string };
+type CompetitionLite = { id: string; title: string; category: string; organiser: string; expires_at: string };
+
+let cfpsCache: CfpLite[] | null = null;
+let mootsCache: MootLite[] | null = null;
+let compsCache: CompetitionLite[] | null = null;
+
 export async function ensureVacanciesLoaded(): Promise<VacancyLite[]> {
-  // 5-minute cache to avoid hammering Supabase on every keystroke
   if (vacanciesCache && Date.now() - vacanciesAt < 5 * 60_000) return vacanciesCache;
   if (vacanciesPromise) return vacanciesPromise;
   vacanciesPromise = (async () => {
-    const { data } = await supabase
-      .from("vacancies")
-      .select("id, firm_name, role, location, expires_at")
-      .eq("status", "live")
-      .gt("expires_at", new Date().toISOString())
-      .order("expires_at", { ascending: true })
-      .limit(20);
-    vacanciesCache = (data ?? []) as VacancyLite[];
+    const nowIso = new Date().toISOString();
+    const [vRes, cRes, mRes, kRes] = await Promise.all([
+      supabase.from("vacancies").select("id, firm_name, role, location, expires_at").eq("status", "live").gt("expires_at", nowIso).order("expires_at", { ascending: true }).limit(20),
+      (supabase.from("cfps") as any).select("id, publication_name, theme, expires_at").eq("status", "live").gt("expires_at", nowIso).limit(20),
+      (supabase.from("moots") as any).select("id, competition_name, organiser, expires_at").eq("status", "live").gt("expires_at", nowIso).limit(20),
+      (supabase.from("competitions") as any).select("id, title, category, organiser, expires_at").eq("status", "live").gt("expires_at", nowIso).limit(20),
+    ]);
+    vacanciesCache = (vRes.data ?? []) as VacancyLite[];
+    cfpsCache = (cRes.data ?? []) as CfpLite[];
+    mootsCache = (mRes.data ?? []) as MootLite[];
+    compsCache = (kRes.data ?? []) as CompetitionLite[];
     vacanciesAt = Date.now();
     vacanciesPromise = null;
     return vacanciesCache;
@@ -251,31 +261,64 @@ export function runSearch(rawQuery: string, firms: Firm[] | null): SearchOutput 
   }
   pageHits.sort((a, b) => b.score - a.score);
 
-  // Vacancies (only if cache populated; non-blocking)
-  const vacancyHits: SearchResult[] = [];
+  // Opportunities — vacancies + cfps + moots + competitions
+  const oppHits: SearchResult[] = [];
   if (vacanciesCache) {
     for (const v of vacanciesCache) {
-      const s =
-        scoreField(v.firm_name, q, 3) +
-        scoreField(v.role, q, 2) +
-        scoreField(v.location ?? "", q, 1);
-      if (s > 0) {
-        vacancyHits.push({
-          id: `vacancy-${v.id}`,
-          kind: "vacancy" as never,
-          title: `${v.firm_name} — ${v.role}`,
-          subtitle: v.location ?? "Live vacancy",
-          meta: "Apply",
-          href: `/vacancies#vacancy-${v.id}`,
-          score: s + 1,
-        });
-      }
+      const s = scoreField(v.firm_name, q, 3) + scoreField(v.role, q, 2) + scoreField(v.location ?? "", q, 1);
+      if (s > 0) oppHits.push({
+        id: `vacancy-${v.id}`, kind: "vacancy" as never,
+        title: `${v.firm_name} — ${v.role}`,
+        subtitle: v.location ?? "Live vacancy",
+        meta: "Vacancy",
+        href: `/opportunities?focus=${v.id}`,
+        score: s + 1,
+      });
     }
-    vacancyHits.sort((a, b) => b.score - a.score);
   }
+  if (cfpsCache) {
+    for (const c of cfpsCache) {
+      const s = scoreField(c.publication_name, q, 3) + scoreField(c.theme ?? "", q, 1.5);
+      if (s > 0) oppHits.push({
+        id: `cfp-${c.id}`, kind: "vacancy" as never,
+        title: c.publication_name,
+        subtitle: c.theme ?? "Call for Papers",
+        meta: "CFP",
+        href: `/opportunities?focus=${c.id}`,
+        score: s,
+      });
+    }
+  }
+  if (mootsCache) {
+    for (const m of mootsCache) {
+      const s = scoreField(m.competition_name, q, 3) + scoreField(m.organiser, q, 1.5);
+      if (s > 0) oppHits.push({
+        id: `moot-${m.id}`, kind: "vacancy" as never,
+        title: m.competition_name,
+        subtitle: m.organiser,
+        meta: "Moot",
+        href: `/opportunities?focus=${m.id}`,
+        score: s,
+      });
+    }
+  }
+  if (compsCache) {
+    for (const k of compsCache) {
+      const s = scoreField(k.title, q, 3) + scoreField(k.organiser, q, 1.2) + scoreField(k.category, q, 1);
+      if (s > 0) oppHits.push({
+        id: `comp-${k.id}`, kind: "vacancy" as never,
+        title: k.title,
+        subtitle: `${k.organiser} · ${k.category.replace(/_/g, " ")}`,
+        meta: "Competition",
+        href: `/opportunities?focus=${k.id}`,
+        score: s,
+      });
+    }
+  }
+  oppHits.sort((a, b) => b.score - a.score);
 
   const allGroups: SearchGroup[] = [
-    { kind: "vacancy" as never, label: "Live Vacancies", icon: Briefcase, results: vacancyHits.slice(0, 5) },
+    { kind: "vacancy" as never, label: "Live Opportunities", icon: Briefcase, results: oppHits.slice(0, 8) },
     { kind: "firm", label: "Firms", icon: Building2, results: firmHits },
     { kind: "startup", label: "Startups & SMEs", icon: Rocket, results: startupHits },
     { kind: "guide", label: "Playbook", icon: BookOpen, results: guideHits.slice(0, 6) },

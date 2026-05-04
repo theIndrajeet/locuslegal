@@ -132,7 +132,7 @@ export default function AdminDashboard() {
           loading={loading}
         />
         <StatCard
-          label="Live Vacancies"
+          label="Live Opportunities"
           value={stats.vacanciesLive}
           sub={`${stats.vacanciesExpiringSoon} expiring in 3d`}
           icon={Briefcase}
@@ -176,6 +176,12 @@ export default function AdminDashboard() {
             to="/admin/vacancies"
             title="Vacancies"
             description="Curate the live vacancy board with AI extraction."
+            icon={Briefcase}
+          />
+          <ToolTile
+            to="/admin/opportunities"
+            title="Opportunities"
+            description="Post CFPs, moots, and competitions with AI paste-extract."
             icon={Briefcase}
           />
           <ToolTile

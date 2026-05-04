@@ -4,7 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner, toast } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import Layout from "./components/Layout";
 import Index from "./pages/Index";
 import RouteSkeleton from "./components/RouteSkeleton";
@@ -40,7 +40,7 @@ const PublicProfile = lazy(routeImports.publicProfile as never);
 const AdminWaitlist = lazy(routeImports.adminWaitlist as never);
 const AdminBar = lazy(routeImports.adminBar as never);
 const AdminBeta = lazy(routeImports.adminBeta as never);
-const Vacancies = lazy(routeImports.vacancies as never);
+
 const AdminVacancies = lazy(routeImports.adminVacancies as never);
 const AdminDashboard = lazy(routeImports.adminDashboard as never);
 const AdminFirmSuggestions = lazy(routeImports.adminFirmSuggestions as never);
@@ -51,8 +51,8 @@ const BetaChecklist = lazy(routeImports.betaChecklist as never);
 const BetaRound2 = lazy(routeImports.betaRound2 as never);
 const NotFound = lazy(routeImports.notFound as never);
 const DockLab = lazy(() => import("./pages/DockLab"));
-const OpportunitiesPreview = lazy(() => import("./pages/OpportunitiesPreview"));
 const Opportunities = lazy(() => import("./pages/Opportunities"));
+const AdminOpportunities = lazy(() => import("./pages/AdminOpportunities"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -151,12 +151,13 @@ const App = () => (
                     <Route path="bar" element={<AdminBar />} />
                     <Route path="beta" element={<AdminBeta />} />
                     <Route path="vacancies" element={<AdminVacancies />} />
+                    <Route path="opportunities" element={<AdminOpportunities />} />
                     <Route path="firm-suggestions" element={<AdminFirmSuggestions />} />
                     <Route path="broadcasts" element={<AdminBroadcasts />} />
                   </Route>
-                  <Route path="/vacancies" element={<Vacancies />} />
+                  <Route path="/vacancies" element={<Navigate to="/opportunities" replace />} />
                   <Route path="/opportunities" element={<Opportunities />} />
-                  <Route path="/opportunities-preview" element={<OpportunitiesPreview />} />
+                  <Route path="/opportunities-preview" element={<Navigate to="/opportunities" replace />} />
                   <Route path="/dock-lab" element={<DockLab />} />
                 </Route>
                 <Route path="/auth" element={<Auth />} />

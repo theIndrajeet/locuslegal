@@ -25,6 +25,7 @@ const items = [
   { title: "Waitlist", url: "/admin/waitlist", icon: Users },
   { title: "Beta Testers", url: "/admin/beta", icon: ClipboardCheck },
   { title: "Vacancies", url: "/admin/vacancies", icon: Briefcase },
+  { title: "Opportunities", url: "/admin/opportunities", icon: Briefcase },
   { title: "Firm Suggestions", url: "/admin/firm-suggestions", icon: MessageSquarePlus },
   { title: "The Bar", url: "/admin/bar", icon: Scale },
   { title: "Broadcasts", url: "/admin/broadcasts", icon: Megaphone },
