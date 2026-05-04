@@ -9,7 +9,7 @@ import FirmDrawer from "@/components/FirmDrawer";
 import CompareBar from "@/components/CompareBar";
 import DirectoryMap from "@/components/DirectoryMap";
 import StartupDrawer, { type Startup } from "@/components/StartupDrawer";
-import VacancyTeaserStrip from "@/components/vacancies/VacancyTeaserStrip";
+
 import FilterBar from "@/components/directory/FilterBar";
 
 const startups = startupsData as Startup[];
@@ -345,7 +345,7 @@ export default function Directory() {
       )}
 
       {/* Live vacancies teaser — appears above filters when there are live postings */}
-      <VacancyTeaserStrip />
+      
 
       {mode === "firms" && (<>
       {/* Bar leaderboard callout */}
