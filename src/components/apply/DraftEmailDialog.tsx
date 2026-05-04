@@ -463,6 +463,7 @@ export default function DraftEmailDialog({ open, onOpenChange, target, onSent }:
       return;
     }
     setGenerating(true);
+    setWarnings([]);
     const payload = {
       target: {
         name: target.name,
@@ -475,12 +476,17 @@ export default function DraftEmailDialog({ open, onOpenChange, target, onSent }:
       },
       role: isFollowup ? target.followup!.originalRole : brief.role,
       tone,
+      recipient_type: brief.recipient_type,
       brief: isFollowup ? null : buildBriefPayload(),
       mode: isFollowup ? "followup" : "initial",
       original: isFollowup
         ? { applied_on: target.followup!.originalAppliedOn, role: target.followup!.originalRole }
         : null,
-      user,
+      user: {
+        ...user,
+        cgpa: user.cgpa,
+        is_nlu: detectIsNlu(user.college),
+      },
     };
 
     const invokeOnce = () => supabase.functions.invoke("draft-application-email", { body: payload });
@@ -530,13 +536,14 @@ export default function DraftEmailDialog({ open, onOpenChange, target, onSent }:
         toast.error(detail);
         return;
       }
-      const result = data as { subject?: string; body?: string };
+      const result = data as { subject?: string; body?: string; warnings?: string[] };
       if (!result?.subject || !result?.body) {
         toast.error("AI returned an empty draft. Try again.");
         return;
       }
       setSubject(result.subject);
       setBody(result.body);
+      setWarnings(result.warnings ?? []);
       draftCache.set(target.id, { subject: result.subject, body: result.body });
       briefCache.set(target.id, brief);
     } catch (e) {
