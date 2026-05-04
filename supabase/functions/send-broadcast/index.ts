@@ -117,7 +117,9 @@ Deno.serve(async (req) => {
   }
 
   let queued = 0
+  let failed = 0
   let skippedNoEmail = 0
+  let firstError: string | null = null
   for (const uid of userIds) {
     const email = emailMap.get(uid)
     if (!email) { skippedNoEmail++; continue }
@@ -129,7 +131,21 @@ Deno.serve(async (req) => {
         templateData: { subject, bodyHtml, ctaLabel, ctaUrl },
       },
     })
-    if (!error) queued++
+    if (!error) {
+      queued++
+    } else {
+      failed++
+      if (!firstError) firstError = error.message || String(error)
+    }
+  }
+
+  console.log(`[send-broadcast] queued=${queued} failed=${failed} skippedNoEmail=${skippedNoEmail} firstError=${firstError}`)
+
+  // If everything failed, surface the downstream error
+  if (queued === 0 && failed > 0) {
+    return new Response(JSON.stringify({
+      error: 'all_sends_failed', detail: firstError, failed, skippedNoEmail,
+    }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
   }
 
   // Only log to history when we actually queued at least one send
@@ -142,5 +158,5 @@ Deno.serve(async (req) => {
     })
   }
 
-  return new Response(JSON.stringify({ ok: true, queued, skippedNoEmail, broadcastId: id }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+  return new Response(JSON.stringify({ ok: true, queued, failed, skippedNoEmail, broadcastId: id, firstError }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 })
