@@ -6,24 +6,47 @@ import {
   ClipboardCheck,
   Briefcase,
   Scale,
+  Megaphone,
+  MessageSquarePlus,
+  ShieldCheck,
   type LucideIcon,
 } from "lucide-react";
+import { useAdminAccess, type AdminScope } from "@/hooks/useAdminRole";
 
-const tabs: { to: string; label: string; short: string; icon: LucideIcon }[] = [
-  { to: "/admin/waitlist", label: "Waitlist", short: "Waitlist", icon: Users },
-  { to: "/admin/beta", label: "Beta Testers", short: "Beta", icon: ClipboardCheck },
-  { to: "/admin/vacancies", label: "Vacancies", short: "Vacancies", icon: Briefcase },
-  { to: "/admin/bar", label: "The Bar", short: "Bar", icon: Scale },
+interface Tab {
+  to: string;
+  label: string;
+  short: string;
+  icon: LucideIcon;
+  /** Required scope. If user has full admin OR this scope, the tab is shown. */
+  scope: AdminScope;
+  /** If true, only full admins (role = 'admin') see this tab. */
+  fullAdminOnly?: boolean;
+}
+
+const tabs: Tab[] = [
+  { to: "/admin/waitlist", label: "Waitlist", short: "Waitlist", icon: Users, scope: "waitlist_admin" },
+  { to: "/admin/beta", label: "Beta Testers", short: "Beta", icon: ClipboardCheck, scope: "admin", fullAdminOnly: true },
+  { to: "/admin/vacancies", label: "Vacancies", short: "Vacancies", icon: Briefcase, scope: "opportunities_admin" },
+  { to: "/admin/opportunities", label: "Opportunities", short: "Opps", icon: Briefcase, scope: "opportunities_admin" },
+  { to: "/admin/firm-suggestions", label: "Firm Suggestions", short: "Firms", icon: MessageSquarePlus, scope: "waitlist_admin" },
+  { to: "/admin/bar", label: "The Bar", short: "Bar", icon: Scale, scope: "bar_admin" },
+  { to: "/admin/broadcasts", label: "Broadcasts", short: "Sends", icon: Megaphone, scope: "broadcast_admin" },
+  { to: "/admin/admins", label: "Admin Access", short: "Access", icon: ShieldCheck, scope: "admin", fullAdminOnly: true },
 ];
 
 export default function AdminSubNav() {
   const { pathname } = useLocation();
+  const { isAdmin, hasScope } = useAdminAccess();
   const onDashboard = pathname === "/admin";
+
+  const visibleTabs = tabs.filter((t) =>
+    t.fullAdminOnly ? isAdmin : hasScope(t.scope)
+  );
 
   return (
     <header className="sticky top-16 z-30 border-b-2 border-foreground/20 bg-background/90 backdrop-blur">
       <div className="flex items-center gap-2 px-3 md:px-5 py-2 max-w-[1600px] mx-auto">
-        {/* Back button — contextual */}
         <Link
           to={onDashboard ? "/" : "/admin"}
           className="flex items-center gap-1.5 px-3 py-1.5 border-2 border-foreground bg-card shadow-[3px_3px_0_0_hsl(var(--foreground))] hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[4px_4px_0_0_hsl(var(--foreground))] transition-transform text-xs font-bold uppercase tracking-wider shrink-0"
@@ -37,12 +60,11 @@ export default function AdminSubNav() {
 
         <div className="h-6 w-px bg-foreground/20 shrink-0 hidden sm:block" />
 
-        {/* Tabs — horizontally scrollable */}
         <nav
           className="flex items-center gap-1.5 overflow-x-auto scrollbar-thin flex-1 min-w-0"
           aria-label="Admin sections"
         >
-          {tabs.map((t) => {
+          {visibleTabs.map((t) => {
             const isActive =
               pathname === t.to || pathname.startsWith(t.to + "/");
             return (
@@ -63,7 +85,6 @@ export default function AdminSubNav() {
           })}
         </nav>
 
-        {/* View site link */}
         <Link
           to="/"
           className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-mono uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors shrink-0"

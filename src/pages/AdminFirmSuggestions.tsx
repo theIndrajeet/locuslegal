@@ -2,6 +2,8 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { useAuthSession } from "@/hooks/useAuthSession";
+import { useAdminAccess } from "@/hooks/useAdminRole";
+import AccessDenied from "@/components/admin/AccessDenied";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
@@ -30,6 +32,7 @@ const fieldIcon = { email: Mail, phone: Phone, tier: Award } as const;
 export default function AdminFirmSuggestions() {
   usePageMeta({ title: "Firm Suggestions — Admin", description: "Review crowdsourced corrections.", path: "/admin/firm-suggestions" });
   const { ready, userId } = useAuthSession();
+  const { ready: adminReady, hasScope } = useAdminAccess();
   const [filter, setFilter] = useState<Status>("pending");
   const [rows, setRows] = useState<Suggestion[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,6 +85,11 @@ export default function AdminFirmSuggestions() {
     navigator.clipboard.writeText(payload);
     toast({ title: "Copied to clipboard", description: "Paste in chat to ask AI to apply this to firms.json." });
   };
+
+  if (!adminReady) return null;
+  if (!hasScope("waitlist_admin")) {
+    return <AccessDenied message="You need Waitlist admin access to review firm suggestions." />;
+  }
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto">

@@ -1,10 +1,12 @@
 import { useEffect, useState, useCallback } from "react";
-import { Loader2, Search, ShieldPlus, ShieldMinus, ShieldCheck } from "lucide-react";
+import { Loader2, Search, ShieldCheck, ShieldOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/sonner";
+import { useAdminAccess, type AdminScope } from "@/hooks/useAdminRole";
+import AccessDenied from "@/components/admin/AccessDenied";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,20 +18,32 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-interface AdminRow {
+type RoleKey = AdminScope;
+
+interface UserRow {
   id: string;
   username: string | null;
   display_name: string | null;
   email: string | null;
-  is_self: boolean;
+  roles: RoleKey[];
+  is_self?: boolean;
 }
 
-interface SearchResult {
-  id: string;
-  username: string | null;
-  display_name: string | null;
-  email: string | null;
-  is_already_admin: boolean;
+const ROLE_DEFS: { key: RoleKey; label: string; short: string; description: string }[] = [
+  { key: "admin", label: "Full Admin", short: "Admin", description: "Every admin power, including managing other admins." },
+  { key: "opportunities_admin", label: "Opportunities", short: "Opps", description: "Post and edit vacancies, CFPs, moots, competitions." },
+  { key: "waitlist_admin", label: "Waitlist", short: "Waitlist", description: "View waitlist signups and review firm suggestions." },
+  { key: "bar_admin", label: "Bar", short: "Bar", description: "Manage Bar challenges, sources, and AI generations." },
+  { key: "broadcast_admin", label: "Broadcasts", short: "Sends", description: "Draft and send email broadcasts." },
+];
+
+const ALL_KEYS: RoleKey[] = ROLE_DEFS.map((r) => r.key);
+
+function normalizeRoles(raw: unknown): RoleKey[] {
+  const arr = Array.isArray(raw) ? raw : [];
+  return arr
+    .filter((r): r is string => typeof r === "string")
+    .filter((r): r is RoleKey => (ALL_KEYS as string[]).includes(r));
 }
 
 export default function AdminAdmins() {
@@ -39,13 +53,15 @@ export default function AdminAdmins() {
     path: "/admin/admins",
   });
 
-  const [admins, setAdmins] = useState<AdminRow[]>([]);
+  const { ready, isAdmin } = useAdminAccess();
+
+  const [admins, setAdmins] = useState<UserRow[]>([]);
   const [loadingAdmins, setLoadingAdmins] = useState(true);
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<SearchResult[]>([]);
+  const [results, setResults] = useState<UserRow[]>([]);
   const [searching, setSearching] = useState(false);
-  const [actingId, setActingId] = useState<string | null>(null);
-  const [confirmRevoke, setConfirmRevoke] = useState<AdminRow | null>(null);
+  const [actingKey, setActingKey] = useState<string | null>(null); // `${userId}:${role}`
+  const [confirmRevokeAdmin, setConfirmRevokeAdmin] = useState<UserRow | null>(null);
 
   const loadAdmins = useCallback(async () => {
     setLoadingAdmins(true);
@@ -54,14 +70,29 @@ export default function AdminAdmins() {
       toast.error("Failed to load admins", { description: error.message });
       setAdmins([]);
     } else {
-      setAdmins((data ?? []) as AdminRow[]);
+      const rows = ((data ?? []) as Array<{
+        id: string;
+        username: string | null;
+        display_name: string | null;
+        email: string | null;
+        roles: string[] | null;
+        is_self: boolean | null;
+      }>).map((r) => ({
+        id: r.id,
+        username: r.username,
+        display_name: r.display_name,
+        email: r.email,
+        roles: normalizeRoles(r.roles),
+        is_self: !!r.is_self,
+      }));
+      setAdmins(rows);
     }
     setLoadingAdmins(false);
   }, []);
 
   useEffect(() => {
-    void loadAdmins();
-  }, [loadAdmins]);
+    if (isAdmin) void loadAdmins();
+  }, [isAdmin, loadAdmins]);
 
   // Debounced live search
   useEffect(() => {
@@ -73,70 +104,152 @@ export default function AdminAdmins() {
     }
     setSearching(true);
     const t = window.setTimeout(async () => {
-      const { data, error } = await supabase.rpc("find_user_for_admin", {
-        p_query: q,
-      });
+      const { data, error } = await supabase.rpc("find_user_for_admin", { p_query: q });
       if (error) {
         toast.error("Search failed", { description: error.message });
         setResults([]);
       } else {
-        setResults((data ?? []) as SearchResult[]);
+        const rows = ((data ?? []) as Array<{
+          id: string;
+          username: string | null;
+          display_name: string | null;
+          email: string | null;
+          roles: string[] | null;
+        }>).map((r) => ({
+          id: r.id,
+          username: r.username,
+          display_name: r.display_name,
+          email: r.email,
+          roles: normalizeRoles(r.roles),
+        }));
+        setResults(rows);
       }
       setSearching(false);
     }, 250);
     return () => window.clearTimeout(t);
   }, [query]);
 
-  const handleGrant = async (user: SearchResult) => {
-    setActingId(user.id);
-    const { error } = await supabase.rpc("grant_admin_role", {
-      p_user_id: user.id,
-    });
-    setActingId(null);
-    if (error) {
-      toast.error("Could not grant admin", { description: error.message });
-      return;
-    }
-    toast.success(`Admin granted to ${user.username ?? user.email ?? "user"}`);
-    setQuery("");
-    setResults([]);
+  const refreshUserInLists = (userId: string, nextRoles: RoleKey[]) => {
+    setResults((prev) => prev.map((u) => (u.id === userId ? { ...u, roles: nextRoles } : u)));
+    // Admin list will re-fetch for accuracy (handles new entries / removals)
     void loadAdmins();
   };
 
-  const handleRevoke = async (user: AdminRow) => {
-    setActingId(user.id);
-    const { error } = await supabase.rpc("revoke_admin_role", {
-      p_user_id: user.id,
-    });
-    setActingId(null);
-    setConfirmRevoke(null);
-    if (error) {
-      toast.error("Could not revoke admin", { description: error.message });
+  const toggleRole = async (user: UserRow, role: RoleKey, currentlyHas: boolean) => {
+    // Self-revoke of full admin requires confirmation handled separately
+    if (currentlyHas && role === "admin" && user.is_self) {
+      toast.error("You cannot revoke your own Full Admin role.");
       return;
     }
-    toast.success(`Admin revoked from ${user.username ?? user.email ?? "user"}`);
-    void loadAdmins();
+    setActingKey(`${user.id}:${role}`);
+    const fnName = currentlyHas ? "revoke_role" : "grant_role";
+    const { error } = await supabase.rpc(fnName, {
+      p_user_id: user.id,
+      p_role: role,
+    });
+    setActingKey(null);
+    if (error) {
+      const msg = error.message?.includes("cannot_revoke_self_admin")
+        ? "You cannot revoke your own Full Admin role."
+        : error.message;
+      toast.error(currentlyHas ? "Could not revoke" : "Could not grant", { description: msg });
+      return;
+    }
+    const nextRoles = currentlyHas
+      ? user.roles.filter((r) => r !== role)
+      : [...user.roles.filter((r) => r !== role), role];
+    refreshUserInLists(user.id, nextRoles);
+    const def = ROLE_DEFS.find((r) => r.key === role);
+    toast.success(
+      `${currentlyHas ? "Revoked" : "Granted"} ${def?.label ?? role} ${currentlyHas ? "from" : "to"} ${user.username ?? user.email ?? "user"}`
+    );
   };
+
+  if (!ready) {
+    return (
+      <div className="min-h-[40vh] flex items-center justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-accent" />
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return <AccessDenied message="Only Full Admins can manage admin access." />;
+  }
+
+  const renderRoleChips = (user: UserRow) => (
+    <div className="flex flex-wrap gap-1.5">
+      {ROLE_DEFS.map((def) => {
+        const has = user.roles.includes(def.key);
+        const key = `${user.id}:${def.key}`;
+        const busy = actingKey === key;
+        const blockSelfRevoke = has && def.key === "admin" && user.is_self;
+
+        return (
+          <button
+            key={def.key}
+            type="button"
+            disabled={busy || blockSelfRevoke}
+            onClick={() => {
+              if (has && def.key === "admin" && !user.is_self) {
+                setConfirmRevokeAdmin(user);
+                return;
+              }
+              void toggleRole(user, def.key, has);
+            }}
+            title={blockSelfRevoke ? "You cannot revoke your own Full Admin" : def.description}
+            className={`flex items-center gap-1 px-2 py-1 border-2 text-[10px] font-mono uppercase tracking-widest transition-all ${
+              has
+                ? "border-foreground bg-accent text-accent-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))]"
+                : "border-foreground/30 bg-card text-muted-foreground hover:border-foreground hover:text-foreground"
+            } ${busy || blockSelfRevoke ? "opacity-60 cursor-not-allowed" : "cursor-pointer"}`}
+          >
+            {busy ? (
+              <Loader2 className="w-3 h-3 animate-spin" />
+            ) : has ? (
+              <ShieldCheck className="w-3 h-3" />
+            ) : (
+              <ShieldOff className="w-3 h-3" />
+            )}
+            <span className="hidden sm:inline">{def.label}</span>
+            <span className="sm:hidden">{def.short}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
 
   return (
-    <div className="p-6 md:p-8 max-w-4xl mx-auto">
+    <div className="p-6 md:p-8 max-w-5xl mx-auto">
       <header className="mb-8">
         <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-1">
           Console / Access
         </p>
-        <h1 className="font-heading text-3xl md:text-4xl font-black">
-          Admin Access
-        </h1>
+        <h1 className="font-heading text-3xl md:text-4xl font-black">Admin Access</h1>
         <p className="text-muted-foreground mt-1 text-sm">
-          Grant or revoke admin access by username or email. New admins get the
-          full dashboard immediately.
+          Toggle individual roles per user. Click a chip to grant or revoke that scope.
+          Full Admin implies every other role.
         </p>
       </header>
 
-      {/* Search & grant */}
+      {/* Legend */}
+      <section className="mb-6 border-2 border-foreground/30 bg-card p-3 text-xs">
+        <div className="font-mono uppercase tracking-widest text-muted-foreground mb-2">
+          Roles
+        </div>
+        <ul className="grid sm:grid-cols-2 gap-x-4 gap-y-1 text-muted-foreground">
+          {ROLE_DEFS.map((d) => (
+            <li key={d.key}>
+              <span className="font-bold text-foreground">{d.label}:</span> {d.description}
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      {/* Search */}
       <section className="mb-10">
         <h2 className="font-heading text-lg font-black uppercase tracking-wider mb-3 flex items-center gap-2">
-          <span className="inline-block w-1.5 h-5 bg-accent" /> Grant access
+          <span className="inline-block w-1.5 h-5 bg-accent" /> Find a user
         </h2>
         <div className="border-2 border-foreground bg-card p-4 shadow-[4px_4px_0_0_hsl(var(--foreground))]">
           <div className="relative">
@@ -164,18 +277,10 @@ export default function AdminAdmins() {
             ) : (
               <ul className="divide-y-2 divide-foreground/10 border-2 border-foreground/20">
                 {results.map((r) => (
-                  <li
-                    key={r.id}
-                    className="flex items-center justify-between gap-3 p-3 hover:bg-accent/5"
-                  >
+                  <li key={r.id} className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 hover:bg-accent/5">
                     <div className="min-w-0 flex-1">
-                      <div className="font-heading font-extrabold truncate flex items-center gap-2">
+                      <div className="font-heading font-extrabold truncate">
                         {r.display_name || r.username || "—"}
-                        {r.is_already_admin && (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-mono uppercase tracking-widest border border-accent text-accent px-1.5 py-0.5">
-                            <ShieldCheck className="w-3 h-3" /> Admin
-                          </span>
-                        )}
                       </div>
                       <div className="text-xs text-muted-foreground truncate">
                         {r.username ? `@${r.username}` : null}
@@ -183,20 +288,7 @@ export default function AdminAdmins() {
                         {r.email}
                       </div>
                     </div>
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={() => handleGrant(r)}
-                      disabled={r.is_already_admin || actingId === r.id}
-                      className="border-2 border-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))] shrink-0"
-                    >
-                      {actingId === r.id ? (
-                        <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
-                      ) : (
-                        <ShieldPlus className="w-3.5 h-3.5 mr-1" />
-                      )}
-                      {r.is_already_admin ? "Already admin" : "Grant admin"}
-                    </Button>
+                    {renderRoleChips(r)}
                   </li>
                 ))}
               </ul>
@@ -225,10 +317,7 @@ export default function AdminAdmins() {
           ) : (
             <ul className="divide-y-2 divide-foreground/10">
               {admins.map((a) => (
-                <li
-                  key={a.id}
-                  className="flex items-center justify-between gap-3 p-4"
-                >
+                <li key={a.id} className="flex flex-col sm:flex-row sm:items-center gap-3 p-4">
                   <div className="min-w-0 flex-1">
                     <div className="font-heading font-extrabold truncate flex items-center gap-2">
                       {a.display_name || a.username || "—"}
@@ -244,22 +333,7 @@ export default function AdminAdmins() {
                       {a.email}
                     </div>
                   </div>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    disabled={a.is_self || actingId === a.id}
-                    onClick={() => setConfirmRevoke(a)}
-                    className="border-2 border-foreground shrink-0"
-                    title={
-                      a.is_self
-                        ? "You cannot revoke your own admin access"
-                        : "Revoke admin"
-                    }
-                  >
-                    <ShieldMinus className="w-3.5 h-3.5 mr-1" />
-                    Revoke
-                  </Button>
+                  {renderRoleChips(a)}
                 </li>
               ))}
             </ul>
@@ -268,22 +342,27 @@ export default function AdminAdmins() {
       </section>
 
       <AlertDialog
-        open={!!confirmRevoke}
-        onOpenChange={(open) => !open && setConfirmRevoke(null)}
+        open={!!confirmRevokeAdmin}
+        onOpenChange={(open) => !open && setConfirmRevokeAdmin(null)}
       >
         <AlertDialogContent className="border-2 border-foreground shadow-[6px_6px_0_0_hsl(var(--foreground))]">
           <AlertDialogHeader>
-            <AlertDialogTitle>Revoke admin access?</AlertDialogTitle>
+            <AlertDialogTitle>Revoke Full Admin?</AlertDialogTitle>
             <AlertDialogDescription>
-              {confirmRevoke?.display_name || confirmRevoke?.username || "This user"}{" "}
-              will lose access to the entire admin console immediately. This can
-              be re-granted at any time.
+              {confirmRevokeAdmin?.display_name || confirmRevokeAdmin?.username || "This user"}{" "}
+              will lose Full Admin. They keep any scoped roles they still hold.
+              You can re-grant at any time.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => confirmRevoke && handleRevoke(confirmRevoke)}
+              onClick={() => {
+                if (confirmRevokeAdmin) {
+                  void toggleRole(confirmRevokeAdmin, "admin", true);
+                }
+                setConfirmRevokeAdmin(null);
+              }}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Revoke

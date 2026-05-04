@@ -2,13 +2,13 @@ import { Link, Outlet } from "react-router-dom";
 import { Loader2, ShieldOff } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useAdminRole } from "@/hooks/useAdminRole";
+import { useAdminAccess } from "@/hooks/useAdminRole";
 import AdminSubNav from "./AdminSubNav";
 
 export default function AdminLayout() {
-  const isAdmin = useAdminRole();
+  const { ready, hasAnyScope } = useAdminAccess();
 
-  if (isAdmin === null) {
+  if (!ready) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-6 h-6 animate-spin text-accent" />
@@ -16,7 +16,7 @@ export default function AdminLayout() {
     );
   }
 
-  if (!isAdmin) {
+  if (!hasAnyScope) {
     return (
       <div className="min-h-screen flex items-center justify-center px-4">
         <Card className="max-w-md w-full p-8 text-center border-2 border-foreground space-y-4 shadow-[4px_4px_0_0_hsl(var(--foreground))]">

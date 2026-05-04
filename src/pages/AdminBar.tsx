@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link, useSearchParams } from "react-router-dom";
 import { ShieldOff, Loader2 } from "lucide-react";
-import { useAdminRole } from "@/hooks/useAdminRole";
+import { useAdminAccess } from "@/hooks/useAdminRole";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import SourceLibrary from "@/components/admin-bar/SourceLibrary";
 import ChallengesTable from "@/components/admin-bar/ChallengesTable";
@@ -14,7 +14,8 @@ import BarStats from "@/components/admin-bar/BarStats";
 import AiGenerationsLog from "@/components/admin-bar/AiGenerationsLog";
 
 export default function AdminBar() {
-  const isAdmin = useAdminRole();
+  const { ready: adminReady, hasScope } = useAdminAccess();
+  const isAdmin = !adminReady ? null : hasScope("bar_admin");
   const [searchParams, setSearchParams] = useSearchParams();
   const tab = searchParams.get("tab") ?? "sources";
 

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Loader2, Plus, ShieldOff, Trash2, Briefcase, FileText, Gavel, Trophy, Pencil, Archive } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAdminRole } from "@/hooks/useAdminRole";
+import { useAdminAccess } from "@/hooks/useAdminRole";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { Button } from "@/components/ui/button";
@@ -272,7 +272,8 @@ export default function AdminOpportunities() {
     description: "Curate vacancies, CFPs, moots, and competitions.",
     path: "/admin/opportunities",
   });
-  const isAdmin = useAdminRole();
+  const { ready: adminReady, hasScope } = useAdminAccess();
+  const isAdmin = !adminReady ? null : hasScope("opportunities_admin");
   const { userId } = useAuthSession();
   const [tab, setTab] = useState("vacancies");
 

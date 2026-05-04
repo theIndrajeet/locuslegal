@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { Button } from "@/components/ui/button";
 import { StatCard, ToolTile } from "@/components/admin/AdminTiles";
+import { useAdminAccess, type AdminScope } from "@/hooks/useAdminRole";
 
 interface Stats {
   waitlistTotal: number;
@@ -37,6 +38,26 @@ const EMPTY: Stats = {
   barAttempts24h: 0,
 };
 
+interface Tile {
+  to: string;
+  title: string;
+  description: string;
+  icon: typeof Users;
+  scope: AdminScope;
+  fullAdminOnly?: boolean;
+}
+
+const TILES: Tile[] = [
+  { to: "/admin/waitlist", title: "Waitlist", description: "Browse and filter signups by audience.", icon: Users, scope: "waitlist_admin" },
+  { to: "/admin/beta", title: "Beta Testers", description: "Review tester feedback, screenshots, and CSV export.", icon: ClipboardCheck, scope: "admin", fullAdminOnly: true },
+  { to: "/admin/vacancies", title: "Vacancies", description: "Curate the live vacancy board with AI extraction.", icon: Briefcase, scope: "opportunities_admin" },
+  { to: "/admin/opportunities", title: "Opportunities", description: "Post CFPs, moots, and competitions with AI paste-extract.", icon: Briefcase, scope: "opportunities_admin" },
+  { to: "/admin/bar", title: "The Bar", description: "Sources, challenges, stats, and AI generation log.", icon: Scale, scope: "bar_admin" },
+  { to: "/admin/firm-suggestions", title: "Firm Suggestions", description: "Review user-submitted firm fixes and additions.", icon: MessageSquarePlus, scope: "waitlist_admin" },
+  { to: "/admin/broadcasts", title: "Broadcasts", description: "Send a one-off update email to a chosen segment.", icon: Megaphone, scope: "broadcast_admin" },
+  { to: "/admin/admins", title: "Admin Access", description: "Grant or revoke admin access by username or email.", icon: ShieldCheck, scope: "admin", fullAdminOnly: true },
+];
+
 export default function AdminDashboard() {
   usePageMeta({
     title: "Admin Dashboard — Locus",
@@ -44,8 +65,19 @@ export default function AdminDashboard() {
     path: "/admin",
   });
 
+  const { isAdmin, hasScope } = useAdminAccess();
   const [stats, setStats] = useState<Stats>(EMPTY);
   const [loading, setLoading] = useState(true);
+
+  const visibleTiles = TILES.filter((t) =>
+    t.fullAdminOnly ? isAdmin : hasScope(t.scope)
+  );
+
+  // Stat visibility mirrors scope visibility — scoped admins only see their own numbers.
+  const showWaitlist = hasScope("waitlist_admin");
+  const showBeta = isAdmin;
+  const showOpportunities = hasScope("opportunities_admin");
+  const showBar = hasScope("bar_admin");
 
   const load = async () => {
     setLoading(true);
@@ -53,42 +85,58 @@ export default function AdminDashboard() {
     const oneDay = new Date(Date.now() - 86400000).toISOString();
     const threeDays = new Date(Date.now() + 3 * 86400000).toISOString();
 
-    const [
-      waitlistTotalRes,
-      waitlist7dRes,
-      betaClaimedRes,
-      betaSubmittedRes,
-      vacLiveRes,
-      vacSoonRes,
-      barPendingRes,
-      barAttemptsRes,
-    ] = await Promise.all([
-      supabase.from("waitlist_submissions").select("*", { count: "exact", head: true }),
-      supabase.from("waitlist_submissions").select("*", { count: "exact", head: true }).gte("created_at", sevenDays),
-      supabase.from("beta_testers").select("*", { count: "exact", head: true }),
-      supabase.from("beta_testers").select("*", { count: "exact", head: true }).not("submitted_at", "is", null),
-      supabase.from("vacancies").select("*", { count: "exact", head: true }).eq("status", "live").gt("expires_at", new Date().toISOString()),
-      supabase.from("vacancies").select("*", { count: "exact", head: true }).eq("status", "live").gt("expires_at", new Date().toISOString()).lt("expires_at", threeDays),
-      supabase.from("bar_challenges").select("*", { count: "exact", head: true }).eq("status", "draft"),
-      supabase.from("bar_attempts").select("*", { count: "exact", head: true }).gte("attempted_at", oneDay),
-    ]);
+    const tasks: PromiseLike<unknown>[] = [];
+    const indexes: Record<string, number> = {};
+
+    if (showWaitlist) {
+      indexes.waitlistTotal = tasks.length;
+      tasks.push(supabase.from("waitlist_submissions").select("*", { count: "exact", head: true }));
+      indexes.waitlist7d = tasks.length;
+      tasks.push(supabase.from("waitlist_submissions").select("*", { count: "exact", head: true }).gte("created_at", sevenDays));
+    }
+    if (showBeta) {
+      indexes.betaClaimed = tasks.length;
+      tasks.push(supabase.from("beta_testers").select("*", { count: "exact", head: true }));
+      indexes.betaSubmitted = tasks.length;
+      tasks.push(supabase.from("beta_testers").select("*", { count: "exact", head: true }).not("submitted_at", "is", null));
+    }
+    if (showOpportunities) {
+      indexes.vacLive = tasks.length;
+      tasks.push(supabase.from("vacancies").select("*", { count: "exact", head: true }).eq("status", "live").gt("expires_at", new Date().toISOString()));
+      indexes.vacSoon = tasks.length;
+      tasks.push(supabase.from("vacancies").select("*", { count: "exact", head: true }).eq("status", "live").gt("expires_at", new Date().toISOString()).lt("expires_at", threeDays));
+    }
+    if (showBar) {
+      indexes.barPending = tasks.length;
+      tasks.push(supabase.from("bar_challenges").select("*", { count: "exact", head: true }).eq("status", "draft"));
+      indexes.barAttempts = tasks.length;
+      tasks.push(supabase.from("bar_attempts").select("*", { count: "exact", head: true }).gte("attempted_at", oneDay));
+    }
+
+    const results = await Promise.all(tasks);
+    const get = (key: string) => {
+      const idx = indexes[key];
+      if (idx === undefined) return 0;
+      return ((results[idx] as { count: number | null })?.count) ?? 0;
+    };
 
     setStats({
-      waitlistTotal: waitlistTotalRes.count ?? 0,
-      waitlist7d: waitlist7dRes.count ?? 0,
-      betaClaimed: betaClaimedRes.count ?? 0,
-      betaSubmitted: betaSubmittedRes.count ?? 0,
-      vacanciesLive: vacLiveRes.count ?? 0,
-      vacanciesExpiringSoon: vacSoonRes.count ?? 0,
-      barPending: barPendingRes.count ?? 0,
-      barAttempts24h: barAttemptsRes.count ?? 0,
+      waitlistTotal: get("waitlistTotal"),
+      waitlist7d: get("waitlist7d"),
+      betaClaimed: get("betaClaimed"),
+      betaSubmitted: get("betaSubmitted"),
+      vacanciesLive: get("vacLive"),
+      vacanciesExpiringSoon: get("vacSoon"),
+      barPending: get("barPending"),
+      barAttempts24h: get("barAttempts"),
     });
     setLoading(false);
   };
 
   useEffect(() => {
     void load();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showWaitlist, showBeta, showOpportunities, showBar]);
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto">
@@ -101,7 +149,9 @@ export default function AdminDashboard() {
             Admin Dashboard
           </h1>
           <p className="text-muted-foreground mt-1 text-sm">
-            Everything in one place. All admin tools, live numbers, recent activity.
+            {isAdmin
+              ? "Everything in one place. All admin tools, live numbers, recent activity."
+              : "Your admin tools and stats, scoped to your access."}
           </p>
         </div>
         <Button
@@ -118,41 +168,51 @@ export default function AdminDashboard() {
 
       {/* Stats grid */}
       <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-10">
-        <StatCard
-          label="Waitlist"
-          value={stats.waitlistTotal}
-          sub={`+${stats.waitlist7d} in last 7d`}
-          icon={Users}
-          loading={loading}
-        />
-        <StatCard
-          label="Beta Testers"
-          value={`${stats.betaSubmitted}/${stats.betaClaimed}`}
-          sub="submitted / claimed"
-          icon={ClipboardCheck}
-          loading={loading}
-        />
-        <StatCard
-          label="Live Opportunities"
-          value={stats.vacanciesLive}
-          sub={`${stats.vacanciesExpiringSoon} expiring in 3d`}
-          icon={Briefcase}
-          loading={loading}
-        />
-        <StatCard
-          label="Bar Pending"
-          value={stats.barPending}
-          sub={`${stats.barAttempts24h} attempts (24h)`}
-          icon={Scale}
-          loading={loading}
-        />
-        <StatCard
-          label="Activity (24h)"
-          value={stats.barAttempts24h + stats.waitlist7d}
-          sub="bar + waitlist"
-          icon={Activity}
-          loading={loading}
-        />
+        {showWaitlist && (
+          <StatCard
+            label="Waitlist"
+            value={stats.waitlistTotal}
+            sub={`+${stats.waitlist7d} in last 7d`}
+            icon={Users}
+            loading={loading}
+          />
+        )}
+        {showBeta && (
+          <StatCard
+            label="Beta Testers"
+            value={`${stats.betaSubmitted}/${stats.betaClaimed}`}
+            sub="submitted / claimed"
+            icon={ClipboardCheck}
+            loading={loading}
+          />
+        )}
+        {showOpportunities && (
+          <StatCard
+            label="Live Opportunities"
+            value={stats.vacanciesLive}
+            sub={`${stats.vacanciesExpiringSoon} expiring in 3d`}
+            icon={Briefcase}
+            loading={loading}
+          />
+        )}
+        {showBar && (
+          <StatCard
+            label="Bar Pending"
+            value={stats.barPending}
+            sub={`${stats.barAttempts24h} attempts (24h)`}
+            icon={Scale}
+            loading={loading}
+          />
+        )}
+        {(showBar || showWaitlist) && (
+          <StatCard
+            label="Activity (24h)"
+            value={stats.barAttempts24h + stats.waitlist7d}
+            sub="bar + waitlist"
+            icon={Activity}
+            loading={loading}
+          />
+        )}
       </section>
 
       {/* Tool tiles */}
@@ -161,54 +221,15 @@ export default function AdminDashboard() {
           <span className="inline-block w-1.5 h-5 bg-accent" /> Admin tools
         </h2>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <ToolTile
-            to="/admin/waitlist"
-            title="Waitlist"
-            description="Browse and filter signups by audience."
-            icon={Users}
-          />
-          <ToolTile
-            to="/admin/beta"
-            title="Beta Testers"
-            description="Review tester feedback, screenshots, and CSV export."
-            icon={ClipboardCheck}
-          />
-          <ToolTile
-            to="/admin/vacancies"
-            title="Vacancies"
-            description="Curate the live vacancy board with AI extraction."
-            icon={Briefcase}
-          />
-          <ToolTile
-            to="/admin/opportunities"
-            title="Opportunities"
-            description="Post CFPs, moots, and competitions with AI paste-extract."
-            icon={Briefcase}
-          />
-          <ToolTile
-            to="/admin/bar"
-            title="The Bar"
-            description="Sources, challenges, stats, and AI generation log."
-            icon={Scale}
-          />
-          <ToolTile
-            to="/admin/firm-suggestions"
-            title="Firm Suggestions"
-            description="Review user-submitted firm fixes and additions."
-            icon={MessageSquarePlus}
-          />
-          <ToolTile
-            to="/admin/broadcasts"
-            title="Broadcasts"
-            description="Send a one-off update email to a chosen segment."
-            icon={Megaphone}
-          />
-          <ToolTile
-            to="/admin/admins"
-            title="Admin Access"
-            description="Grant or revoke admin access by username or email."
-            icon={ShieldCheck}
-          />
+          {visibleTiles.map((t) => (
+            <ToolTile
+              key={t.to}
+              to={t.to}
+              title={t.title}
+              description={t.description}
+              icon={t.icon}
+            />
+          ))}
         </div>
       </section>
     </div>

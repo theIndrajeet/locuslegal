@@ -1,71 +1,84 @@
-Two things, both cleanly solvable with what already exists.
+## Goal
 
-## 1. Admin access for Ritika (and the bigger question: scoped vs. full)
+Add scoped admin roles so I can grant narrow access (e.g., Ritika gets Opportunities-only). Full `admin` continues to imply all scopes. Then grant Ritika `opportunities_admin`.
 
-### Decision needed first
+## Roles
 
-Your DB and admin UI are built around a single `is_admin()` check. Every RLS policy on `vacancies`, `cfps`, `moots`, `competitions`, plus broadcasts / waitlist / Bar / firm suggestions, all use the same `admin` role from `user_roles`. There is no built-in concept of "admin for Opportunities only".
+Add four values to the `app_role` enum:
 
-Two ways forward:
+- `opportunities_admin` — manage vacancies, CFPs, moots, competitions
+- `waitlist_admin` — view waitlist + manage firm suggestions
+- `bar_admin` — manage Bar challenges, sources, AI generations, attempts cleanup
+- `broadcast_admin` — draft and send email broadcasts
 
-**Option A — Give Ritika full `admin` role (recommended)**
-- Insert one row: `(user_id = ritika, role = 'admin')`.
-- She immediately gets access to `/admin` and every admin tool — Opportunities AND Waitlist, Beta, Bar, Broadcasts, Firm Suggestions.
-- Same dashboard you see, no new UI, no new code.
-- Trade-off: she can see the waitlist, beta feedback, Bar internals, and send broadcasts. If she's a trusted collaborator, this is fine and is how most teams ship.
+Existing `admin` is unchanged and implicitly grants every scope.
 
-**Option B — Build a scoped `opportunity_manager` role**
-- Add a new enum value to `app_role`.
-- Rewrite RLS on `vacancies`, `cfps`, `moots`, `competitions` to accept admin OR opportunity_manager.
-- Add a `useCanManageOpportunities()` hook.
-- Rewrite `AdminLayout` + `AdminSubNav` + `AdminDashboard` to filter visible tools by what the role permits.
-- Add a per-tool guard so opportunity_manager users hitting `/admin/waitlist` get a 403.
-- Multi-day refactor; significant test surface.
+## Database
 
-**My recommendation: Option A.** If the trust ever changes, Option B can be layered in later. I'll proceed with Option A unless you say otherwise.
+**Migration 1 — enum + helpers**
+- `ALTER TYPE app_role ADD VALUE` for the four new roles.
+- New SECURITY DEFINER `has_admin_scope(uid uuid, scope app_role)` that returns true if the user has `admin` OR the specific scope. Used by every RLS policy below.
 
-### What I'll do for Ritika (Option A)
+**Migration 2 — rewrite RLS to use `has_admin_scope`**
+- `vacancies`, `cfps`, `moots`, `competitions` (insert/update/delete/admin-select) → `has_admin_scope(uid, 'opportunities_admin')`
+- `update_broadcasts` → `has_admin_scope(uid, 'broadcast_admin')`
+- `firm_suggestions` (admin select/update/delete) → `has_admin_scope(uid, 'waitlist_admin')`
+- `bar_challenges`, `bar_sources`, `bar_ai_generations`, `bar_attempts` (delete) → `has_admin_scope(uid, 'bar_admin')`
+- All other admin tables (beta, user_roles, etc.) stay on `is_admin()` — only full admins manage those.
 
-- Insert `(user_id = '257f6569-d17c-4464-be64-167dd1c22868', role = 'admin')` into `user_roles`. That's the `ritikaraj915` profile we found earlier — please confirm that's actually her before I run it (the other "Ritika" was `ritikajuris` with display name "Ritika").
+**Migration 3 — RPCs**
+- `find_user_for_admin(p_query)` → return `roles text[]` per user instead of `is_already_admin boolean`.
+- `list_admins()` → return one row per user with `roles text[]` aggregated.
+- Replace `grant_admin_role(p_user_id)` with `grant_role(p_user_id, p_role app_role)` — only callers with full `admin` can call; only the five admin-family roles are accepted.
+- Replace `revoke_admin_role(p_user_id)` with `revoke_role(p_user_id, p_role app_role)` — same gate; refuse self-revoking the last `admin` role.
 
-## 2. Admin manager panel in your dashboard (so you stop pinging me)
+## Frontend
 
-Add a new admin-only page at `/admin/admins`:
+**Hook**
+- `useAdminRole` returns `{ isAdmin, scopes: AppRole[], hasScope(scope) }`. `isAdmin` stays true only for full admins; `hasScope` checks `isAdmin || scopes.includes(scope)`.
 
-**UI** — a single neobrutalist card on `/admin` (new tile "Admin Access") leading to a page that:
-- Lists current admins with username, display name, email, and a `Revoke` button (with a confirm — you can't revoke yourself).
-- Has a single search box: type a username OR an email. Live-search hits a new SECURITY DEFINER RPC `find_user_for_admin(query text)` that returns up to 10 candidates (id, username, display_name, masked email) so you can pick the right one before granting.
-- Click `Grant admin` on a result → inserts into `user_roles`, refreshes list, toasts success.
+**Layout / nav**
+- `AdminLayout` allows entry if user has *any* admin scope; per-route guards live inside each page.
+- `AdminSidebar`, `AdminSubNav`, `AdminDashboard` tiles — filter visible items by `hasScope`. A `waitlist_admin` only sees Waitlist + Firm Suggestions.
 
-**Why an RPC instead of direct queries**
-- `auth.users` is not directly readable from the client. The RPC joins `profiles` + `auth.users` to expose just enough (id, email) to identify the right person.
-- The RPC is gated by `is_admin(auth.uid())` so only admins can search.
-- The `user_roles` table already has the right RLS — only admins can insert/delete roles, which is exactly what we need.
+**Per-page guards**
+- `AdminVacancies`, `AdminOpportunities` → require `opportunities_admin`
+- `AdminWaitlist`, `AdminFirmSuggestions` → require `waitlist_admin`
+- `AdminBar` → require `bar_admin`
+- `AdminBroadcasts` → require `broadcast_admin`
+- `AdminBeta`, `AdminAdmins` → require full `admin`
 
-**Safety rails**
-- Cannot grant a role that already exists (DB will silently no-op via `ON CONFLICT DO NOTHING`).
-- Cannot revoke yourself (UI guard + RPC guard).
-- All actions go through the same `is_admin()` check so a non-admin getting to the URL sees `Access Denied` from `AdminLayout`.
+Pages without the right scope render the existing "Access Denied" pattern.
 
-## Files & migrations
+**`AdminAdmins` redesign**
+- Search result row: a row of toggle chips `[Full Admin] [Opportunities] [Waitlist] [Bar] [Broadcasts]`. Click toggles that role on/off via `grant_role` / `revoke_role`.
+- Current admins list: each row shows the person's role chips inline with the same toggles.
+- Self-cannot-revoke guard for `admin` only (you can swap your own scoped roles freely).
+- Page itself is gated to full `admin`.
 
-**Migration**
-- New SECURITY DEFINER RPC `find_user_for_admin(p_query text)` that returns matching users (id, username, display_name, email) — admin-only via `is_admin(auth.uid())` guard.
-- New SECURITY DEFINER RPC `grant_admin_role(p_user_id uuid)` and `revoke_admin_role(p_user_id uuid)` — both admin-gated, with self-revoke protection.
+## Data action
 
-**Frontend**
-- `src/pages/AdminAdmins.tsx` — new page (search + list + grant/revoke buttons).
-- `src/App.tsx` — register `/admin/admins` route under the admin layout.
-- `src/pages/AdminDashboard.tsx` — add a `Shield`-icon `ToolTile` for "Admin Access".
-- `src/components/admin/AdminSubNav.tsx` — optional: add an `Admins` tab to the sub-nav.
-
-**Data insert**
-- One `INSERT` into `user_roles` for Ritika once you confirm the username is correct.
+After migrations land, insert one row:
+```
+INSERT INTO user_roles (user_id, role)
+VALUES ('257f6569-d17c-4464-be64-167dd1c22868', 'opportunities_admin')
+```
+Ritika (`ritikaraj915`) then sees `/admin` with only the Opportunities tile/nav and can post vacancies, CFPs, moots, and competitions. She cannot see waitlist, beta feedback, Bar internals, broadcasts, or the Admin Access page.
 
 ## What I will NOT do
 
-- Will NOT touch the Opportunities admin code itself — RLS already allows any admin to post.
-- Will NOT build a separate "limited admin" UI variant in this round (Option B above). Easy to add later if needed.
-- Will NOT add email notifications when someone is granted admin (let me know if you want that).
+- Will not change anything about your full `admin` access.
+- Will not add per-resource ownership ("can only edit her own vacancies").
+- Will not add audit logging of grants/revokes (easy to add later if you want).
+- Will not touch the existing `is_admin()` function — scoped checks use the new helper, full-admin-only tables keep using `is_admin()`.
 
-Approve and I'll ship — and please confirm Ritika is `ritikaraj915` (id `257f6569-d17c-4464-be64-167dd1c22868`).
+## Files
+
+- New migration (3 statements above).
+- `src/hooks/useAdminRole.ts` — return scopes.
+- `src/components/admin/AdminLayout.tsx` — broaden gate.
+- `src/components/admin/AdminSidebar.tsx`, `AdminSubNav.tsx`, `AdminTiles.tsx` — filter by scope.
+- `src/pages/AdminDashboard.tsx` — filter tiles.
+- `src/pages/AdminAdmins.tsx` — chip-based grant/revoke UI.
+- Per-page scope guards in `AdminVacancies.tsx`, `AdminOpportunities.tsx`, `AdminWaitlist.tsx`, `AdminFirmSuggestions.tsx`, `AdminBar.tsx`, `AdminBroadcasts.tsx`, `AdminBeta.tsx`.
+- `src/integrations/supabase/types.ts` regenerates automatically.

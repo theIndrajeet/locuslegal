@@ -8,6 +8,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { mdToHtml } from "@/lib/email-markdown";
+import { useAdminAccess } from "@/hooks/useAdminRole";
+import AccessDenied from "@/components/admin/AccessDenied";
+import { Loader2 } from "lucide-react";
 
 type Segment = "all" | "beta" | "applicants";
 
@@ -32,6 +35,7 @@ const SEGMENTS: { value: Segment; label: string; icon: typeof Users; hint: strin
 export default function AdminBroadcasts() {
   usePageMeta({ title: "Broadcasts — Admin", description: "Send updates to Locus users.", path: "/admin/broadcasts" });
 
+  const { ready: adminReady, hasScope } = useAdminAccess();
   const [subject, setSubject] = useState("");
   const [bodyMarkdown, setBodyMarkdown] = useState("");
   const [ctaLabel, setCtaLabel] = useState("");
@@ -193,6 +197,17 @@ export default function AdminBroadcasts() {
       </div>
     </div>
   );
+
+  if (!adminReady) {
+    return (
+      <div className="min-h-[40vh] flex items-center justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-accent" />
+      </div>
+    );
+  }
+  if (!hasScope("broadcast_admin")) {
+    return <AccessDenied message="You need Broadcast admin access to send updates." />;
+  }
 
   return (
     <div className="p-6 md:p-8 max-w-6xl mx-auto">
