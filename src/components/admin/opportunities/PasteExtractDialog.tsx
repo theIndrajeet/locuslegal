@@ -10,19 +10,24 @@ import { toast } from "sonner";
 
 export type OppStream = "cfp" | "moot" | "competition";
 
-const FIELDS: Record<OppStream, { key: string; label: string; type?: "textarea" | "url" | "date" | "number" }[]> = {
+type FieldType = "textarea" | "url" | "datetime" | "date" | "number";
+interface FieldDef { key: string; label: string; type?: FieldType }
+
+// Order matters — deadline + URLs surfaced near the top.
+const FIELDS: Record<OppStream, FieldDef[]> = {
   cfp: [
-    { key: "publication_name", label: "Publication name" },
-    { key: "publication_type", label: "Type (journal / blog / magazine / book / conference / other)" },
+    { key: "publication_name", label: "Publication / event name" },
+    { key: "publication_type", label: "Type (journal / blog / magazine / other)" },
+    { key: "submission_deadline", label: "Submission deadline", type: "datetime" },
+    { key: "submission_url", label: "Submission URL", type: "url" },
+    { key: "brochure_url", label: "Brochure URL", type: "url" },
     { key: "theme", label: "Theme" },
-    { key: "submission_deadline", label: "Submission deadline (ISO)", type: "date" },
     { key: "word_limit_min", label: "Min words", type: "number" },
     { key: "word_limit_max", label: "Max words", type: "number" },
     { key: "co_authorship_allowed", label: "Co-authorship? (true/false)" },
     { key: "submission_fee", label: "Submission fee" },
-    { key: "submission_url", label: "Submission URL", type: "url" },
-    { key: "contact_email", label: "Contact email" },
     { key: "peer_reviewed", label: "Peer reviewed? (true/false)" },
+    { key: "contact_email", label: "Contact email" },
     { key: "eligibility", label: "Eligibility", type: "textarea" },
     { key: "description", label: "Description", type: "textarea" },
     { key: "source_credit", label: "Source credit" },
@@ -30,29 +35,31 @@ const FIELDS: Record<OppStream, { key: string; label: string; type?: "textarea" 
   moot: [
     { key: "competition_name", label: "Competition name" },
     { key: "organiser", label: "Organiser" },
+    { key: "registration_deadline", label: "Registration deadline", type: "datetime" },
+    { key: "registration_url", label: "Registration URL", type: "url" },
+    { key: "brochure_url", label: "Brochure URL", type: "url" },
     { key: "edition", label: "Edition" },
     { key: "area_of_law", label: "Area of law" },
     { key: "mode", label: "Mode (online / offline / hybrid)" },
     { key: "venue", label: "Venue" },
-    { key: "event_start_date", label: "Event start (ISO)", type: "date" },
-    { key: "event_end_date", label: "Event end (ISO)", type: "date" },
-    { key: "registration_deadline", label: "Registration deadline (ISO)", type: "date" },
+    { key: "event_start_date", label: "Event start", type: "date" },
+    { key: "event_end_date", label: "Event end", type: "date" },
     { key: "prize_pool", label: "Prize pool" },
-    { key: "registration_url", label: "Registration URL", type: "url" },
     { key: "eligibility", label: "Eligibility", type: "textarea" },
     { key: "description", label: "Description", type: "textarea" },
     { key: "source_credit", label: "Source credit" },
   ],
   competition: [
     { key: "title", label: "Title" },
-    { key: "category", label: "Category (essay / research_paper / quiz / debate / negotiation / mediation / client_counseling / arbitration / drafting / hackathon / fellowship / other)" },
     { key: "organiser", label: "Organiser" },
-    { key: "deadline", label: "Deadline (ISO)", type: "date" },
-    { key: "event_date", label: "Event date (ISO)", type: "date" },
+    { key: "deadline", label: "Deadline", type: "datetime" },
+    { key: "application_url", label: "Application URL", type: "url" },
+    { key: "brochure_url", label: "Brochure URL", type: "url" },
+    { key: "category", label: "Category (essay / research_paper / quiz / debate / negotiation / mediation / client_counselling / hackathon / drafting / other)" },
+    { key: "event_date", label: "Event date", type: "date" },
     { key: "mode", label: "Mode (online / offline / hybrid)" },
     { key: "prize_or_stipend", label: "Prize / stipend" },
     { key: "fee", label: "Fee" },
-    { key: "application_url", label: "Application URL", type: "url" },
     { key: "eligibility", label: "Eligibility", type: "textarea" },
     { key: "description", label: "Description", type: "textarea" },
     { key: "source_credit", label: "Source credit" },
@@ -64,6 +71,31 @@ const TABLE: Record<OppStream, "cfps" | "moots" | "competitions"> = {
   moot: "moots",
   competition: "competitions",
 };
+
+// Convert ISO "2026-05-03T23:59:59Z" -> "2026-05-03T23:59" for <input type=datetime-local>
+function isoToLocalInput(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function localInputToIso(local: string): string | null {
+  if (!local) return null;
+  const d = new Date(local);
+  return isNaN(d.getTime()) ? null : d.toISOString();
+}
+
+function isoToDateInput(iso: string | null | undefined): string {
+  if (!iso) return "";
+  // Accept either a date "YYYY-MM-DD" or full ISO
+  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso;
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
 
 interface Props {
   open: boolean;
@@ -119,11 +151,18 @@ export default function PasteExtractDialog({ open, onOpenChange, stream, userId,
     try {
       const expires_at = new Date(Date.now() + expiresInDays * 86400000).toISOString();
       const cleaned: Record<string, any> = { ...form };
-      // Coerce booleans
+      const fieldsByKey = Object.fromEntries(FIELDS[stream].map((f) => [f.key, f]));
+
       for (const k of Object.keys(cleaned)) {
-        if (cleaned[k] === "true") cleaned[k] = true;
-        else if (cleaned[k] === "false") cleaned[k] = false;
-        else if (cleaned[k] === "") cleaned[k] = null;
+        const def = fieldsByKey[k];
+        const v = cleaned[k];
+        if (v === "" || v == null) { cleaned[k] = null; continue; }
+        if (v === "true") { cleaned[k] = true; continue; }
+        if (v === "false") { cleaned[k] = false; continue; }
+        if (def?.type === "datetime") {
+          // Already an ISO if AI gave it; if from input, convert.
+          cleaned[k] = typeof v === "string" && /T\d{2}:\d{2}$/.test(v) ? localInputToIso(v) : new Date(v).toISOString();
+        }
       }
       cleaned.created_by = userId;
       cleaned.status = "live";
@@ -144,6 +183,49 @@ export default function PasteExtractDialog({ open, onOpenChange, stream, userId,
 
   const fields = FIELDS[stream];
   const titles: Record<OppStream, string> = { cfp: "Add CFP", moot: "Add Moot", competition: "Add Competition" };
+
+  const renderInput = (f: FieldDef) => {
+    const raw = form[f.key];
+    if (f.type === "textarea") {
+      return (
+        <Textarea
+          value={raw ?? ""}
+          onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
+          className="border-2 border-foreground"
+          rows={3}
+        />
+      );
+    }
+    if (f.type === "datetime") {
+      return (
+        <Input
+          type="datetime-local"
+          value={isoToLocalInput(raw)}
+          onChange={(e) => setForm({ ...form, [f.key]: localInputToIso(e.target.value) })}
+          className="border-2 border-foreground"
+        />
+      );
+    }
+    if (f.type === "date") {
+      return (
+        <Input
+          type="date"
+          value={isoToDateInput(raw)}
+          onChange={(e) => setForm({ ...form, [f.key]: e.target.value || null })}
+          className="border-2 border-foreground"
+        />
+      );
+    }
+    return (
+      <Input
+        type={f.type === "number" ? "number" : f.type === "url" ? "url" : "text"}
+        value={raw ?? ""}
+        onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
+        className="border-2 border-foreground"
+        placeholder={f.type === "url" ? "https://…" : undefined}
+      />
+    );
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -184,21 +266,7 @@ export default function PasteExtractDialog({ open, onOpenChange, stream, userId,
               {fields.map((f) => (
                 <div key={f.key} className={f.type === "textarea" ? "md:col-span-2" : ""}>
                   <Label className="text-xs">{f.label}</Label>
-                  {f.type === "textarea" ? (
-                    <Textarea
-                      value={form[f.key] ?? ""}
-                      onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
-                      className="border-2 border-foreground"
-                      rows={3}
-                    />
-                  ) : (
-                    <Input
-                      type={f.type === "number" ? "number" : "text"}
-                      value={form[f.key] ?? ""}
-                      onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
-                      className="border-2 border-foreground"
-                    />
-                  )}
+                  {renderInput(f)}
                 </div>
               ))}
               <div>
