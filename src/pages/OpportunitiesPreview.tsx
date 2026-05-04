@@ -240,44 +240,59 @@ function OpportunityCard({
 }
 
 function titleOf(i: AnyOpportunity): string {
-  if (i.stream === "internship" || i.stream === "job") return `${i.role} — ${i.firm_name}`;
-  if (i.stream === "cfp") return i.publication_name;
-  if (i.stream === "moot") return i.competition_name;
-  return i.title;
+  switch (i.stream) {
+    case "internship":
+    case "job":
+      return `${i.role} — ${i.firm_name}`;
+    case "cfp":
+      return i.publication_name;
+    case "moot":
+      return i.competition_name;
+    case "competition":
+      return i.title;
+  }
 }
 
 function organiserOf(i: AnyOpportunity): string {
-  if (i.stream === "internship" || i.stream === "job") return i.location || "Location TBD";
-  if (i.stream === "cfp") return `${i.publication_type === "journal" ? "Journal" : i.publication_type === "blog" ? "Blog" : "Publication"} · ${i.peer_reviewed ? "Peer-reviewed" : "Editorial review"}`;
-  if (i.stream === "moot") return `${i.organiser} · ${i.edition ?? "—"}`;
-  return i.organiser;
+  switch (i.stream) {
+    case "internship":
+    case "job":
+      return i.location || "Location TBD";
+    case "cfp":
+      return `${i.publication_type === "journal" ? "Journal" : i.publication_type === "blog" ? "Blog" : "Publication"} · ${i.peer_reviewed ? "Peer-reviewed" : "Editorial review"}`;
+    case "moot":
+      return `${i.organiser} · ${i.edition ?? "—"}`;
+    case "competition":
+      return i.organiser;
+  }
 }
 
 function metaChips(i: AnyOpportunity) {
-  if (i.stream === "internship" || i.stream === "job") {
-    return [
-      i.stipend && { icon: Coins, label: i.stipend },
-      i.eligibility && { icon: GraduationCap, label: i.eligibility },
-    ].filter(Boolean) as { icon: any; label: string }[];
+  switch (i.stream) {
+    case "internship":
+    case "job":
+      return [
+        i.stipend && { icon: Coins, label: i.stipend },
+        i.eligibility && { icon: GraduationCap, label: i.eligibility },
+      ].filter(Boolean) as { icon: any; label: string }[];
+    case "cfp":
+      return [
+        { icon: FileText, label: `${i.word_limit_min ?? "—"}–${i.word_limit_max ?? "—"} words` },
+        { icon: Coins, label: i.submission_fee },
+      ];
+    case "moot":
+      return [
+        { icon: Globe, label: i.mode },
+        { icon: MapPin, label: i.venue ?? "Online" },
+        { icon: Trophy, label: i.prize_pool },
+      ];
+    case "competition":
+      return [
+        { icon: Trophy, label: i.prize_or_stipend },
+        { icon: Globe, label: i.mode },
+        { icon: Coins, label: i.fee },
+      ];
   }
-  if (i.stream === "cfp") {
-    return [
-      { icon: FileText, label: `${i.word_limit_min ?? "—"}–${i.word_limit_max ?? "—"} words` },
-      { icon: Coins, label: i.submission_fee },
-    ];
-  }
-  if (i.stream === "moot") {
-    return [
-      { icon: Globe, label: i.mode },
-      { icon: MapPin, label: i.venue ?? "Online" },
-      { icon: Trophy, label: i.prize_pool },
-    ];
-  }
-  return [
-    { icon: Trophy, label: i.prize_or_stipend },
-    { icon: Globe, label: i.mode },
-    { icon: Coins, label: i.fee },
-  ];
 }
 
 /* ---------------- Detail dialog ---------------- */
