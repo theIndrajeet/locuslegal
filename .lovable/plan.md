@@ -1,46 +1,67 @@
-# Switch sender domain to `open.locus.legal`
 
-## Status check
-- `open.locus.legal` → **Verified ✅** (NS delegation active, ready to send)
-- `auth.locus.legal` → not the active verified subdomain (previous attempt)
-- Edge functions still hardcode `SENDER_DOMAIN = "auth.locus.legal"` → every send currently rejected by the email API with "No email domain record found"
+# Plan: Installable Locus (Manifest-only PWA)
+
+Goal: Let users add Locus to their home screen on iOS and Android, where it opens fullscreen with the Locus icon — no browser chrome, no offline caching, no service worker.
+
+## What this gets you
+- "Add to Home Screen" (iOS Safari) / "Install app" (Android Chrome) prompts work
+- Launches in standalone mode with proper splash + icon + brand colors
+- Zero risk to the Lovable preview/editor (no service worker = no stale cache issues)
+- Works on the published site (`locus.legal`) immediately after deploy
+
+## What this does NOT do
+- No offline support (no service worker by design — that's Option B)
+- No background sync, no push notifications
 
 ## Changes
 
-### 1. `supabase/functions/send-transactional-email/index.ts`
-- `SENDER_DOMAIN`: `"auth.locus.legal"` → `"open.locus.legal"`
-- Keep `FROM_DOMAIN = "locus.legal"` (cosmetic From header — unchanged, sends still appear as `noreply@locus.legal`)
+### 1. Create `public/manifest.webmanifest`
+Brand-correct (Black bg, Yellow theme accent, Sora-style identity):
+```json
+{
+  "name": "Locus — Merit-Based Legal Internships",
+  "short_name": "Locus",
+  "description": "India's legal internship platform that connects law students with firms based on merit, not college name.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+  ]
+}
+```
 
-### 2. `supabase/functions/auth-email-hook/index.ts`
-- `SENDER_DOMAIN`: `"auth.locus.legal"` → `"open.locus.legal"`
-- Keep `ROOT_DOMAIN` and `FROM_DOMAIN` as `locus.legal`
+### 2. Generate the icon set
+Render Locus icons (Black bg, Yellow `Lo` mark) into `public/icons/`:
+- `icon-192.png` (192×192)
+- `icon-512.png` (512×512)
+- `icon-maskable-512.png` (512×512 with safe-zone padding for Android adaptive icons)
 
-### 3. Auth email template footers (4 files)
-Update displayed footer line for brand accuracy:
-- `_shared/email-templates/email-change.tsx`
-- `_shared/email-templates/magic-link.tsx`
-- `_shared/email-templates/reauthentication.tsx`
-- `_shared/email-templates/recovery.tsx`
+Generated programmatically via ImageMagick from a brand SVG (Black `#000000` square, Yellow `#FACC15` "Lo" centered in Sora-equivalent weight). Existing `apple-touch-icon.png` (180×180) is reused as-is.
 
-Change footer text `"Locus by LexRoot · auth.locus.legal"` → `"Locus by LexRoot · locus.legal"` (drop the technical subdomain — users see the brand domain, not the sender infra subdomain). Note: `signup.tsx` and `invite.tsx` already don't carry the bad string — verify and align.
+### 3. Update `index.html`
+- Add `<link rel="manifest" href="/manifest.webmanifest" />`
+- Change `<meta name="theme-color" content="#1a1a2e">` → `<meta name="theme-color" content="#000000">` (matches brand Black, replaces stale indigo)
+- Add iOS standalone hints:
+  - `<meta name="apple-mobile-web-app-capable" content="yes">`
+  - `<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">`
+  - `<meta name="apple-mobile-web-app-title" content="Locus">`
 
-### 4. Redeploy edge functions
-After file edits, deploy the two functions whose code changed:
-- `send-transactional-email`
-- `auth-email-hook`
-
-(Templates live under `_shared/` and are bundled into both functions at deploy time, so deploying these two ships the footer updates as well.)
-
-### 5. Save memory note
-Add `mem://fixes/sender-domain-switch-on-workspace-change` capturing the recurring fix:
-> When the workspace changes and a new sender subdomain is provisioned (e.g. notify → auth → open), update `SENDER_DOMAIN` in `send-transactional-email/index.ts` AND `auth-email-hook/index.ts` to the new verified FQDN, then redeploy both. `FROM_DOMAIN` stays as the root `locus.legal`. Also update auth email template footer strings if they hardcode the subdomain.
+### 4. Memory note
+Save `mem://features/installable-pwa` documenting: manifest-only setup, icon paths, no SW by design, where to update if branding changes.
 
 ## Out of scope
-- No DB changes, no migrations, no infra rerun (`open.locus.legal` is already active)
-- No client/UI changes
-- No new templates
+- No `vite-plugin-pwa`, no service worker, no offline caching
+- No install-prompt UI component (browsers surface their native prompt; can add a `/install` page later if desired)
+- No changes to existing routes, components, or Cloud config
 
 ## Verification after deploy
-- Trigger one auth email (password reset on test account) → confirm delivery
-- Trigger one transactional (welcome on a test signup) → confirm delivery
-- Check `email_send_log` for `sent` rows (no more `failed` with "No email domain record found")
+- iOS Safari: Share → Add to Home Screen → opens standalone with Black splash + Locus icon
+- Android Chrome: install banner / menu → Install app → launches in standalone
+- Lighthouse PWA audit on published URL: "Installable" passes (offline checks will be N/A — expected)
