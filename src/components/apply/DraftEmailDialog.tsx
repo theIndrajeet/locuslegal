@@ -67,6 +67,10 @@ interface HighlightChip {
   matches?: boolean; // overlaps with target
 }
 
+type RecipientType =
+  | "tier1_firm" | "tier2_firm" | "ip_boutique" | "tax_boutique" | "disputes_boutique"
+  | "sc_chamber" | "hc_chamber" | "inhouse_corporate" | "inhouse_tech" | "legaltech_startup";
+
 interface BriefState {
   fit_reason: string | null;
   role: string;
@@ -76,6 +80,70 @@ interface BriefState {
   signature_line: string;
   work_mode: string | null;
   highlight_ids: string[];
+  recipient_type: RecipientType;
+}
+
+const RECIPIENT_TYPE_OPTIONS: Array<{ value: RecipientType; label: string }> = [
+  { value: "tier1_firm", label: "Tier-1 firm" },
+  { value: "tier2_firm", label: "Mid-tier firm" },
+  { value: "ip_boutique", label: "IP boutique" },
+  { value: "tax_boutique", label: "Tax boutique" },
+  { value: "disputes_boutique", label: "Disputes boutique" },
+  { value: "sc_chamber", label: "SC chamber" },
+  { value: "hc_chamber", label: "HC chamber" },
+  { value: "inhouse_corporate", label: "In-house (corporate)" },
+  { value: "inhouse_tech", label: "In-house (tech)" },
+  { value: "legaltech_startup", label: "Legal-tech startup" },
+];
+
+// Hard-coded NLU list (knowledge base §A8). Lowercase substring match against college.
+const NLU_KEYWORDS = [
+  "nlsiu", "national law school of india",
+  "nalsar",
+  "nlu delhi", "national law university delhi", "nludelhi",
+  "nujs", "west bengal national university",
+  "gnlu", "gujarat national law",
+  "nliu", "national law institute university",
+  "nluj", "national law university jodhpur",
+  "hnlu", "hidayatullah",
+  "rgnul", "rajiv gandhi national",
+  "rmlnlu", "ram manohar lohiya national",
+  "nluo", "national law university odisha",
+  "mnlu", "maharashtra national law",
+  "dsnlu", "damodaram sanjivayya",
+  "cnlu", "chanakya national law",
+  "tnnlu", "tamil nadu national law",
+  "nlu assam", "national law university assam",
+  "nusrl", "national university of study and research in law",
+  "dnlu", "dharmashastra national",
+  "hpnlu", "himachal pradesh national",
+];
+
+function detectIsNlu(college: string | null | undefined): boolean {
+  if (!college) return false;
+  const c = college.toLowerCase();
+  return NLU_KEYWORDS.some((k) => c.includes(k));
+}
+
+function inferRecipientType(target: DraftEmailTarget | null): RecipientType {
+  if (!target) return "tier2_firm";
+  if (target.kind === "startup") {
+    const sector = (target.sector ?? "").toLowerCase();
+    if (/legal[\s-]?tech|lawtech|legaltech/.test(sector)) return "legaltech_startup";
+    if (/saas|software|tech|app|platform|ai|ml|fintech|crypto/.test(sector)) return "inhouse_tech";
+    return "inhouse_corporate";
+  }
+  const type = (target.type ?? "").toLowerCase();
+  const name = target.name.toLowerCase();
+  const TIER1 = ["cyril amarchand", "amarchand mangaldas", "azb", "shardul amarchand", "trilegal", "khaitan", "j sagar", "jsa", "luthra", "l&l", "nishith desai", "s&r", "induslaw"];
+  if (TIER1.some((f) => name.includes(f))) return "tier1_firm";
+  if (/ip|patent|trademark/.test(type) || /ip|patent|trademark/.test(name)) return "ip_boutique";
+  if (/\btax\b|gst|customs/.test(type) || /\btax\b|gst|customs/.test(name)) return "tax_boutique";
+  if (/dispute|litigation|arbitration/.test(type)) return "disputes_boutique";
+  if (/chamber|advocate/.test(type) || /chambers?$/.test(name)) {
+    return /supreme|sc\b/.test(type + " " + name) ? "sc_chamber" : "hc_chamber";
+  }
+  return "tier2_firm";
 }
 
 const FIT_OPTIONS = [
@@ -234,6 +302,7 @@ export default function DraftEmailDialog({ open, onOpenChange, target, onSent }:
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [step, setStep] = useState(0); // 0..3
+  const [warnings, setWarnings] = useState<string[]>([]);
   const [brief, setBrief] = useState<BriefState>({
     fit_reason: null,
     role: "Legal Internship",
@@ -243,6 +312,7 @@ export default function DraftEmailDialog({ open, onOpenChange, target, onSent }:
     signature_line: "",
     work_mode: null,
     highlight_ids: [],
+    recipient_type: "tier2_firm",
   });
 
   // Auth gate — redirect when needed.
@@ -343,8 +413,10 @@ export default function DraftEmailDialog({ open, onOpenChange, target, onSent }:
         signature_line: "",
         work_mode: null,
         highlight_ids: [],
+        recipient_type: inferRecipientType(target),
       });
     }
+    setWarnings([]);
     setStep(0);
   }, [open, target]);
 
@@ -391,6 +463,7 @@ export default function DraftEmailDialog({ open, onOpenChange, target, onSent }:
       return;
     }
     setGenerating(true);
+    setWarnings([]);
     const payload = {
       target: {
         name: target.name,
@@ -403,12 +476,17 @@ export default function DraftEmailDialog({ open, onOpenChange, target, onSent }:
       },
       role: isFollowup ? target.followup!.originalRole : brief.role,
       tone,
+      recipient_type: brief.recipient_type,
       brief: isFollowup ? null : buildBriefPayload(),
       mode: isFollowup ? "followup" : "initial",
       original: isFollowup
         ? { applied_on: target.followup!.originalAppliedOn, role: target.followup!.originalRole }
         : null,
-      user,
+      user: {
+        ...user,
+        cgpa: user.cgpa,
+        is_nlu: detectIsNlu(user.college),
+      },
     };
 
     const invokeOnce = () => supabase.functions.invoke("draft-application-email", { body: payload });
@@ -458,13 +536,14 @@ export default function DraftEmailDialog({ open, onOpenChange, target, onSent }:
         toast.error(detail);
         return;
       }
-      const result = data as { subject?: string; body?: string };
+      const result = data as { subject?: string; body?: string; warnings?: string[] };
       if (!result?.subject || !result?.body) {
         toast.error("AI returned an empty draft. Try again.");
         return;
       }
       setSubject(result.subject);
       setBody(result.body);
+      setWarnings(result.warnings ?? []);
       draftCache.set(target.id, { subject: result.subject, body: result.body });
       briefCache.set(target.id, brief);
     } catch (e) {
@@ -686,6 +765,25 @@ export default function DraftEmailDialog({ open, onOpenChange, target, onSent }:
               {/* Step 1: Fit */}
               {step === 0 && (
                 <div className="space-y-3">
+                  <div>
+                    <p className="text-sm font-semibold mb-2">This is a…</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {RECIPIENT_TYPE_OPTIONS.map((o) => (
+                        <button
+                          key={o.value}
+                          type="button"
+                          onClick={() => setBrief((b) => ({ ...b, recipient_type: o.value }))}
+                          className={`px-2.5 py-1 rounded-md border text-[11px] font-medium transition-colors ${
+                            brief.recipient_type === o.value
+                              ? "border-accent bg-accent text-accent-foreground"
+                              : "border-border bg-background hover:bg-muted"
+                          }`}
+                        >
+                          {o.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                   <div>
                     <p className="text-sm font-semibold mb-2">What draws you to {target?.name ?? "them"}?</p>
                     <div className="flex flex-wrap gap-1.5">
@@ -1029,6 +1127,14 @@ export default function DraftEmailDialog({ open, onOpenChange, target, onSent }:
           {/* Draft */}
           {hasDraft && (
             <div className="space-y-3 pt-2 border-t border-border">
+              {warnings.length > 0 && (
+                <div className="flex items-start gap-2 rounded-md border border-amber-500/50 bg-amber-500/10 px-3 py-2 text-xs">
+                  <AlertCircle size={14} className="shrink-0 mt-0.5 text-amber-500" />
+                  <div className="space-y-0.5">
+                    {warnings.map((w, i) => <p key={i}>{w}</p>)}
+                  </div>
+                </div>
+              )}
               <div className="space-y-1.5">
                 <Label className="font-mono text-[10px] uppercase tracking-widest">Subject</Label>
                 <Input
