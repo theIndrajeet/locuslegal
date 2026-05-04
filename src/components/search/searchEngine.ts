@@ -50,19 +50,29 @@ let vacanciesCache: VacancyLite[] | null = null;
 let vacanciesPromise: Promise<VacancyLite[]> | null = null;
 let vacanciesAt = 0;
 
+type CfpLite = { id: string; publication_name: string; theme: string | null; expires_at: string };
+type MootLite = { id: string; competition_name: string; organiser: string; expires_at: string };
+type CompetitionLite = { id: string; title: string; category: string; organiser: string; expires_at: string };
+
+let cfpsCache: CfpLite[] | null = null;
+let mootsCache: MootLite[] | null = null;
+let compsCache: CompetitionLite[] | null = null;
+
 export async function ensureVacanciesLoaded(): Promise<VacancyLite[]> {
-  // 5-minute cache to avoid hammering Supabase on every keystroke
   if (vacanciesCache && Date.now() - vacanciesAt < 5 * 60_000) return vacanciesCache;
   if (vacanciesPromise) return vacanciesPromise;
   vacanciesPromise = (async () => {
-    const { data } = await supabase
-      .from("vacancies")
-      .select("id, firm_name, role, location, expires_at")
-      .eq("status", "live")
-      .gt("expires_at", new Date().toISOString())
-      .order("expires_at", { ascending: true })
-      .limit(20);
-    vacanciesCache = (data ?? []) as VacancyLite[];
+    const nowIso = new Date().toISOString();
+    const [vRes, cRes, mRes, kRes] = await Promise.all([
+      supabase.from("vacancies").select("id, firm_name, role, location, expires_at").eq("status", "live").gt("expires_at", nowIso).order("expires_at", { ascending: true }).limit(20),
+      (supabase.from("cfps") as any).select("id, publication_name, theme, expires_at").eq("status", "live").gt("expires_at", nowIso).limit(20),
+      (supabase.from("moots") as any).select("id, competition_name, organiser, expires_at").eq("status", "live").gt("expires_at", nowIso).limit(20),
+      (supabase.from("competitions") as any).select("id, title, category, organiser, expires_at").eq("status", "live").gt("expires_at", nowIso).limit(20),
+    ]);
+    vacanciesCache = (vRes.data ?? []) as VacancyLite[];
+    cfpsCache = (cRes.data ?? []) as CfpLite[];
+    mootsCache = (mRes.data ?? []) as MootLite[];
+    compsCache = (kRes.data ?? []) as CompetitionLite[];
     vacanciesAt = Date.now();
     vacanciesPromise = null;
     return vacanciesCache;
