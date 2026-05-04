@@ -120,7 +120,7 @@ export default function Opportunities() {
           <div className="grid grid-cols-3 gap-2">
             {GROUPS.map((g) => {
               const active = activeGroup === g.key;
-              const groupCount = items.filter((i) => g.streams.includes(i.stream)).length;
+              const groupCount = items.filter((i) => g.streams.includes(i.stream) && new Date(deadlineOf(i)).getTime() > Date.now()).length;
               return (
                 <button
                   key={g.key}
