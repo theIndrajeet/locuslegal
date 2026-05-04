@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Download, X, Share, Plus } from "lucide-react";
+import { track } from "@/lib/analytics";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -62,10 +63,12 @@ export default function InstallLocusButton() {
       e.preventDefault();
       setDeferred(e as BeforeInstallPromptEvent);
       setVisible(true);
+      void track("install_prompt_shown", { platform: "android" });
     };
     const onInstalled = () => {
       setVisible(false);
       setDeferred(null);
+      void track("app_installed");
     };
     window.addEventListener("beforeinstallprompt", onPrompt);
     window.addEventListener("appinstalled", onInstalled);
@@ -75,6 +78,7 @@ export default function InstallLocusButton() {
       iosTimer = window.setTimeout(() => {
         setIosMode(true);
         setVisible(true);
+        void track("install_prompt_shown", { platform: "ios" });
       }, 4000);
     }
 
@@ -129,10 +133,15 @@ export default function InstallLocusButton() {
   }, []);
 
   const handleInstall = useCallback(async () => {
+    void track("install_prompt_clicked", { platform: deferred ? "android" : "ios" });
     if (deferred) {
       try {
         await deferred.prompt();
         const choice = await deferred.userChoice;
+        void track(
+          choice.outcome === "accepted" ? "install_outcome_accepted" : "install_outcome_dismissed",
+          { platform: "android" }
+        );
         if (choice.outcome === "dismissed") {
           try {
             localStorage.setItem(DISMISS_KEY, String(Date.now()));
@@ -152,6 +161,7 @@ export default function InstallLocusButton() {
 
   const handleDismiss = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
+    void track("install_prompt_dismissed", { platform: iosMode ? "ios" : "android" });
     try {
       localStorage.setItem(DISMISS_KEY, String(Date.now()));
     } catch {
@@ -159,7 +169,7 @@ export default function InstallLocusButton() {
     }
     setVisible(false);
     setIosCardOpen(false);
-  }, []);
+  }, [iosMode]);
 
   const shouldShow = visible && !hasCompareBar && !inputFocused && !scrollHidden;
 
