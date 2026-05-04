@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   FileText,
   Coins,
@@ -29,6 +29,10 @@ import {
 import { cn } from "@/lib/utils";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuthSession } from "@/hooks/useAuthSession";
+import VacancyCard from "@/components/vacancies/VacancyCard";
+import DraftEmailDialog, { type DraftEmailTarget } from "@/components/apply/DraftEmailDialog";
+import { type Vacancy, type VacancyApplication } from "@/lib/vacancies";
 import {
   STREAM_META,
   streamLabel,
@@ -60,11 +64,17 @@ export default function Opportunities() {
     path: "/opportunities",
   });
 
+  const { userId } = useAuthSession();
   const [items, setItems] = useState<AnyOpportunity[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeGroup, setActiveGroup] = useState<GroupKey>("career");
   const [filter, setFilter] = useState<OpportunityStream | null>(null);
   const [selected, setSelected] = useState<AnyOpportunity | null>(null);
+
+  // Vacancy application tracking (career stream only)
+  const [appMap, setAppMap] = useState<Map<string, VacancyApplication>>(new Map());
+  const [draftFor, setDraftFor] = useState<{ vacancy: Vacancy; followup: boolean } | null>(null);
+  const [draftOpen, setDraftOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -100,6 +110,59 @@ export default function Opportunities() {
     return () => { cancelled = true; };
   }, []);
 
+  const vacancyItems = useMemo(
+    () => items.filter((i): i is VacancyLike => i.stream === "internship" || i.stream === "job"),
+    [items],
+  );
+
+  const refreshApplications = useCallback(async () => {
+    if (!userId || vacancyItems.length === 0) {
+      setAppMap(new Map());
+      return;
+    }
+    const firmNames = Array.from(new Set(vacancyItems.map((v) => v.firm_name)));
+    const { data } = await supabase
+      .from("profile_applications")
+      .select("id, firm_name_snapshot, role, applied_on, notes, status_updated_at")
+      .eq("user_id", userId)
+      .in("firm_name_snapshot", firmNames)
+      .order("applied_on", { ascending: false });
+
+    const norm = (s: string) =>
+      s.toLowerCase().trim().replace(/\s+/g, " ").replace(/(ship|s)$/, "");
+
+    const map = new Map<string, VacancyApplication>();
+    (data ?? []).forEach((row) => {
+      const firmRows = vacancyItems.filter(
+        (x) => x.firm_name.toLowerCase() === (row.firm_name_snapshot ?? "").toLowerCase(),
+      );
+      if (firmRows.length === 0) return;
+      let v = firmRows.find((x) => x.role.toLowerCase() === (row.role ?? "").toLowerCase());
+      if (!v) {
+        const rn = norm(row.role ?? "");
+        v = firmRows.find((x) => {
+          const xn = norm(x.role);
+          return xn === rn || xn.includes(rn) || rn.includes(xn);
+        });
+      }
+      if (!v && firmRows.length === 1) v = firmRows[0];
+      if (!v || map.has(v.id)) return;
+
+      let lastFollowupOn: string | null = null;
+      if (row.notes) {
+        const m = row.notes.match(/Follow-up sent on (\d{4}-\d{2}-\d{2})/g);
+        if (m && m.length > 0) {
+          const last = m[m.length - 1].match(/(\d{4}-\d{2}-\d{2})/);
+          if (last) lastFollowupOn = last[1];
+        }
+      }
+      map.set(v.id, { id: row.id, appliedOn: row.applied_on, lastFollowupOn });
+    });
+    setAppMap(map);
+  }, [userId, vacancyItems]);
+
+  useEffect(() => { void refreshApplications(); }, [refreshApplications]);
+
   const currentGroup = GROUPS.find((g) => g.key === activeGroup)!;
   const activeStreams: OpportunityStream[] = filter ? [filter] : currentGroup.streams;
 
@@ -109,6 +172,38 @@ export default function Opportunities() {
   );
 
   const liveCount = items.filter((i) => new Date(deadlineOf(i)).getTime() > Date.now()).length;
+
+  const handleApply = (v: Vacancy, opts?: { followup?: boolean }) => {
+    setDraftFor({ vacancy: v, followup: !!opts?.followup });
+    setDraftOpen(true);
+  };
+
+  const draftTarget: DraftEmailTarget | null = draftFor
+    ? (() => {
+        const v = draftFor.vacancy;
+        const existing = appMap.get(v.id);
+        return {
+          id: `vacancy-${v.id}${draftFor.followup ? "-followup" : ""}`,
+          name: v.firm_name,
+          email: v.application_email,
+          kind: "firm",
+          type: null,
+          city: v.location,
+          sector: null,
+          practice_areas: null,
+          legal_needs: v.description,
+          roleHint: v.role,
+          followup:
+            draftFor.followup && existing
+              ? {
+                  originalAppliedOn: existing.appliedOn,
+                  originalRole: v.role,
+                  applicationId: existing.id,
+                }
+              : null,
+        };
+      })()
+    : null;
 
   return (
     <div className="min-h-screen bg-background pt-16">
@@ -197,14 +292,35 @@ export default function Opportunities() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
-            {filtered.map((item) => (
-              <OpportunityCard key={`${item.stream}-${item.id}`} item={item} onClick={() => setSelected(item)} />
-            ))}
+            {filtered.map((item) => {
+              if (item.stream === "internship" || item.stream === "job") {
+                const v = item as unknown as Vacancy;
+                return (
+                  <VacancyCard
+                    key={`vac-${item.id}`}
+                    vacancy={v}
+                    application={appMap.get(item.id) ?? null}
+                    onApply={handleApply}
+                    onDeleted={() => void refreshApplications()}
+                  />
+                );
+              }
+              return (
+                <OpportunityCard key={`${item.stream}-${item.id}`} item={item} onClick={() => setSelected(item)} />
+              );
+            })}
           </div>
         )}
       </div>
 
       <DetailDialog item={selected} onClose={() => setSelected(null)} />
+
+      <DraftEmailDialog
+        open={draftOpen}
+        onOpenChange={setDraftOpen}
+        target={draftTarget}
+        onSent={() => void refreshApplications()}
+      />
     </div>
   );
 }
