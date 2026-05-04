@@ -1,9 +1,10 @@
-import { useState, FormEvent } from "react";
+import { useState, FormEvent, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { track } from "@/lib/analytics";
 
 const containerVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -37,8 +38,13 @@ export default function WaitlistSection() {
       toast({ title: "Something went wrong", description: "Please try again.", variant: "destructive" });
       return false;
     }
+    void track("waitlist_submit", { audience: type });
     return true;
   };
+
+  useEffect(() => {
+    void track("waitlist_view");
+  }, []);
 
   const handleStudent = async (e: FormEvent) => {
     e.preventDefault();

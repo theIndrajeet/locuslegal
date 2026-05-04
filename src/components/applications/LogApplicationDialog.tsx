@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Check, ChevronsUpDown } from "lucide-react";
+import { track } from "@/lib/analytics";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import firmsData from "@/data/firms.json";
@@ -132,6 +133,7 @@ export default function LogApplicationDialog({
       });
       setSaving(false);
       if (error) return toast.error(error.message);
+      void track("application_logged", { method, status });
       toast.success("Application logged");
     }
     onOpenChange(false);

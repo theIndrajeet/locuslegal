@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Star, MapPin, Phone, Mail, ExternalLink, Sparkles, ShieldCheck, Eye, MessageSquarePlus, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -12,6 +12,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import DraftEmailDialog, { type DraftEmailTarget } from "@/components/apply/DraftEmailDialog";
 import SuggestFixDialog from "@/components/directory/SuggestFixDialog";
 import { shareOrCopy, withRef } from "@/lib/share";
+import { track } from "@/lib/analytics";
 
 type FirmType = "Law Firm" | "Chamber" | "Individual Advocate";
 
@@ -40,6 +41,12 @@ interface FirmDrawerProps {
 export default function FirmDrawer({ firm, type, open, onOpenChange }: FirmDrawerProps) {
   const [draftOpen, setDraftOpen] = useState(false);
   const [suggestOpen, setSuggestOpen] = useState(false);
+
+  useEffect(() => {
+    if (open && firm) {
+      void track("firm_view", { name: firm.name, type, city: firm.city ?? null });
+    }
+  }, [open, firm, type]);
 
   if (!firm) return null;
 

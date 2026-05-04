@@ -5,6 +5,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useCommandPalette } from "./useCommandPalette";
 import { ensureFirmsLoaded, runSearch, SEARCH_SUGGESTIONS, KIND_LABELS } from "./searchEngine";
 import type { SearchGroup, SearchResult } from "./types";
+import { track } from "@/lib/analytics";
 
 type FirmRow = { name: string; city: string; area: string; tier: string; rating: number | null };
 
@@ -22,9 +23,17 @@ export default function CommandPalette() {
   // Lazy load firms on first open
   useEffect(() => {
     if (!open) return;
+    void track("search_opened");
     if (firms) return;
     ensureFirmsLoaded().then((rows) => setFirms(rows as FirmRow[]));
   }, [open, firms]);
+
+  // Fire search_query (debounced) when query changes meaningfully
+  useEffect(() => {
+    if (debounced.trim().length >= 2) {
+      void track("search_query", { length: debounced.length });
+    }
+  }, [debounced]);
 
   // Reset on close
   useEffect(() => {
@@ -67,6 +76,7 @@ export default function CommandPalette() {
 
   const onSelect = (r: SearchResult, opts?: { newTab?: boolean }) => {
     pushRecent(debounced || query);
+    void track("search_result_clicked", { kind: r.kind, query: (debounced || query).slice(0, 64) });
     setOpen(false);
     if (r.externalDownload) {
       const a = document.createElement("a");
