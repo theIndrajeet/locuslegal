@@ -32,7 +32,7 @@ const RESOURCES: ResourceIndex[] = [
 const PAGES: { title: string; href: string; description: string; keywords: string[] }[] = [
   { title: "Home", href: "/", description: "Locus landing page.", keywords: ["home", "landing"] },
   { title: "Directory", href: "/directory", description: "Search 3,600+ Indian law firms — 880+ direct emails.", keywords: ["firms", "lawyers", "search"] },
-  { title: "Vacancies", href: "/vacancies", description: "Live curated legal internship vacancies.", keywords: ["vacancies", "openings", "hiring", "jobs", "internship"] },
+  { title: "Opportunities", href: "/opportunities", description: "Live curated internships, jobs, CFPs, moots & competitions.", keywords: ["vacancies", "openings", "hiring", "jobs", "internship", "cfp", "moot", "competition", "opportunities"] },
   { title: "Playbook", href: "/playbook", description: "Step-by-step guides for law students.", keywords: ["guides", "case files"] },
   { title: "Resources", href: "/resources", description: "Templates, trackers, mentorship.", keywords: ["templates", "downloads"] },
   { title: "Tools", href: "/tools", description: "Legal document generators.", keywords: ["nda", "dpa", "contract"] },
