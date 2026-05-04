@@ -805,7 +805,7 @@ serve(async (req) => {
         retryable: true,
       }), { status: 504, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error", retryable: true }), {
+    return new Response(JSON.stringify({ error: "Internal server error. Please try again.", retryable: true }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
