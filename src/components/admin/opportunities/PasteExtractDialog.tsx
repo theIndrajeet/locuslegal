@@ -129,7 +129,7 @@ export default function PasteExtractDialog({ open, onOpenChange, stream, userId,
       cleaned.status = "live";
       cleaned.expires_at = expires_at;
 
-      const { error } = await supabase.from(TABLE[stream]).insert(cleaned);
+      const { error } = await (supabase.from(TABLE[stream]) as any).insert(cleaned);
       if (error) {
         toast.error(error.message);
         return;
