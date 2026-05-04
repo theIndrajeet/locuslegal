@@ -40,7 +40,7 @@ const PublicProfile = lazy(routeImports.publicProfile as never);
 const AdminWaitlist = lazy(routeImports.adminWaitlist as never);
 const AdminBar = lazy(routeImports.adminBar as never);
 const AdminBeta = lazy(routeImports.adminBeta as never);
-const Vacancies = lazy(routeImports.vacancies as never);
+
 const AdminVacancies = lazy(routeImports.adminVacancies as never);
 const AdminDashboard = lazy(routeImports.adminDashboard as never);
 const AdminFirmSuggestions = lazy(routeImports.adminFirmSuggestions as never);
