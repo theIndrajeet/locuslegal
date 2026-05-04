@@ -71,21 +71,16 @@ export default function StartupDrawer({ startup, open, onOpenChange }: Props) {
         <SheetHeader className="mb-6">
           <div className="flex items-start justify-between gap-2">
             <SheetTitle className="font-heading text-xl leading-tight">{startup.name}</SheetTitle>
-            <button
-              type="button"
-              aria-label="Share this startup"
-              title="Share"
-              onClick={async () => {
+            <ShareIconButton
+              label="Share this startup"
+              onShare={async () => {
                 const slug = encodeURIComponent(startup.name);
                 const url = withRef(`https://locus.legal/directory?startup=${slug}`, "startup-share");
                 const text = `${startup.name}${startup.city ? `, ${startup.city}` : ""}${startup.sector ? ` · ${startup.sector}` : ""} — found via Locus`;
                 const r = await shareOrCopy({ title: "Locus — Startup Directory", text, url });
                 if (r === "copied") toast.success("Link copied");
               }}
-              className="shrink-0 p-1.5 rounded-md text-muted-foreground hover:text-accent hover:bg-accent/10 transition-colors"
-            >
-              <Share2 size={16} />
-            </button>
+            />
           </div>
           <SheetDescription className="sr-only">Details for {startup.name}</SheetDescription>
         </SheetHeader>
