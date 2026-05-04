@@ -418,6 +418,7 @@ export default function DraftEmailDialog({ open, onOpenChange, target, onSent }:
       });
     }
     setWarnings([]);
+    setRewriteNotes("");
     setStep(0);
   }, [open, target]);
 
