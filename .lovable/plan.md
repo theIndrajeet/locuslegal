@@ -1,44 +1,38 @@
-# Replace App Icons With the New Locus Mark
+# Fix iOS Install Instructions Copy
 
-The home screen currently shows a generic "L" because the PWA icons in `/public/icons/` and the favicon are old placeholders that don't match the brand. The uploaded image (`31ABD606-D769-4537-8A44-058DA9E1435C.png`) is the proper Locus mark — yellow ring, "Loc" in white, "us" in yellow, accent underline, on pure black. We'll use it everywhere.
+## Problem
 
-## What gets replaced
+On iOS Safari, when a user opens the Share sheet, the **Add to Home Screen** action is no longer in the first row of actions (Copy, Add to Bookmarks, Add to Reading List). It sits behind **View More**. Our current instruction card just says "Tap [share] then Add to Home Screen" — users tap share, don't see it, and bounce.
 
-All of these surfaces currently render the wrong/placeholder mark:
+A second smaller issue: after the install completes, iOS takes ~1–2 seconds to fetch and render the apple-touch-icon, so users briefly see a generic icon and assume our icon "didn't load."
 
-1. **iOS home screen icon** (`/apple-touch-icon.png`, 180×180) — what your screenshot shows.
-2. **PWA installed icon** (`/icons/icon-192.png`, `/icons/icon-512.png`) — used when installed from Android/desktop.
-3. **PWA maskable icon** (`/icons/icon-maskable-512.png`) — Android adaptive icon (needs safe-zone padding so the ring doesn't get cropped by circular/squircle masks).
-4. **Browser tab favicon** (`/favicon.svg`) — currently a navy square with a serif "L"; will be replaced with a PNG of the new mark + a 32×32 ICO fallback.
-5. **PWA manifest** (`/public/manifest.webmanifest`) — already references the right paths; just needs cache-busting.
+## Scope
 
-## How we'll do it (technical)
+One file: `src/components/InstallLocusButton.tsx` — only the iOS instructions card body (lines ~191–216). Copy and small layout change only. No logic, no new components, no new assets.
 
-1. Copy the uploaded PNG to `/tmp/locus-source.png`.
-2. Use Python + Pillow to generate every required size from that single source:
-   - `apple-touch-icon.png` → 180×180, square (iOS adds its own rounded mask).
-   - `icons/icon-192.png` → 192×192, "any" purpose, full-bleed.
-   - `icons/icon-512.png` → 512×512, "any" purpose, full-bleed.
-   - `icons/icon-maskable-512.png` → 512×512 with the logo composited inside the inner ~80% safe zone on a black background, so Android's mask never clips the yellow ring.
-   - `favicon-32.png` → 32×32, plus a multi-resolution `favicon.ico` (16/32/48) for legacy browsers.
-   - `favicon.png` → 192×192, used as the modern PNG favicon.
-3. QA every generated file by previewing it before delivery.
-4. Update `index.html`:
-   - Drop the SVG favicon line; add `<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=2">` and a `.ico` fallback.
-   - Add `?v=2` cache-bust to the apple-touch-icon link so iOS re-fetches.
-5. Update `manifest.webmanifest`:
-   - Append `?v=2` to each icon `src` so installed PWAs pick up the new art on next visit.
-   - Remove the now-unused `favicon.svg` reference path (the file itself can be deleted from `/public/`).
-6. Delete the old `/public/favicon.svg` (it's no longer referenced and is off-brand).
+## Changes
 
-## What you'll see after
+Rewrite the iOS card so it walks through the actual three-tap flow and sets expectations for the icon:
 
-- Browser tab: the black/yellow Locus ring instead of a navy "L".
-- Add to Home Screen on iOS: the proper circular mark (iOS will round the square; the ring already lives well inside the safe area).
-- Install on Android/desktop: same mark, with the maskable variant safe under any adaptive shape.
+```text
+Install Locus on iPhone
+1. Tap [share-icon]
+2. Scroll down → tap "View More"
+3. Tap "Add to Home Screen"
+
+Give it a second to load the icon.
+```
+
+Implementation notes:
+- Keep the existing `bg-background border-2 border-foreground rounded-2xl shadow-[4px_4px_0_0_hsl(var(--accent))]` card chrome.
+- Replace the single inline sentence with a 3-step ordered list (numbered, tight spacing, font-inter text-xs).
+- Keep the `Share` icon inline in step 1 (accent color, same size as today).
+- Add a small muted footnote line under the steps: "Give it a second — iPhone fetches the icon after you tap Add."
+- Bump card `max-w-xs` to `max-w-[280px]` so the 3-line list doesn't wrap awkwardly on small screens (440px viewport tested).
+- No copy changes to the pill button itself, the dismiss flow, the Android path, the timing (4s delay), or analytics events.
 
 ## Out of scope
 
-- No changes to in-app logo components (`Logo.tsx`, navbar wordmark) — those already render the correct "Loc**us**" wordmark.
-- No splash screens (iOS PWA splash images) — can add as a follow-up if you want the launch screen branded too.
-- No changes to OG/Twitter share images.
+- Android `beforeinstallprompt` flow.
+- Icon generation / manifest (already done in previous turn).
+- Detecting iOS version to conditionally show "View More" step (not worth the UA sniffing — the instruction is harmless on older iOS where it's already in row 1).
