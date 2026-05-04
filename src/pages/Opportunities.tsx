@@ -478,7 +478,7 @@ function DetailDialog({ item, onClose }: { item: AnyOpportunity | null; onClose:
         {/* Hero band */}
         <div className={cn("relative px-6 pt-6 pb-5 border-b-2 border-foreground/80 overflow-hidden")}>
           <span aria-hidden className={cn("absolute inset-x-0 top-0 h-1.5", meta.accentBg)} />
-          <div className="flex items-start justify-between gap-3 mb-3">
+          <div className="flex items-start justify-between gap-3 mb-3 pr-12">
             <span className={cn(
               "inline-flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider px-2 py-1 rounded-md border-2 border-foreground/80",
               meta.pillBg, meta.pillText,
