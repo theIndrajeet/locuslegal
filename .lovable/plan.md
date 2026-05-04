@@ -1,51 +1,75 @@
-You’re right. I treated vacancies like the new generic opportunity cards, and that broke the existing vacancy-specific flow. I’ll restore that system instead of replacing it.
+# Fix opportunity dates + add link strip to modal top
 
-Plan:
+You raised two real issues. I confirmed both against the database.
 
-1. Restore the vacancy application workflow on `/opportunities`
-   - For `internship` and `job` items, render the existing `VacancyCard` component again.
-   - This brings back:
-     - `Draft application`
-     - draft email dialog
-     - automatic Application Tracker logging
-     - applied/follow-up state badges
-     - `Draft follow-up`
-     - remove tracker record button
-     - inline task brief display
-   - Vacancy cards will no longer use the generic “View details / Email application” modal path.
+## What actually happened with the NLSIU CFPs
 
-2. Reconnect vacancy tracking state
-   - Re-add the signed-in user application lookup from `profile_applications`.
-   - Match existing tracker rows to vacancies by firm and role, using the previous loose matching logic.
-   - Refresh application state after a draft is sent, so the card immediately updates to “Applied” / follow-up state.
+I queried `cfps`. All 8 NLSIU rows were inserted in a single batch at the same timestamp. The deadlines stored vs what the source page actually says:
 
-3. Keep the “no expired opportunities” rule
-   - Keep vacancies, CFPs, moots, and competitions filtered to `status = live` and deadline greater than now.
-   - I will not bring back the “recently closed / archived last 30 days” section.
+| CFP | Source page says | Stored as | Verdict |
+|---|---|---|---|
+| NLSJ general | Rolling (no deadline) | 2026-12-31 | Hallucinated |
+| IJCLP Vol 14 | 30 May 2026 | 2026-05-30 | Correct |
+| JLPP Vol 9(2) | 31 Jan 2026 | 2026-12-31 | Wrong + past |
+| JLPP Vol 10(1) Special | 31 Jan 2026 | 2026-12-31 | Wrong + past |
+| SLR general | Rolling | 2026-12-31 | Hallucinated |
+| SLR Vol 22(2) Special | 15 Apr 2026 | 2026-12-31 | Wrong + past |
+| IJLT Vol 22 | 15 May 2026 | 2026-05-15 | Correct |
+| IJIEL Vol 17(2) | 8 May 2026 | 2026-05-08 | Correct |
 
-4. Keep the CFP/detail modal improvements only where they belong
-   - For CFPs, moots, and competitions, keep the detail modal.
-   - Add the yellow top “Important links” panel there, not as a replacement for vacancy drafting.
-   - Show both links when available:
-     - submission / registration / application link
-     - brochure / guidelines link
-   - Make both visually prominent with yellow accent treatment at the top.
+So 5 of 8 are wrong. Three are real past-dated CFPs (Jan 31, Jan 31, Apr 15) that should never have been on the board. Two are rolling-deadline journals that don't really have a single date and shouldn't be filed under a fake Dec 31 expiry.
 
-5. Fix the source clipping
-   - Add enough bottom padding inside the detail modal scroll area.
-   - Reduce/remove the fade overlap so `Source: ...` is fully visible.
+Today is 4 May 2026. Per your standing rule (no expired opportunities), only the 3 with deadlines after today (IJCLP 30 May, IJLT 15 May, IJIEL 8 May) should be live.
 
-Technical details:
+## Plan
 
-- Update `src/pages/Opportunities.tsx` only.
-- Import and use:
-  - `VacancyCard`
-  - `DraftEmailDialog`
-  - `useAuthSession`
-  - vacancy types from `@/lib/vacancies`
-- Split rendering logic:
-  - Career group (`internship`, `job`) uses `VacancyCard` with `onApply`.
-  - Academic/contest streams use the generic `OpportunityCard` + `DetailDialog`.
-- No database schema changes.
-- No changes to existing vacancy records.
-- No changes to the email draft component itself unless a type mismatch requires a tiny integration fix.
+### 1. Clean the bad NLSIU rows
+Delete the 5 wrong/past rows from `cfps`:
+- NLSJ general (rolling)
+- JLPP Vol 9(2) (past)
+- JLPP Vol 10(1) Special (past)
+- SLR general (rolling)
+- SLR Vol 22(2) Special (past)
+
+Keep the 3 correctly-dated future ones (IJCLP, IJLT, IJIEL).
+
+### 2. Stop date hallucinations on extract + insert
+
+Two layers of defence:
+
+**A. Tighten the AI prompt in `extract-opportunity`:**
+- For each stream's deadline field, require the date to come verbatim from the text. If the post says "rolling", "year-round", "ongoing", or has no explicit date, the model must return `null` (not invent one).
+- Make `submission_deadline` / `registration_deadline` / `deadline` allow `null` in the JSON tool schema.
+- Tell the model: never use end-of-year (Dec 31) as a fallback; never approximate; if multiple dates appear, pick the one literally labelled deadline/last date for submission.
+
+**B. Hard validation in `PasteExtractDialog.submit()`:**
+- If the deadline field is missing or earlier than today, block the insert with a toast: "Deadline is missing or in the past — fix it before publishing."
+- This catches anything the AI still gets wrong, before it lands in the DB.
+
+### 3. Add a guideline + submission link strip to the modal top
+
+Right now the yellow band on top of the detail modal only carries the type pill ("CALL FOR PAPERS") and the countdown ("241D LEFT"). I'll add a second mini-row inside that yellow band — directly under the pill/countdown line — with two compact link chips:
+
+- **Guidelines** → `brochure_url` (or whichever URL field carries the brochure / guidelines PDF)
+- **Submission** → `submission_url` (CFP) / `registration_url` (moot) / `application_url` (competition)
+
+Behaviour:
+- Each chip is a small pill button: yellow background, black border, black text, opens in a new tab, with a `FileText` icon for Guidelines and `ExternalLink` icon for Submission.
+- If only one of the two links exists, only that chip renders (no empty placeholder).
+- If neither exists, the row collapses entirely so the title moves up — no awkward gap.
+- Vacancies (internship/job) are unaffected — they still use the draft-and-track flow you already have.
+
+### 4. Source visibility (carry-over)
+The "Source: NLSIU" line at the bottom of the scroll area was being clipped by the gradient fade. I'll add bottom padding inside the scroll container and reduce the fade height so it's fully visible.
+
+## Files touched
+
+- `supabase/functions/extract-opportunity/index.ts` — prompt + schema (allow null deadline, ban Dec-31 fallback)
+- `src/components/admin/opportunities/PasteExtractDialog.tsx` — pre-insert deadline validation
+- `src/pages/Opportunities.tsx` — yellow-strip link chips + scroll padding fix
+- DB migration — delete the 5 bad NLSIU rows
+
+## Out of scope
+- No schema changes to `cfps` / `moots` / `competitions`.
+- No changes to vacancy draft-and-track flow.
+- No bulk re-extraction — you can re-paste the 3 future-dated NLSIU calls individually if you want them with cleaner descriptions.

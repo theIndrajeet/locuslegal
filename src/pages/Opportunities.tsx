@@ -442,6 +442,15 @@ function DetailDialog({ item, onClose }: { item: AnyOpportunity | null; onClose:
     }
   };
 
+  // Pull guideline + submission URLs by stream
+  const guidelineUrl = (item as any).brochure_url as string | null | undefined;
+  const submissionUrl =
+    item.stream === "cfp" ? (item as any).submission_url
+      : item.stream === "moot" ? (item as any).registration_url
+      : item.stream === "competition" ? (item as any).application_url
+      : null;
+  const hasLinkRow = !!guidelineUrl || !!submissionUrl;
+
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-2xl max-h-[88vh] p-0 overflow-hidden border-2 border-foreground shadow-[6px_6px_0_0_hsl(var(--foreground))]">
@@ -466,6 +475,35 @@ function DetailDialog({ item, onClose }: { item: AnyOpportunity | null; onClose:
               {cd.label}
             </span>
           </div>
+
+          {/* Quick-link chips: Guidelines + Submission */}
+          {hasLinkRow && (
+            <div className="flex flex-wrap gap-2 mb-3">
+              {guidelineUrl && (
+                <a
+                  href={guidelineUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-md border-2 border-foreground bg-accent text-accent-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_0_hsl(var(--foreground))] transition-transform"
+                >
+                  <FileText size={12} />
+                  Guidelines
+                </a>
+              )}
+              {submissionUrl && (
+                <a
+                  href={submissionUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-md border-2 border-foreground bg-accent text-accent-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_0_hsl(var(--foreground))] transition-transform"
+                >
+                  <ExternalLink size={12} />
+                  Submission
+                </a>
+              )}
+            </div>
+          )}
+
           <DialogHeader className="space-y-1.5 text-left">
             <DialogTitle className="font-heading text-2xl md:text-3xl font-extrabold tracking-tight leading-tight">
               {titleOf(item)}
@@ -481,7 +519,7 @@ function DetailDialog({ item, onClose }: { item: AnyOpportunity | null; onClose:
 
         {/* Scrollable body */}
         <div className="relative">
-          <div className="px-6 py-5 space-y-6 overflow-y-auto max-h-[calc(88vh-13rem)]">
+          <div className="px-6 pt-5 pb-10 space-y-6 overflow-y-auto max-h-[calc(88vh-13rem)]">
             {/* Key facts grid */}
             {facts.length > 0 && (
               <section>
@@ -537,8 +575,8 @@ function DetailDialog({ item, onClose }: { item: AnyOpportunity | null; onClose:
             </div>
           </div>
 
-          {/* Scroll fade */}
-          <div aria-hidden className="pointer-events-none absolute bottom-0 inset-x-0 h-6 bg-gradient-to-t from-background to-transparent" />
+          {/* Scroll fade — short so the Source line isn't clipped */}
+          <div aria-hidden className="pointer-events-none absolute bottom-0 inset-x-0 h-3 bg-gradient-to-t from-background to-transparent" />
         </div>
 
         {/* Sticky CTA bar */}
