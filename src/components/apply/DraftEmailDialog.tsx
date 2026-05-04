@@ -1127,6 +1127,14 @@ export default function DraftEmailDialog({ open, onOpenChange, target, onSent }:
           {/* Draft */}
           {hasDraft && (
             <div className="space-y-3 pt-2 border-t border-border">
+              {warnings.length > 0 && (
+                <div className="flex items-start gap-2 rounded-md border border-amber-500/50 bg-amber-500/10 px-3 py-2 text-xs">
+                  <AlertCircle size={14} className="shrink-0 mt-0.5 text-amber-500" />
+                  <div className="space-y-0.5">
+                    {warnings.map((w, i) => <p key={i}>{w}</p>)}
+                  </div>
+                </div>
+              )}
               <div className="space-y-1.5">
                 <Label className="font-mono text-[10px] uppercase tracking-widest">Subject</Label>
                 <Input
