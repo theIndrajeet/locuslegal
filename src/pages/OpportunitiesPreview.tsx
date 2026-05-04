@@ -35,17 +35,19 @@ import {
   STREAM_META,
 } from "@/components/opportunities-preview/sampleData";
 
-const STREAM_ORDER: Array<OpportunityStream | "all"> = [
-  "all",
-  "internship",
-  "job",
-  "cfp",
-  "moot",
-  "competition",
+type GroupKey = "career" | "academic" | "contests";
+
+const GROUPS: Array<{
+  key: GroupKey;
+  label: string;
+  streams: OpportunityStream[];
+}> = [
+  { key: "career", label: "Career", streams: ["internship", "job"] },
+  { key: "academic", label: "Academic", streams: ["cfp", "moot"] },
+  { key: "contests", label: "Contests", streams: ["competition"] },
 ];
 
-function streamLabel(s: OpportunityStream | "all"): string {
-  if (s === "all") return "All";
+function streamLabel(s: OpportunityStream): string {
   if (s === "cfp") return "CFPs";
   if (s === "internship") return "Internships";
   if (s === "job") return "Jobs";
