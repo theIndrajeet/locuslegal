@@ -1820,7 +1820,14 @@ export type Database = {
       vacancies_lifecycle_tick: { Args: never; Returns: undefined }
     }
     Enums: {
-      app_role: "admin" | "moderator" | "user"
+      app_role:
+        | "admin"
+        | "moderator"
+        | "user"
+        | "opportunities_admin"
+        | "waitlist_admin"
+        | "bar_admin"
+        | "broadcast_admin"
       application_method:
         | "email"
         | "form"
@@ -2046,7 +2053,15 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "moderator", "user"],
+      app_role: [
+        "admin",
+        "moderator",
+        "user",
+        "opportunities_admin",
+        "waitlist_admin",
+        "bar_admin",
+        "broadcast_admin",
+      ],
       application_method: [
         "email",
         "form",
