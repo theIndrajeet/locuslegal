@@ -53,6 +53,7 @@ const NotFound = lazy(routeImports.notFound as never);
 const DockLab = lazy(() => import("./pages/DockLab"));
 const Opportunities = lazy(() => import("./pages/Opportunities"));
 const AdminOpportunities = lazy(() => import("./pages/AdminOpportunities"));
+const AdminAdmins = lazy(() => import("./pages/AdminAdmins"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -154,6 +155,7 @@ const App = () => (
                     <Route path="opportunities" element={<AdminOpportunities />} />
                     <Route path="firm-suggestions" element={<AdminFirmSuggestions />} />
                     <Route path="broadcasts" element={<AdminBroadcasts />} />
+                    <Route path="admins" element={<AdminAdmins />} />
                   </Route>
                   <Route path="/vacancies" element={<Navigate to="/opportunities" replace />} />
                   <Route path="/opportunities" element={<Opportunities />} />

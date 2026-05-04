@@ -8,6 +8,7 @@ import {
   Activity,
   MessageSquarePlus,
   Megaphone,
+  ShieldCheck,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { usePageMeta } from "@/hooks/usePageMeta";
@@ -201,6 +202,12 @@ export default function AdminDashboard() {
             title="Broadcasts"
             description="Send a one-off update email to a chosen segment."
             icon={Megaphone}
+          />
+          <ToolTile
+            to="/admin/admins"
+            title="Admin Access"
+            description="Grant or revoke admin access by username or email."
+            icon={ShieldCheck}
           />
         </div>
       </section>
