@@ -302,6 +302,7 @@ export default function DraftEmailDialog({ open, onOpenChange, target, onSent }:
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [step, setStep] = useState(0); // 0..3
+  const [warnings, setWarnings] = useState<string[]>([]);
   const [brief, setBrief] = useState<BriefState>({
     fit_reason: null,
     role: "Legal Internship",
@@ -311,6 +312,7 @@ export default function DraftEmailDialog({ open, onOpenChange, target, onSent }:
     signature_line: "",
     work_mode: null,
     highlight_ids: [],
+    recipient_type: "tier2_firm",
   });
 
   // Auth gate — redirect when needed.
@@ -411,8 +413,10 @@ export default function DraftEmailDialog({ open, onOpenChange, target, onSent }:
         signature_line: "",
         work_mode: null,
         highlight_ids: [],
+        recipient_type: inferRecipientType(target),
       });
     }
+    setWarnings([]);
     setStep(0);
   }, [open, target]);
 
