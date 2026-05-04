@@ -176,6 +176,7 @@ export default function MobileBottomDock() {
               layout
               transition={MORPH_SPRING}
               onClick={() => collapsed && resetIdle()}
+              data-tour="opportunities-nav-mobile"
               style={{ WebkitBackdropFilter: "blur(24px) saturate(160%)" }}
               className={`pointer-events-auto bg-background/55 backdrop-blur-2xl backdrop-saturate-150 border-2 border-foreground/70 rounded-full overflow-hidden shadow-[inset_0_1px_0_0_hsl(0_0%_100%/0.18),0_8px_32px_-8px_hsl(var(--accent)/0.35),3px_3px_0_0_hsl(var(--accent))] ${
                 collapsed ? "cursor-pointer" : ""
