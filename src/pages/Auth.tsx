@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
+import { track } from "@/lib/analytics";
 
 export default function Auth() {
   usePageMeta({ title: "Sign In", description: "Sign in or create your Locus account to access merit-based legal internships.", path: "/auth" });
