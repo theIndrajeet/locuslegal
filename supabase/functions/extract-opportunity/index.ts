@@ -11,16 +11,18 @@ type Stream = "cfp" | "moot" | "competition";
 
 const SYSTEMS: Record<Stream, string> = {
   cfp: `Extract a Call-for-Papers from raw text. Output ONLY via the tool.
-- publication_name: required (e.g. "NLSIR Vol 38").
+- publication_name: required (e.g. "NLSIR Vol 38" or the symposium / journal name).
 - publication_type: one of journal | blog | magazine | other.
 - theme: short topic, null if generic.
-- submission_deadline: ISO datetime; if only a date is given, use end-of-day UTC.
-- word_limit_min / word_limit_max: integers or null.
+- submission_deadline: ISO datetime. CRITICAL: if the post lists multiple dates (registration, abstract, presentation, full paper), pick the ABSTRACT submission deadline (or the headline submission deadline when there is no abstract stage). Do NOT pick the registration date or the presentation/event date. If only a date is given, use end-of-day UTC (T23:59:59Z).
+- word_limit_min / word_limit_max: integers (use the abstract limits if both abstract and full paper limits are given), null if absent.
 - co_authorship_allowed: boolean (default false if unclear).
-- submission_fee: free-form string (e.g. "Free", "₹500"), null if unspecified.
+- submission_fee: free-form string (e.g. "Free", "INR 500"), null if unspecified.
 - peer_reviewed: boolean (default false).
 - eligibility: one-line, null if not stated.
-- submission_url / contact_email: only what's literally in the text.
+- submission_url: REQUIRED if any registration/submission URL appears anywhere in the text (Google Forms, microsite, Drive form). NEVER null when a URL is present.
+- brochure_url: link to a PDF brochure or Drive brochure ("Click here for Brochure", "Download brochure"). Null only if absent.
+- contact_email: only what's literally in the text.
 - description: cleaned freeform body, max 800 chars.
 - source_credit: "via @x" attribution if present, else null.`,
   moot: `Extract a Moot Court / advocacy competition from raw text. Output ONLY via the tool.
@@ -30,24 +32,26 @@ const SYSTEMS: Record<Stream, string> = {
 - area_of_law: short string, null if absent.
 - mode: one of online | offline | hybrid (default offline).
 - event_start_date / event_end_date: YYYY-MM-DD or null.
-- registration_deadline: ISO datetime.
+- registration_deadline: ISO datetime. This is the REGISTRATION CLOSE date, not the event date or memorial date. End-of-day UTC if date-only.
 - venue: city/place, null if online.
 - prize_pool: free-form, null if unspecified.
 - eligibility: one-line, null if not stated.
-- registration_url: only literal URL.
+- registration_url: REQUIRED if any registration/application URL appears in the text. NEVER null when a URL is present.
+- brochure_url: link to PDF brochure or Drive brochure. Null only if absent.
 - description: cleaned freeform body, max 800 chars.
 - source_credit: attribution, else null.`,
   competition: `Extract a legal competition (essay/quiz/research/policy/case-study/etc.) from raw text. Output ONLY via the tool.
 - title: required.
 - organiser: required.
 - category: one of essay | quiz | research_paper | policy | case_study | negotiation | mediation | client_counselling | hackathon | debate | drafting | other.
-- deadline: ISO datetime (end-of-day UTC if date-only).
+- deadline: ISO datetime. This is the PRIMARY submission/application deadline, not the event date. End-of-day UTC if date-only.
 - event_date: YYYY-MM-DD or null.
 - mode: online | offline | hybrid or null.
 - prize_or_stipend: free-form, null if unspecified.
 - fee: free-form, null if unspecified.
 - eligibility: one-line, null if not stated.
-- application_url: literal URL or null.
+- application_url: REQUIRED if any application URL appears in the text. NEVER null when a URL is present.
+- brochure_url: link to PDF brochure or Drive brochure. Null only if absent.
 - description: cleaned body, max 800 chars.
 - source_credit: attribution, else null.`,
 };
@@ -69,6 +73,7 @@ const TOOLS: Record<Stream, any> = {
         peer_reviewed: { type: "boolean" },
         eligibility: { type: ["string", "null"] },
         submission_url: { type: ["string", "null"] },
+        brochure_url: { type: ["string", "null"] },
         contact_email: { type: ["string", "null"] },
         description: { type: ["string", "null"] },
         source_credit: { type: ["string", "null"] },
@@ -94,6 +99,7 @@ const TOOLS: Record<Stream, any> = {
         prize_pool: { type: ["string", "null"] },
         eligibility: { type: ["string", "null"] },
         registration_url: { type: ["string", "null"] },
+        brochure_url: { type: ["string", "null"] },
         description: { type: ["string", "null"] },
         source_credit: { type: ["string", "null"] },
       },
@@ -116,6 +122,7 @@ const TOOLS: Record<Stream, any> = {
         fee: { type: ["string", "null"] },
         eligibility: { type: ["string", "null"] },
         application_url: { type: ["string", "null"] },
+        brochure_url: { type: ["string", "null"] },
         description: { type: ["string", "null"] },
         source_credit: { type: ["string", "null"] },
       },
@@ -124,6 +131,28 @@ const TOOLS: Record<Stream, any> = {
     },
   },
 };
+
+const URL_FIELD: Record<Stream, string> = {
+  cfp: "submission_url",
+  moot: "registration_url",
+  competition: "application_url",
+};
+
+function findUrls(text: string): string[] {
+  const matches = text.match(/https?:\/\/[^\s<>"')]+/gi) ?? [];
+  return matches.map((u) => u.replace(/[.,;)]+$/, ""));
+}
+
+function isLikelyBrochure(url: string): boolean {
+  const u = url.toLowerCase();
+  return u.endsWith(".pdf") || u.includes("brochure") || u.includes("drive.google.com") || u.includes("/file/d/");
+}
+
+function isLikelyForm(url: string): boolean {
+  const u = url.toLowerCase();
+  return u.includes("docs.google.com/forms") || u.includes("forms.gle") || u.includes("/viewform") ||
+    u.includes("typeform") || u.includes("airtable") || u.includes("apply") || u.includes("register");
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -189,6 +218,22 @@ serve(async (req) => {
     let parsed: Record<string, unknown>;
     try { parsed = JSON.parse(args); }
     catch { return json({ error: "Malformed AI response." }, 500); }
+
+    // Server-side URL fallback: scan raw text for URLs and assign brochure/submission if AI missed them.
+    const urls = findUrls(text);
+    if (urls.length) {
+      const urlField = URL_FIELD[stream];
+      const brochures = urls.filter(isLikelyBrochure);
+      const forms = urls.filter((u) => !isLikelyBrochure(u) && isLikelyForm(u));
+      const others = urls.filter((u) => !isLikelyBrochure(u) && !isLikelyForm(u));
+
+      if (!parsed[urlField]) {
+        parsed[urlField] = forms[0] ?? others[0] ?? null;
+      }
+      if (!parsed.brochure_url && brochures.length) {
+        parsed.brochure_url = brochures[0];
+      }
+    }
 
     return json(parsed, 200);
   } catch (e) {

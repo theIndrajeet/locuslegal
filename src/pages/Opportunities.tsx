@@ -436,7 +436,22 @@ function DetailDialog({ item, onClose }: { item: AnyOpportunity | null; onClose:
             {copied ? <Check size={14} /> : <Link2 size={14} />}
             {copied ? "Copied" : "Copy link"}
           </Button>
-          <CtaButton item={item} />
+          <div className="flex items-center gap-2 ml-auto flex-wrap">
+            {(item as any).brochure_url ? (
+              <Button
+                asChild
+                variant="outline"
+                size="sm"
+                className="border-2 border-foreground/70 font-bold gap-1.5"
+              >
+                <a href={(item as any).brochure_url} target="_blank" rel="noopener noreferrer">
+                  <FileText size={14} />
+                  Brochure
+                </a>
+              </Button>
+            ) : null}
+            <CtaButton item={item} />
+          </div>
         </div>
       </DialogContent>
     </Dialog>

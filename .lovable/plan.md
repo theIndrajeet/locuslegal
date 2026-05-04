@@ -1,47 +1,71 @@
-# Unify Opportunities Admin + Richer Public Detail
+## Goal
 
-Two changes:
+Make CFP / Moot / Competition extraction reliably capture **submission/registration URL** and **brochure URL**, and fix the broken deadline field in the admin paste-extract dialog.
 
-## 1. Admin: embed Vacancies CRUD inside `/admin/opportunities`
+---
 
-Currently the Vacancies tab on `/admin/opportunities` just shows a "Open Vacancies admin" link redirecting to `/admin/vacancies`. Bring it inline so all four streams live under one umbrella.
+## 1. Database — add `brochure_url` to all three streams
 
-**Edit `src/pages/AdminOpportunities.tsx`:**
-- Add a new `VacanciesPanel` component (mirrors existing `StreamPanel` shape — Live + Archived sections, Add/Edit/Archive/Delete buttons).
-- Reuses existing `AdminVacancyDialog` from `src/components/vacancies/AdminVacancyDialog.tsx` (which already has the AI paste-extract flow).
-- Vacancies tab content swaps from the redirect card to `<VacanciesPanel userId={userId} />`.
-- Remove `ExternalLink` import; add `Pencil`, `Archive`, `daysLeft`, `Vacancy` type imports.
+Migration adds a nullable `text` column to `cfps`, `moots`, `competitions`:
 
-**Sidebar/redirect cleanup** (`src/components/admin/AdminSidebar.tsx`, `src/App.tsx`):
-- Remove the "Vacancies" sidebar item (now lives under "Opportunities").
-- Keep `/admin/vacancies` route alive but make it `<Navigate to="/admin/opportunities" replace />` so old bookmarks still land somewhere sensible.
+```sql
+alter table public.cfps          add column if not exists brochure_url text;
+alter table public.moots         add column if not exists brochure_url text;
+alter table public.competitions  add column if not exists brochure_url text;
+```
 
-## 2. Public: richer detail dialogs for CFPs / Moots / Competitions
+No RLS changes (existing policies cover all columns).
 
-The current `DetailDialog` in `src/pages/Opportunities.tsx` shows a flat 2-column key/value `<dl>` — fine for vacancies but underwhelming for the long-form streams.
+---
 
-**Edit `src/pages/Opportunities.tsx`:**
-- Replace flat `DetailFields` with a structured layout per stream:
-  - **Hero band** (top of dialog): big stream pill, title, organiser/publisher, prominent countdown chip in accent color, posted-on date.
-  - **Key facts grid** (3-col on desktop, 2-col mobile): icon + label + value tiles for the most important specs (Mode, Venue/Location, Deadline, Prize/Stipend, Word limit, Fee, Eligibility-summary, Peer review badge, Co-author badge, Event window).
-  - **About section**: full description with proper prose styling (`whitespace-pre-wrap`, increased line-height, max-width).
-  - **Eligibility callout**: separate bordered block when eligibility text is long (>80 chars), with `GraduationCap` icon header.
-  - **Source attribution footer**: small muted line "Curated by Locus" or "Source: X" with a divider above.
-  - **Sticky CTA bar** at dialog bottom: brutalist button + secondary "Copy link" button (deep-link to `/opportunities?focus=<id>`).
-- Use Lucide icons consistently: `Calendar`, `Clock`, `MapPin`, `Globe`, `Trophy`, `Coins`, `FileText`, `GraduationCap`, `BadgeCheck`, `Users`.
-- Vacancy detail keeps current shape but gains the same hero band + sticky CTA for visual parity.
-- Add scroll-fade gradient at the bottom of the scrollable area.
+## 2. Extractor edge function (`supabase/functions/extract-opportunity/index.ts`)
 
-**No DB or edge function changes.** All data already exists on the row.
+**Per-stream prompt updates:**
 
-## Files
+- CFP: clarify that when a post lists multiple dates (registration, abstract, presentation, final paper), `submission_deadline` MUST be the **abstract submission deadline** (or the headline submission deadline if no abstract stage). Keep ISO end-of-day UTC rule.
+- Moot: `registration_deadline` = the registration close, not the event date.
+- Competition: `deadline` = the primary application/submission deadline.
+- All three: "If ANY URL appears in the text (Google Forms, registration link, application link), put it in `submission_url`/`registration_url`/`application_url` — never null when one is present."
+- All three: add `brochure_url` instruction — "Any link to a PDF brochure / 'Click here for Brochure' / drive link to the brochure goes here. Null if absent."
 
-- Edit: `src/pages/AdminOpportunities.tsx`
-- Edit: `src/pages/Opportunities.tsx` (DetailDialog + DetailFields rewrite)
-- Edit: `src/components/admin/AdminSidebar.tsx` (remove standalone Vacancies entry)
-- Edit: `src/App.tsx` (redirect `/admin/vacancies` → `/admin/opportunities`)
+**Tool schemas:** add `brochure_url: { type: ["string", "null"] }` to all three schemas.
+
+**Server-side URL fallback:** after AI returns, if the relevant URL field is null, run a regex over the original `text` (`/https?:\/\/\S+/g`), pick the first non-image URL, and assign it to the URL field. This guarantees a link is captured even when the model misses it.
+
+---
+
+## 3. Paste-extract dialog (`src/components/admin/opportunities/PasteExtractDialog.tsx`)
+
+**Fix the deadline input** — currently `type: "date"` falls through to a plain text box. Change the render to:
+
+```tsx
+type={f.type === "number" ? "number" : f.type === "date" ? "datetime-local" : "text"}
+```
+
+…and add a helper that converts the AI's ISO string `2026-05-03T23:59:59Z` ↔ the `datetime-local` shape `2026-05-03T23:59` when reading/writing the form value. On submit, convert back to a full ISO string before insert.
+
+**Add `brochure_url` field** to all three FIELDS arrays (label "Brochure URL", type "url"), positioned right after the submission/registration/application URL.
+
+**Reorder** so that the URL fields and deadline appear near the top of the form (above eligibility/description) — they're the most-edited fields.
+
+---
+
+## 4. Public detail dialog (`src/pages/Opportunities.tsx`)
+
+- Add a **"Brochure"** outline button to the sticky CTA footer (next to "Copy link") whenever `item.brochure_url` is set, opening the URL in a new tab.
+- No other UI changes; the existing primary "Submit paper" / "Register" / "Apply" button already uses `submission_url` etc.
+
+---
+
+## Files touched
+
+- `supabase/migrations/<new>.sql` — add `brochure_url` columns
+- `supabase/functions/extract-opportunity/index.ts` — prompts, schemas, URL fallback
+- `src/components/admin/opportunities/PasteExtractDialog.tsx` — deadline picker, brochure field, ISO conversion
+- `src/pages/Opportunities.tsx` — brochure button in detail footer
 
 ## Out of scope
-- Cron schedule for `send-opportunity-digest` (separate ask).
-- New fields on tables.
-- Public list-card redesign (only the modal).
+
+- No changes to Vacancies (already has its own admin dialog).
+- No backfill of existing rows (brochure stays null until re-edited).
+- No retroactive AI re-extraction of already-published posts.
