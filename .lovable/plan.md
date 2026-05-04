@@ -1,27 +1,28 @@
-## Post NUSRL Ranchi CFP for preview
+# Plan
 
-Insert one CFP row directly into the `cfps` table via migration so you can immediately see how the new detail view renders with real data.
+## 1. Hide expired opportunities from public board
 
-### Row contents
-- **publication_name**: "National Symposium on Convergence of Law & Economics 2.0: Bankruptcy, Startups & Beyond"
-- **publication_type**: `conference`
-- **theme**: "Convergence of Law and Economics: Bankruptcy, Startups & Beyond — insolvency, creditor-debtor dynamics, cross-border insolvency, startup regulation, VC frameworks, restructuring"
-- **description**: Full structured summary covering timeline (registration 1 May, abstract 3 May, results 6 May, presentation 15 May, event 23 May, full paper 30 June), two-stage submission, abstract guidelines (450–500 words, Garamond 12pt, 1.5 spacing), full paper guidelines (5,000–7,000 words, OSCOLA 4th, <15% similarity), and presentation format (6–8 mins online).
-- **submission_deadline**: `2026-05-03 23:59:00+05:30` (abstract deadline — the actionable one)
-- **expires_at**: same as submission_deadline
-- **word_limit_min**: 5000, **word_limit_max**: 7000
-- **co_authorship_allowed**: true
-- **peer_reviewed**: true
-- **submission_fee**: null
-- **eligibility**: "Open to students, research scholars, academicians, lawyers, and other professionals. Co-authorship permitted up to 2 authors. Multiple entries by same author(s) not allowed."
-- **submission_url**: `https://docs.google.com/forms/d/e/1FAIpQLSeYqXZZ3HPXpOWISHstbVG8eTUoM6kAaDarYB4jE7tD6bxAHA/viewform`
-- **brochure_url**: `https://www.livelaw.in/lawschool/call-for-papers/nusrl-ranchi-national-symposium-convergence-law-economics-20-532062` (source article — no separate brochure PDF in the text)
-- **source_credit**: "LiveLaw"
-- **status**: `live`
-- **created_by**: admin user id (`heyjeetttt@gmail.com`) — looked up via subquery on `auth.users`
+`src/pages/Opportunities.tsx` (lines 72-77): drop the 30-day archived window. Query only `status = 'live'` AND `expires_at > now()` for vacancies, cfps, moots, competitions. Closed/expired items disappear from the board immediately. Admin views unchanged.
 
-### Files to touch
-- New migration: `supabase/migrations/<ts>_seed_nusrl_cfp.sql`
+## 2. Seed 8 NLSIU Calls for Papers
 
-### Note
-If you'd rather use the admin paste-extract flow to test the AI extractor end-to-end, say so and I'll skip the migration and walk through `/admin/opportunities` → CFP tab → Paste & extract instead.
+Insert into `cfps` (status `live`, `created_by` = admin user for `heyjeetttt@gmail.com`, `source_credit` = "NLSIU", `co_authorship_allowed` = true, `submission_fee` = "No fees", `peer_reviewed` = true except NLSJ general which is mixed → mark true since flagship is peer-reviewed). For rolling/general calls without a stated deadline, use **2026-12-31 23:59 IST** as a placeholder so they remain visible. `expires_at` = same as `submission_deadline`. `brochure_url` = NLSIU calls page `https://www.nls.ac.in/research/nlsiu-journals/`. Each row gets a rich `description` paragraph + theme list.
+
+| # | publication_name | submission_deadline (IST) | submission_url |
+|---|---|---|---|
+| 1 | National Law School Journal (NLSJ) — General Call | 2026-12-31 23:59 | https://repository.nls.ac.in/nlsj |
+| 2 | International Journal on Consumer Law and Practice (IJCLP) — Vol 14 General Issue | 2026-05-30 23:59 | https://repository.nls.ac.in/ijclp/ |
+| 3 | Journal of Law and Public Policy (JLPP) — Vol 9(2) General Issue | 2026-01-31 23:59 | https://repository.nls.ac.in/jlpp/ |
+| 4 | JLPP — Vol 10(1) Special Issue: New Urbanism and its Contours of Inclusion | 2026-01-31 23:59 | https://repository.nls.ac.in/jlpp/ |
+| 5 | Socio-Legal Review (SLR) — General Call | 2026-12-31 23:59 | https://repository.nls.ac.in/slr |
+| 6 | SLR — Vol 22(2) Special Issue: Law and History in South Asia | 2026-04-15 23:59 | https://repository.nls.ac.in/slr |
+| 7 | Indian Journal of Law and Technology (IJLT) — Vol 22(1) & 22(2) General | 2026-05-15 23:59 | https://repository.nls.ac.in/ijlt |
+| 8 | Indian Journal of International Economic Law (IJIEL) — Vol 17(2) Special: Digital Competition Regulation & IEL | 2026-05-08 23:59 | https://repository.nls.ac.in/ijiel |
+
+For row #2 (IJCLP), include the submission-guidelines URL `https://repository.nls.ac.in/ijclp/policies.html` inside the `description` body (markdown-style line: "Submission guidelines: …"), since the schema has no separate guidelines column.
+
+Done via `INSERT` (data op — uses insert tool, no migration).
+
+## Out of scope
+- No schema changes, no admin UI changes.
+- Existing seeded NUSRL Symposium row remains.
