@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Building2, MapPin, Mail, ExternalLink, Globe, Users, Layers, Scale, ClipboardList, Sparkles, Share2 } from "lucide-react";
+import { Building2, MapPin, Mail, ExternalLink, Globe, Users, Layers, Scale, ClipboardList, Sparkles } from "lucide-react";
+import { ShareIconButton } from "@/components/ShareIconButton";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import {
