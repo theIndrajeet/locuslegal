@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { useAdminRole } from "@/hooks/useAdminRole";
+import { useAdminAccess } from "@/hooks/useAdminRole";
 import type { Session } from "@supabase/supabase-js";
 
 export default function ProfileMenu() {
@@ -14,7 +14,7 @@ export default function ProfileMenu() {
   const [username, setUsername] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
-  const isAdmin = useAdminRole();
+  const { hasAnyScope, hasScope } = useAdminAccess();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -127,20 +127,22 @@ export default function ProfileMenu() {
 
             <Divider />
 
-            {isAdmin && (
+            {hasAnyScope && (
               <>
                 <button
-                  onClick={() => { setOpen(false); navigate("/admin/bar"); }}
+                  onClick={() => { setOpen(false); navigate("/admin"); }}
                   className="flex items-center gap-2 w-full px-3 py-2 text-sm font-semibold text-accent rounded-md hover:bg-accent/10 transition-colors"
                 >
                   <Shield size={16} /> Admin Console
                 </button>
-                <button
-                  onClick={() => { setOpen(false); navigate("/admin/vacancies"); }}
-                  className="flex items-center gap-2 w-full px-3 py-2 text-sm font-semibold text-accent rounded-md hover:bg-accent/10 transition-colors"
-                >
-                  <Briefcase size={16} /> Admin Vacancies
-                </button>
+                {hasScope("opportunities_admin") && (
+                  <button
+                    onClick={() => { setOpen(false); navigate("/admin/opportunities"); }}
+                    className="flex items-center gap-2 w-full px-3 py-2 text-sm font-semibold text-accent rounded-md hover:bg-accent/10 transition-colors"
+                  >
+                    <Briefcase size={16} /> Admin Opportunities
+                  </button>
+                )}
                 <Divider />
               </>
             )}
