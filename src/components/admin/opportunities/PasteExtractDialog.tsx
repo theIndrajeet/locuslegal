@@ -164,6 +164,23 @@ export default function PasteExtractDialog({ open, onOpenChange, stream, userId,
           cleaned[k] = typeof v === "string" && /T\d{2}:\d{2}$/.test(v) ? localInputToIso(v) : new Date(v).toISOString();
         }
       }
+
+      // Hard validation: deadline must exist and be in the future.
+      const deadlineKey = stream === "cfp" ? "submission_deadline"
+        : stream === "moot" ? "registration_deadline" : "deadline";
+      const deadlineVal = cleaned[deadlineKey];
+      if (!deadlineVal) {
+        toast.error("Deadline is missing — fill it in before publishing.");
+        setSaving(false);
+        return;
+      }
+      const deadlineDate = new Date(deadlineVal);
+      if (isNaN(deadlineDate.getTime()) || deadlineDate.getTime() <= Date.now()) {
+        toast.error("Deadline is in the past — this opportunity won't be shown. Fix the date or skip this post.");
+        setSaving(false);
+        return;
+      }
+
       cleaned.created_by = userId;
       cleaned.status = "live";
       cleaned.expires_at = expires_at;
