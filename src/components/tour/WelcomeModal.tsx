@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight, Briefcase, Trophy, Compass, UserCircle2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Briefcase, Trophy, Compass, UserCircle2, type LucideIcon } from "lucide-react";
 
 interface Slide {
-  icon: React.ComponentType<{ size?: number; className?: string }>;
+  icon: LucideIcon;
   title: string;
   body: string;
 }

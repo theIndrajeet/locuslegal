@@ -266,7 +266,7 @@ export default function TourLab() {
   usePageMeta({
     title: "Tour Lab · Locus",
     description: "Internal sandbox for the Locus product tour.",
-    noindex: true,
+    path: "/tour-lab",
   });
 
   const handleFinish = () => {
