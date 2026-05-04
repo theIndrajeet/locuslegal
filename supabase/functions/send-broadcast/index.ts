@@ -37,8 +37,8 @@ Deno.serve(async (req) => {
   }
 
   const supabase = createClient(url, serviceKey)
-  const { data: roles } = await supabase.from('user_roles').select('role').eq('user_id', user.id).eq('role', 'admin').maybeSingle()
-  if (!roles) {
+  const { data: scopeOk } = await supabase.rpc('has_admin_scope', { uid: user.id, scope: 'broadcast_admin' })
+  if (!scopeOk) {
     return new Response(JSON.stringify({ error: 'forbidden' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
   }
 
