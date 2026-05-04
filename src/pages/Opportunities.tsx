@@ -29,6 +29,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthSession } from "@/hooks/useAuthSession";
@@ -285,8 +286,10 @@ export default function Opportunities() {
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-6 h-6 animate-spin text-accent" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <OpportunitySkeletonCard key={i} />
+            ))}
           </div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-16 text-muted-foreground border-2 border-dashed border-border rounded-xl">
@@ -401,6 +404,40 @@ function OpportunityCard({ item, onClick }: { item: AnyOpportunity; onClick: () 
         </div>
       </div>
     </button>
+  );
+}
+
+function OpportunitySkeletonCard() {
+  return (
+    <div
+      className={cn(
+        "relative bg-card border-2 border-foreground/80 rounded-2xl p-5 overflow-hidden",
+        "shadow-[4px_4px_0_0_hsl(var(--foreground))]",
+      )}
+      aria-hidden
+    >
+      <span className="absolute left-0 top-0 bottom-0 w-1.5 bg-muted" />
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div className="min-w-0 flex-1">
+          <Skeleton className="h-4 w-20 mb-2 rounded-md" />
+          <Skeleton className="h-5 w-11/12 mb-1.5" />
+          <Skeleton className="h-5 w-2/3 mb-2" />
+          <Skeleton className="h-4 w-1/2" />
+        </div>
+        <Skeleton className="shrink-0 h-6 w-20 rounded-full" />
+      </div>
+
+      <div className="flex flex-wrap gap-x-3 gap-y-1.5">
+        <Skeleton className="h-3 w-16" />
+        <Skeleton className="h-3 w-20" />
+        <Skeleton className="h-3 w-14" />
+      </div>
+
+      <div className="mt-4 pt-3 border-t border-border/50 flex items-center justify-between gap-2">
+        <Skeleton className="h-3 w-32" />
+        <Skeleton className="h-3 w-20" />
+      </div>
+    </div>
   );
 }
 

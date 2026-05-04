@@ -1,63 +1,29 @@
-You’re right — the current “Regenerate with current brief” is too opaque. If the draft already exists, there’s no obvious place to add new facts, and the backend treats the brief as a general hint rather than a strong rewrite instruction. I’ll make this feel like an actual cover-letter editor, not just another random generation button.
+## Add skeleton loader to Opportunities page
 
-Plan:
+Currently `/opportunities` shows a single centered `Loader2` spinner during the initial fetch. This feels jarring vs. the rest of the site (Directory, Bar, Playbook all use card-shaped skeletons). I'll replace it with skeleton cards that match the actual grid layout.
 
-1. Add an “Add rewrite notes” box above the regenerate button
-- Place it directly above “Regenerate with current brief” when a draft already exists.
-- Label it clearly, e.g. “Tell Locus what to change or add”.
-- Use a multi-line textarea, not a one-line input.
-- Placeholder examples:
-  - “Mention my Intellect internship and DPDP work.”
-  - “Make it less generic and more corporate-law focused.”
-  - “Cut the college line, strengthen the middle paragraph.”
-  - “Add that I’m available in June for the Bangalore office.”
-- Add quick suggestion chips users can tap, such as:
-  - “Make it sharper”
-  - “Add more personality”
-  - “Sound less AI-written”
-  - “Focus on corporate/M&A”
-  - “Make it shorter”
-  - “Use my strongest CV point”
-- Keep it editable so the user can combine chips with their own notes.
+### Changes
 
-2. Add a true rewrite mode to the generation call
-- Add a new `rewrite_notes` state in `DraftEmailDialog.tsx`.
-- When the draft exists and the user clicks regenerate, send:
-  - the current subject
-  - the current body
-  - the rewrite notes
-  - the current brief/profile/recipient type
-- This means regeneration will no longer start from scratch blindly; it will explicitly rewrite the visible draft using the user’s instructions.
+**File: `src/pages/Opportunities.tsx`**
 
-3. Strengthen the backend prompt for visible differences
-- Update `draft-application-email` to accept `rewrite_notes` and `current_draft`.
-- If those are present, the server prompt will say:
-  - preserve only the accurate facts
-  - apply the user’s rewrite notes strongly
-  - rewrite at sentence level, not just lightly paraphrase
-  - make the result noticeably different from the current draft
-  - remove generic filler and add one concrete, user-provided point where possible
-- If rewrite notes are empty, still regenerate, but force a different structure/opening from the previous draft so the user sees a meaningful difference.
+1. Replace the spinner block (lines 287-290) with a 2-column responsive grid (`grid-cols-1 md:grid-cols-2 gap-4 md:gap-5`) of 6 skeleton cards — same layout the real results render into. This avoids layout shift when data arrives.
 
-4. Make v2 more visibly active in the UI
-- Add a small “Style engine checks: Indian recruiter format, AI-tell cleanup, British English” note near the draft/warnings area.
-- When warnings exist, keep the amber banner.
-- If no warnings exist, show a subtle success line so users know the validator actually ran.
+2. Add a small inline `OpportunitySkeletonCard` component below `OpportunityCard` that mirrors the real card shape:
+   - Same neobrutalist shell: `bg-card border-2 border-foreground/80 rounded-2xl p-5 shadow-[4px_4px_0_0_hsl(var(--foreground))]`
+   - Left accent bar (1.5w stripe, muted)
+   - Top row: small pill skeleton (stream chip) + countdown pill skeleton on the right
+   - Title skeleton (1 wide bar + 1 short bar)
+   - Organiser skeleton (medium bar)
+   - 2-3 small chip skeletons for the meta row
+   - Footer divider with a "source" skeleton + "view details" skeleton
+   - Uses the existing `Skeleton` component from `@/components/ui/skeleton` (which already has `animate-pulse bg-muted`)
 
-5. Tighten the “current brief” caching issue
-- Right now the cache only stores the draft, and brief changes can feel disconnected once the draft is already generated.
-- I’ll make sure regenerate uses the latest brief + rewrite notes, then updates the cached draft and cached brief together.
+3. Import `Skeleton` from `@/components/ui/skeleton`. Remove the `Loader2` import only if no longer used elsewhere on the page (it is — keep it).
 
-Technical files to change:
-- `src/components/apply/DraftEmailDialog.tsx`
-  - Add rewrite notes state, textarea, suggestion chips, and updated regeneration payload.
-- `supabase/functions/draft-application-email/index.ts`
-  - Extend request validation.
-  - Add rewrite-specific prompt block.
-  - Continue running the existing validator after rewrite.
-- `mem://features/cover-letter-engine`
-  - Update memory so future changes preserve this rewrite-box behaviour.
+### Why this approach
 
-Expected result:
-- Users can write: “Add that I worked on cross-border data privacy across 190 countries and make it less generic.”
-- Clicking regenerate should produce a draft that visibly incorporates that point and changes the structure/tone, rather than returning almost the same email.
+- Matches the visual language users already see on Directory and Bar pages.
+- Pre-renders the grid at the right height → no jump when items hydrate.
+- Zero behavioural change; purely a loading-state polish.
+
+No backend, schema, or memory changes needed.
