@@ -312,16 +312,7 @@ export default function AdminOpportunities() {
         </TabsList>
 
         <TabsContent value="vacancies" className="mt-6">
-          <Card className="border-2 border-foreground p-6 text-center space-y-3">
-            <p className="text-sm text-muted-foreground">
-              Vacancies (internships + jobs) keep their dedicated admin with the original AI extractor.
-            </p>
-            <Button asChild className="font-bold border-2 border-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))]">
-              <Link to="/admin/vacancies">
-                <ExternalLink size={14} className="mr-1.5" /> Open Vacancies admin
-              </Link>
-            </Button>
-          </Card>
+          <VacanciesPanel userId={userId ?? ""} />
         </TabsContent>
 
         {TABLES.map((t) => (
