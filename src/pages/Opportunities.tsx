@@ -292,14 +292,35 @@ export default function Opportunities() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
-            {filtered.map((item) => (
-              <OpportunityCard key={`${item.stream}-${item.id}`} item={item} onClick={() => setSelected(item)} />
-            ))}
+            {filtered.map((item) => {
+              if (item.stream === "internship" || item.stream === "job") {
+                const v = item as unknown as Vacancy;
+                return (
+                  <VacancyCard
+                    key={`vac-${item.id}`}
+                    vacancy={v}
+                    application={appMap.get(item.id) ?? null}
+                    onApply={handleApply}
+                    onDeleted={() => void refreshApplications()}
+                  />
+                );
+              }
+              return (
+                <OpportunityCard key={`${item.stream}-${item.id}`} item={item} onClick={() => setSelected(item)} />
+              );
+            })}
           </div>
         )}
       </div>
 
       <DetailDialog item={selected} onClose={() => setSelected(null)} />
+
+      <DraftEmailDialog
+        open={draftOpen}
+        onOpenChange={setDraftOpen}
+        target={draftTarget}
+        onSent={() => void refreshApplications()}
+      />
     </div>
   );
 }
