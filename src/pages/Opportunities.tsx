@@ -630,8 +630,8 @@ function DetailDialog({ item, onClose }: { item: AnyOpportunity | null; onClose:
             onClick={copyLink}
             className="border-2 border-foreground/70 font-bold gap-1.5"
           >
-            {copied ? <Check size={14} /> : <Link2 size={14} />}
-            {copied ? "Copied" : "Copy link"}
+            {copied ? <Check size={14} /> : <Share2 size={14} />}
+            {copied ? "Copied" : "Share"}
           </Button>
           <div className="flex items-center gap-2 ml-auto flex-wrap">
             {(item as any).brochure_url ? (
