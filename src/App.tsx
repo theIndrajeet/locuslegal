@@ -55,6 +55,7 @@ const TourLab = lazy(() => import("./pages/TourLab"));
 const Opportunities = lazy(() => import("./pages/Opportunities"));
 const AdminOpportunities = lazy(() => import("./pages/AdminOpportunities"));
 const AdminAdmins = lazy(() => import("./pages/AdminAdmins"));
+const AdminInsights = lazy(() => import("./pages/AdminInsights"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -157,6 +158,7 @@ const App = () => (
                     <Route path="firm-suggestions" element={<AdminFirmSuggestions />} />
                     <Route path="broadcasts" element={<AdminBroadcasts />} />
                     <Route path="admins" element={<AdminAdmins />} />
+                    <Route path="insights" element={<AdminInsights />} />
                   </Route>
                   <Route path="/vacancies" element={<Navigate to="/opportunities" replace />} />
                   <Route path="/opportunities" element={<Opportunities />} />

@@ -9,6 +9,7 @@ import {
   MessageSquarePlus,
   Megaphone,
   ShieldCheck,
+  BarChart3,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { usePageMeta } from "@/hooks/usePageMeta";
@@ -48,6 +49,7 @@ interface Tile {
 }
 
 const TILES: Tile[] = [
+  { to: "/admin/insights", title: "Insights", description: "Live product analytics, install funnel, top pages, signups.", icon: BarChart3, scope: "admin", fullAdminOnly: true },
   { to: "/admin/waitlist", title: "Waitlist", description: "Browse and filter signups by audience.", icon: Users, scope: "waitlist_admin" },
   { to: "/admin/beta", title: "Beta Testers", description: "Review tester feedback, screenshots, and CSV export.", icon: ClipboardCheck, scope: "admin", fullAdminOnly: true },
   { to: "/admin/vacancies", title: "Vacancies", description: "Curate the live vacancy board with AI extraction.", icon: Briefcase, scope: "opportunities_admin" },

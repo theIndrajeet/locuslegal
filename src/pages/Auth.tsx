@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
+import { track } from "@/lib/analytics";
 
 export default function Auth() {
   usePageMeta({ title: "Sign In", description: "Sign in or create your Locus account to access merit-based legal internships.", path: "/auth" });
@@ -46,12 +47,14 @@ export default function Auth() {
           password,
         });
         if (error) throw error;
+        void track("signup_completed", { method: "email", mode: "login" });
         toast.success("Welcome back!");
         navigate(postLoginPath);
       } else {
         if (!username.trim() || /\s/.test(username)) {
           throw new Error("Username is required and cannot contain spaces");
         }
+        void track("signup_started", { method: "email" });
         const { error } = await supabase.auth.signUp({
           email,
           password,
@@ -61,6 +64,7 @@ export default function Auth() {
           },
         });
         if (error) throw error;
+        void track("signup_completed", { method: "email", mode: "signup" });
         toast.success("Check your email to confirm your account.");
       }
     } catch (err: any) {
@@ -73,6 +77,7 @@ export default function Auth() {
   const handleSocialLogin = async (provider: "google" | "apple") => {
     setLoading(true);
     try {
+      void track("signup_started", { method: provider });
       const redirectTo = `${window.location.origin}${postLoginPath}`;
       const result = await lovable.auth.signInWithOAuth(provider, {
         redirect_uri: redirectTo,

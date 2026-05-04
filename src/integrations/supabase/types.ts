@@ -14,6 +14,72 @@ export type Database = {
   }
   public: {
     Tables: {
+      analytics_events: {
+        Row: {
+          anon_id: string | null
+          country: string | null
+          created_at: string
+          device: string | null
+          event: string
+          id: string
+          ip_hash: string | null
+          path: string | null
+          props: Json
+          referrer: string | null
+          session_id: string | null
+          user_id: string | null
+          utm: Json
+        }
+        Insert: {
+          anon_id?: string | null
+          country?: string | null
+          created_at?: string
+          device?: string | null
+          event: string
+          id?: string
+          ip_hash?: string | null
+          path?: string | null
+          props?: Json
+          referrer?: string | null
+          session_id?: string | null
+          user_id?: string | null
+          utm?: Json
+        }
+        Update: {
+          anon_id?: string | null
+          country?: string | null
+          created_at?: string
+          device?: string | null
+          event?: string
+          id?: string
+          ip_hash?: string | null
+          path?: string | null
+          props?: Json
+          referrer?: string | null
+          session_id?: string | null
+          user_id?: string | null
+          utm?: Json
+        }
+        Relationships: []
+      }
+      analytics_salt: {
+        Row: {
+          created_at: string
+          day: string
+          salt: string
+        }
+        Insert: {
+          created_at?: string
+          day: string
+          salt?: string
+        }
+        Update: {
+          created_at?: string
+          day?: string
+          salt?: string
+        }
+        Relationships: []
+      }
       bar_ai_generations: {
         Row: {
           area_of_law_hint:
@@ -1656,6 +1722,51 @@ export type Database = {
       }
     }
     Functions: {
+      analytics_devices: {
+        Args: { p_hours?: number }
+        Returns: {
+          device: string
+          sessions: number
+        }[]
+      }
+      analytics_install_funnel: { Args: { p_days?: number }; Returns: Json }
+      analytics_recent: {
+        Args: { p_limit?: number }
+        Returns: {
+          anon_id: string
+          created_at: string
+          event: string
+          id: string
+          path: string
+          props: Json
+          user_id: string
+        }[]
+      }
+      analytics_summary: { Args: { p_hours?: number }; Returns: Json }
+      analytics_timeseries: {
+        Args: { p_days?: number }
+        Returns: {
+          dau: number
+          day: string
+          page_views: number
+          signups: number
+        }[]
+      }
+      analytics_top_paths: {
+        Args: { p_hours?: number; p_limit?: number }
+        Returns: {
+          path: string
+          uniques: number
+          views: number
+        }[]
+      }
+      analytics_top_referrers: {
+        Args: { p_days?: number; p_limit?: number }
+        Returns: {
+          referrer: string
+          sessions: number
+        }[]
+      }
       claim_beta_slot: {
         Args: {
           p_email: string
@@ -1686,6 +1797,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      current_analytics_salt: { Args: never; Returns: string }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
@@ -1819,6 +1931,7 @@ export type Database = {
         Returns: number
       }
       opportunities_lifecycle_tick: { Args: never; Returns: undefined }
+      purge_old_analytics_events: { Args: never; Returns: undefined }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {
