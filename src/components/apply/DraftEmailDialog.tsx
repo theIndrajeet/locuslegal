@@ -303,6 +303,7 @@ export default function DraftEmailDialog({ open, onOpenChange, target, onSent }:
   const [body, setBody] = useState("");
   const [step, setStep] = useState(0); // 0..3
   const [warnings, setWarnings] = useState<string[]>([]);
+  const [rewriteNotes, setRewriteNotes] = useState("");
   const [brief, setBrief] = useState<BriefState>({
     fit_reason: null,
     role: "Legal Internship",
