@@ -874,7 +874,8 @@ export default function DraftEmailDialog({ open, onOpenChange, target, onSent }:
                     </div>
                   </div>
                 </div>
-              )}
+                );
+              })()}
 
               {/* Step 4: Highlights */}
               {step === 3 && (
