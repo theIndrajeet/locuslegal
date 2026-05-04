@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   FileText,
   Coins,
@@ -29,6 +29,10 @@ import {
 import { cn } from "@/lib/utils";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuthSession } from "@/hooks/useAuthSession";
+import VacancyCard from "@/components/vacancies/VacancyCard";
+import DraftEmailDialog, { type DraftEmailTarget } from "@/components/apply/DraftEmailDialog";
+import { type Vacancy, type VacancyApplication } from "@/lib/vacancies";
 import {
   STREAM_META,
   streamLabel,
