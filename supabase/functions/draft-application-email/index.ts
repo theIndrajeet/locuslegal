@@ -299,6 +299,8 @@ interface Body {
   brief?: Brief | null;
   mode?: "initial" | "followup";
   original?: { applied_on: string; role: string } | null;
+  rewrite_notes?: string | null;
+  current_draft?: { subject: string; body: string } | null;
   user: {
     display_name: string | null; college: string | null;
     degree: string | null; graduation_year: number | null;
@@ -365,6 +367,16 @@ function validateBody(b: any): { ok: true; data: Body } | { ok: false; error: st
       mode: b.mode === "followup" ? "followup" : "initial",
       original: b.original && typeof b.original === "object" && b.original.applied_on
         ? { applied_on: String(b.original.applied_on).slice(0, 30), role: String(b.original.role ?? "Legal Internship").slice(0, 100) }
+        : null,
+      rewrite_notes: typeof b.rewrite_notes === "string" && b.rewrite_notes.trim()
+        ? b.rewrite_notes.trim().slice(0, 500) : null,
+      current_draft: b.current_draft && typeof b.current_draft === "object"
+        && typeof b.current_draft.subject === "string" && typeof b.current_draft.body === "string"
+        && b.current_draft.body.trim()
+        ? {
+            subject: String(b.current_draft.subject).slice(0, 200),
+            body: String(b.current_draft.body).slice(0, 4000),
+          }
         : null,
       user: {
         display_name: b.user.display_name ? String(b.user.display_name).slice(0, 100) : null,
@@ -487,11 +499,28 @@ serve(async (req) => {
       cgpa: v.data.user.cgpa && v.data.user.cgpa >= 7.0 ? `${v.data.user.cgpa.toFixed(2)}/10` : null,
     };
 
+    const rewriteBlock = !isFollowup && v.data.current_draft
+      ? `\n\nREWRITE MODE — the sender has an existing draft and wants it changed.
+
+CURRENT DRAFT (rewrite this — do NOT just lightly edit it):
+SUBJECT: ${v.data.current_draft.subject}
+BODY:
+${v.data.current_draft.body}
+${v.data.rewrite_notes ? `\nSENDER'S REWRITE INSTRUCTIONS (apply these strongly, they override generic defaults):\n"""${v.data.rewrite_notes}"""\n` : ""}
+REWRITE RULES:
+- Treat the sender's instructions as the highest-priority signal. If they ask to add a fact, that fact MUST appear concretely in the new draft.
+- Keep only the verifiable facts (name, college, role, dates, the target's name). Drop generic filler.
+- Change the OPENING SENTENCE — it must be structurally different from the current draft's opener.
+- Vary paragraph structure and sentence rhythm noticeably from the current draft.
+- The new draft must read as a meaningfully different email, not a cosmetic edit.
+- All HARD RULES, blocklists and recipient-type rules above still apply.`
+      : "";
+
     const userPrompt = isFollowup
       ? `TARGET:\n${JSON.stringify(v.data.target, null, 2)}\n\nSENDER:\n${JSON.stringify(
           { display_name: v.data.user.display_name, college: v.data.user.college, degree: v.data.user.degree }, null, 2,
         )}${originalBlock}\n\nDraft the SHORT follow-up email now via the draft_email tool.`
-      : `${buildTypeBlock(v.data.recipient_type)}\n\nTARGET:\n${JSON.stringify(v.data.target, null, 2)}\n\nSENDER:\n${JSON.stringify(senderForPrompt, null, 2)}\n\nROLE: ${v.data.role}\nTONE: ${v.data.tone}${briefBlock}\n\nDraft the email now via the draft_email tool.`;
+      : `${buildTypeBlock(v.data.recipient_type)}\n\nTARGET:\n${JSON.stringify(v.data.target, null, 2)}\n\nSENDER:\n${JSON.stringify(senderForPrompt, null, 2)}\n\nROLE: ${v.data.role}\nTONE: ${v.data.tone}${briefBlock}${rewriteBlock}\n\nDraft the email now via the draft_email tool.`;
 
     const activeSystemPrompt = isFollowup
       ? FOLLOWUP_SYSTEM_PROMPT
