@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Star, MapPin, Phone, Mail, ExternalLink, Sparkles, ShieldCheck, Eye, MessageSquarePlus, Share2 } from "lucide-react";
+import { Star, MapPin, Phone, Mail, ExternalLink, Sparkles, ShieldCheck, Eye, MessageSquarePlus } from "lucide-react";
+import { ShareIconButton } from "@/components/ShareIconButton";
 import { toast } from "sonner";
 import {
   Sheet,
