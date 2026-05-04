@@ -279,9 +279,9 @@ serve(async (req) => {
     if (authErr || !userRes?.user?.id) return json(401, { error: "Unauthorized", retryable: false });
     const userId = userRes.user.id;
 
-    // Admin check
-    const { data: roleRow } = await adminClient.from("user_roles").select("role").eq("user_id", userId).eq("role", "admin").maybeSingle();
-    if (!roleRow) return json(403, { error: "Forbidden — admin only", retryable: false });
+    // Admin check (full admin or scoped bar_admin)
+    const { data: scopeOk } = await adminClient.rpc("has_admin_scope", { uid: userId, scope: "bar_admin" });
+    if (!scopeOk) return json(403, { error: "Forbidden — admin only", retryable: false });
 
     // Parse body
     const parsedBody = BodySchema.safeParse(await req.json().catch(() => ({})));

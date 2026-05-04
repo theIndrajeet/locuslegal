@@ -180,10 +180,11 @@ serve(async (req) => {
 
     const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const adminClient = createClient(SUPABASE_URL, SERVICE_ROLE);
-    const { data: roleRow } = await adminClient
-      .from("user_roles").select("role")
-      .eq("user_id", userRes.user.id).eq("role", "admin").maybeSingle();
-    if (!roleRow) return json({ error: "Forbidden" }, 403);
+    const { data: scopeOk } = await adminClient.rpc("has_admin_scope", {
+      uid: userRes.user.id,
+      scope: "opportunities_admin",
+    });
+    if (!scopeOk) return json({ error: "Forbidden" }, 403);
 
     const body = await req.json().catch(() => null) as { stream?: Stream; text?: string } | null;
     const stream = body?.stream;

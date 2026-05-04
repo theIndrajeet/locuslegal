@@ -254,8 +254,8 @@ serve(async (req) => {
     if (authErr || !userRes?.user?.id) return json(401, { error: "Unauthorized", retryable: false });
     const userId = userRes.user.id;
 
-    const { data: roleRow } = await adminClient.from("user_roles").select("role").eq("user_id", userId).eq("role", "admin").maybeSingle();
-    if (!roleRow) return json(403, { error: "Forbidden — admin only", retryable: false });
+    const { data: scopeOk } = await adminClient.rpc("has_admin_scope", { uid: userId, scope: "bar_admin" });
+    if (!scopeOk) return json(403, { error: "Forbidden — admin only", retryable: false });
 
     const parsedBody = BodySchema.safeParse(await req.json().catch(() => ({})));
     if (!parsedBody.success) return json(400, { error: "Invalid body", details: parsedBody.error.flatten(), retryable: false });
