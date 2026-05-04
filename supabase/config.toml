@@ -15,6 +15,8 @@ project_id = "kasyrononwksnjykgldt"
     verify_jwt = false
   [functions.send-vacancy-digest]
     verify_jwt = false
+  [functions.send-vacancy-instant]
+    verify_jwt = true
   [functions.send-bar-digest]
     verify_jwt = false
   [functions.send-profile-nudge]
