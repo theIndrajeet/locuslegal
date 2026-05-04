@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Loader2, Download, Trash2, ExternalLink, ChevronDown, ChevronUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAdminRole } from "@/hooks/useAdminRole";
+import { useAdminAccess } from "@/hooks/useAdminRole";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/sonner";
@@ -62,7 +62,8 @@ export default function AdminBeta() {
     path: "/admin/beta",
   });
 
-  const isAdmin = useAdminRole();
+  const { ready: adminReady, isAdmin: fullAdmin } = useAdminAccess();
+  const isAdmin = !adminReady ? null : fullAdmin;
   const navigate = useNavigate();
   const [rows, setRows] = useState<FeedbackRow[]>([]);
   const [round2Rows, setRound2Rows] = useState<Round2Row[]>([]);

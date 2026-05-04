@@ -2,6 +2,8 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { useAuthSession } from "@/hooks/useAuthSession";
+import { useAdminAccess } from "@/hooks/useAdminRole";
+import AccessDenied from "@/components/admin/AccessDenied";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
@@ -30,6 +32,7 @@ const fieldIcon = { email: Mail, phone: Phone, tier: Award } as const;
 export default function AdminFirmSuggestions() {
   usePageMeta({ title: "Firm Suggestions — Admin", description: "Review crowdsourced corrections.", path: "/admin/firm-suggestions" });
   const { ready, userId } = useAuthSession();
+  const { ready: adminReady, hasScope } = useAdminAccess();
   const [filter, setFilter] = useState<Status>("pending");
   const [rows, setRows] = useState<Suggestion[]>([]);
   const [loading, setLoading] = useState(true);
