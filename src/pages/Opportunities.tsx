@@ -476,34 +476,6 @@ function DetailDialog({ item, onClose }: { item: AnyOpportunity | null; onClose:
             </span>
           </div>
 
-          {/* Quick-link chips: Guidelines + Submission */}
-          {hasLinkRow && (
-            <div className="flex flex-wrap gap-2 mb-3">
-              {guidelineUrl && (
-                <a
-                  href={guidelineUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-md border-2 border-foreground bg-accent text-accent-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_0_hsl(var(--foreground))] transition-transform"
-                >
-                  <FileText size={12} />
-                  Guidelines
-                </a>
-              )}
-              {submissionUrl && (
-                <a
-                  href={submissionUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-md border-2 border-foreground bg-accent text-accent-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_0_hsl(var(--foreground))] transition-transform"
-                >
-                  <ExternalLink size={12} />
-                  Submission
-                </a>
-              )}
-            </div>
-          )}
-
           <DialogHeader className="space-y-1.5 text-left">
             <DialogTitle className="font-heading text-2xl md:text-3xl font-extrabold tracking-tight leading-tight">
               {titleOf(item)}
@@ -512,9 +484,37 @@ function DetailDialog({ item, onClose }: { item: AnyOpportunity | null; onClose:
               {organiserOf(item)}
             </DialogDescription>
           </DialogHeader>
-          <p className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground mt-3">
-            Posted {new Date(item.posted_at).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}
-          </p>
+          <div className="mt-3 flex items-center justify-between gap-3 flex-wrap">
+            <p className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground">
+              Posted {new Date(item.posted_at).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}
+            </p>
+            {hasLinkRow && (
+              <div className="flex flex-wrap gap-2 ml-auto">
+                {guidelineUrl && (
+                  <a
+                    href={guidelineUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-md border-2 border-foreground bg-accent text-accent-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_0_hsl(var(--foreground))] transition-transform"
+                  >
+                    <FileText size={12} />
+                    Guidelines
+                  </a>
+                )}
+                {submissionUrl && (
+                  <a
+                    href={submissionUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-md border-2 border-foreground bg-accent text-accent-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_0_hsl(var(--foreground))] transition-transform"
+                  >
+                    <ExternalLink size={12} />
+                    Submission
+                  </a>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Scrollable body */}
