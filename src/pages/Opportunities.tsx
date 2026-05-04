@@ -534,7 +534,3 @@ function factTiles(item: AnyOpportunity): FactTile[] {
   }
   return tiles;
 }
-      ))}
-    </dl>
-  );
-}
