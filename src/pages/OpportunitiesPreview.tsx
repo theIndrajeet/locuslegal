@@ -369,40 +369,46 @@ function ctaLabel(i: AnyOpportunity): string {
 
 function DetailFields({ item }: { item: AnyOpportunity }) {
   const rows: Array<[string, string]> = [];
-  if (item.stream === "internship" || item.stream === "job") {
-    if (item.location) rows.push(["Location", item.location]);
-    if (item.stipend) rows.push(["Stipend", item.stipend]);
-    if (item.eligibility) rows.push(["Eligibility", item.eligibility]);
-    rows.push(["Deadline", new Date(item.expires_at).toLocaleDateString()]);
-    rows.push(["Apply via", item.application_email]);
-  } else if (item.stream === "cfp") {
-    if (item.theme) rows.push(["Theme", item.theme]);
-    rows.push(["Deadline", new Date(item.deadline).toLocaleDateString()]);
-    rows.push(["Word limit", `${item.word_limit_min ?? "—"}–${item.word_limit_max ?? "—"}`]);
-    rows.push(["Co-authorship", item.co_authorship_allowed ? "Allowed" : "Single author"]);
-    rows.push(["Submission fee", item.submission_fee]);
-    rows.push(["Review", item.peer_reviewed ? "Peer-reviewed" : "Editorial"]);
-    rows.push(["Submit to", item.submission_url ?? item.submission_email ?? "—"]);
-  } else if (item.stream === "moot") {
-    rows.push(["Mode", item.mode]);
-    if (item.venue) rows.push(["Venue", item.venue]);
-    rows.push(["Event dates", `${item.event_start_date} → ${item.event_end_date}`]);
-    rows.push(["Registration deadline", new Date(item.deadline).toLocaleDateString()]);
-    if (item.memorial_deadline) rows.push(["Memorial deadline", new Date(item.memorial_deadline).toLocaleDateString()]);
-    rows.push(["Team size", `${item.team_size_min}–${item.team_size_max}`]);
-    rows.push(["Registration fee", item.registration_fee]);
-    rows.push(["Prize pool", item.prize_pool]);
-    rows.push(["Area of law", item.area_of_law]);
-    if (item.eligibility) rows.push(["Eligibility", item.eligibility]);
-  } else {
-    rows.push(["Category", item.category]);
-    rows.push(["Mode", item.mode]);
-    rows.push(["Deadline", new Date(item.deadline).toLocaleDateString()]);
-    if (item.event_date) rows.push(["Event date", item.event_date]);
-    rows.push(["Prize / stipend", item.prize_or_stipend]);
-    rows.push(["Fee", item.fee]);
-    if (item.eligibility) rows.push(["Eligibility", item.eligibility]);
-    rows.push(["Apply via", item.application_url ?? item.contact_email ?? "—"]);
+  switch (item.stream) {
+    case "internship":
+    case "job":
+      if (item.location) rows.push(["Location", item.location]);
+      if (item.stipend) rows.push(["Stipend", item.stipend]);
+      if (item.eligibility) rows.push(["Eligibility", item.eligibility]);
+      rows.push(["Deadline", new Date(item.expires_at).toLocaleDateString()]);
+      rows.push(["Apply via", item.application_email]);
+      break;
+    case "cfp":
+      if (item.theme) rows.push(["Theme", item.theme]);
+      rows.push(["Deadline", new Date(item.deadline).toLocaleDateString()]);
+      rows.push(["Word limit", `${item.word_limit_min ?? "—"}–${item.word_limit_max ?? "—"}`]);
+      rows.push(["Co-authorship", item.co_authorship_allowed ? "Allowed" : "Single author"]);
+      rows.push(["Submission fee", item.submission_fee]);
+      rows.push(["Review", item.peer_reviewed ? "Peer-reviewed" : "Editorial"]);
+      rows.push(["Submit to", item.submission_url ?? item.submission_email ?? "—"]);
+      break;
+    case "moot":
+      rows.push(["Mode", item.mode]);
+      if (item.venue) rows.push(["Venue", item.venue]);
+      rows.push(["Event dates", `${item.event_start_date} → ${item.event_end_date}`]);
+      rows.push(["Registration deadline", new Date(item.deadline).toLocaleDateString()]);
+      if (item.memorial_deadline) rows.push(["Memorial deadline", new Date(item.memorial_deadline).toLocaleDateString()]);
+      rows.push(["Team size", `${item.team_size_min}–${item.team_size_max}`]);
+      rows.push(["Registration fee", item.registration_fee]);
+      rows.push(["Prize pool", item.prize_pool]);
+      rows.push(["Area of law", item.area_of_law]);
+      if (item.eligibility) rows.push(["Eligibility", item.eligibility]);
+      break;
+    case "competition":
+      rows.push(["Category", item.category]);
+      rows.push(["Mode", item.mode]);
+      rows.push(["Deadline", new Date(item.deadline).toLocaleDateString()]);
+      if (item.event_date) rows.push(["Event date", item.event_date]);
+      rows.push(["Prize / stipend", item.prize_or_stipend]);
+      rows.push(["Fee", item.fee]);
+      if (item.eligibility) rows.push(["Eligibility", item.eligibility]);
+      rows.push(["Apply via", item.application_url ?? item.contact_email ?? "—"]);
+      break;
   }
 
   return (
