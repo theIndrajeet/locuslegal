@@ -236,7 +236,7 @@ export default function TourOverlay({
             ? {
                 left: 12,
                 right: 12,
-                bottom: 12,
+                bottom: 88,
                 width: "auto",
                 maxWidth: "none",
               }
