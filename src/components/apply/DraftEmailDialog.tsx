@@ -1094,25 +1094,73 @@ export default function DraftEmailDialog({ open, onOpenChange, target, onSent }:
             </div>
           )}
 
-          {/* Regenerate button (visible only when draft exists) */}
+          {/* Rewrite box (visible only when draft exists) */}
           {hasDraft && (
-            <Button
-              onClick={generate}
-              disabled={!canGenerate}
-              variant="outline"
-              className="w-full"
-            >
-              {generating ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" /> Regenerating…
-                </>
-              ) : (
-                <>
-                  <Sparkles className="h-4 w-4 mr-2" />
-                  Regenerate with current brief
-                </>
-              )}
-            </Button>
+            <div className="rounded-lg border-2 border-border bg-muted/20 p-3 space-y-2.5 shadow-[3px_3px_0_0_hsl(var(--border))]">
+              <div className="flex items-center justify-between">
+                <Label className="font-mono text-[10px] uppercase tracking-widest">
+                  Tell Locus what to change or add
+                </Label>
+                <span className="font-mono text-[10px] text-muted-foreground">
+                  {rewriteNotes.length}/400
+                </span>
+              </div>
+              <Textarea
+                value={rewriteNotes}
+                onChange={(e) => setRewriteNotes(e.target.value.slice(0, 400))}
+                placeholder={`e.g. Mention my Intellect internship and DPDP work.\nMake it less generic, more corporate-law focused.\nCut the college line, strengthen the middle paragraph.`}
+                rows={3}
+                maxLength={400}
+                className="text-sm leading-relaxed resize-none"
+              />
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  "Make it sharper",
+                  "Sound less AI-written",
+                  "Add more personality",
+                  "Make it shorter",
+                  "Use my strongest CV point",
+                  "Focus on corporate / M&A",
+                ].map((chip) => (
+                  <button
+                    key={chip}
+                    type="button"
+                    onClick={() => {
+                      setRewriteNotes((prev) => {
+                        const trimmed = prev.trim();
+                        if (!trimmed) return chip + ".";
+                        if (trimmed.toLowerCase().includes(chip.toLowerCase())) return prev;
+                        const joined = `${trimmed.replace(/[.\s]+$/, "")}. ${chip}.`;
+                        return joined.slice(0, 400);
+                      });
+                    }}
+                    className="px-2.5 py-1 rounded-full border border-border bg-background hover:bg-muted hover:border-accent/40 text-[11px] font-medium transition-colors"
+                  >
+                    + {chip}
+                  </button>
+                ))}
+              </div>
+              <Button
+                onClick={generate}
+                disabled={!canGenerate}
+                className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
+              >
+                {generating ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Rewriting…
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    {rewriteNotes.trim() ? "Rewrite with these notes" : "Regenerate (different angle)"}
+                  </>
+                )}
+              </Button>
+              <p className="text-[11px] text-muted-foreground leading-snug">
+                Style engine active: Indian recruiter format, AI-tell + Indianism cleanup, British English.
+              </p>
+            </div>
           )}
 
           {loadingUser && (
