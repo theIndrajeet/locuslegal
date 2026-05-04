@@ -1,58 +1,46 @@
-## Goal
+# Switch sender domain to `open.locus.legal`
 
-Roll the `/tour-lab` walkthrough into the real product. New users see it once on first visit to `/app`. Anyone can replay it anytime from the profile menu.
+## Status check
+- `open.locus.legal` → **Verified ✅** (NS delegation active, ready to send)
+- `auth.locus.legal` → not the active verified subdomain (previous attempt)
+- Edge functions still hardcode `SENDER_DOMAIN = "auth.locus.legal"` → every send currently rejected by the email API with "No email domain record found"
 
-## Persistence approach
+## Changes
 
-Local persistence (`localStorage`) keyed per user, **not** the database. The DB migration tool isn't available in this session, and localStorage is sufficient because:
-- The tour is one-time UX polish, not a security/business-critical flag
-- Survives across sessions on the same browser (the realistic "first signup" flow)
-- Replay is always available from the profile menu, so a wiped browser just shows it once more — no harm
+### 1. `supabase/functions/send-transactional-email/index.ts`
+- `SENDER_DOMAIN`: `"auth.locus.legal"` → `"open.locus.legal"`
+- Keep `FROM_DOMAIN = "locus.legal"` (cosmetic From header — unchanged, sends still appear as `noreply@locus.legal`)
 
-Key: `locus_tour_completed_v1:<userId>`.
+### 2. `supabase/functions/auth-email-hook/index.ts`
+- `SENDER_DOMAIN`: `"auth.locus.legal"` → `"open.locus.legal"`
+- Keep `ROOT_DOMAIN` and `FROM_DOMAIN` as `locus.legal`
 
-## Files
+### 3. Auth email template footers (4 files)
+Update displayed footer line for brand accuracy:
+- `_shared/email-templates/email-change.tsx`
+- `_shared/email-templates/magic-link.tsx`
+- `_shared/email-templates/reauthentication.tsx`
+- `_shared/email-templates/recovery.tsx`
 
-**New**
-- `src/components/tour/appTourSteps.ts` — The 5 real `/app` tour steps targeting `[data-tour="profile-strength"]`, `[data-tour="pipeline"]`, `[data-tour="practice"]`, `[data-tour="opportunities-nav"]`, `[data-tour="search"]`.
-- `src/components/tour/AppTour.tsx` — Mounts `TourProvider` + `WelcomeModal` at the app shell. Reads `userId` from `useAuthSession`. On mount of `/app`, if `localStorage[locus_tour_completed_v1:<userId>]` is missing AND user is authed, opens the welcome modal → tour. Persists completion on Finish *and* Skip. Exposes a global `window.__locusReplayTour()` so `ProfileMenu` can trigger it.
-- `src/hooks/useReplayTour.ts` — Tiny hook wrapping the same trigger for cleaner imports.
+Change footer text `"Locus by LexRoot · auth.locus.legal"` → `"Locus by LexRoot · locus.legal"` (drop the technical subdomain — users see the brand domain, not the sender infra subdomain). Note: `signup.tsx` and `invite.tsx` already don't carry the bad string — verify and align.
 
-**Edited**
-- `src/components/Layout.tsx` — Wrap `<Outlet />` (and `MobileBottomDock`/`Footer`) in `<AppTour>` so the tour can fire on `/app` and the replay trigger is globally available.
-- `src/pages/AppHome.tsx` — Add `data-tour="profile-strength"` on the `ProfileStrengthMeter` wrapper, `data-tour="pipeline"` on the PipelinePane wrapper div, `data-tour="practice"` on the PracticePane wrapper div.
-- `src/components/Navbar.tsx` — Add `data-tour="opportunities-nav"` on the desktop "Opportunities" `<Link>`.
-- `src/components/search/SearchFab.tsx` — Add `data-tour="search"` on the FAB button.
-- `src/components/ProfileMenu.tsx` — Add a "Replay product tour" item (Lucide `Sparkles` icon) above the divider before "Sign Out". Calls `window.__locusReplayTour()`.
-- `src/components/tour/TourProvider.tsx` — Make it skip steps whose `target` selector doesn't resolve to a DOM element (so missing-mobile-anchor like `SearchFab` on small screens is gracefully bypassed instead of showing a tooltip floating in the corner). If all remaining steps are missing, `start()` no-ops.
+### 4. Redeploy edge functions
+After file edits, deploy the two functions whose code changed:
+- `send-transactional-email`
+- `auth-email-hook`
 
-## Trigger logic (AppTour)
+(Templates live under `_shared/` and are bundled into both functions at deploy time, so deploying these two ships the footer updates as well.)
 
-1. On mount of any route, do nothing.
-2. Subscribe to route + auth. When `pathname === "/app"` AND `userId` is set AND `localStorage[locus_tour_completed_v1:<userId>]` is empty:
-   - Wait ~600ms (let `/app` finish its data fetch and reveal real anchors)
-   - Open `WelcomeModal`. On "Start tour" → close modal → start tour.
-3. `onFinish` and `onSkip` both write `localStorage[locus_tour_completed_v1:<userId>] = "1"`.
-4. Replay (`window.__locusReplayTour`) wipes the key for the current user and starts the tour immediately (skips welcome modal — replay users know what they're getting).
-
-## Edge cases covered
-
-- **Pace-setter / @locus.internal accounts**: same as everyone, no special-case (they're internal QA, fine to see the tour).
-- **`OnboardingChecklist` shown instead of panes** (score < 30): `[data-tour="practice"]`, `[data-tour="pipeline"]` won't exist. Engine skips them gracefully thanks to the missing-target skip. User still sees profile strength + opportunities + search — 3-step tour, still useful.
-- **Mobile (≤640px)**: `SearchFab` is `hidden md:flex` → step skipped, mobile users see 4 steps. Tooltip already renders as a bottom sheet on ≤640px (existing engine).
-- **Non-authed user lands on `/app`**: AppHome already redirects via `useAuthSession`, so AppTour just no-ops.
-- **`/tour-lab` keeps working**: untouched; still uses its own local `TourProvider`, which simply nests inside the global one harmlessly because each `useTour()` call resolves to the nearest provider.
-
-## Acceptance
-
-- Sign up fresh → land on `/app` → welcome modal appears → 5-step tour runs → finish → reload `/app` → tour does NOT reappear.
-- Skip mid-tour → reload → tour does NOT reappear.
-- Open profile menu → "Replay product tour" → tour runs immediately (no welcome modal).
-- Existing user who has a profile with score < 30 (sees OnboardingChecklist instead of panes) → tour skips the missing pipeline/practice steps without breaking.
-- Mobile viewport → tour skips the search step, tooltip shows as bottom sheet.
-- `/tour-lab` still works exactly as before.
+### 5. Save memory note
+Add `mem://fixes/sender-domain-switch-on-workspace-change` capturing the recurring fix:
+> When the workspace changes and a new sender subdomain is provisioned (e.g. notify → auth → open), update `SENDER_DOMAIN` in `send-transactional-email/index.ts` AND `auth-email-hook/index.ts` to the new verified FQDN, then redeploy both. `FROM_DOMAIN` stays as the root `locus.legal`. Also update auth email template footer strings if they hardcode the subdomain.
 
 ## Out of scope
+- No DB changes, no migrations, no infra rerun (`open.locus.legal` is already active)
+- No client/UI changes
+- No new templates
 
-- Database column for `onboarding_tour_completed_at` (covered by localStorage; can be added later if needed for cross-device persistence).
-- Per-page contextual mini-tours (`/the-bar` first visit, `/directory` first visit, etc.) — separate followup.
+## Verification after deploy
+- Trigger one auth email (password reset on test account) → confirm delivery
+- Trigger one transactional (welcome on a test signup) → confirm delivery
+- Check `email_send_log` for `sent` rows (no more `failed` with "No email domain record found")
