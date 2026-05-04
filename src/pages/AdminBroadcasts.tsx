@@ -206,8 +206,23 @@ export default function AdminBroadcasts() {
         </p>
       </header>
 
-      <div className="grid lg:grid-cols-[minmax(0,1fr)_minmax(0,440px)] gap-8 mb-10">
+      <div ref={composerRef} className="grid lg:grid-cols-[minmax(0,1fr)_minmax(0,440px)] gap-8 mb-10">
         <section className="border-2 border-foreground bg-card p-6 shadow-[6px_6px_0_0_hsl(var(--foreground))] space-y-5">
+          {loadedFrom && (
+            <div className="flex items-start gap-3 border-2 border-accent bg-accent/10 p-3">
+              <Copy className="w-4 h-4 mt-0.5 text-accent shrink-0" />
+              <div className="flex-1 min-w-0 text-xs">
+                <p className="font-mono uppercase tracking-widest text-[10px] text-muted-foreground">Editing copy of</p>
+                <p className="font-heading font-extrabold truncate">{loadedFrom.subject}</p>
+                <p className="text-muted-foreground mt-0.5">
+                  {loadedFrom.sent_at ? `Sent ${new Date(loadedFrom.sent_at).toLocaleString()}` : `Draft`} · sends as a brand-new broadcast — pick a segment below
+                </p>
+              </div>
+              <Button type="button" variant="ghost" size="sm" onClick={handleClearLoad} className="h-7 px-2 shrink-0">
+                <X className="w-3.5 h-3.5 mr-1" /> Clear
+              </Button>
+            </div>
+          )}
           <div>
             <Label className="font-mono text-[10px] uppercase tracking-widest">Subject</Label>
             <Input
