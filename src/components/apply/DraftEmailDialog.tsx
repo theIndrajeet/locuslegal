@@ -490,7 +490,7 @@ export default function DraftEmailDialog({ open, onOpenChange, target, onSent }:
         is_nlu: detectIsNlu(user.college),
       },
       rewrite_notes: rewriteNotes.trim() || null,
-      current_draft: hasDraft ? { subject, body } : null,
+      current_draft: subject.trim() && body.trim() ? { subject, body } : null,
     };
 
     const invokeOnce = () => supabase.functions.invoke("draft-application-email", { body: payload });
