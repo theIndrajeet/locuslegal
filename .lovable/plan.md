@@ -1,50 +1,30 @@
-# Fix: scoped admins blocked by edge function role checks
+## Problem
 
-## What's happening
+`/admin/admins` shows "No admins (0)" and the network tab shows a 400 on `rpc/list_admins`. Postgres logs confirm:
 
-Ritika (`opportunities_admin`) clicked "Extract with AI" on the vacancy paste dialog and got **"Edge Function returned a non-2xx status code"**.
+> ERROR: structure of query does not match function result type
 
-Root cause: every admin-gated edge function still does:
-```ts
-.from("user_roles").eq("role", "admin").maybeSingle()
-if (!roleRow) return 403 Forbidden
-```
+## Root Cause
 
-We added scoped roles (`opportunities_admin`, `waitlist_admin`, `bar_admin`, `broadcast_admin`) to the database and to all the frontend RLS/UI checks — but the edge functions were missed. So scoped admins can see the buttons and pages, but every AI/admin function call 403s.
+Both `public.list_admins()` and `public.find_user_for_admin(p_query)` declare their `email` return column as `text`, but they `SELECT u.email FROM auth.users u`, where `auth.users.email` is `character varying`. Postgres rejects the row shape — nothing comes back, the UI sees zero admins, and the search box would also fail the moment anyone typed.
 
-## Affected functions and required scope
+This is why Ritika (and every other scoped admin) doesn't appear in "Current Admins" even though her `opportunities_admin` row exists in `user_roles`.
 
-| Function | Required scope |
-|---|---|
-| `extract-vacancy` | `opportunities_admin` (vacancies live under Opps) |
-| `extract-opportunity` | `opportunities_admin` |
-| `extract-questions-from-pdf` | `bar_admin` |
-| `draft-question-from-prompt` | `bar_admin` |
-| `suggest-topics` | `bar_admin` |
-| `send-broadcast` | `broadcast_admin` |
+## Fix
 
-In every case, full `admin` should also pass (already does, since they have the `admin` row).
+Migration that re-creates both functions with an explicit `u.email::text` cast. Bodies are otherwise unchanged — same security check (`is_admin(auth.uid())`), same scopes, same column order.
 
-## Plan
+Functions to update:
+- `public.list_admins()` — cast `u.email::text AS email`
+- `public.find_user_for_admin(p_query text)` — same cast
 
-1. **Replace the inline role check** in each function above with a call to the existing `has_admin_scope(uid, scope)` Postgres function we created in the prior migration. Using the RPC keeps the logic in one place and matches the RLS policies.
+No frontend changes needed. After the migration:
+- Current Admins list will populate (you, Ritika, and anyone else with an admin-family role)
+- The "Find a user" search will return results
+- Granting/revoking already works (those RPCs return `void`, no shape issue)
 
-   New shared pattern (per function, with the appropriate scope literal):
-   ```ts
-   const { data: ok } = await adminClient.rpc("has_admin_scope", {
-     uid: userId,
-     scope: "opportunities_admin",
-   });
-   if (!ok) return json(403, { error: "Forbidden" });
-   ```
+## Technical notes
 
-2. **No DB migration needed** — `has_admin_scope` already exists and already treats full `admin` as passing every scope.
-
-3. **No frontend changes** — the dialogs, buttons and routing already gate on `hasScope(...)` and will simply start working once the edge functions stop 403'ing.
-
-4. **Verify** by having (or simulating as) Ritika hit "Extract with AI" on the vacancy paste dialog after deploy; should return parsed JSON instead of the toast error.
-
-## Out of scope
-
-- No new roles, no new UI, no schema changes.
-- Bar admin AI tools and broadcast send are fixed in the same pass for consistency, even though Ritika doesn't use them — otherwise the next scoped admin we onboard hits the same wall.
+- Both functions stay `SECURITY DEFINER` with `search_path = public` and the existing `is_admin` gate.
+- We're not touching `auth.users` or any reserved schema — only re-defining two `public` functions.
+- No code, types, or RLS changes.
