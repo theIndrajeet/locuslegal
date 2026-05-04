@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { usePageMeta } from "@/lib/usePageMeta";
+import { usePageMeta } from "@/hooks/usePageMeta";
 import {
   SAMPLE_DATA,
   type AnyOpportunity,
