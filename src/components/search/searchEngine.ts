@@ -261,31 +261,64 @@ export function runSearch(rawQuery: string, firms: Firm[] | null): SearchOutput 
   }
   pageHits.sort((a, b) => b.score - a.score);
 
-  // Vacancies (only if cache populated; non-blocking)
-  const vacancyHits: SearchResult[] = [];
+  // Opportunities — vacancies + cfps + moots + competitions
+  const oppHits: SearchResult[] = [];
   if (vacanciesCache) {
     for (const v of vacanciesCache) {
-      const s =
-        scoreField(v.firm_name, q, 3) +
-        scoreField(v.role, q, 2) +
-        scoreField(v.location ?? "", q, 1);
-      if (s > 0) {
-        vacancyHits.push({
-          id: `vacancy-${v.id}`,
-          kind: "vacancy" as never,
-          title: `${v.firm_name} — ${v.role}`,
-          subtitle: v.location ?? "Live vacancy",
-          meta: "Apply",
-          href: `/vacancies#vacancy-${v.id}`,
-          score: s + 1,
-        });
-      }
+      const s = scoreField(v.firm_name, q, 3) + scoreField(v.role, q, 2) + scoreField(v.location ?? "", q, 1);
+      if (s > 0) oppHits.push({
+        id: `vacancy-${v.id}`, kind: "vacancy" as never,
+        title: `${v.firm_name} — ${v.role}`,
+        subtitle: v.location ?? "Live vacancy",
+        meta: "Vacancy",
+        href: `/opportunities?focus=${v.id}`,
+        score: s + 1,
+      });
     }
-    vacancyHits.sort((a, b) => b.score - a.score);
   }
+  if (cfpsCache) {
+    for (const c of cfpsCache) {
+      const s = scoreField(c.publication_name, q, 3) + scoreField(c.theme ?? "", q, 1.5);
+      if (s > 0) oppHits.push({
+        id: `cfp-${c.id}`, kind: "vacancy" as never,
+        title: c.publication_name,
+        subtitle: c.theme ?? "Call for Papers",
+        meta: "CFP",
+        href: `/opportunities?focus=${c.id}`,
+        score: s,
+      });
+    }
+  }
+  if (mootsCache) {
+    for (const m of mootsCache) {
+      const s = scoreField(m.competition_name, q, 3) + scoreField(m.organiser, q, 1.5);
+      if (s > 0) oppHits.push({
+        id: `moot-${m.id}`, kind: "vacancy" as never,
+        title: m.competition_name,
+        subtitle: m.organiser,
+        meta: "Moot",
+        href: `/opportunities?focus=${m.id}`,
+        score: s,
+      });
+    }
+  }
+  if (compsCache) {
+    for (const k of compsCache) {
+      const s = scoreField(k.title, q, 3) + scoreField(k.organiser, q, 1.2) + scoreField(k.category, q, 1);
+      if (s > 0) oppHits.push({
+        id: `comp-${k.id}`, kind: "vacancy" as never,
+        title: k.title,
+        subtitle: `${k.organiser} · ${k.category.replace(/_/g, " ")}`,
+        meta: "Competition",
+        href: `/opportunities?focus=${k.id}`,
+        score: s,
+      });
+    }
+  }
+  oppHits.sort((a, b) => b.score - a.score);
 
   const allGroups: SearchGroup[] = [
-    { kind: "vacancy" as never, label: "Live Vacancies", icon: Briefcase, results: vacancyHits.slice(0, 5) },
+    { kind: "vacancy" as never, label: "Live Opportunities", icon: Briefcase, results: oppHits.slice(0, 8) },
     { kind: "firm", label: "Firms", icon: Building2, results: firmHits },
     { kind: "startup", label: "Startups & SMEs", icon: Rocket, results: startupHits },
     { kind: "guide", label: "Playbook", icon: BookOpen, results: guideHits.slice(0, 6) },
