@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { WATERMARK_EMAIL_SIG } from "@/lib/share";
+import { track } from "@/lib/analytics";
 
 export interface DraftEmailTarget {
   id: string; // unique key for caching
@@ -466,6 +467,11 @@ export default function DraftEmailDialog({ open, onOpenChange, target, onSent }:
     }
     setGenerating(true);
     setWarnings([]);
+    void track("cover_letter_generated", {
+      mode: isFollowup ? "followup" : "initial",
+      kind: target.kind,
+      tone,
+    });
     const payload = {
       target: {
         name: target.name,

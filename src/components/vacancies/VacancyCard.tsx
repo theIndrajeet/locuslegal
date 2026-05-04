@@ -324,7 +324,10 @@ export default function VacancyCard({ vacancy, onApply, archived = false, applic
 
         {!isClosed && onApply && appState === "followup_ready" && (
           <Button
-            onClick={() => onApply(vacancy, { followup: true })}
+            onClick={() => {
+              void track("vacancy_apply_clicked", { vacancy_id: vacancy.id, mode: "followup" });
+              onApply(vacancy, { followup: true });
+            }}
             variant="outline"
             className="font-bold border-2 border-accent text-foreground bg-background hover:bg-accent hover:text-accent-foreground shadow-[3px_3px_0_0_hsl(var(--accent))] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_0_hsl(var(--accent))]"
           >

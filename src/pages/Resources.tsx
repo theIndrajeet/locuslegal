@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { shareOrCopy, withRef } from "@/lib/share";
 import { useFeatureVotes } from "@/hooks/useFeatureVotes";
 import { FeatureVoteButton } from "@/components/FeatureVoteButton";
+import { track } from "@/lib/analytics";
 import {
   Dialog,
   DialogContent,
@@ -245,6 +246,7 @@ export default function Resources() {
                     <a
                       href={r.downloadHref}
                       download
+                      onClick={() => void track("download_resource", { title: r.title, key: r.previewKey ?? null })}
                       className="inline-flex items-center gap-2 text-sm font-semibold px-5 py-2.5 rounded-lg bg-accent text-accent-foreground hover:brightness-110 transition-all"
                     >
                       <Download size={16} />

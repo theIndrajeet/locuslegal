@@ -6,7 +6,8 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import { track } from "@/lib/analytics";
 
 interface Firm {
   name: string;
@@ -28,6 +29,15 @@ interface CompareBarProps {
 
 export default function CompareBar({ selected, onRemove, onClear }: CompareBarProps) {
   const [open, setOpen] = useState(false);
+  const lastCountRef = useRef(0);
+
+  // Fire firm_compare_added each time count grows
+  useEffect(() => {
+    if (selected.length > lastCountRef.current) {
+      void track("firm_compare_added", { count: selected.length });
+    }
+    lastCountRef.current = selected.length;
+  }, [selected.length]);
 
   if (selected.length === 0) return null;
 
@@ -68,7 +78,10 @@ export default function CompareBar({ selected, onRemove, onClear }: CompareBarPr
               Clear
             </button>
             <button
-              onClick={() => setOpen(true)}
+              onClick={() => {
+                void track("firm_compare_opened", { count: selected.length });
+                setOpen(true);
+              }}
               disabled={selected.length < 2}
               className="flex items-center gap-2 px-4 py-2 rounded-xl bg-accent text-accent-foreground font-medium text-sm hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
             >

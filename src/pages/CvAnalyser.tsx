@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { track } from "@/lib/analytics";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { usePageMeta } from "@/hooks/usePageMeta";
@@ -475,6 +476,7 @@ export default function CvAnalyser() {
   const runAnalysis = async (path: string) => {
     setAnalysing(true);
     setAnalysis(null);
+    void track("cv_analyser_run");
     try {
       const { data, error } = await supabase.functions.invoke("analyse-cv", {
         body: { cv_storage_path: path },

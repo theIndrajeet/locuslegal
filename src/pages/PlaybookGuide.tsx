@@ -12,6 +12,7 @@ import { ReaderProgressBar } from "@/components/playbook/ReaderProgressBar";
 import { MarkCompleteButton } from "@/components/playbook/MarkCompleteButton";
 import { usePlaybookProgress } from "@/hooks/usePlaybookProgress";
 import { Button } from "@/components/ui/button";
+import { track } from "@/lib/analytics";
 
 const audienceTagStyles: Record<Audience, string> = {
   Students: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
@@ -44,6 +45,9 @@ export default function PlaybookGuide() {
 
   // Mark as started when opened (logged-in only)
   useEffect(() => {
+    if (slug && guide) {
+      void track("playbook_guide_open", { slug, audience: guide.audience });
+    }
     if (userId && slug && guide) {
       markStarted(slug);
     }

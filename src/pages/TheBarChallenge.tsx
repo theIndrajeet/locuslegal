@@ -35,6 +35,7 @@ import { isPremiumType } from "@/lib/bar/premium";
 import { ResultScreen, type ResultScreenProps } from "@/components/bar/ResultScreen";
 import { AREA_OF_LAW_LABELS, QUESTION_TYPE_LABELS } from "@/lib/bar/constants";
 import type { AreaOfLaw, Difficulty, QuestionType } from "@/lib/bar/types";
+import { track } from "@/lib/analytics";
 
 interface SafeChallenge {
   id: string;
@@ -190,6 +191,13 @@ export default function TheBarChallenge() {
     }
     setSubmitting(true);
     const time_taken_seconds = Math.floor((Date.now() - startedAt) / 1000);
+    void track("bar_challenge_submit", {
+      challenge_id: challenge.id,
+      type: challenge.question_type,
+      area: challenge.area_of_law,
+      difficulty: challenge.difficulty,
+      time_taken_seconds,
+    });
     try {
       const { data, error } = await supabase.functions.invoke("submit-bar-attempt", {
         body: {
@@ -234,6 +242,10 @@ export default function TheBarChallenge() {
           question_type: challenge.question_type,
         },
       });
+      const resultData = data as ResultScreenProps & { score?: number; max_score?: number };
+      if (resultData.score && resultData.max_score && resultData.score === resultData.max_score) {
+        void track("bar_challenge_perfect_score", { challenge_id: challenge.id });
+      }
       // Notify the dashboard so it refetches stats when the user navigates back.
       // Also persist a flag so /the-bar can refetch even though the event fires
       // while it's unmounted (read-after-write race + SPA navigation).
