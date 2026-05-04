@@ -43,9 +43,9 @@ Deno.serve(async (req) => {
   }
 
   const body = await req.json().catch(() => ({}))
-  const { subject, bodyMarkdown, ctaLabel, ctaUrl, segment, broadcastId } = body as {
+  const { subject, bodyMarkdown, ctaLabel, ctaUrl, segment, broadcastId, testOnly } = body as {
     subject?: string; bodyMarkdown?: string; ctaLabel?: string; ctaUrl?: string;
-    segment?: 'all' | 'beta' | 'applicants'; broadcastId?: string;
+    segment?: 'all' | 'beta' | 'applicants'; broadcastId?: string; testOnly?: boolean;
   }
 
   if (!subject || !bodyMarkdown) {
@@ -55,7 +55,27 @@ Deno.serve(async (req) => {
   const id = broadcastId || crypto.randomUUID()
   const bodyHtml = mdToHtml(bodyMarkdown)
 
-  // Build recipient list per segment
+  // ============ TEST-ONLY: send a single preview to the calling admin ============
+  if (testOnly) {
+    const adminEmail = user.email
+    if (!adminEmail) {
+      return new Response(JSON.stringify({ error: 'admin_email_missing' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
+    const { error } = await supabase.functions.invoke('send-transactional-email', {
+      body: {
+        templateName: 'broadcast',
+        recipientEmail: adminEmail,
+        idempotencyKey: `broadcast-test-${crypto.randomUUID()}`,
+        templateData: { subject: `[TEST] ${subject}`, bodyHtml, ctaLabel, ctaUrl },
+      },
+    })
+    if (error) {
+      return new Response(JSON.stringify({ error: 'test_send_failed', detail: error.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
+    return new Response(JSON.stringify({ ok: true, test: true, sentTo: adminEmail }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+  }
+
+  // ============ Build recipient userId list per segment ============
   let userIds: string[] = []
   if (segment === 'beta') {
     const { data } = await supabase.from('beta_testers').select('user_id').not('user_id', 'is', null)
@@ -68,13 +88,39 @@ Deno.serve(async (req) => {
     userIds = (data || []).map((p: any) => p.id)
   }
 
-  const { data: { users } = { users: [] } } = await supabase.auth.admin.listUsers({ perPage: 1000 }) as any
-  const emailMap = new Map<string, string>((users || []).map((u: any) => [u.id, u.email]).filter(([, e]: [string, string]) => !!e && !e.endsWith("@locus.internal")))
+  // ============ Page through ALL auth users to build email map ============
+  const emailMap = new Map<string, string>()
+  const perPage = 1000
+  let page = 1
+  let safety = 0
+  while (safety < 50) {
+    safety++
+    const res: any = await supabase.auth.admin.listUsers({ page, perPage })
+    if (res.error) {
+      console.error('listUsers error', res.error)
+      return new Response(JSON.stringify({ error: 'recipient_lookup_failed', detail: res.error.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
+    const users = res.data?.users ?? []
+    for (const u of users) {
+      if (u?.email && !u.email.endsWith('@locus.internal')) {
+        emailMap.set(u.id, u.email)
+      }
+    }
+    if (users.length < perPage) break
+    page++
+  }
+
+  console.log(`[send-broadcast] segment=${segment} userIds=${userIds.length} emailMap=${emailMap.size}`)
+
+  if (userIds.length > 0 && emailMap.size === 0) {
+    return new Response(JSON.stringify({ error: 'recipient_lookup_failed', detail: 'No emails resolved from auth users' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+  }
 
   let queued = 0
+  let skippedNoEmail = 0
   for (const uid of userIds) {
     const email = emailMap.get(uid)
-    if (!email) continue
+    if (!email) { skippedNoEmail++; continue }
     const { error } = await supabase.functions.invoke('send-transactional-email', {
       body: {
         templateName: 'broadcast',
@@ -86,13 +132,15 @@ Deno.serve(async (req) => {
     if (!error) queued++
   }
 
-  // Log broadcast
-  await supabase.from('update_broadcasts').insert({
-    id, subject, body_markdown: bodyMarkdown, body_html: bodyHtml,
-    cta_label: ctaLabel, cta_url: ctaUrl, status: 'sent',
-    sent_at: new Date().toISOString(), recipient_count: queued,
-    created_by: user.id, sent_by: user.id,
-  })
+  // Only log to history when we actually queued at least one send
+  if (queued > 0) {
+    await supabase.from('update_broadcasts').insert({
+      id, subject, body_markdown: bodyMarkdown, body_html: bodyHtml,
+      cta_label: ctaLabel, cta_url: ctaUrl, status: 'sent',
+      sent_at: new Date().toISOString(), recipient_count: queued,
+      created_by: user.id, sent_by: user.id,
+    })
+  }
 
-  return new Response(JSON.stringify({ ok: true, queued, broadcastId: id }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+  return new Response(JSON.stringify({ ok: true, queued, skippedNoEmail, broadcastId: id }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 })
