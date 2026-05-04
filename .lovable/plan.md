@@ -1,41 +1,44 @@
-## What's broken
+# Replace App Icons With the New Locus Mark
 
-In the screenshots (mobile, steps 4 & 5):
+The home screen currently shows a generic "L" because the PWA icons in `/public/icons/` and the favicon are old placeholders that don't match the brand. The uploaded image (`31ABD606-D769-4537-8A44-058DA9E1435C.png`) is the proper Locus mark — yellow ring, "Loc" in white, "us" in yellow, accent underline, on pure black. We'll use it everywhere.
 
-1. **Step 4 "Browse Opportunities"** targets `[data-tour="opportunities-nav"]`, which only exists on the **desktop navbar** (`hidden md:flex`). On mobile it still matches a hidden element, so the spotlight lands on a 0×0 box and you see a stray yellow stripe at the page edge instead of a real highlight.
-2. **Step 5 "Search anything"** targets `[data-tour="search"]` on `SearchFab`, which is also `hidden md:flex` — same problem. The body copy ("Press Cmd+K") is also nonsensical on a phone.
-3. The tooltip itself sits at `bottom: 12` on mobile and visually crowds the browser chrome / mobile dock area.
+## What gets replaced
 
-`TourProvider.start()` already filters out steps whose target is missing — but `document.querySelector` happily returns hidden elements, so the filter doesn't catch this case.
+All of these surfaces currently render the wrong/placeholder mark:
 
-## Fix
+1. **iOS home screen icon** (`/apple-touch-icon.png`, 180×180) — what your screenshot shows.
+2. **PWA installed icon** (`/icons/icon-192.png`, `/icons/icon-512.png`) — used when installed from Android/desktop.
+3. **PWA maskable icon** (`/icons/icon-maskable-512.png`) — Android adaptive icon (needs safe-zone padding so the ring doesn't get cropped by circular/squircle masks).
+4. **Browser tab favicon** (`/favicon.svg`) — currently a navy square with a serif "L"; will be replaced with a PNG of the new mark + a 32×32 ICO fallback.
+5. **PWA manifest** (`/public/manifest.webmanifest`) — already references the right paths; just needs cache-busting.
 
-### 1. Add real mobile anchors (`src/components/MobileBottomDock.tsx`)
-- Tag the **Opportunities** dock item with `data-tour="opportunities-nav-mobile"`.
-- Tag the **Search** dock button with `data-tour="search-mobile"`.
+## How we'll do it (technical)
 
-### 2. Make tour steps device-aware (`src/components/tour/appTourSteps.ts`)
-- Convert step 4's `target` to a comma selector: `'[data-tour="opportunities-nav"], [data-tour="opportunities-nav-mobile"]'` and switch placement to `"auto"` so it picks `top` on mobile (dock is at the bottom).
-- Same for step 5: `'[data-tour="search"], [data-tour="search-mobile"]'`, placement `"auto"`.
-- Rewrite step 5 body to be device-agnostic, e.g. *"Tap search anywhere on Locus to jump to firms, guides, tools, opportunities — instantly. (Cmd+K on desktop.)"*
+1. Copy the uploaded PNG to `/tmp/locus-source.png`.
+2. Use Python + Pillow to generate every required size from that single source:
+   - `apple-touch-icon.png` → 180×180, square (iOS adds its own rounded mask).
+   - `icons/icon-192.png` → 192×192, "any" purpose, full-bleed.
+   - `icons/icon-512.png` → 512×512, "any" purpose, full-bleed.
+   - `icons/icon-maskable-512.png` → 512×512 with the logo composited inside the inner ~80% safe zone on a black background, so Android's mask never clips the yellow ring.
+   - `favicon-32.png` → 32×32, plus a multi-resolution `favicon.ico` (16/32/48) for legacy browsers.
+   - `favicon.png` → 192×192, used as the modern PNG favicon.
+3. QA every generated file by previewing it before delivery.
+4. Update `index.html`:
+   - Drop the SVG favicon line; add `<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=2">` and a `.ico` fallback.
+   - Add `?v=2` cache-bust to the apple-touch-icon link so iOS re-fetches.
+5. Update `manifest.webmanifest`:
+   - Append `?v=2` to each icon `src` so installed PWAs pick up the new art on next visit.
+   - Remove the now-unused `favicon.svg` reference path (the file itself can be deleted from `/public/`).
+6. Delete the old `/public/favicon.svg` (it's no longer referenced and is off-brand).
 
-### 3. Filter truly-visible elements (`src/components/tour/TourProvider.tsx`)
-Update the `start()` filter so a step is only kept when its target actually has layout (non-zero `getBoundingClientRect`). This prevents future regressions where a `hidden md:flex` element silently passes the filter.
+## What you'll see after
 
-```ts
-const visible = (el: Element) => {
-  const r = el.getBoundingClientRect();
-  return r.width > 0 && r.height > 0;
-};
-const resolvable = s.filter((step) => {
-  const el = document.querySelector(step.target);
-  return el ? visible(el) : false;
-});
-```
-
-### 4. Keep tooltip clear of the mobile dock (`src/components/tour/TourOverlay.tsx`)
-On mobile, change the tooltip's `bottom: 12` to `bottom: 88` (dock is ~64px + breathing room) so the card never overlaps the dock or browser UI. Also raise its `z-index` above the dock if needed.
+- Browser tab: the black/yellow Locus ring instead of a navy "L".
+- Add to Home Screen on iOS: the proper circular mark (iOS will round the square; the ring already lives well inside the safe area).
+- Install on Android/desktop: same mark, with the maskable variant safe under any adaptive shape.
 
 ## Out of scope
-- No analytics changes, no new components, no routing changes.
-- Desktop tour behaviour stays identical.
+
+- No changes to in-app logo components (`Logo.tsx`, navbar wordmark) — those already render the correct "Loc**us**" wordmark.
+- No splash screens (iOS PWA splash images) — can add as a follow-up if you want the launch screen branded too.
+- No changes to OG/Twitter share images.
