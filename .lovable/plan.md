@@ -1,56 +1,28 @@
-## The problem
+## What's wrong
 
-In the screenshot, the share icon on each Directory card looks squeezed against an empty rounded box (the Compare checkbox, which is invisible until hover) and visually collides with the rating "5" pill below. The same pattern — a too-small `Share2` icon stuffed into a tight absolute corner — repeats across the app with **inconsistent sizes and chrome**:
+The "Marked as open to opportunities" notice in the screenshot is a **sonner toast** (fired from `src/components/app/IdentityRow.tsx:41` when the user toggles their Open/Closed badge). Two problems:
 
-| Location | Button size | Icon size | Issue |
-|---|---|---|---|
-| Directory firm card | 24×24 | 12 | Tiny icon, sits next to invisible compare box, collides with rating pill |
-| Directory startup card | 24×24 | 12 | Same |
-| Bar ChallengeCard | 28×28 | 13 | Inconsistent |
-| VacancyCard | 28×28 | 14 | Inconsistent |
-| PlaybookGuide | ~28×28 | 14 | Inconsistent |
-| Opportunities row | varies | 14 | Inconsistent |
+1. **It sits at the bottom** of the screen, where it overlaps the mobile dock and the Applications card — feels like part of the page rather than a notification. Sonner's default position is `bottom-right`, but on narrow mobile viewports it stretches across the bottom.
+2. **It lingers** because the global Toaster has no explicit `duration` — it inherits sonner's 4s default, which on mobile (where the user keeps the screen still) reads as "stuck there forever".
 
-No shared component → every card reinvents the wheel.
+This affects every toast across the app (`shareOrCopy` confirmations, save confirmations, error toasts, etc.) — they're all in the wrong spot.
 
 ## The fix
 
-### 1. Create one shared component: `src/components/ShareIconButton.tsx`
+One file: `src/components/ui/sonner.tsx`.
 
-A single canonical share button used everywhere. Props: `onShare`, optional `label`, optional `size` (`sm` | `md`, default `md`).
+- Add `position="top-center"` to the global `<Toaster>` so every toast appears centered at the top of the viewport, well clear of the mobile dock.
+- Add `duration={3000}` so toasts auto-dismiss after 3 seconds (was implicit 4s).
+- Keep all existing class styling intact.
 
-- `md` (default): `h-8 w-8`, `Share2 size={15} strokeWidth={2.2}`
-- `sm` (dense lists): `h-7 w-7`, `Share2 size={14} strokeWidth={2.2}`
-- Chrome: `rounded-md text-muted-foreground hover:text-accent hover:bg-accent/10 active:scale-95 transition-colors`
-- Always: `type="button"`, `aria-label`, `title="Share"`, internally `e.stopPropagation()`
-
-This becomes the "everywhere" share affordance — bigger, clearly tappable (≥28px touch target), consistent.
-
-### 2. Fix the Directory card collision (the visible bug)
-
-In `src/pages/Directory.tsx` for both firm cards (line ~450) and startup cards (line ~640):
-
-- Replace inline share `<button>` with `<ShareIconButton size="sm" />`.
-- Make the **Compare checkbox always visible** with a faint border (`border-border/40`) so it stops looking like a phantom box — currently `border-border/50` only appears on hover via the group state, which is what makes the share icon look orphaned.
-- Bump the title row's `pr-8` → `pr-16` so the rating "5" pill no longer slides under the action stack.
-- Tighten the action stack: `gap-1` → `gap-1.5`, move from `top-3 right-3` → `top-3 right-3` (unchanged) but ensure both children are `h-7 w-7` so they align.
-
-### 3. Replace ad-hoc share buttons with `ShareIconButton`
-
-Swap the inline implementation in:
-- `src/components/bar/ChallengeCard.tsx` (line 58–68) → `<ShareIconButton size="sm" />`
-- `src/components/vacancies/VacancyCard.tsx` (line 218–234) → `<ShareIconButton size="sm" />`
-- `src/pages/PlaybookGuide.tsx` (line ~135–142) → `<ShareIconButton />` (md, header context)
-- `src/pages/Opportunities.tsx` icon-only spots (line ~395–400) → `<ShareIconButton size="sm" />`. Leave the labelled "Share / Copied" `<Button>` at line 669 alone — it's a full text button, different affordance.
-- `src/components/FirmDrawer.tsx`, `src/components/StartupDrawer.tsx`, `src/pages/PublicProfile.tsx`, `src/components/bar/ResultScreen.tsx`, `src/pages/Tools.tsx`, `src/pages/Resources.tsx` — audit each; swap icon-only share buttons; leave labelled buttons alone.
+That's it — every toast site (IdentityRow, share buttons, profile saves, etc.) automatically gets the new position and duration. No per-call changes needed.
 
 ### Out of scope
 
-- Changing the `shareOrCopy` logic in `src/lib/share.ts` — works fine.
-- Redesigning the Compare interaction itself.
-- Touching the labelled `<Button>… Share` variants that include text.
+- Replacing the toast with an inline pill on IdentityRow — the toast pattern is correct, it's just positioned badly.
+- Changing the `toast.success(...)` copy in IdentityRow.
+- Touching the legacy `<Toaster />` from `@/components/ui/toaster` (shadcn radix toaster) — it's not the one rendering this message; sonner is.
 
-### Files touched
+### File touched
 
-- **New:** `src/components/ShareIconButton.tsx`
-- **Edited:** `src/pages/Directory.tsx`, `src/components/bar/ChallengeCard.tsx`, `src/components/vacancies/VacancyCard.tsx`, `src/pages/PlaybookGuide.tsx`, `src/pages/Opportunities.tsx`, `src/components/FirmDrawer.tsx`, `src/components/StartupDrawer.tsx`, `src/pages/PublicProfile.tsx`, `src/components/bar/ResultScreen.tsx`, `src/pages/Tools.tsx`, `src/pages/Resources.tsx` (only where icon-only Share2 lives).
+- `src/components/ui/sonner.tsx` — add `position` and `duration` props.
