@@ -198,6 +198,17 @@ export default function AdminBroadcasts() {
     </div>
   );
 
+  if (!adminReady) {
+    return (
+      <div className="min-h-[40vh] flex items-center justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-accent" />
+      </div>
+    );
+  }
+  if (!hasScope("broadcast_admin")) {
+    return <AccessDenied message="You need Broadcast admin access to send updates." />;
+  }
+
   return (
     <div className="p-6 md:p-8 max-w-6xl mx-auto">
       <header className="mb-8">

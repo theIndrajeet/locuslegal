@@ -86,6 +86,11 @@ export default function AdminFirmSuggestions() {
     toast({ title: "Copied to clipboard", description: "Paste in chat to ask AI to apply this to firms.json." });
   };
 
+  if (!adminReady) return null;
+  if (!hasScope("waitlist_admin")) {
+    return <AccessDenied message="You need Waitlist admin access to review firm suggestions." />;
+  }
+
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto">
       <header className="flex items-end justify-between gap-4 mb-6 flex-wrap">
