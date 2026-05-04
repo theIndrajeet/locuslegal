@@ -619,6 +619,7 @@ export type Database = {
       }
       cfps: {
         Row: {
+          brochure_url: string | null
           co_authorship_allowed: boolean
           contact_email: string | null
           created_at: string
@@ -643,6 +644,7 @@ export type Database = {
           word_limit_min: number | null
         }
         Insert: {
+          brochure_url?: string | null
           co_authorship_allowed?: boolean
           contact_email?: string | null
           created_at?: string
@@ -667,6 +669,7 @@ export type Database = {
           word_limit_min?: number | null
         }
         Update: {
+          brochure_url?: string | null
           co_authorship_allowed?: boolean
           contact_email?: string | null
           created_at?: string
@@ -695,6 +698,7 @@ export type Database = {
       competitions: {
         Row: {
           application_url: string | null
+          brochure_url: string | null
           category: Database["public"]["Enums"]["competition_category"]
           created_at: string
           created_by: string
@@ -717,6 +721,7 @@ export type Database = {
         }
         Insert: {
           application_url?: string | null
+          brochure_url?: string | null
           category?: Database["public"]["Enums"]["competition_category"]
           created_at?: string
           created_by: string
@@ -739,6 +744,7 @@ export type Database = {
         }
         Update: {
           application_url?: string | null
+          brochure_url?: string | null
           category?: Database["public"]["Enums"]["competition_category"]
           created_at?: string
           created_by?: string
@@ -997,6 +1003,7 @@ export type Database = {
       moots: {
         Row: {
           area_of_law: string | null
+          brochure_url: string | null
           competition_name: string
           created_at: string
           created_by: string
@@ -1021,6 +1028,7 @@ export type Database = {
         }
         Insert: {
           area_of_law?: string | null
+          brochure_url?: string | null
           competition_name: string
           created_at?: string
           created_by: string
@@ -1045,6 +1053,7 @@ export type Database = {
         }
         Update: {
           area_of_law?: string | null
+          brochure_url?: string | null
           competition_name?: string
           created_at?: string
           created_by?: string
