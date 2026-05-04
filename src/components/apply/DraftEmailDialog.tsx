@@ -766,6 +766,25 @@ export default function DraftEmailDialog({ open, onOpenChange, target, onSent }:
               {step === 0 && (
                 <div className="space-y-3">
                   <div>
+                    <p className="text-sm font-semibold mb-2">This is a…</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {RECIPIENT_TYPE_OPTIONS.map((o) => (
+                        <button
+                          key={o.value}
+                          type="button"
+                          onClick={() => setBrief((b) => ({ ...b, recipient_type: o.value }))}
+                          className={`px-2.5 py-1 rounded-md border text-[11px] font-medium transition-colors ${
+                            brief.recipient_type === o.value
+                              ? "border-accent bg-accent text-accent-foreground"
+                              : "border-border bg-background hover:bg-muted"
+                          }`}
+                        >
+                          {o.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
                     <p className="text-sm font-semibold mb-2">What draws you to {target?.name ?? "them"}?</p>
                     <div className="flex flex-wrap gap-1.5">
                       {FIT_OPTIONS.map((o) => (
