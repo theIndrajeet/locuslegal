@@ -71,16 +71,21 @@ export default function OpportunitiesPreview() {
     description: "Visual preview of the v2 opportunities board.",
   });
 
-  const [filter, setFilter] = useState<OpportunityStream | "all">("all");
+  const [activeGroup, setActiveGroup] = useState<GroupKey>("career");
+  const [filter, setFilter] = useState<OpportunityStream | null>(null);
   const [selected, setSelected] = useState<AnyOpportunity | null>(null);
+
+  const currentGroup = GROUPS.find((g) => g.key === activeGroup)!;
+  const activeStreams: OpportunityStream[] = filter
+    ? [filter]
+    : currentGroup.streams;
 
   const items = useMemo(() => {
     const sorted = [...SAMPLE_DATA].sort(
       (a, b) => new Date(b.posted_at).getTime() - new Date(a.posted_at).getTime(),
     );
-    if (filter === "all") return sorted;
-    return sorted.filter((i) => i.stream === filter);
-  }, [filter]);
+    return sorted.filter((i) => activeStreams.includes(i.stream));
+  }, [activeStreams]);
 
   const liveCount = SAMPLE_DATA.length;
 
