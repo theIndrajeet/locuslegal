@@ -14,6 +14,9 @@ type Segment = "all" | "beta" | "applicants";
 interface Broadcast {
   id: string;
   subject: string;
+  body_markdown: string | null;
+  cta_label: string | null;
+  cta_url: string | null;
   recipient_count: number;
   status: string;
   sent_at: string | null;
