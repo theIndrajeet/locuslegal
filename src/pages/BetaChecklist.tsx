@@ -116,7 +116,7 @@ export default function BetaChecklist() {
       .order("slot_number", { ascending: true });
     if (publicRows) {
       setRoster(
-        publicRows.map((r) => ({
+        (publicRows as any[]).map((r) => ({
           slot_number: r.slot_number,
           display_name: r.display_name,
           submitted: !!r.submitted_at,
