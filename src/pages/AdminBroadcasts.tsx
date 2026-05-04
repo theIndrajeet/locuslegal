@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { Megaphone, Send, Users, Briefcase, Sparkles, Beaker, Eye } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Megaphone, Send, Users, Briefcase, Sparkles, Beaker, Eye, Copy, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { Button } from "@/components/ui/button";
