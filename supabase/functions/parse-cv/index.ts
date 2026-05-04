@@ -295,7 +295,7 @@ serve(async (req) => {
   } catch (e) {
     console.error("parse-cv error:", e);
     console.log(JSON.stringify({ user_id: userId, ts: new Date().toISOString(), outcome: "error", duration_ms: Date.now() - start }));
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error", retryable: true }), {
+    return new Response(JSON.stringify({ error: "Internal server error. Please try again.", retryable: true }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
