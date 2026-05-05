@@ -2,29 +2,11 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Download, X, Share, Plus } from "lucide-react";
 import { track } from "@/lib/analytics";
-
-interface BeforeInstallPromptEvent extends Event {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
-}
+import { useInstallLocus } from "@/hooks/useInstallLocus";
 
 const DISMISS_KEY = "locus_install_dismissed_at";
 const DISMISS_COOLDOWN_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
 const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
-
-function isStandalone(): boolean {
-  if (typeof window === "undefined") return false;
-  return (
-    window.matchMedia?.("(display-mode: standalone)").matches ||
-    (window.navigator as unknown as { standalone?: boolean }).standalone === true
-  );
-}
-
-function isIOS(): boolean {
-  if (typeof window === "undefined") return false;
-  const ua = window.navigator.userAgent;
-  return /iPad|iPhone|iPod/.test(ua) && !(window as unknown as { MSStream?: unknown }).MSStream;
-}
 
 function recentlyDismissed(): boolean {
   try {
@@ -46,48 +28,36 @@ function recentlyDismissed(): boolean {
  *   or input focused (keyboard up). Sits above the mobile dock.
  */
 export default function InstallLocusButton() {
-  const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
-  const [iosMode, setIosMode] = useState(false);
+  const { isInstalled, canInstall, platform, triggerInstall, markDismissed } = useInstallLocus();
+  const iosMode = platform === "ios";
   const [visible, setVisible] = useState(false);
   const [iosCardOpen, setIosCardOpen] = useState(false);
   const [hasCompareBar, setHasCompareBar] = useState(false);
   const [inputFocused, setInputFocused] = useState(false);
   const [scrollHidden, setScrollHidden] = useState(false);
   const lastScrollY = useRef(0);
+  const shownRef = useRef(false);
 
-  // Capture install event / iOS delay
+  // Show pill when an install path is available
   useEffect(() => {
-    if (isStandalone() || recentlyDismissed()) return;
-
-    const onPrompt = (e: Event) => {
-      e.preventDefault();
-      setDeferred(e as BeforeInstallPromptEvent);
-      setVisible(true);
-      void track("install_prompt_shown", { platform: "android" });
-    };
-    const onInstalled = () => {
-      setVisible(false);
-      setDeferred(null);
-      void track("app_installed");
-    };
-    window.addEventListener("beforeinstallprompt", onPrompt);
-    window.addEventListener("appinstalled", onInstalled);
-
-    let iosTimer: number | undefined;
-    if (isIOS()) {
-      iosTimer = window.setTimeout(() => {
-        setIosMode(true);
+    if (isInstalled || recentlyDismissed()) return;
+    if (!canInstall) return;
+    if (iosMode) {
+      const t = window.setTimeout(() => {
         setVisible(true);
-        void track("install_prompt_shown", { platform: "ios" });
+        if (!shownRef.current) {
+          shownRef.current = true;
+          void track("install_prompt_shown", { platform: "ios" });
+        }
       }, 4000);
+      return () => window.clearTimeout(t);
     }
-
-    return () => {
-      window.removeEventListener("beforeinstallprompt", onPrompt);
-      window.removeEventListener("appinstalled", onInstalled);
-      if (iosTimer) window.clearTimeout(iosTimer);
-    };
-  }, []);
+    setVisible(true);
+    if (!shownRef.current) {
+      shownRef.current = true;
+      void track("install_prompt_shown", { platform: "android" });
+    }
+  }, [canInstall, isInstalled, iosMode]);
 
   // Hide alongside CompareBar (mirrors dock)
   useEffect(() => {
