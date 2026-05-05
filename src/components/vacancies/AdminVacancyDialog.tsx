@@ -58,8 +58,25 @@ export default function AdminVacancyDialog({ open, onOpenChange, initial, onSave
   const [extracting, setExtracting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<FormState>(blank());
+  const [recent, setRecent] = useState<Vacancy[]>([]);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const recentLoadedRef = useRef(false);
 
   const editMode = !!initial;
+
+  const dupes: DupeResult = useMemo(
+    () =>
+      findDuplicates(
+        {
+          firm_name: form.firm_name,
+          role: form.role,
+          application_email: form.application_email,
+        },
+        recent,
+        initial?.id,
+      ),
+    [form.firm_name, form.role, form.application_email, recent, initial?.id],
+  );
 
   useEffect(() => {
     if (!open) return;
