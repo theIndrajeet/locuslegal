@@ -103,43 +103,21 @@ export default function InstallLocusButton() {
   }, []);
 
   const handleInstall = useCallback(async () => {
-    void track("install_prompt_clicked", { platform: deferred ? "android" : "ios" });
-    if (deferred) {
-      try {
-        await deferred.prompt();
-        const choice = await deferred.userChoice;
-        void track(
-          choice.outcome === "accepted" ? "install_outcome_accepted" : "install_outcome_dismissed",
-          { platform: "android" }
-        );
-        if (choice.outcome === "dismissed") {
-          try {
-            localStorage.setItem(DISMISS_KEY, String(Date.now()));
-          } catch {
-            /* noop */
-          }
-        }
-      } catch {
-        /* noop */
-      }
-      setDeferred(null);
-      setVisible(false);
+    const result = await triggerInstall();
+    if (result === "ios") {
+      setIosCardOpen((v) => !v);
       return;
     }
-    if (iosMode) setIosCardOpen((v) => !v);
-  }, [deferred, iosMode]);
+    setVisible(false);
+  }, [triggerInstall]);
 
   const handleDismiss = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     void track("install_prompt_dismissed", { platform: iosMode ? "ios" : "android" });
-    try {
-      localStorage.setItem(DISMISS_KEY, String(Date.now()));
-    } catch {
-      /* noop */
-    }
+    markDismissed();
     setVisible(false);
     setIosCardOpen(false);
-  }, [iosMode]);
+  }, [iosMode, markDismissed]);
 
   const shouldShow = visible && !hasCompareBar && !inputFocused && !scrollHidden;
 
