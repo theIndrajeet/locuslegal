@@ -152,6 +152,15 @@ export default function ProfileMenu() {
               <Sparkles size={16} /> Replay product tour
             </button>
 
+            {!isInstalled && (
+              <button
+                onClick={handleDownloadLocus}
+                className="flex items-center gap-2 w-full px-3 py-2 text-sm text-foreground rounded-md hover:bg-muted transition-colors"
+              >
+                <Download size={16} /> Download Locus
+              </button>
+            )}
+
             <Divider />
 
             {hasAnyScope && (
@@ -191,6 +200,43 @@ export default function ProfileMenu() {
           </Button>
         )}
       </PopoverContent>
+
+      <Dialog open={iosCardOpen} onOpenChange={setIosCardOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="font-sora">
+              Install Loc<span className="text-accent">us</span> on iPhone
+            </DialogTitle>
+          </DialogHeader>
+          <ol className="space-y-2.5 text-sm text-muted-foreground font-inter leading-relaxed">
+            <li className="flex items-start gap-2">
+              <span className="font-bold text-foreground shrink-0">1.</span>
+              <span className="flex items-center flex-wrap gap-1.5">
+                <span>Tap the Share button</span>
+                <Share size={15} strokeWidth={2.4} className="text-accent" />
+                <span>at the bottom of Safari.</span>
+              </span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="font-bold text-foreground shrink-0">2.</span>
+              <span>Scroll down and tap <span className="font-medium text-foreground">View More</span> if needed.</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="font-bold text-foreground shrink-0">3.</span>
+              <span className="flex items-center flex-wrap gap-1.5">
+                <span>Tap</span>
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 border border-foreground/40 rounded">
+                  <Plus size={12} strokeWidth={2.6} />
+                  <span className="font-medium">Add to Home Screen</span>
+                </span>
+              </span>
+            </li>
+          </ol>
+          <p className="text-xs text-muted-foreground/80 leading-snug pt-2 border-t border-border">
+            Give it a second — iPhone fetches the icon after you tap Add.
+          </p>
+        </DialogContent>
+      </Dialog>
     </Popover>
   );
 }
