@@ -1,5 +1,19 @@
 import { lazy, Suspense, useEffect } from "react";
 import { ThemeProvider } from "next-themes";
+import { supabase } from "@/integrations/supabase/client";
+
+// Run once before React mounts: if we landed on the legacy
+// `locuslegal.lovable.app` host (e.g. an old OAuth redirect), bounce to the
+// canonical `locus.legal` domain so the user's persisted session is visible.
+// Without this the auth token in localStorage on locus.legal is invisible to
+// the lovable.app subdomain and the user appears signed out.
+if (typeof window !== "undefined") {
+  const h = window.location.hostname;
+  if (h === "locuslegal.lovable.app") {
+    const target = "https://locus.legal" + window.location.pathname + window.location.search + window.location.hash;
+    window.location.replace(target);
+  }
+}
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner, toast } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -104,6 +118,26 @@ const IdlePrefetcher = () => {
   return null;
 };
 
+// Defensive: when the tab becomes visible after a long gap, proactively
+// refresh the auth session so a returning user never sees a flicker of
+// signed-out UI before autoRefresh catches up.
+const SessionKeepAlive = () => {
+  useEffect(() => {
+    let lastRefresh = Date.now();
+    const onVis = () => {
+      if (document.visibilityState !== "visible") return;
+      const now = Date.now();
+      // Only refresh if it's been >12h since the last refresh attempt.
+      if (now - lastRefresh < 12 * 60 * 60 * 1000) return;
+      lastRefresh = now;
+      void supabase.auth.refreshSession().catch(() => {});
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, []);
+  return null;
+};
+
 // Re-fires Meta Pixel PageView on every client-side route change. The base
 // snippet in index.html only tracks the initial hard load; SPA navigations
 // need a manual fbq() call so retargeting + conversion attribution works.
@@ -124,6 +158,7 @@ const App = () => (
         <Sonner />
         <VersionWatcher />
         <IdlePrefetcher />
+        <SessionKeepAlive />
         <BrowserRouter>
           <MetaPixelTracker />
           <CommandPaletteProvider>

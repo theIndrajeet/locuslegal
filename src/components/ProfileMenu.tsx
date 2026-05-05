@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { UserCircle, LogOut, KeyRound, PenLine, User, ExternalLink, Shield, Briefcase, Sparkles } from "lucide-react";
+import { UserCircle, LogOut, KeyRound, PenLine, User, ExternalLink, Shield, Briefcase, Sparkles, Download, Share, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useAdminAccess } from "@/hooks/useAdminRole";
 import { useReplayTour } from "@/hooks/useReplayTour";
+import { useInstallLocus } from "@/hooks/useInstallLocus";
 import type { Session } from "@supabase/supabase-js";
 
 export default function ProfileMenu() {
@@ -14,9 +16,11 @@ export default function ProfileMenu() {
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [username, setUsername] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+  const [iosCardOpen, setIosCardOpen] = useState(false);
   const navigate = useNavigate();
   const { hasAnyScope, hasScope } = useAdminAccess();
   const replayTour = useReplayTour();
+  const { isInstalled, triggerInstall } = useInstallLocus();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -62,6 +66,18 @@ export default function ProfileMenu() {
     if (error) toast.error(error.message);
     else toast.success("Password reset email sent!");
     setOpen(false);
+  };
+
+  const handleDownloadLocus = async () => {
+    setOpen(false);
+    const result = await triggerInstall();
+    if (result === "ios") {
+      setIosCardOpen(true);
+    } else if (result === "unsupported") {
+      toast.message("Open Locus on your phone", {
+        description: "Visit locus.legal on your iPhone or Android to install the app.",
+      });
+    }
   };
 
   const Divider = () => <div className="h-px bg-border my-1" />;
@@ -136,6 +152,15 @@ export default function ProfileMenu() {
               <Sparkles size={16} /> Replay product tour
             </button>
 
+            {!isInstalled && (
+              <button
+                onClick={handleDownloadLocus}
+                className="flex items-center gap-2 w-full px-3 py-2 text-sm text-foreground rounded-md hover:bg-muted transition-colors"
+              >
+                <Download size={16} /> Download Locus
+              </button>
+            )}
+
             <Divider />
 
             {hasAnyScope && (
@@ -175,6 +200,43 @@ export default function ProfileMenu() {
           </Button>
         )}
       </PopoverContent>
+
+      <Dialog open={iosCardOpen} onOpenChange={setIosCardOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="font-sora">
+              Install Loc<span className="text-accent">us</span> on iPhone
+            </DialogTitle>
+          </DialogHeader>
+          <ol className="space-y-2.5 text-sm text-muted-foreground font-inter leading-relaxed">
+            <li className="flex items-start gap-2">
+              <span className="font-bold text-foreground shrink-0">1.</span>
+              <span className="flex items-center flex-wrap gap-1.5">
+                <span>Tap the Share button</span>
+                <Share size={15} strokeWidth={2.4} className="text-accent" />
+                <span>at the bottom of Safari.</span>
+              </span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="font-bold text-foreground shrink-0">2.</span>
+              <span>Scroll down and tap <span className="font-medium text-foreground">View More</span> if needed.</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="font-bold text-foreground shrink-0">3.</span>
+              <span className="flex items-center flex-wrap gap-1.5">
+                <span>Tap</span>
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 border border-foreground/40 rounded">
+                  <Plus size={12} strokeWidth={2.6} />
+                  <span className="font-medium">Add to Home Screen</span>
+                </span>
+              </span>
+            </li>
+          </ol>
+          <p className="text-xs text-muted-foreground/80 leading-snug pt-2 border-t border-border">
+            Give it a second — iPhone fetches the icon after you tap Add.
+          </p>
+        </DialogContent>
+      </Dialog>
     </Popover>
   );
 }
