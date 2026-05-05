@@ -436,7 +436,7 @@ export default function AdminVacancyDialog({ open, onOpenChange, initial, onSave
               <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={saving}>
                 Cancel
               </Button>
-              <Button onClick={submit} disabled={saving || !emailValid}>
+              <Button onClick={() => submit()} disabled={saving || !emailValid}>
                 {saving ? <Loader2 size={14} className="mr-2 animate-spin" /> : null}
                 {editMode ? "Save changes" : "Post vacancy"}
               </Button>
@@ -444,6 +444,49 @@ export default function AdminVacancyDialog({ open, onOpenChange, initial, onSave
           </>
         )}
       </DialogContent>
+
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle size={18} className="text-accent" />
+              This looks like a duplicate
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2">
+                {dupes.hardMatches[0] && (
+                  <p>
+                    A vacancy from <strong>{dupes.hardMatches[0].firm_name}</strong> with the same
+                    email and role was posted{" "}
+                    <strong>
+                      {daysAgo(dupes.hardMatches[0].posted_at) === 0
+                        ? "today"
+                        : `${daysAgo(dupes.hardMatches[0].posted_at)} day(s) ago`}
+                    </strong>
+                    .
+                  </p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Posting again will create a duplicate on the board. Only continue if this is a
+                  fresh re-opening.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setConfirmOpen(false);
+                void submit(true);
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Post anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
