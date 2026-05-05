@@ -105,6 +105,26 @@ export default function AdminVacancyDialog({ open, onOpenChange, initial, onSave
     }
   }, [open, initial]);
 
+  // Load recent vacancies (live + last 30d archived) once per dialog-open for dedupe checks.
+  useEffect(() => {
+    if (!open) {
+      recentLoadedRef.current = false;
+      return;
+    }
+    if (recentLoadedRef.current) return;
+    recentLoadedRef.current = true;
+    const cutoff = new Date(Date.now() - 30 * 86400000).toISOString();
+    void (async () => {
+      const { data, error } = await supabase
+        .from("vacancies")
+        .select("*")
+        .or(`status.eq.live,and(status.eq.archived,expires_at.gt.${cutoff})`)
+        .order("created_at", { ascending: false })
+        .limit(500);
+      if (!error && data) setRecent(data as Vacancy[]);
+    })();
+  }, [open]);
+
   const extract = async () => {
     if (!pasted.trim()) {
       toast.error("Paste the vacancy text first.");
