@@ -155,7 +155,27 @@ export default function AdminVacancyDialog({ open, onOpenChange, initial, onSave
       setStep("form");
       const typeLabel = detectedType === "job" ? "Job" : "Internship";
       const taskNote = d.task_brief && d.task_brief.trim() ? " A written task was detected." : "";
-      if (!d.application_email || !EMAIL_RE.test(d.application_email)) {
+      // Run dedupe check against the just-extracted values (state may not have flushed yet).
+      const dupeCheck = findDuplicates(
+        {
+          firm_name: d.firm_name ?? "",
+          role: d.role ?? "",
+          application_email: d.application_email ?? "",
+        },
+        recent,
+        initial?.id,
+      );
+      if (dupeCheck.hardMatches.length > 0) {
+        const m = dupeCheck.hardMatches[0];
+        toast.warning(
+          `Looks like a duplicate of ${m.firm_name} — ${m.role} (posted ${daysAgo(m.posted_at)}d ago). Review before saving.`,
+        );
+      } else if (dupeCheck.softMatches.length > 0) {
+        const m = dupeCheck.softMatches[0];
+        toast.warning(
+          `Similar vacancy already on the board: ${m.firm_name} — ${m.role}. Confirm this isn't a re-paste.`,
+        );
+      } else if (!d.application_email || !EMAIL_RE.test(d.application_email)) {
         toast.warning(`Detected as ${typeLabel}.${taskNote} No valid email found — add one manually or reject.`);
       } else {
         toast.success(`Detected as ${typeLabel}.${taskNote} Review and save.`);
