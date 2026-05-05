@@ -187,7 +187,7 @@ export default function AdminVacancyDialog({ open, onOpenChange, initial, onSave
     }
   };
 
-  const submit = async () => {
+  const submit = async (force = false) => {
     const email = form.application_email.trim().toLowerCase();
     if (!form.firm_name.trim() || !form.role.trim()) {
       toast.error("Firm name and role are required.");
@@ -195,6 +195,11 @@ export default function AdminVacancyDialog({ open, onOpenChange, initial, onSave
     }
     if (!email || !EMAIL_RE.test(email)) {
       toast.error("This vacancy needs a valid application email — direct-link postings are not accepted.");
+      return;
+    }
+    // Hard-duplicate guard (skipped in edit mode and on explicit override).
+    if (!force && !editMode && dupes.hardMatches.length > 0) {
+      setConfirmOpen(true);
       return;
     }
     const days = Math.max(1, Math.min(14, form.expires_in_days || 5));
