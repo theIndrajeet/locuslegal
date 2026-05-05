@@ -1,5 +1,19 @@
 import { lazy, Suspense, useEffect } from "react";
 import { ThemeProvider } from "next-themes";
+import { supabase } from "@/integrations/supabase/client";
+
+// Run once before React mounts: if we landed on the legacy
+// `locuslegal.lovable.app` host (e.g. an old OAuth redirect), bounce to the
+// canonical `locus.legal` domain so the user's persisted session is visible.
+// Without this the auth token in localStorage on locus.legal is invisible to
+// the lovable.app subdomain and the user appears signed out.
+if (typeof window !== "undefined") {
+  const h = window.location.hostname;
+  if (h === "locuslegal.lovable.app") {
+    const target = "https://locus.legal" + window.location.pathname + window.location.search + window.location.hash;
+    window.location.replace(target);
+  }
+}
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner, toast } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
