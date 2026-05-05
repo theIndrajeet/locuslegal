@@ -303,6 +303,7 @@ export default function AdminVacancyDialog({ open, onOpenChange, initial, onSave
           </>
         ) : (
           <>
+            {hasAnyDupe(dupes) && <DuplicateBanner result={dupes} />}
             <div className="space-y-3">
               <div>
                 <Label>Type *</Label>
