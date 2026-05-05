@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { UserCircle, LogOut, KeyRound, PenLine, User, ExternalLink, Shield, Briefcase, Sparkles } from "lucide-react";
+import { UserCircle, LogOut, KeyRound, PenLine, User, ExternalLink, Shield, Briefcase, Sparkles, Download, Share, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useAdminAccess } from "@/hooks/useAdminRole";
 import { useReplayTour } from "@/hooks/useReplayTour";
+import { useInstallLocus } from "@/hooks/useInstallLocus";
 import type { Session } from "@supabase/supabase-js";
 
 export default function ProfileMenu() {
@@ -14,9 +16,11 @@ export default function ProfileMenu() {
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [username, setUsername] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+  const [iosCardOpen, setIosCardOpen] = useState(false);
   const navigate = useNavigate();
   const { hasAnyScope, hasScope } = useAdminAccess();
   const replayTour = useReplayTour();
+  const { isInstalled, triggerInstall } = useInstallLocus();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
