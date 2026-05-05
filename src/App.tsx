@@ -118,6 +118,26 @@ const IdlePrefetcher = () => {
   return null;
 };
 
+// Defensive: when the tab becomes visible after a long gap, proactively
+// refresh the auth session so a returning user never sees a flicker of
+// signed-out UI before autoRefresh catches up.
+const SessionKeepAlive = () => {
+  useEffect(() => {
+    let lastRefresh = Date.now();
+    const onVis = () => {
+      if (document.visibilityState !== "visible") return;
+      const now = Date.now();
+      // Only refresh if it's been >12h since the last refresh attempt.
+      if (now - lastRefresh < 12 * 60 * 60 * 1000) return;
+      lastRefresh = now;
+      void supabase.auth.refreshSession().catch(() => {});
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, []);
+  return null;
+};
+
 // Re-fires Meta Pixel PageView on every client-side route change. The base
 // snippet in index.html only tracks the initial hard load; SPA navigations
 // need a manual fbq() call so retargeting + conversion attribution works.
@@ -138,6 +158,7 @@ const App = () => (
         <Sonner />
         <VersionWatcher />
         <IdlePrefetcher />
+        <SessionKeepAlive />
         <BrowserRouter>
           <MetaPixelTracker />
           <CommandPaletteProvider>
