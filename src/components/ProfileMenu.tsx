@@ -68,6 +68,18 @@ export default function ProfileMenu() {
     setOpen(false);
   };
 
+  const handleDownloadLocus = async () => {
+    setOpen(false);
+    const result = await triggerInstall();
+    if (result === "ios") {
+      setIosCardOpen(true);
+    } else if (result === "unsupported") {
+      toast.message("Open Locus on your phone", {
+        description: "Visit locus.legal on your iPhone or Android to install the app.",
+      });
+    }
+  };
+
   const Divider = () => <div className="h-px bg-border my-1" />;
 
   return (
