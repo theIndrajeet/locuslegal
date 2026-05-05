@@ -27,10 +27,4 @@ export const APP_TOUR_STEPS: TourStep[] = [
     body: "Vacancies, calls for papers, moots, competitions — every opening worth your time, in one feed.",
     placement: "auto",
   },
-  {
-    target: '[data-tour="search"], [data-tour="search-mobile"]',
-    title: "Search anything, fast",
-    body: "Tap search to jump to firms, guides, tools, opportunities — instantly. (Cmd+K on desktop.)",
-    placement: "auto",
-  },
 ];
