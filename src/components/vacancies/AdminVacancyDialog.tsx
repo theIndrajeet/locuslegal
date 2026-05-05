@@ -1,14 +1,26 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Loader2, Sparkles, AlertTriangle, GraduationCap, Briefcase, ClipboardList } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { type Vacancy, type VacancyOpportunityType } from "@/lib/vacancies";
+import { findDuplicates, hasAnyDupe, daysAgo, type DupeResult } from "@/lib/vacancy-dedupe";
+import DuplicateBanner from "@/components/vacancies/DuplicateBanner";
 
 interface Props {
   open: boolean;
@@ -46,8 +58,25 @@ export default function AdminVacancyDialog({ open, onOpenChange, initial, onSave
   const [extracting, setExtracting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<FormState>(blank());
+  const [recent, setRecent] = useState<Vacancy[]>([]);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const recentLoadedRef = useRef(false);
 
   const editMode = !!initial;
+
+  const dupes: DupeResult = useMemo(
+    () =>
+      findDuplicates(
+        {
+          firm_name: form.firm_name,
+          role: form.role,
+          application_email: form.application_email,
+        },
+        recent,
+        initial?.id,
+      ),
+    [form.firm_name, form.role, form.application_email, recent, initial?.id],
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -75,6 +104,26 @@ export default function AdminVacancyDialog({ open, onOpenChange, initial, onSave
       setPasted("");
     }
   }, [open, initial]);
+
+  // Load recent vacancies (live + last 30d archived) once per dialog-open for dedupe checks.
+  useEffect(() => {
+    if (!open) {
+      recentLoadedRef.current = false;
+      return;
+    }
+    if (recentLoadedRef.current) return;
+    recentLoadedRef.current = true;
+    const cutoff = new Date(Date.now() - 30 * 86400000).toISOString();
+    void (async () => {
+      const { data, error } = await supabase
+        .from("vacancies")
+        .select("*")
+        .or(`status.eq.live,and(status.eq.archived,expires_at.gt.${cutoff})`)
+        .order("created_at", { ascending: false })
+        .limit(500);
+      if (!error && data) setRecent(data as Vacancy[]);
+    })();
+  }, [open]);
 
   const extract = async () => {
     if (!pasted.trim()) {
@@ -106,7 +155,27 @@ export default function AdminVacancyDialog({ open, onOpenChange, initial, onSave
       setStep("form");
       const typeLabel = detectedType === "job" ? "Job" : "Internship";
       const taskNote = d.task_brief && d.task_brief.trim() ? " A written task was detected." : "";
-      if (!d.application_email || !EMAIL_RE.test(d.application_email)) {
+      // Run dedupe check against the just-extracted values (state may not have flushed yet).
+      const dupeCheck = findDuplicates(
+        {
+          firm_name: d.firm_name ?? "",
+          role: d.role ?? "",
+          application_email: d.application_email ?? "",
+        },
+        recent,
+        initial?.id,
+      );
+      if (dupeCheck.hardMatches.length > 0) {
+        const m = dupeCheck.hardMatches[0];
+        toast.warning(
+          `Looks like a duplicate of ${m.firm_name} — ${m.role} (posted ${daysAgo(m.posted_at)}d ago). Review before saving.`,
+        );
+      } else if (dupeCheck.softMatches.length > 0) {
+        const m = dupeCheck.softMatches[0];
+        toast.warning(
+          `Similar vacancy already on the board: ${m.firm_name} — ${m.role}. Confirm this isn't a re-paste.`,
+        );
+      } else if (!d.application_email || !EMAIL_RE.test(d.application_email)) {
         toast.warning(`Detected as ${typeLabel}.${taskNote} No valid email found — add one manually or reject.`);
       } else {
         toast.success(`Detected as ${typeLabel}.${taskNote} Review and save.`);
@@ -118,7 +187,7 @@ export default function AdminVacancyDialog({ open, onOpenChange, initial, onSave
     }
   };
 
-  const submit = async () => {
+  const submit = async (force = false) => {
     const email = form.application_email.trim().toLowerCase();
     if (!form.firm_name.trim() || !form.role.trim()) {
       toast.error("Firm name and role are required.");
@@ -126,6 +195,11 @@ export default function AdminVacancyDialog({ open, onOpenChange, initial, onSave
     }
     if (!email || !EMAIL_RE.test(email)) {
       toast.error("This vacancy needs a valid application email — direct-link postings are not accepted.");
+      return;
+    }
+    // Hard-duplicate guard (skipped in edit mode and on explicit override).
+    if (!force && !editMode && dupes.hardMatches.length > 0) {
+      setConfirmOpen(true);
       return;
     }
     const days = Math.max(1, Math.min(14, form.expires_in_days || 5));
@@ -229,6 +303,7 @@ export default function AdminVacancyDialog({ open, onOpenChange, initial, onSave
           </>
         ) : (
           <>
+            {hasAnyDupe(dupes) && <DuplicateBanner result={dupes} />}
             <div className="space-y-3">
               <div>
                 <Label>Type *</Label>
@@ -361,7 +436,7 @@ export default function AdminVacancyDialog({ open, onOpenChange, initial, onSave
               <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={saving}>
                 Cancel
               </Button>
-              <Button onClick={submit} disabled={saving || !emailValid}>
+              <Button onClick={() => submit()} disabled={saving || !emailValid}>
                 {saving ? <Loader2 size={14} className="mr-2 animate-spin" /> : null}
                 {editMode ? "Save changes" : "Post vacancy"}
               </Button>
@@ -369,6 +444,49 @@ export default function AdminVacancyDialog({ open, onOpenChange, initial, onSave
           </>
         )}
       </DialogContent>
+
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle size={18} className="text-accent" />
+              This looks like a duplicate
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2">
+                {dupes.hardMatches[0] && (
+                  <p>
+                    A vacancy from <strong>{dupes.hardMatches[0].firm_name}</strong> with the same
+                    email and role was posted{" "}
+                    <strong>
+                      {daysAgo(dupes.hardMatches[0].posted_at) === 0
+                        ? "today"
+                        : `${daysAgo(dupes.hardMatches[0].posted_at)} day(s) ago`}
+                    </strong>
+                    .
+                  </p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Posting again will create a duplicate on the board. Only continue if this is a
+                  fresh re-opening.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setConfirmOpen(false);
+                void submit(true);
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Post anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }

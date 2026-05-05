@@ -1,48 +1,71 @@
-## Two changes
+# Smart duplicate detection for the vacancy drafter
 
-### 1) Add "Download Locus" to the profile side menu
+Right now an admin can post the same vacancy twice without any guardrail. Goal: detect likely duplicates and surface them clearly — both **as soon as the AI fills the form** and **right before saving** — with an explicit "Post anyway" override for the rare legitimate case.
 
-In `src/components/ProfileMenu.tsx`, add a new menu item between "Replay product tour" and the Admin/Sign-Out section:
+## What counts as a duplicate
 
-- Label: **Download Locus** (with `Download` icon from lucide-react)
-- Hidden when the app is already running installed (display-mode: standalone) — no point showing it then
-- Behavior:
-  - **Android/Chromium**: if a `beforeinstallprompt` event has been captured, fire the native install prompt
-  - **iOS Safari**: open a small instructions dialog (Tap Share → Add to Home Screen) — same copy that the floating pill uses
-  - **Desktop / unsupported**: show a toast "Open Locus on your phone to install the app"
+A new vacancy is flagged if **any** existing live or recently-archived vacancy (last 30 days) matches on:
 
-To make this work without duplicating logic, extract the install logic from `InstallLocusButton.tsx` into a small shared hook `src/hooks/useInstallLocus.ts` that exposes:
-- `canInstall: boolean` (Android prompt captured OR iOS Safari)
-- `isInstalled: boolean`
-- `platform: "android" | "ios" | "other"`
-- `triggerInstall()` — fires native prompt or opens the iOS instructions modal
+1. **Hard match** (almost certainly the same): same `application_email` (case-insensitive) **and** same normalized `firm_name`. → Treat as a strong duplicate.
+2. **Soft match** (likely the same posting): same normalized `firm_name` **and** similar `role` (token-overlap ≥ 70% after lowercasing, stripping punctuation, removing filler words like "intern", "associate", "trainee", "law", "the").
+3. **Email reuse** (worth a heads-up): same `application_email` for a **different** firm in the last 30 days. Shown as a soft note, not a block.
 
-`InstallLocusButton` is refactored to use the hook (no UX change to the floating pill). `ProfileMenu` uses the hook + a tiny iOS instructions `Dialog` reused from the existing pill copy.
+Normalization for firm name: lowercase, strip `&`, `,`, `.`, `llp`, `llc`, `partners`, `co`, `advocates`, collapse whitespace.
 
-### 2) "Keep me logged in until I sign out" — root cause + fix
+## UX
 
-**Diagnosis (not a bug in our auth config):** The Supabase client at `src/integrations/supabase/client.ts` already uses `localStorage`, `persistSession: true`, and `autoRefreshToken: true`. Sessions are kept indefinitely as long as the refresh token is used at least once every 30 days.
+**On paste-extract success** (`AdminVacancyDialog`, after the AI fills fields):
+- Run the duplicate check immediately.
+- If a hard or soft match is found, replace the green success toast with an amber warning toast: *"Looks like a duplicate of {firm} — {role}, posted {N}d ago. Review before saving."*
+- Show a persistent inline banner at the top of the form (yellow neobrutalist card, `AlertTriangle` icon) listing up to 3 matched vacancies with: firm, role, posted date, status (live/archived), and an "Open" link (new tab to `/admin/vacancies`).
 
-Looking at the auth logs, yesterday's Google login was on `locuslegal.lovable.app` and today's "re-login" was also via Google on `locuslegal.lovable.app` — but the page that triggered it had referer `locus.legal/`. **Different origins do not share localStorage**, so a session on `locus.legal` is invisible to `locuslegal.lovable.app` and vice-versa. That's why it felt like a forced re-login.
+**On save click**:
+- Re-run the check against the *current* form values (in case admin edited firm/email/role after extraction).
+- If a hard match exists → block save, show a confirm dialog: *"This looks identical to an existing vacancy ({firm} — {role}, {status}, posted {N}d ago). Posting again will create a duplicate on the board."* with two buttons: **Cancel** (default) and **Post anyway**.
+- If only a soft match → allow save but show the warning banner; no blocking dialog.
+- Email-reuse-different-firm → never blocks, just shown as an info chip in the banner.
 
-**Fix — make `locus.legal` the single canonical origin so the session sticks:**
+**Edit mode**: exclude the row currently being edited (`initial.id`) from the duplicate set so editing a vacancy never flags itself.
 
-1. **Redirect `locuslegal.lovable.app` → `locus.legal`** at runtime, in `src/App.tsx` (top-level effect):
-   - If `window.location.hostname === "locuslegal.lovable.app"`, replace to `https://locus.legal` + same path/search/hash.
-   - Skip the redirect on the Lovable preview host (`id-preview--…lovable.app`) and on `localhost` so editing/preview keeps working.
-2. **Pin OAuth redirect to current origin** for Google sign-in calls in `src/pages/Auth.tsx` (and any other place we call `signInWithOAuth`) by passing `redirectTo: window.location.origin + "/"`. Combined with #1 this guarantees the post-OAuth landing is always on `locus.legal`, where the session is stored.
-3. **Defensive: token auto-refresh on tab focus.** Add a small effect (in `src/components/Layout.tsx` or `App.tsx`) that calls `supabase.auth.refreshSession()` once when the tab becomes visible after >12h, so a user opening Locus after a long gap silently refreshes instead of appearing signed-out for a flicker.
+## Technical plan
 
-No database / RLS / edge function changes. No changes to the existing `client.ts` (it's already correctly configured and is auto-generated).
+**1. New helper `src/lib/vacancy-dedupe.ts`**
+- `normalizeFirmName(s: string): string`
+- `roleSimilarity(a: string, b: string): number` — Jaccard on filtered tokens
+- `findDuplicates(candidate, existing[], excludeId?)` → returns `{ hardMatches: Vacancy[], softMatches: Vacancy[], emailReuse: Vacancy[] }`
+- Pure functions, easy to unit-test.
 
-### Files touched
-- `src/hooks/useInstallLocus.ts` *(new)*
-- `src/components/InstallLocusButton.tsx` *(refactor to use hook, no UX change)*
-- `src/components/ProfileMenu.tsx` *(new "Download Locus" item + iOS instructions dialog)*
-- `src/App.tsx` *(canonical-host redirect + visibility-based session refresh)*
-- `src/pages/Auth.tsx` *(explicit `redirectTo` on Google OAuth)*
+**2. Fetch helper in the dialog**
+- Add `loadRecentVacancies()` inside `AdminVacancyDialog.tsx` that queries:
+  ```
+  supabase.from("vacancies").select("id,firm_name,role,application_email,status,posted_at,expires_at")
+    .or("status.eq.live,and(status.eq.archived,expires_at.gt.<30d-ago>)")
+    .limit(500)
+  ```
+- Cache the result in a `useRef` for the lifetime of the dialog open (refresh on each open).
 
-### Out of scope
-- Centered toast position (already done previously)
-- Any changes to firm cards / directory
-- Any DB migrations or edge functions
+**3. `AdminVacancyDialog.tsx` changes**
+- New state: `dupes: { hardMatches, softMatches, emailReuse }` and `confirmOpen: boolean`.
+- After `extract()` succeeds → run dedupe → setDupes → toast accordingly.
+- Live re-check via `useMemo` whenever `firm_name`, `role`, or `application_email` change in the form (debounced is fine but not required at admin scale).
+- Render `<DuplicateBanner />` above the form fields when `dupes` has anything.
+- In `submit()`: if `hardMatches.length > 0` and not yet confirmed → open `AlertDialog` instead of inserting. The "Post anyway" button calls the existing insert path with a `forceOverride` flag set.
+- Edit mode passes `initial.id` to `findDuplicates` to exclude self.
+
+**4. New component `src/components/vacancies/DuplicateBanner.tsx`**
+- Yellow neobrutalist card (`border-2 border-foreground bg-accent/10 shadow-[3px_3px_0_0_hsl(var(--foreground))]`), `AlertTriangle` icon, headline + 1–3 match rows with firm, role, "{N}d ago", status pill, and external-link icon to `/admin/vacancies`. No emojis (per project rules).
+
+**5. Confirm dialog**
+- Use `AlertDialog` from `@/components/ui/alert-dialog` with `Cancel` (default) and a destructive-styled `Post anyway` action.
+
+## Out of scope
+
+- No DB migrations or unique constraints (a hard DB constraint would block legitimate re-posts and rotating-email firms; soft-warning UX is the right level).
+- No changes to the public `/vacancies` board, the `extract-vacancy` edge function, or the Opportunities admin (CFPs/moots/competitions).
+- No dedupe for the Opportunities board — can be a follow-up if useful.
+
+## Files touched
+
+- `src/lib/vacancy-dedupe.ts` (new)
+- `src/components/vacancies/DuplicateBanner.tsx` (new)
+- `src/components/vacancies/AdminVacancyDialog.tsx` (fetch + check + banner + confirm-on-save)
