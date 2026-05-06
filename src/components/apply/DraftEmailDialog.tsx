@@ -1280,23 +1280,43 @@ export default function DraftEmailDialog({ open, onOpenChange, target, onSent }:
               <div className="rounded-md border border-border bg-muted/30 px-3 py-2 flex items-start gap-2">
                 <FileText size={14} className="shrink-0 mt-0.5 text-muted-foreground" />
                 <p className="text-xs text-muted-foreground">
-                  Gmail will open with the email pre-filled. Attach your CV before sending — browsers
-                  can't auto-attach files.
+                  {target?.mode === "portal"
+                    ? "This becomes your cover letter for the portal. Copy it, then continue to the company's application page."
+                    : "Gmail will open with the email pre-filled. Attach your CV before sending — browsers can't auto-attach files."}
                 </p>
               </div>
 
               <div className="flex flex-wrap gap-2 justify-end pt-1">
-                <Button variant="outline" onClick={copyAll}>
-                  <Copy className="h-4 w-4 mr-2" />
-                  Copy
-                </Button>
-                <Button
-                  onClick={openInGmail}
-                  className="bg-accent text-accent-foreground hover:bg-accent/90"
-                >
-                  <Mail className="h-4 w-4 mr-2" />
-                  Open in Gmail
-                </Button>
+                {target?.mode === "portal" ? (
+                  <>
+                    <Button variant="outline" onClick={copyCoverLetter}>
+                      <Copy className="h-4 w-4 mr-2" />
+                      Copy cover letter
+                    </Button>
+                    <Button
+                      onClick={continueToPortal}
+                      disabled={!target?.portalUrl}
+                      className="bg-accent text-accent-foreground hover:bg-accent/90"
+                    >
+                      Continue to portal
+                      <ChevronRight className="h-4 w-4 ml-1" />
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button variant="outline" onClick={copyAll}>
+                      <Copy className="h-4 w-4 mr-2" />
+                      Copy
+                    </Button>
+                    <Button
+                      onClick={openInGmail}
+                      className="bg-accent text-accent-foreground hover:bg-accent/90"
+                    >
+                      <Mail className="h-4 w-4 mr-2" />
+                      Open in Gmail
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           )}
