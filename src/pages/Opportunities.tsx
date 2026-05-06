@@ -441,6 +441,7 @@ export default function Opportunities() {
           </section>
         )}
 
+        {loading ? (
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
             {Array.from({ length: 6 }).map((_, i) => (
