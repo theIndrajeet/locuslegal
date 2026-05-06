@@ -1591,6 +1591,66 @@ export type Database = {
         }
         Relationships: []
       }
+      vacancy_review_queue: {
+        Row: {
+          ai_extracted: Json
+          created_at: string
+          dedupe_hash: string
+          discovered_at: string
+          duplicate_of: string | null
+          id: string
+          notes: string | null
+          promoted_vacancy_id: string | null
+          raw_text: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source: Database["public"]["Enums"]["vacancy_queue_source"]
+          source_firm: string | null
+          source_title: string | null
+          source_url: string
+          status: Database["public"]["Enums"]["vacancy_queue_status"]
+          updated_at: string
+        }
+        Insert: {
+          ai_extracted?: Json
+          created_at?: string
+          dedupe_hash: string
+          discovered_at?: string
+          duplicate_of?: string | null
+          id?: string
+          notes?: string | null
+          promoted_vacancy_id?: string | null
+          raw_text?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source: Database["public"]["Enums"]["vacancy_queue_source"]
+          source_firm?: string | null
+          source_title?: string | null
+          source_url: string
+          status?: Database["public"]["Enums"]["vacancy_queue_status"]
+          updated_at?: string
+        }
+        Update: {
+          ai_extracted?: Json
+          created_at?: string
+          dedupe_hash?: string
+          discovered_at?: string
+          duplicate_of?: string | null
+          id?: string
+          notes?: string | null
+          promoted_vacancy_id?: string | null
+          raw_text?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source?: Database["public"]["Enums"]["vacancy_queue_source"]
+          source_firm?: string | null
+          source_title?: string | null
+          source_url?: string
+          status?: Database["public"]["Enums"]["vacancy_queue_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       visit_counter: {
         Row: {
           count: number
@@ -2078,6 +2138,8 @@ export type Database = {
       opp_status: "live" | "archived"
       vacancy_application_mode: "email" | "external_url"
       vacancy_opportunity_type: "internship" | "job"
+      vacancy_queue_source: "lawctopus" | "linkedin" | "firm_careers" | "manual"
+      vacancy_queue_status: "pending" | "approved" | "rejected" | "duplicate"
       vacancy_status: "live" | "archived" | "deleted"
       vacancy_tier:
         | "tier_1"
@@ -2333,6 +2395,8 @@ export const Constants = {
       opp_status: ["live", "archived"],
       vacancy_application_mode: ["email", "external_url"],
       vacancy_opportunity_type: ["internship", "job"],
+      vacancy_queue_source: ["lawctopus", "linkedin", "firm_careers", "manual"],
+      vacancy_queue_status: ["pending", "approved", "rejected", "duplicate"],
       vacancy_status: ["live", "archived", "deleted"],
       vacancy_tier: [
         "tier_1",
