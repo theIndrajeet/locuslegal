@@ -8,26 +8,37 @@ interface Props {
 }
 
 export default function DuplicateBanner({ result }: Props) {
-  const { hardMatches, softMatches, emailReuse } = result;
-  if (hardMatches.length === 0 && softMatches.length === 0 && emailReuse.length === 0) return null;
+  const { hardMatches, softMatches, emailReuse, urlReuse } = result;
+  if (
+    hardMatches.length === 0 &&
+    softMatches.length === 0 &&
+    emailReuse.length === 0 &&
+    urlReuse.length === 0
+  )
+    return null;
 
   const isHard = hardMatches.length > 0;
   const headline = isHard
     ? "Possible duplicate — already on the board"
     : softMatches.length > 0
       ? "Looks similar to an existing vacancy"
-      : "Heads up — this email is in use elsewhere";
+      : urlReuse.length > 0
+        ? "Heads up — this portal URL is in use elsewhere"
+        : "Heads up — this email is in use elsewhere";
 
   const subline = isHard
-    ? "Same firm and same application email. Don't post twice unless this is a fresh re-opening."
+    ? "Same firm and same application channel. Don't post twice unless this is a fresh re-opening."
     : softMatches.length > 0
       ? "Same firm with a near-identical role. Confirm this isn't a re-paste."
-      : "This email was used by a different firm recently. Verify the firm name is correct.";
+      : urlReuse.length > 0
+        ? "This careers URL was posted under a different firm recently. Verify the firm name."
+        : "This email was used by a different firm recently. Verify the firm name is correct.";
 
-  const items: { v: Vacancy; tag: "Duplicate" | "Similar" | "Email reuse" }[] = [
+  const items: { v: Vacancy; tag: "Duplicate" | "Similar" | "Email reuse" | "URL reuse" }[] = [
     ...hardMatches.map((v) => ({ v, tag: "Duplicate" as const })),
     ...softMatches.map((v) => ({ v, tag: "Similar" as const })),
     ...emailReuse.map((v) => ({ v, tag: "Email reuse" as const })),
+    ...urlReuse.map((v) => ({ v, tag: "URL reuse" as const })),
   ].slice(0, 3);
 
   return (

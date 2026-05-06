@@ -23,10 +23,12 @@ import {
   type VacancyApplication,
   applicationStateFor,
   isFreshVacancy,
+  TIER_LABELS,
 } from "@/lib/vacancies";
 import { useCountdown } from "@/lib/useCountdown";
 import { cn } from "@/lib/utils";
 import { shareOrCopy, withRef } from "@/lib/share";
+import { ExternalLink as ExternalLinkIcon } from "lucide-react";
 
 interface Props {
   vacancy: Vacancy;
@@ -107,6 +109,23 @@ export default function VacancyCard({ vacancy, onApply, archived = false, applic
               <span className="ml-1 inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded-md border-2 border-foreground/80 bg-foreground text-background">
                 <ClipboardList size={10} />
                 Task required
+              </span>
+            )}
+            {vacancy.tier && (
+              <span
+                className="ml-1 inline-flex items-center text-[10px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded-md border-2 border-foreground/80 bg-background text-foreground"
+                title={`Firm tier: ${TIER_LABELS[vacancy.tier]}`}
+              >
+                {TIER_LABELS[vacancy.tier]}
+              </span>
+            )}
+            {vacancy.application_mode === "external_url" && (
+              <span
+                className="ml-1 inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded-md border-2 border-foreground/80 bg-foreground text-background"
+                title="Apply via the company's careers portal"
+              >
+                <ExternalLinkIcon size={10} />
+                Portal
               </span>
             )}
             {isNew && (
@@ -291,8 +310,17 @@ export default function VacancyCard({ vacancy, onApply, archived = false, applic
             }}
             className="font-bold border-2 border-foreground/80 shadow-[3px_3px_0_0_hsl(var(--foreground))] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_0_hsl(var(--foreground))] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
           >
-            <Mail size={14} className="mr-1.5" />
-            Draft application
+            {vacancy.application_mode === "external_url" ? (
+              <>
+                <ExternalLinkIcon size={14} className="mr-1.5" />
+                Apply on portal
+              </>
+            ) : (
+              <>
+                <Mail size={14} className="mr-1.5" />
+                Draft application
+              </>
+            )}
           </Button>
         )}
 

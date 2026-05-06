@@ -36,7 +36,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import VacancyCard from "@/components/vacancies/VacancyCard";
 import DraftEmailDialog, { type DraftEmailTarget } from "@/components/apply/DraftEmailDialog";
-import { type Vacancy, type VacancyApplication } from "@/lib/vacancies";
+import { type Vacancy, type VacancyApplication, type VacancyTier, TIER_LABELS, TIER_OPTIONS } from "@/lib/vacancies";
 import {
   STREAM_META,
   streamLabel,
@@ -73,6 +73,7 @@ export default function Opportunities() {
   const [loading, setLoading] = useState(true);
   const [activeGroup, setActiveGroup] = useState<GroupKey>("career");
   const [filter, setFilter] = useState<OpportunityStream | null>(null);
+  const [tierFilter, setTierFilter] = useState<VacancyTier | null>(null);
   const [selected, setSelected] = useState<AnyOpportunity | null>(null);
 
   // Vacancy application tracking (career stream only)
@@ -171,8 +172,19 @@ export default function Opportunities() {
   const activeStreams: OpportunityStream[] = filter ? [filter] : currentGroup.streams;
 
   const filtered = useMemo(
-    () => items.filter((i) => activeStreams.includes(i.stream)),
-    [items, activeStreams],
+    () =>
+      items.filter((i) => {
+        if (!activeStreams.includes(i.stream)) return false;
+        // Tier filter only applies to career stream (vacancies have a tier).
+        if (tierFilter && (i.stream === "internship" || i.stream === "job")) {
+          return (i as VacancyLike).tier === tierFilter;
+        }
+        if (tierFilter && !(i.stream === "internship" || i.stream === "job")) {
+          return false;
+        }
+        return true;
+      }),
+    [items, activeStreams, tierFilter],
   );
 
   const liveCount = items.filter((i) => new Date(deadlineOf(i)).getTime() > Date.now()).length;
@@ -186,6 +198,7 @@ export default function Opportunities() {
     ? (() => {
         const v = draftFor.vacancy;
         const existing = appMap.get(v.id);
+        const isPortal = v.application_mode === "external_url";
         return {
           id: `vacancy-${v.id}${draftFor.followup ? "-followup" : ""}`,
           name: v.firm_name,
@@ -194,9 +207,11 @@ export default function Opportunities() {
           type: null,
           city: v.location,
           sector: null,
-          practice_areas: null,
+          practice_areas: v.practice_area,
           legal_needs: v.description,
           roleHint: v.role,
+          mode: isPortal ? "portal" : "email",
+          portalUrl: isPortal ? v.application_url : null,
           followup:
             draftFor.followup && existing
               ? {
@@ -230,7 +245,7 @@ export default function Opportunities() {
               return (
                 <button
                   key={g.key}
-                  onClick={() => { setActiveGroup(g.key); setFilter(null); }}
+                  onClick={() => { setActiveGroup(g.key); setFilter(null); setTierFilter(null); }}
                   className={cn(
                     "flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 px-2 py-2.5 rounded-xl border-2 text-xs sm:text-sm font-bold uppercase tracking-wider transition-all",
                     active
@@ -279,6 +294,39 @@ export default function Opportunities() {
                   >
                     <Icon size={12} />
                     {streamLabel(s)}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {activeGroup === "career" && (
+            <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4">
+              <button
+                onClick={() => setTierFilter(null)}
+                className={cn(
+                  "shrink-0 whitespace-nowrap inline-flex items-center px-3 py-1.5 rounded-full border-2 text-[11px] font-bold uppercase tracking-wider transition-all",
+                  tierFilter === null
+                    ? "border-foreground bg-accent text-accent-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))]"
+                    : "border-foreground/30 bg-background text-muted-foreground hover:border-foreground/60",
+                )}
+              >
+                All tiers
+              </button>
+              {TIER_OPTIONS.filter((t) => t !== "other").map((t) => {
+                const active = tierFilter === t;
+                return (
+                  <button
+                    key={t}
+                    onClick={() => setTierFilter(active ? null : t)}
+                    className={cn(
+                      "shrink-0 whitespace-nowrap inline-flex items-center px-3 py-1.5 rounded-full border-2 text-[11px] font-bold uppercase tracking-wider transition-all",
+                      active
+                        ? "border-foreground bg-accent text-accent-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))]"
+                        : "border-foreground/30 bg-background text-muted-foreground hover:border-foreground/60",
+                    )}
+                  >
+                    {TIER_LABELS[t]}
                   </button>
                 );
               })}

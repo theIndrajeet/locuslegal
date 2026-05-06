@@ -15,7 +15,7 @@ import { track } from "@/lib/analytics";
 export interface DraftEmailTarget {
   id: string; // unique key for caching
   name: string;
-  email: string;
+  email: string | null;
   kind: "firm" | "startup";
   type?: string | null;
   city?: string | null;
@@ -30,6 +30,10 @@ export interface DraftEmailTarget {
     originalRole: string;
     applicationId?: string; // existing profile_applications row to update
   } | null;
+  // Portal mode: skips Gmail, shows "Continue to portal →" instead.
+  // The generated email becomes a copyable cover letter.
+  mode?: "email" | "portal";
+  portalUrl?: string | null;
 }
 
 interface Props {
@@ -585,12 +589,58 @@ export default function DraftEmailDialog({ open, onOpenChange, target, onSent }:
     }
   };
 
+  const copyCoverLetter = async () => {
+    // Portal mode: copy the body only (no Subject: line) — that's what gets pasted into a portal field.
+    const text = `${body}${WATERMARK_EMAIL_SIG}`;
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("Cover letter copied — paste into the portal.");
+    } catch {
+      toast.error("Couldn't copy. Select and copy manually.");
+    }
+  };
+
+  const continueToPortal = () => {
+    if (!target?.portalUrl) return;
+    // Copy the cover letter first so the user lands in the portal with text on clipboard.
+    void navigator.clipboard?.writeText(`${body}${WATERMARK_EMAIL_SIG}`).catch(() => {});
+    void track("vacancy_apply_clicked", { vacancy_id: target.id, mode: "portal_continue" });
+    window.open(target.portalUrl, "_blank", "noopener,noreferrer");
+
+    // Background: log application as 'external' method.
+    if (userId) {
+      const today = new Date().toISOString().slice(0, 10);
+      const noteExcerpt = body.length > 500 ? body.slice(0, 497) + "…" : body;
+      void supabase
+        .from("profile_applications")
+        .insert({
+          user_id: userId,
+          firm_name_snapshot: target.name,
+          role: (target.roleHint?.trim() || brief.role),
+          applied_on: today,
+          method: "external",
+          status: "sent",
+          notes: `Applied via portal · cover letter drafted with Locus AI\n\n${noteExcerpt}`,
+        })
+        .then(({ error: logErr }) => {
+          if (logErr) {
+            toast.error("Portal opened, but couldn't log to your tracker.");
+          } else {
+            toast.success("Logged as 'Applied via portal'.", { duration: 4000 });
+            onSent?.();
+          }
+        });
+    }
+
+    onOpenChange(false);
+  };
+
   const openInGmail = () => {
     if (!target || !subject.trim() || !body.trim()) return;
     const truncated = body.length > 1800;
     const sendBody = truncated ? body.slice(0, 1800) : body;
     const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
-    const { to: primaryTo, cc } = parseEmailList(target.email);
+    const { to: primaryTo, cc } = parseEmailList(target.email ?? "");
     // Gmail URL stays clean — recruiter never sees the watermark.
     const url = buildGmailUrl(primaryTo, subject, sendBody, cc);
     // Clipboard fallback gets the soft watermark below the student's signature.
@@ -688,10 +738,14 @@ export default function DraftEmailDialog({ open, onOpenChange, target, onSent }:
         <DialogHeader>
           <DialogTitle className="font-heading text-xl font-extrabold flex items-center gap-2">
             <Sparkles size={18} className="text-accent" />
-            Draft application email
+            {target?.mode === "portal" ? "Draft cover letter" : "Draft application email"}
           </DialogTitle>
           <DialogDescription>
-            {target ? `To ${target.name} — ${target.email}` : ""}
+            {target
+              ? target.mode === "portal"
+                ? `Cover letter for ${target.name}'s portal — copy and paste into the application form.`
+                : `To ${target.name}${target.email ? ` — ${target.email}` : ""}`
+              : ""}
           </DialogDescription>
         </DialogHeader>
 
@@ -1226,23 +1280,43 @@ export default function DraftEmailDialog({ open, onOpenChange, target, onSent }:
               <div className="rounded-md border border-border bg-muted/30 px-3 py-2 flex items-start gap-2">
                 <FileText size={14} className="shrink-0 mt-0.5 text-muted-foreground" />
                 <p className="text-xs text-muted-foreground">
-                  Gmail will open with the email pre-filled. Attach your CV before sending — browsers
-                  can't auto-attach files.
+                  {target?.mode === "portal"
+                    ? "This becomes your cover letter for the portal. Copy it, then continue to the company's application page."
+                    : "Gmail will open with the email pre-filled. Attach your CV before sending — browsers can't auto-attach files."}
                 </p>
               </div>
 
               <div className="flex flex-wrap gap-2 justify-end pt-1">
-                <Button variant="outline" onClick={copyAll}>
-                  <Copy className="h-4 w-4 mr-2" />
-                  Copy
-                </Button>
-                <Button
-                  onClick={openInGmail}
-                  className="bg-accent text-accent-foreground hover:bg-accent/90"
-                >
-                  <Mail className="h-4 w-4 mr-2" />
-                  Open in Gmail
-                </Button>
+                {target?.mode === "portal" ? (
+                  <>
+                    <Button variant="outline" onClick={copyCoverLetter}>
+                      <Copy className="h-4 w-4 mr-2" />
+                      Copy cover letter
+                    </Button>
+                    <Button
+                      onClick={continueToPortal}
+                      disabled={!target?.portalUrl}
+                      className="bg-accent text-accent-foreground hover:bg-accent/90"
+                    >
+                      Continue to portal
+                      <ChevronRight className="h-4 w-4 ml-1" />
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button variant="outline" onClick={copyAll}>
+                      <Copy className="h-4 w-4 mr-2" />
+                      Copy
+                    </Button>
+                    <Button
+                      onClick={openInGmail}
+                      className="bg-accent text-accent-foreground hover:bg-accent/90"
+                    >
+                      <Mail className="h-4 w-4 mr-2" />
+                      Open in Gmail
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           )}
