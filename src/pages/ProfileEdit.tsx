@@ -185,6 +185,15 @@ export default function ProfileEdit() {
     else { toast.success("Password updated"); setNewPassword(""); setConfirmPassword(""); }
   };
 
+  // After load, scroll to #preferences if requested via hash.
+  useEffect(() => {
+    if (loading) return;
+    if (typeof window === "undefined") return;
+    if (window.location.hash !== "#preferences") return;
+    const el = document.getElementById("preferences");
+    if (el) requestAnimationFrame(() => el.scrollIntoView({ behavior: "smooth", block: "start" }));
+  }, [loading]);
+
   if (loading || !userId) {
     return (
       <div className="min-h-screen px-4 py-20 max-w-3xl mx-auto space-y-6">
