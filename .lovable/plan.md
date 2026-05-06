@@ -1,71 +1,267 @@
-# Smart duplicate detection for the vacancy drafter
+# Plan — Open up portal jobs, add tier filter, personalise the feed, then scale supply
 
-Right now an admin can post the same vacancy twice without any guardrail. Goal: detect likely duplicates and surface them clearly — both **as soon as the AI fills the form** and **right before saving** — with an explicit "Post anyway" override for the rare legitimate case.
+Three sequential phases: **A** (external portals + tier taxonomy + smart drafter) → **C** (Recommended for you) → **B** (3-source aggregator). No follow-firm/alerts (D) per your call.
 
-## What counts as a duplicate
+---
 
-A new vacancy is flagged if **any** existing live or recently-archived vacancy (last 30 days) matches on:
+## Phase A — External-portal listings + Tier taxonomy + Smart Drafter
 
-1. **Hard match** (almost certainly the same): same `application_email` (case-insensitive) **and** same normalized `firm_name`. → Treat as a strong duplicate.
-2. **Soft match** (likely the same posting): same normalized `firm_name` **and** similar `role` (token-overlap ≥ 70% after lowercasing, stripping punctuation, removing filler words like "intern", "associate", "trainee", "law", "the").
-3. **Email reuse** (worth a heads-up): same `application_email` for a **different** firm in the last 30 days. Shown as a soft note, not a block.
+**Goal:** Unblock Tier-1 firms, Big-4, in-house roles that only accept via portal. Add tier as a first-class filter dimension. Make the admin drafter auto-detect portal-only postings and demand the link.
 
-Normalization for firm name: lowercase, strip `&`, `,`, `.`, `llp`, `llc`, `partners`, `co`, `advocates`, collapse whitespace.
+### Database (1 migration)
 
-## UX
+Add to `vacancies`:
+- `application_mode` enum: `email | external_url` — default `email`
+- `application_url text` — required when mode=external_url
+- `tier` enum: `tier_1 | tier_2 | tier_3 | boutique | in_house | psu | big_4 | other` — nullable (legacy rows)
+- `practice_area text` — free text initially. Hardened to enum in Phase B once we see real values.
 
-**On paste-extract success** (`AdminVacancyDialog`, after the AI fills fields):
-- Run the duplicate check immediately.
-- If a hard or soft match is found, replace the green success toast with an amber warning toast: *"Looks like a duplicate of {firm} — {role}, posted {N}d ago. Review before saving."*
-- Show a persistent inline banner at the top of the form (yellow neobrutalist card, `AlertTriangle` icon) listing up to 3 matched vacancies with: firm, role, posted date, status (live/archived), and an "Open" link (new tab to `/admin/vacancies`).
+Update `vacancies_validate_fn` trigger:
+- if `application_mode = 'email'` → `application_email` required (current behaviour)
+- if `application_mode = 'external_url'` → `application_url` required + must match `^https?://` + sane length, `application_email` may be null
+- Drop NOT NULL on `application_email` at column level; trigger enforces conditionally
 
-**On save click**:
-- Re-run the check against the *current* form values (in case admin edited firm/email/role after extraction).
-- If a hard match exists → block save, show a confirm dialog: *"This looks identical to an existing vacancy ({firm} — {role}, {status}, posted {N}d ago). Posting again will create a duplicate on the board."* with two buttons: **Cancel** (default) and **Post anyway**.
-- If only a soft match → allow save but show the warning banner; no blocking dialog.
-- Email-reuse-different-firm → never blocks, just shown as an info chip in the banner.
+Extend `application_method` enum on `profile_applications` with `external` value.
 
-**Edit mode**: exclude the row currently being edited (`initial.id`) from the duplicate set so editing a vacancy never flags itself.
+### `extract-vacancy` edge function — smart inference
 
-## Technical plan
+Extend the LLM tool schema:
+```ts
+application_mode: 'email' | 'external_url'
+application_email: string | null   // null when mode=external_url
+application_url:   string | null   // required when mode=external_url
+tier:              'tier_1'|'tier_2'|'tier_3'|'boutique'|'in_house'|'psu'|'big_4'|'other'|null
+practice_area:     string | null
+```
 
-**1. New helper `src/lib/vacancy-dedupe.ts`**
-- `normalizeFirmName(s: string): string`
-- `roleSimilarity(a: string, b: string): number` — Jaccard on filtered tokens
-- `findDuplicates(candidate, existing[], excludeId?)` → returns `{ hardMatches: Vacancy[], softMatches: Vacancy[], emailReuse: Vacancy[] }`
-- Pure functions, easy to unit-test.
+Prompt additions (rules the model follows):
 
-**2. Fetch helper in the dialog**
-- Add `loadRecentVacancies()` inside `AdminVacancyDialog.tsx` that queries:
-  ```
-  supabase.from("vacancies").select("id,firm_name,role,application_email,status,posted_at,expires_at")
-    .or("status.eq.live,and(status.eq.archived,expires_at.gt.<30d-ago>)")
-    .limit(500)
-  ```
-- Cache the result in a `useRef` for the lifetime of the dialog open (refresh on each open).
+**Application mode detection — in priority order:**
+1. If text contains a valid email → `application_mode='email'`, set `application_email`.
+2. Else if text contains a URL matching any of these patterns → `application_mode='external_url'`:
+   - Workday: `*.myworkdayjobs.com/*`, `*.workday.com/*`
+   - SuccessFactors: `*.successfactors.com/*`, `career*.sapsf.com/*`
+   - Greenhouse: `boards.greenhouse.io/*`, `*.greenhouse.io/jobs/*`
+   - Lever: `jobs.lever.co/*`
+   - LinkedIn: `linkedin.com/jobs/view/*`
+   - Naukri: `naukri.com/job-listings-*`
+   - Generic careers/portal hints: URL path contains `/careers`, `/jobs`, `/apply`, `/job-application`
+   - Firm-specific known portals: `careers.ey.com`, `careers.deloitte.com`, `kpmgindia.taleo.net`, `pwc.wd3.myworkdayjobs.com`, `talent.cyrilshroff.com`, etc.
+3. Else if no email AND no URL but text mentions "apply via our portal", "submit through our careers page", "via company website" → `application_mode='external_url'`, `application_url=null` (admin must paste).
+4. Else → `application_mode='email'`, `application_email=""` (admin UI rejects, prompts for email).
 
-**3. `AdminVacancyDialog.tsx` changes**
-- New state: `dupes: { hardMatches, softMatches, emailReuse }` and `confirmOpen: boolean`.
-- After `extract()` succeeds → run dedupe → setDupes → toast accordingly.
-- Live re-check via `useMemo` whenever `firm_name`, `role`, or `application_email` change in the form (debounced is fine but not required at admin scale).
-- Render `<DuplicateBanner />` above the form fields when `dupes` has anything.
-- In `submit()`: if `hardMatches.length > 0` and not yet confirmed → open `AlertDialog` instead of inserting. The "Post anyway" button calls the existing insert path with a `forceOverride` flag set.
-- Edit mode passes `initial.id` to `findDuplicates` to exclude self.
+**Tier inference (only when unambiguous):**
+- `tier_1`: CAM/AMSS, AZB, Trilegal, Khaitan & Co, L&L Partners / Luthra, JSA, SAM, ELP, S&R, Talwar Thakore, Argus, IndusLaw
+- `big_4`: EY, Deloitte, KPMG, PwC, Grant Thornton, BDO
+- `in_house`: phrases like "in-house counsel", "legal team at [Company]", "[BigTech/Startup] legal"
+- `psu`: ONGC, BHEL, NTPC, SAIL, BPCL, IOCL, GAIL, etc.
+- Else `null` (admin selects manually).
 
-**4. New component `src/components/vacancies/DuplicateBanner.tsx`**
-- Yellow neobrutalist card (`border-2 border-foreground bg-accent/10 shadow-[3px_3px_0_0_hsl(var(--foreground))]`), `AlertTriangle` icon, headline + 1–3 match rows with firm, role, "{N}d ago", status pill, and external-link icon to `/admin/vacancies`. No emojis (per project rules).
+**Practice area:** infer one of {Corporate, M&A, Disputes/Litigation, IP, TMT, Banking & Finance, Tax, Competition, Real Estate, Employment, Policy/Regulatory, General} from role title + description. Else `null`.
 
-**5. Confirm dialog**
-- Use `AlertDialog` from `@/components/ui/alert-dialog` with `Cancel` (default) and a destructive-styled `Post anyway` action.
+### `AdminVacancyDialog` — the drafter UX
 
-## Out of scope
+**Step 1 (paste) — unchanged**, but on `extract` response now also returns `application_mode`, `application_url`, `tier`, `practice_area`.
 
-- No DB migrations or unique constraints (a hard DB constraint would block legitimate re-posts and rotating-email firms; soft-warning UX is the right level).
-- No changes to the public `/vacancies` board, the `extract-vacancy` edge function, or the Opportunities admin (CFPs/moots/competitions).
-- No dedupe for the Opportunities board — can be a follow-up if useful.
+**Step 2 (form) — new behaviour:**
+
+Top of form: a clear **Apply via** segmented control (radio):
+```
+( ● Email )    ( ○ Company portal )
+```
+Pre-selected to whatever the extractor decided.
+
+**When `Email` is selected:**
+- Show `application_email` field (existing, required).
+- Hide `application_url`.
+- Existing dedupe banner stays the same (firm + email + role).
+
+**When `Company portal` is selected:**
+- Hide `application_email`.
+- Show `application_url` field (required, validated against `^https?://`).
+- If extractor returned `application_url=null` (rule 3 above — post mentioned a portal but didn't paste a URL), show a prominent **yellow neobrutalist callout** above the URL field:
+
+  > **Portal link missing.** This post says applications go through the company's careers page, but no URL was pasted. Add the direct link to the job opening so applicants can reach it in one click.
+  >
+  > [Open google search for "[Firm] [Role] careers" →]  ← convenience button, opens new tab pre-filled
+
+- Save button **disabled** with tooltip "Add the portal URL" until URL is filled.
+- Dedupe key for portal mode = firm + normalized URL host+path (not email). Update `vacancy-dedupe.ts` to handle both modes.
+
+**Always visible (both modes):**
+- New **Tier** select (8 options + "Not sure / Other") — pre-filled from extractor.
+- New **Practice area** combobox (free text, with the 12 suggestions above as quick-pick chips) — pre-filled from extractor.
+- Existing fields (role, location, eligibility, stipend, description, task_brief, expires_in_days, source_credit) unchanged.
+
+**Mode-switch safety:** Toggling between Email ↔ Portal preserves the field that's hidden so accidental clicks don't destroy data. Only the active field is validated on save.
+
+### `vacancy-dedupe.ts` updates
+
+Add to `DupeCandidate`: `application_mode`, `application_url`.
+- Email mode: existing logic (firm + email + role similarity).
+- Portal mode: hard match if `firm` matches AND `normalize(application_url)` matches (strip `?utm_*`, fragment, trailing slash).
+- Cross-mode: if the same firm + role appears once as email and once as portal, surface as soft match — admin decides.
+
+### `VacancyCard` — branching apply behaviour
+
+When `application_mode = 'external_url'`:
+- Replace **Draft application** button with **Apply on portal →** (`ExternalLink` icon).
+- Click flow:
+  1. Open the existing **DraftEmailDialog** in new `cover_letter_only` mode → user gets a tailored cover letter + bullet points to copy.
+  2. Bottom of that dialog: **Continue to portal →** button → opens `application_url` in new tab AND logs to `profile_applications` with `method='external'`.
+- 7-day follow-up reminder logic stays (works off `applied_on`).
+- Add small tier pill on card header next to Job/Internship pill: `TIER 1`, `BIG 4`, `IN-HOUSE`, etc. — neobrutalist border, no fill. Hidden when `tier=null`.
+
+### `DraftEmailDialog` — new mode
+
+Add prop `mode?: 'email' | 'cover_letter_only'`. In `cover_letter_only`:
+- Hide "Send via Gmail" / "Open in mail client" actions.
+- Show **Copy cover letter**, **Copy tailored bullets**, **Continue to portal →**.
+- Heading copy: "Tailored cover letter for [Firm] portal application".
+
+### `Opportunities.tsx`
+
+Below the existing stream filters (Career group only), add a **Tier** filter chip row:
+`All | Tier 1 | Tier 2 | Boutique | In-house | PSU | Big 4 | Other`
+Multi-select chips, AND-ed with stream filter.
+
+---
+
+## Phase C — "Recommended for you" section
+
+**Goal:** Same supply, feels curated. Visible section above the main grid (not silent reorder).
+
+### Profile additions
+
+Two new editable fields on `ProfileEdit` → `profiles`:
+- `target_tiers text[]` — multi-select chips of the 8 tiers
+- `target_locations text[]` — chips: Delhi NCR, Mumbai, Bangalore, Hyderabad, Chennai, Kolkata, Pune, Remote, Other
+
+`subjects_of_interest` (already exists) doubles as practice-area preference.
+
+### Ranking (client-side, pure function + tests)
+
+`src/lib/opportunity-ranker.ts` — given an opportunity + profile, returns `{ score, reasons[] }`:
+- +30 if `tier ∈ profile.target_tiers`
+- +20 if `location` matches any `target_locations` (substring, case-insensitive)
+- +25 if `practice_area` overlaps with `subjects_of_interest`
+- +15 if posted within last 48h (freshness)
+- +10 if `eligibility` mentions user's `degree` / `graduation_year`
+- −50 if user already has `profile_application` for this firm+role
+
+`reasons` → human chips: *"Matches your IP interest"*, *"Tier 1 · Mumbai"*, *"Posted 6h ago"*.
+
+### `Opportunities.tsx` UI
+
+Above the existing grid (Career group only, signed-in users with ≥1 preference set):
+
+```
+┌─────────────────────────────────────────┐
+│  RECOMMENDED FOR YOU       [refine →]   │
+│  ╭─────╮ ╭─────╮ ╭─────╮                │
+│  │card │ │card │ │card │  ← top 3, h-scroll on mobile
+│  ╰─────╯ ╰─────╯ ╰─────╯                │
+└─────────────────────────────────────────┘
+ALL CAREER OPPORTUNITIES
+[existing grid…]
+```
+
+- "refine →" deep-links to `/profile/edit#preferences`
+- Empty preferences → one-line nudge card: *"Tell us what you're looking for to unlock recommendations"* + CTA. No broken empty state.
+- Recommended cards = same `VacancyCard`, wrapped with a small reasons strip above.
+
+---
+
+## Phase B — 3-source aggregator pipeline + admin review queue
+
+**Goal:** From ~5 manual posts/week to ~50 reviewed posts/week.
+
+### Architecture
+
+```
+                ┌─────────────────────┐
+  cron daily ─→ │ ingest-opportunities│  Edge function (scheduled)
+                └──────────┬──────────┘
+                           │ writes drafts
+                           ▼
+                  vacancy_review_queue (new table)
+                           │
+                           │ admin opens /admin/opportunities → "Review" tab
+                           ▼
+                  one-click Approve / Edit / Reject / Mark duplicate
+                           │
+                           ▼
+                       vacancies
+```
+
+### New table: `vacancy_review_queue`
+
+`id, source ('lawctopus'|'linkedin'|'careers_page'), source_url, source_firm, source_title, raw_text, ai_extracted jsonb (full vacancy fields incl. application_mode/url), status ('pending'|'approved'|'rejected'|'duplicate'), discovered_at, reviewed_by, reviewed_at, dedupe_hash`. RLS: opportunities_admin only.
+
+`dedupe_hash = sha256(normalize(firm) + '|' + normalize(role))` — prevents re-queueing across runs and live vacancies.
+
+### Source adapters (one edge fn `ingest-opportunities`)
+
+Use **Firecrawl connector** (`standard_connectors--connect`).
+
+1. **Lawctopus** — `firecrawl.map` on `https://www.lawctopus.com/internship-opportunities-and-jobs/`, take last 24h links, scrape each → markdown → run through `extract-vacancy` (which now handles email vs portal).
+2. **LinkedIn Jobs** — `firecrawl.search` with `"legal counsel" OR "associate" India site:linkedin.com/jobs`, `tbs:'qdr:d'`. All become `application_mode='external_url'` with the LinkedIn URL.
+3. **Top-30 firm careers pages** — `src/data/firm-careers-sources.ts` (name, careers URL, optional CSS hint). Weekly `firecrawl.crawl` `maxDepth:2, limit:20`. Diff against `dedupe_hash` set.
+
+For each candidate: extract → compute `dedupe_hash` → insert into queue if hash not present in queue OR live `vacancies`.
+
+### Admin Review tab
+
+New tab in `/admin/opportunities` → **Review queue** (count badge):
+- Card list: source pill, firm, role, deadline, "extracted from [source] · 3h ago", apply-mode badge.
+- Row actions: **Quick approve** (publishes as-is), **Edit & approve** (opens `AdminVacancyDialog` pre-filled), **Reject** (with optional reason), **Mark duplicate** (links to existing vacancy id).
+- Auto-flag: matching `dedupe_hash` against live → "Likely duplicate" badge.
+
+### Cron
+
+- Lawctopus + LinkedIn: daily 06:00 IST.
+- Careers pages: weekly Sunday 02:00 IST.
+
+---
 
 ## Files touched
 
-- `src/lib/vacancy-dedupe.ts` (new)
-- `src/components/vacancies/DuplicateBanner.tsx` (new)
-- `src/components/vacancies/AdminVacancyDialog.tsx` (fetch + check + banner + confirm-on-save)
+**Phase A**
+- migration: vacancies columns + enums + trigger + profile_applications.method enum
+- `src/lib/vacancies.ts` — extend `Vacancy` type
+- `src/lib/vacancy-dedupe.ts` — handle both modes
+- `src/components/vacancies/AdminVacancyDialog.tsx` — radio + URL field + missing-link callout + tier + practice_area
+- `src/components/vacancies/DuplicateBanner.tsx` — show URL-based dupes
+- `src/components/vacancies/VacancyCard.tsx` — branching apply + tier pill
+- `src/components/apply/DraftEmailDialog.tsx` — `cover_letter_only` mode
+- `src/pages/Opportunities.tsx` — tier filter chip row
+- `supabase/functions/extract-vacancy/index.ts` — extended schema + portal/tier/practice inference
+
+**Phase C**
+- migration: `profiles.target_tiers`, `profiles.target_locations`
+- `src/lib/opportunity-ranker.ts` (new) + tests
+- `src/pages/ProfileEdit.tsx` — Preferences section
+- `src/pages/Opportunities.tsx` — Recommended-for-you section + reasons chips
+
+**Phase B**
+- migration: `vacancy_review_queue` + RLS
+- `src/data/firm-careers-sources.ts` (new)
+- `supabase/functions/ingest-opportunities/index.ts` (new) + cron
+- `src/pages/AdminOpportunities.tsx` — Review queue tab
+- `src/components/admin/opportunities/ReviewQueueTab.tsx` (new)
+- Connect Firecrawl one-time
+
+---
+
+## Out of scope
+
+- No follow-firms / push notifications (Model D dropped)
+- No silent reorder — Recommended is visible
+- No backfill of legacy 5 vacancies' tier — admin sets manually
+- No Workday-vs-Greenhouse distinction in DB; the URL is the URL
+
+## Sequence
+
+A first (1 day) → manually add 5–10 Tier-1/Big-4 portal listings to validate → C (2 days) → B (3–5 days). Don't build personalisation against 5 listings.
+
+Approve and I'll start with Phase A.
