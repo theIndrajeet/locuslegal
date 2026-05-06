@@ -40,7 +40,6 @@ import DraftEmailDialog, { type DraftEmailTarget } from "@/components/apply/Draf
 import { type Vacancy, type VacancyApplication, type VacancyTier, TIER_LABELS, TIER_OPTIONS } from "@/lib/vacancies";
 import { rankVacancies, hasAnyPrefs, type UserOpportunityPrefs } from "@/lib/opportunity-ranker";
 import { Link } from "react-router-dom";
-import { Sparkles } from "lucide-react";
 import {
   STREAM_META,
   streamLabel,
