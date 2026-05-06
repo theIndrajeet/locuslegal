@@ -17,6 +17,7 @@ import PublicationsSection, { Publication } from "@/components/profile/Publicati
 import CvSection from "@/components/profile/CvSection";
 import BarPrivacySection from "@/components/profile/BarPrivacySection";
 import OpenToOpportunitiesSection from "@/components/profile/OpenToOpportunitiesSection";
+import OpportunityPreferencesSection from "@/components/profile/OpportunityPreferencesSection";
 import ProfileStrengthMeter from "@/components/profile/ProfileStrengthMeter";
 
 type Degree = "BA LLB" | "BBA LLB" | "BCom LLB" | "LLB (3yr)" | "LLM" | "Other";
