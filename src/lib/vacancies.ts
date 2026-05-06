@@ -1,6 +1,9 @@
 // Shared vacancy types + helpers for both admin and public surfaces.
 export type VacancyStatus = "live" | "archived" | "deleted";
 export type VacancyOpportunityType = "internship" | "job";
+export type VacancyApplicationMode = "email" | "external_url";
+export type VacancyTier =
+  | "tier_1" | "tier_2" | "tier_3" | "boutique" | "in_house" | "psu" | "big_4" | "other";
 
 export interface Vacancy {
   id: string;
@@ -8,7 +11,11 @@ export interface Vacancy {
   role: string;
   opportunity_type: VacancyOpportunityType;
   location: string | null;
-  application_email: string;
+  application_mode: VacancyApplicationMode;
+  application_email: string | null;
+  application_url: string | null;
+  tier: VacancyTier | null;
+  practice_area: string | null;
   eligibility: string | null;
   stipend: string | null;
   description: string | null;
@@ -21,6 +28,27 @@ export interface Vacancy {
   created_at: string;
   updated_at: string;
 }
+
+export const TIER_LABELS: Record<VacancyTier, string> = {
+  tier_1: "Tier 1",
+  tier_2: "Tier 2",
+  tier_3: "Tier 3",
+  boutique: "Boutique",
+  in_house: "In-house",
+  psu: "PSU",
+  big_4: "Big 4",
+  other: "Other",
+};
+
+export const TIER_OPTIONS: VacancyTier[] = [
+  "tier_1", "tier_2", "tier_3", "boutique", "in_house", "psu", "big_4", "other",
+];
+
+export const PRACTICE_AREA_SUGGESTIONS: string[] = [
+  "Corporate", "M&A", "Disputes/Litigation", "IP", "TMT",
+  "Banking & Finance", "Tax", "Competition", "Real Estate",
+  "Employment", "Policy/Regulatory", "General",
+];
 
 export function opportunityTypeLabel(t: VacancyOpportunityType): string {
   return t === "job" ? "Job" : "Internship";
