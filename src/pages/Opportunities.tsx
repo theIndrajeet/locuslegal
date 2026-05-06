@@ -341,38 +341,6 @@ export default function Opportunities() {
             </div>
           )}
 
-          {activeGroup === "career" && (
-            <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4">
-              <button
-                onClick={() => setTierFilter(null)}
-                className={cn(
-                  "shrink-0 whitespace-nowrap inline-flex items-center px-3 py-1.5 rounded-full border-2 text-[11px] font-bold uppercase tracking-wider transition-all",
-                  tierFilter === null
-                    ? "border-foreground bg-accent text-accent-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))]"
-                    : "border-foreground/30 bg-background text-muted-foreground hover:border-foreground/60",
-                )}
-              >
-                All tiers
-              </button>
-              {TIER_OPTIONS.filter((t) => t !== "other").map((t) => {
-                const active = tierFilter === t;
-                return (
-                  <button
-                    key={t}
-                    onClick={() => setTierFilter(active ? null : t)}
-                    className={cn(
-                      "shrink-0 whitespace-nowrap inline-flex items-center px-3 py-1.5 rounded-full border-2 text-[11px] font-bold uppercase tracking-wider transition-all",
-                      active
-                        ? "border-foreground bg-accent text-accent-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))]"
-                        : "border-foreground/30 bg-background text-muted-foreground hover:border-foreground/60",
-                    )}
-                  >
-                    {TIER_LABELS[t]}
-                  </button>
-                );
-              })}
-            </div>
-          )}
         </div>
 
         {showRecommended && !loading && (ranked.length > 0 || showPrefsNudge) && (
