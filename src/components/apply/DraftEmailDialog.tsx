@@ -692,10 +692,14 @@ export default function DraftEmailDialog({ open, onOpenChange, target, onSent }:
         <DialogHeader>
           <DialogTitle className="font-heading text-xl font-extrabold flex items-center gap-2">
             <Sparkles size={18} className="text-accent" />
-            Draft application email
+            {target?.mode === "portal" ? "Draft cover letter" : "Draft application email"}
           </DialogTitle>
           <DialogDescription>
-            {target ? `To ${target.name} — ${target.email}` : ""}
+            {target
+              ? target.mode === "portal"
+                ? `Cover letter for ${target.name}'s portal — copy and paste into the application form.`
+                : `To ${target.name}${target.email ? ` — ${target.email}` : ""}`
+              : ""}
           </DialogDescription>
         </DialogHeader>
 
