@@ -594,7 +594,7 @@ export default function DraftEmailDialog({ open, onOpenChange, target, onSent }:
     const truncated = body.length > 1800;
     const sendBody = truncated ? body.slice(0, 1800) : body;
     const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
-    const { to: primaryTo, cc } = parseEmailList(target.email);
+    const { to: primaryTo, cc } = parseEmailList(target.email ?? "");
     // Gmail URL stays clean — recruiter never sees the watermark.
     const url = buildGmailUrl(primaryTo, subject, sendBody, cc);
     // Clipboard fallback gets the soft watermark below the student's signature.
