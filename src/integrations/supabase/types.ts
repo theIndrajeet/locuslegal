@@ -1509,7 +1509,9 @@ export type Database = {
       }
       vacancies: {
         Row: {
-          application_email: string
+          application_email: string | null
+          application_mode: Database["public"]["Enums"]["vacancy_application_mode"]
+          application_url: string | null
           created_at: string
           created_by: string
           description: string | null
@@ -1521,15 +1523,19 @@ export type Database = {
           notified_at: string | null
           opportunity_type: Database["public"]["Enums"]["vacancy_opportunity_type"]
           posted_at: string
+          practice_area: string | null
           role: string
           source_credit: string | null
           status: Database["public"]["Enums"]["vacancy_status"]
           stipend: string | null
           task_brief: string | null
+          tier: Database["public"]["Enums"]["vacancy_tier"] | null
           updated_at: string
         }
         Insert: {
-          application_email: string
+          application_email?: string | null
+          application_mode?: Database["public"]["Enums"]["vacancy_application_mode"]
+          application_url?: string | null
           created_at?: string
           created_by: string
           description?: string | null
@@ -1541,15 +1547,19 @@ export type Database = {
           notified_at?: string | null
           opportunity_type?: Database["public"]["Enums"]["vacancy_opportunity_type"]
           posted_at?: string
+          practice_area?: string | null
           role: string
           source_credit?: string | null
           status?: Database["public"]["Enums"]["vacancy_status"]
           stipend?: string | null
           task_brief?: string | null
+          tier?: Database["public"]["Enums"]["vacancy_tier"] | null
           updated_at?: string
         }
         Update: {
-          application_email?: string
+          application_email?: string | null
+          application_mode?: Database["public"]["Enums"]["vacancy_application_mode"]
+          application_url?: string | null
           created_at?: string
           created_by?: string
           description?: string | null
@@ -1561,11 +1571,13 @@ export type Database = {
           notified_at?: string | null
           opportunity_type?: Database["public"]["Enums"]["vacancy_opportunity_type"]
           posted_at?: string
+          practice_area?: string | null
           role?: string
           source_credit?: string | null
           status?: Database["public"]["Enums"]["vacancy_status"]
           stipend?: string | null
           task_brief?: string | null
+          tier?: Database["public"]["Enums"]["vacancy_tier"] | null
           updated_at?: string
         }
         Relationships: []
@@ -1965,6 +1977,7 @@ export type Database = {
         | "in_person"
         | "linkedin"
         | "other"
+        | "external"
       application_status:
         | "sent"
         | "acknowledged"
@@ -2054,8 +2067,18 @@ export type Database = {
         | "participant"
       moot_role: "speaker" | "researcher" | "both"
       opp_status: "live" | "archived"
+      vacancy_application_mode: "email" | "external_url"
       vacancy_opportunity_type: "internship" | "job"
       vacancy_status: "live" | "archived" | "deleted"
+      vacancy_tier:
+        | "tier_1"
+        | "tier_2"
+        | "tier_3"
+        | "boutique"
+        | "in_house"
+        | "psu"
+        | "big_4"
+        | "other"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2199,6 +2222,7 @@ export const Constants = {
         "in_person",
         "linkedin",
         "other",
+        "external",
       ],
       application_status: [
         "sent",
@@ -2298,8 +2322,19 @@ export const Constants = {
       ],
       moot_role: ["speaker", "researcher", "both"],
       opp_status: ["live", "archived"],
+      vacancy_application_mode: ["email", "external_url"],
       vacancy_opportunity_type: ["internship", "job"],
       vacancy_status: ["live", "archived", "deleted"],
+      vacancy_tier: [
+        "tier_1",
+        "tier_2",
+        "tier_3",
+        "boutique",
+        "in_house",
+        "psu",
+        "big_4",
+        "other",
+      ],
     },
   },
 } as const
