@@ -25,3 +25,5 @@ project_id = "kasyrononwksnjykgldt"
     verify_jwt = false
   [functions.send-broadcast]
     verify_jwt = true
+  [functions.scrape-firm-careers]
+    verify_jwt = false
