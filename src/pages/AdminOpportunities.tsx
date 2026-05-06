@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Loader2, Plus, ShieldOff, Trash2, Briefcase, FileText, Gavel, Trophy, Pencil, Archive } from "lucide-react";
+import { Loader2, Plus, ShieldOff, Trash2, Briefcase, FileText, Gavel, Trophy, Pencil, Archive, Inbox } from "lucide-react";
+import ReviewQueuePanel from "@/components/admin/opportunities/ReviewQueuePanel";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdminAccess } from "@/hooks/useAdminRole";
 import { useAuthSession } from "@/hooks/useAuthSession";
