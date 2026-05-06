@@ -375,7 +375,73 @@ export default function Opportunities() {
           )}
         </div>
 
-        {loading ? (
+        {showRecommended && !loading && (ranked.length > 0 || showPrefsNudge) && (
+          <section className="mb-7">
+            <div className="flex items-end justify-between mb-3">
+              <div>
+                <h2 className="font-heading text-lg md:text-xl font-extrabold tracking-tight text-foreground flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-accent" />
+                  Recommended for you
+                </h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Matched to your tiers, locations, and practice areas.
+                </p>
+              </div>
+              <Link
+                to="/profile/edit#preferences"
+                className="text-[11px] font-bold uppercase tracking-wider text-accent hover:underline whitespace-nowrap"
+              >
+                refine →
+              </Link>
+            </div>
+            {showPrefsNudge ? (
+              <div className="border-2 border-dashed border-foreground/40 rounded-xl p-5 bg-card flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div>
+                  <p className="font-heading text-sm font-extrabold uppercase tracking-wider text-foreground">
+                    Tell us what you're after
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Pick your target tiers, cities, and practice areas to unlock a personalised feed.
+                  </p>
+                </div>
+                <Link to="/profile/edit#preferences">
+                  <Button size="sm">Set preferences</Button>
+                </Link>
+              </div>
+            ) : (
+              <div className="flex gap-4 overflow-x-auto no-scrollbar -mx-4 px-4 pb-2 md:grid md:grid-cols-2 md:overflow-visible md:mx-0 md:px-0">
+                {ranked.map((r) => (
+                  <div
+                    key={`rec-${r.vacancy.id}`}
+                    className="shrink-0 w-[88%] sm:w-[60%] md:w-auto relative"
+                  >
+                    {r.reasons.length > 0 && (
+                      <div className="absolute -top-2 left-3 z-10 flex gap-1 flex-wrap">
+                        {r.reasons.slice(0, 2).map((why, i) => (
+                          <span
+                            key={i}
+                            className="inline-flex items-center gap-1 text-[9px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded-md border-2 border-foreground bg-accent text-accent-foreground"
+                          >
+                            <Sparkles size={9} />
+                            {why}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <VacancyCard
+                      vacancy={r.vacancy as unknown as Vacancy}
+                      application={appMap.get(r.vacancy.id) ?? null}
+                      onApply={handleApply}
+                      onDeleted={() => void refreshApplications()}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
+
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
             {Array.from({ length: 6 }).map((_, i) => (
               <OpportunitySkeletonCard key={i} />
