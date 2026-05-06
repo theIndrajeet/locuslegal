@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Loader2, Plus, ShieldOff, Trash2, Briefcase, FileText, Gavel, Trophy, Pencil, Archive } from "lucide-react";
+import { Loader2, Plus, ShieldOff, Trash2, Briefcase, FileText, Gavel, Trophy, Pencil, Archive, Inbox } from "lucide-react";
+import ReviewQueuePanel from "@/components/admin/opportunities/ReviewQueuePanel";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdminAccess } from "@/hooks/useAdminRole";
 import { useAuthSession } from "@/hooks/useAuthSession";
@@ -305,6 +306,7 @@ export default function AdminOpportunities() {
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="border-2 border-foreground">
           <TabsTrigger value="vacancies"><Briefcase size={14} className="mr-1" /> Vacancies</TabsTrigger>
+          <TabsTrigger value="queue"><Inbox size={14} className="mr-1" /> Review Queue</TabsTrigger>
           {TABLES.map((t) => (
             <TabsTrigger key={t.key} value={t.key}>
               <t.icon size={14} className="mr-1" /> {t.label}
@@ -314,6 +316,10 @@ export default function AdminOpportunities() {
 
         <TabsContent value="vacancies" className="mt-6">
           <VacanciesPanel userId={userId ?? ""} />
+        </TabsContent>
+
+        <TabsContent value="queue" className="mt-6">
+          <ReviewQueuePanel userId={userId ?? ""} />
         </TabsContent>
 
         {TABLES.map((t) => (
