@@ -1015,6 +1015,54 @@ export type Database = {
           },
         ]
       }
+      firm_careers_sources: {
+        Row: {
+          active: boolean
+          created_at: string
+          firm_name: string
+          firm_slug: string
+          id: string
+          last_error: string | null
+          last_scraped_at: string | null
+          last_status: string | null
+          notes: string | null
+          scrape_count: number
+          selector_hints: Json | null
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          firm_name: string
+          firm_slug: string
+          id?: string
+          last_error?: string | null
+          last_scraped_at?: string | null
+          last_status?: string | null
+          notes?: string | null
+          scrape_count?: number
+          selector_hints?: Json | null
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          firm_name?: string
+          firm_slug?: string
+          id?: string
+          last_error?: string | null
+          last_scraped_at?: string | null
+          last_status?: string | null
+          notes?: string | null
+          scrape_count?: number
+          selector_hints?: Json | null
+          updated_at?: string
+          url?: string
+        }
+        Relationships: []
+      }
       firm_suggestions: {
         Row: {
           admin_note: string | null
