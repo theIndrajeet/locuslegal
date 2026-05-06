@@ -172,8 +172,19 @@ export default function Opportunities() {
   const activeStreams: OpportunityStream[] = filter ? [filter] : currentGroup.streams;
 
   const filtered = useMemo(
-    () => items.filter((i) => activeStreams.includes(i.stream)),
-    [items, activeStreams],
+    () =>
+      items.filter((i) => {
+        if (!activeStreams.includes(i.stream)) return false;
+        // Tier filter only applies to career stream (vacancies have a tier).
+        if (tierFilter && (i.stream === "internship" || i.stream === "job")) {
+          return (i as VacancyLike).tier === tierFilter;
+        }
+        if (tierFilter && !(i.stream === "internship" || i.stream === "job")) {
+          return false;
+        }
+        return true;
+      }),
+    [items, activeStreams, tierFilter],
   );
 
   const liveCount = items.filter((i) => new Date(deadlineOf(i)).getTime() > Date.now()).length;
