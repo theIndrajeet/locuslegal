@@ -281,6 +281,7 @@ export default function ProfileEdit() {
         />
 
         <OpenToOpportunitiesSection userId={userId} />
+        <OpportunityPreferencesSection userId={userId} />
         <BarPrivacySection userId={userId} />
 
         {hasPassword && (
