@@ -23,10 +23,12 @@ import {
   type VacancyApplication,
   applicationStateFor,
   isFreshVacancy,
+  TIER_LABELS,
 } from "@/lib/vacancies";
 import { useCountdown } from "@/lib/useCountdown";
 import { cn } from "@/lib/utils";
 import { shareOrCopy, withRef } from "@/lib/share";
+import { ExternalLink as ExternalLinkIcon } from "lucide-react";
 
 interface Props {
   vacancy: Vacancy;
