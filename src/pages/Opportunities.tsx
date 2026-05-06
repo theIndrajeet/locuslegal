@@ -186,6 +186,7 @@ export default function Opportunities() {
     ? (() => {
         const v = draftFor.vacancy;
         const existing = appMap.get(v.id);
+        const isPortal = v.application_mode === "external_url";
         return {
           id: `vacancy-${v.id}${draftFor.followup ? "-followup" : ""}`,
           name: v.firm_name,
@@ -194,9 +195,11 @@ export default function Opportunities() {
           type: null,
           city: v.location,
           sector: null,
-          practice_areas: null,
+          practice_areas: v.practice_area,
           legal_needs: v.description,
           roleHint: v.role,
+          mode: isPortal ? "portal" : "email",
+          portalUrl: isPortal ? v.application_url : null,
           followup:
             draftFor.followup && existing
               ? {
