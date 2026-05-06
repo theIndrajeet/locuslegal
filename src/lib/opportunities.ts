@@ -18,7 +18,11 @@ export interface VacancyLike extends BaseOpp {
   stipend?: string | null;
   eligibility?: string | null;
   expires_at: string;
-  application_email: string;
+  application_email: string | null;
+  application_mode?: "email" | "external_url" | null;
+  application_url?: string | null;
+  tier?: "tier_1" | "tier_2" | "tier_3" | "boutique" | "in_house" | "psu" | "big_4" | "other" | null;
+  practice_area?: string | null;
   task_brief?: string | null;
 }
 
