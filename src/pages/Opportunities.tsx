@@ -218,6 +218,16 @@ export default function Opportunities() {
     [items, activeStreams, tierFilter],
   );
 
+  // Ranked recommendations (career stream, signed-in users with prefs only)
+  const ranked = useMemo(() => {
+    if (!userId || !prefsLoaded) return [];
+    if (!hasAnyPrefs(prefs)) return [];
+    const appliedIds = new Set(Array.from(appMap.keys()));
+    return rankVacancies(vacancyItems, prefs, appliedIds).slice(0, 6);
+  }, [userId, prefsLoaded, prefs, vacancyItems, appMap]);
+
+  const showRecommended = activeGroup === "career" && !filter && !tierFilter;
+  const showPrefsNudge = showRecommended && userId && prefsLoaded && !hasAnyPrefs(prefs);
   const liveCount = items.filter((i) => new Date(deadlineOf(i)).getTime() > Date.now()).length;
 
   const handleApply = (v: Vacancy, opts?: { followup?: boolean }) => {
