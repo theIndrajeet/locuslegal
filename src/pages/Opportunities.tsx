@@ -17,6 +17,7 @@ import {
   Link2,
   Check,
   Share2,
+  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import { shareOrCopy, withRef } from "@/lib/share";
@@ -37,6 +38,8 @@ import { useAuthSession } from "@/hooks/useAuthSession";
 import VacancyCard from "@/components/vacancies/VacancyCard";
 import DraftEmailDialog, { type DraftEmailTarget } from "@/components/apply/DraftEmailDialog";
 import { type Vacancy, type VacancyApplication, type VacancyTier, TIER_LABELS, TIER_OPTIONS } from "@/lib/vacancies";
+import { rankVacancies, hasAnyPrefs, type UserOpportunityPrefs } from "@/lib/opportunity-ranker";
+import { Link } from "react-router-dom";
 import {
   STREAM_META,
   streamLabel,
@@ -80,6 +83,34 @@ export default function Opportunities() {
   const [appMap, setAppMap] = useState<Map<string, VacancyApplication>>(new Map());
   const [draftFor, setDraftFor] = useState<{ vacancy: Vacancy; followup: boolean } | null>(null);
   const [draftOpen, setDraftOpen] = useState(false);
+
+  // User opportunity preferences for "Recommended for you"
+  const [prefs, setPrefs] = useState<UserOpportunityPrefs>({
+    target_tiers: [], target_locations: [], target_practice_areas: [],
+  });
+  const [prefsLoaded, setPrefsLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!userId) { setPrefsLoaded(true); return; }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("target_tiers, target_locations, target_practice_areas")
+        .eq("id", userId)
+        .maybeSingle();
+      if (cancelled) return;
+      if (data) {
+        setPrefs({
+          target_tiers: (data.target_tiers as string[] | null) ?? [],
+          target_locations: (data.target_locations as string[] | null) ?? [],
+          target_practice_areas: (data.target_practice_areas as string[] | null) ?? [],
+        });
+      }
+      setPrefsLoaded(true);
+    })();
+    return () => { cancelled = true; };
+  }, [userId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -187,6 +218,16 @@ export default function Opportunities() {
     [items, activeStreams, tierFilter],
   );
 
+  // Ranked recommendations (career stream, signed-in users with prefs only)
+  const ranked = useMemo(() => {
+    if (!userId || !prefsLoaded) return [];
+    if (!hasAnyPrefs(prefs)) return [];
+    const appliedIds = new Set(Array.from(appMap.keys()));
+    return rankVacancies(vacancyItems, prefs, appliedIds).slice(0, 6);
+  }, [userId, prefsLoaded, prefs, vacancyItems, appMap]);
+
+  const showRecommended = activeGroup === "career" && !filter && !tierFilter;
+  const showPrefsNudge = showRecommended && userId && prefsLoaded && !hasAnyPrefs(prefs);
   const liveCount = items.filter((i) => new Date(deadlineOf(i)).getTime() > Date.now()).length;
 
   const handleApply = (v: Vacancy, opts?: { followup?: boolean }) => {
@@ -334,7 +375,74 @@ export default function Opportunities() {
           )}
         </div>
 
+        {showRecommended && !loading && (ranked.length > 0 || showPrefsNudge) && (
+          <section className="mb-7">
+            <div className="flex items-end justify-between mb-3">
+              <div>
+                <h2 className="font-heading text-lg md:text-xl font-extrabold tracking-tight text-foreground flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-accent" />
+                  Recommended for you
+                </h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Matched to your tiers, locations, and practice areas.
+                </p>
+              </div>
+              <Link
+                to="/profile/edit#preferences"
+                className="text-[11px] font-bold uppercase tracking-wider text-accent hover:underline whitespace-nowrap"
+              >
+                refine →
+              </Link>
+            </div>
+            {showPrefsNudge ? (
+              <div className="border-2 border-dashed border-foreground/40 rounded-xl p-5 bg-card flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div>
+                  <p className="font-heading text-sm font-extrabold uppercase tracking-wider text-foreground">
+                    Tell us what you're after
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Pick your target tiers, cities, and practice areas to unlock a personalised feed.
+                  </p>
+                </div>
+                <Link to="/profile/edit#preferences">
+                  <Button size="sm">Set preferences</Button>
+                </Link>
+              </div>
+            ) : (
+              <div className="flex gap-4 overflow-x-auto no-scrollbar -mx-4 px-4 pb-2 md:grid md:grid-cols-2 md:overflow-visible md:mx-0 md:px-0">
+                {ranked.map((r) => (
+                  <div
+                    key={`rec-${r.vacancy.id}`}
+                    className="shrink-0 w-[88%] sm:w-[60%] md:w-auto relative"
+                  >
+                    {r.reasons.length > 0 && (
+                      <div className="absolute -top-2 left-3 z-10 flex gap-1 flex-wrap">
+                        {r.reasons.slice(0, 2).map((why, i) => (
+                          <span
+                            key={i}
+                            className="inline-flex items-center gap-1 text-[9px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded-md border-2 border-foreground bg-accent text-accent-foreground"
+                          >
+                            <Sparkles size={9} />
+                            {why}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <VacancyCard
+                      vacancy={r.vacancy as unknown as Vacancy}
+                      application={appMap.get(r.vacancy.id) ?? null}
+                      onApply={handleApply}
+                      onDeleted={() => void refreshApplications()}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
+
         {loading ? (
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
             {Array.from({ length: 6 }).map((_, i) => (
               <OpportunitySkeletonCard key={i} />

@@ -17,6 +17,7 @@ import PublicationsSection, { Publication } from "@/components/profile/Publicati
 import CvSection from "@/components/profile/CvSection";
 import BarPrivacySection from "@/components/profile/BarPrivacySection";
 import OpenToOpportunitiesSection from "@/components/profile/OpenToOpportunitiesSection";
+import OpportunityPreferencesSection from "@/components/profile/OpportunityPreferencesSection";
 import ProfileStrengthMeter from "@/components/profile/ProfileStrengthMeter";
 
 type Degree = "BA LLB" | "BBA LLB" | "BCom LLB" | "LLB (3yr)" | "LLM" | "Other";
@@ -184,6 +185,15 @@ export default function ProfileEdit() {
     else { toast.success("Password updated"); setNewPassword(""); setConfirmPassword(""); }
   };
 
+  // After load, scroll to #preferences if requested via hash.
+  useEffect(() => {
+    if (loading) return;
+    if (typeof window === "undefined") return;
+    if (window.location.hash !== "#preferences") return;
+    const el = document.getElementById("preferences");
+    if (el) requestAnimationFrame(() => el.scrollIntoView({ behavior: "smooth", block: "start" }));
+  }, [loading]);
+
   if (loading || !userId) {
     return (
       <div className="min-h-screen px-4 py-20 max-w-3xl mx-auto space-y-6">
@@ -280,6 +290,7 @@ export default function ProfileEdit() {
         />
 
         <OpenToOpportunitiesSection userId={userId} />
+        <OpportunityPreferencesSection userId={userId} />
         <BarPrivacySection userId={userId} />
 
         {hasPassword && (
