@@ -15,7 +15,7 @@ import { track } from "@/lib/analytics";
 export interface DraftEmailTarget {
   id: string; // unique key for caching
   name: string;
-  email: string;
+  email: string | null;
   kind: "firm" | "startup";
   type?: string | null;
   city?: string | null;
@@ -30,6 +30,10 @@ export interface DraftEmailTarget {
     originalRole: string;
     applicationId?: string; // existing profile_applications row to update
   } | null;
+  // Portal mode: skips Gmail, shows "Continue to portal →" instead.
+  // The generated email becomes a copyable cover letter.
+  mode?: "email" | "portal";
+  portalUrl?: string | null;
 }
 
 interface Props {
