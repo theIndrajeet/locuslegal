@@ -1372,6 +1372,9 @@ export type Database = {
           is_pace_setter: boolean
           open_to_opportunities: boolean
           subjects_of_interest: string[]
+          target_locations: string[]
+          target_practice_areas: string[]
+          target_tiers: string[]
           username: string
         }
         Insert: {
@@ -1391,6 +1394,9 @@ export type Database = {
           is_pace_setter?: boolean
           open_to_opportunities?: boolean
           subjects_of_interest?: string[]
+          target_locations?: string[]
+          target_practice_areas?: string[]
+          target_tiers?: string[]
           username: string
         }
         Update: {
@@ -1410,6 +1416,9 @@ export type Database = {
           is_pace_setter?: boolean
           open_to_opportunities?: boolean
           subjects_of_interest?: string[]
+          target_locations?: string[]
+          target_practice_areas?: string[]
+          target_tiers?: string[]
           username?: string
         }
         Relationships: []
