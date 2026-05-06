@@ -589,6 +589,52 @@ export default function DraftEmailDialog({ open, onOpenChange, target, onSent }:
     }
   };
 
+  const copyCoverLetter = async () => {
+    // Portal mode: copy the body only (no Subject: line) — that's what gets pasted into a portal field.
+    const text = `${body}${WATERMARK_EMAIL_SIG}`;
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("Cover letter copied — paste into the portal.");
+    } catch {
+      toast.error("Couldn't copy. Select and copy manually.");
+    }
+  };
+
+  const continueToPortal = () => {
+    if (!target?.portalUrl) return;
+    // Copy the cover letter first so the user lands in the portal with text on clipboard.
+    void navigator.clipboard?.writeText(`${body}${WATERMARK_EMAIL_SIG}`).catch(() => {});
+    void track("vacancy_apply_clicked", { vacancy_id: target.id, mode: "portal_continue" });
+    window.open(target.portalUrl, "_blank", "noopener,noreferrer");
+
+    // Background: log application as 'external' method.
+    if (userId) {
+      const today = new Date().toISOString().slice(0, 10);
+      const noteExcerpt = body.length > 500 ? body.slice(0, 497) + "…" : body;
+      void supabase
+        .from("profile_applications")
+        .insert({
+          user_id: userId,
+          firm_name_snapshot: target.name,
+          role: (target.roleHint?.trim() || brief.role),
+          applied_on: today,
+          method: "external",
+          status: "sent",
+          notes: `Applied via portal · cover letter drafted with Locus AI\n\n${noteExcerpt}`,
+        })
+        .then(({ error: logErr }) => {
+          if (logErr) {
+            toast.error("Portal opened, but couldn't log to your tracker.");
+          } else {
+            toast.success("Logged as 'Applied via portal'.", { duration: 4000 });
+            onSent?.();
+          }
+        });
+    }
+
+    onOpenChange(false);
+  };
+
   const openInGmail = () => {
     if (!target || !subject.trim() || !body.trim()) return;
     const truncated = body.length > 1800;
