@@ -36,7 +36,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import VacancyCard from "@/components/vacancies/VacancyCard";
 import DraftEmailDialog, { type DraftEmailTarget } from "@/components/apply/DraftEmailDialog";
-import { type Vacancy, type VacancyApplication } from "@/lib/vacancies";
+import { type Vacancy, type VacancyApplication, type VacancyTier, TIER_LABELS, TIER_OPTIONS } from "@/lib/vacancies";
 import {
   STREAM_META,
   streamLabel,
