@@ -245,7 +245,7 @@ export default function Opportunities() {
               return (
                 <button
                   key={g.key}
-                  onClick={() => { setActiveGroup(g.key); setFilter(null); }}
+                  onClick={() => { setActiveGroup(g.key); setFilter(null); setTierFilter(null); }}
                   className={cn(
                     "flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 px-2 py-2.5 rounded-xl border-2 text-xs sm:text-sm font-bold uppercase tracking-wider transition-all",
                     active
