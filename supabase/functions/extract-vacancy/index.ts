@@ -197,12 +197,31 @@ serve(async (req) => {
     const rawType = typeof parsed.opportunity_type === "string" ? parsed.opportunity_type.toLowerCase().trim() : "";
     const opportunity_type: "internship" | "job" = rawType === "job" ? "job" : "internship";
 
+    const rawMode = typeof parsed.application_mode === "string" ? parsed.application_mode.toLowerCase().trim() : "";
+    const rawEmail = clean(parsed.application_email, 200) ?? "";
+    const rawUrl = clean(parsed.application_url, 2000);
+    // Mode resolution: trust explicit mode; else infer from presence
+    let application_mode: "email" | "external_url" =
+      rawMode === "external_url" ? "external_url" : rawMode === "email" ? "email" : "email";
+    if (!rawMode) {
+      if (rawUrl && !rawEmail) application_mode = "external_url";
+      else application_mode = "email";
+    }
+
+    const TIERS = new Set(["tier_1","tier_2","tier_3","boutique","in_house","psu","big_4","other"]);
+    const rawTier = typeof parsed.tier === "string" ? parsed.tier.toLowerCase().trim() : "";
+    const tier = TIERS.has(rawTier) ? rawTier : null;
+
     return new Response(JSON.stringify({
       firm_name: clean(parsed.firm_name, 200) ?? "",
       role: clean(parsed.role, 200) ?? "",
       opportunity_type,
+      application_mode,
+      application_email: application_mode === "email" ? rawEmail : "",
+      application_url: application_mode === "external_url" ? rawUrl : null,
+      tier,
+      practice_area: clean(parsed.practice_area, 80),
       location: clean(parsed.location, 100),
-      application_email: clean(parsed.application_email, 200) ?? "",
       eligibility: clean(parsed.eligibility, 200),
       stipend: clean(parsed.stipend, 100),
       description: clean(parsed.description, 800),
