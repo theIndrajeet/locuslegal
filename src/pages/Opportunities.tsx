@@ -73,6 +73,7 @@ export default function Opportunities() {
   const [loading, setLoading] = useState(true);
   const [activeGroup, setActiveGroup] = useState<GroupKey>("career");
   const [filter, setFilter] = useState<OpportunityStream | null>(null);
+  const [tierFilter, setTierFilter] = useState<VacancyTier | null>(null);
   const [selected, setSelected] = useState<AnyOpportunity | null>(null);
 
   // Vacancy application tracking (career stream only)
