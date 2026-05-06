@@ -111,6 +111,23 @@ export default function VacancyCard({ vacancy, onApply, archived = false, applic
                 Task required
               </span>
             )}
+            {vacancy.tier && (
+              <span
+                className="ml-1 inline-flex items-center text-[10px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded-md border-2 border-foreground/80 bg-background text-foreground"
+                title={`Firm tier: ${TIER_LABELS[vacancy.tier]}`}
+              >
+                {TIER_LABELS[vacancy.tier]}
+              </span>
+            )}
+            {vacancy.application_mode === "external_url" && (
+              <span
+                className="ml-1 inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded-md border-2 border-foreground/80 bg-foreground text-background"
+                title="Apply via the company's careers portal"
+              >
+                <ExternalLinkIcon size={10} />
+                Portal
+              </span>
+            )}
             {isNew && (
               <span
                 className="ml-1 inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded-md border-2 border-foreground bg-accent text-accent-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))]"
