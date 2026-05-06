@@ -17,6 +17,7 @@ import {
   Link2,
   Check,
   Share2,
+  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import { shareOrCopy, withRef } from "@/lib/share";
