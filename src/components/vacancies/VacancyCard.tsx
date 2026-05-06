@@ -310,8 +310,17 @@ export default function VacancyCard({ vacancy, onApply, archived = false, applic
             }}
             className="font-bold border-2 border-foreground/80 shadow-[3px_3px_0_0_hsl(var(--foreground))] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_0_hsl(var(--foreground))] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
           >
-            <Mail size={14} className="mr-1.5" />
-            Draft application
+            {vacancy.application_mode === "external_url" ? (
+              <>
+                <ExternalLinkIcon size={14} className="mr-1.5" />
+                Apply on portal
+              </>
+            ) : (
+              <>
+                <Mail size={14} className="mr-1.5" />
+                Draft application
+              </>
+            )}
           </Button>
         )}
 
