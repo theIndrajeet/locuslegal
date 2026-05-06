@@ -37,6 +37,9 @@ import { useAuthSession } from "@/hooks/useAuthSession";
 import VacancyCard from "@/components/vacancies/VacancyCard";
 import DraftEmailDialog, { type DraftEmailTarget } from "@/components/apply/DraftEmailDialog";
 import { type Vacancy, type VacancyApplication, type VacancyTier, TIER_LABELS, TIER_OPTIONS } from "@/lib/vacancies";
+import { rankVacancies, hasAnyPrefs, type UserOpportunityPrefs } from "@/lib/opportunity-ranker";
+import { Link } from "react-router-dom";
+import { Sparkles } from "lucide-react";
 import {
   STREAM_META,
   streamLabel,
