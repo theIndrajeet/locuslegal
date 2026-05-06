@@ -84,6 +84,34 @@ export default function Opportunities() {
   const [draftFor, setDraftFor] = useState<{ vacancy: Vacancy; followup: boolean } | null>(null);
   const [draftOpen, setDraftOpen] = useState(false);
 
+  // User opportunity preferences for "Recommended for you"
+  const [prefs, setPrefs] = useState<UserOpportunityPrefs>({
+    target_tiers: [], target_locations: [], target_practice_areas: [],
+  });
+  const [prefsLoaded, setPrefsLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!userId) { setPrefsLoaded(true); return; }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("target_tiers, target_locations, target_practice_areas")
+        .eq("id", userId)
+        .maybeSingle();
+      if (cancelled) return;
+      if (data) {
+        setPrefs({
+          target_tiers: (data.target_tiers as string[] | null) ?? [],
+          target_locations: (data.target_locations as string[] | null) ?? [],
+          target_practice_areas: (data.target_practice_areas as string[] | null) ?? [],
+        });
+      }
+      setPrefsLoaded(true);
+    })();
+    return () => { cancelled = true; };
+  }, [userId]);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
